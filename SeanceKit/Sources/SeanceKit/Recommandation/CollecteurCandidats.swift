@@ -33,32 +33,56 @@ public struct CollecteurCandidats: Sendable {
         self.votesMin = votesMin
     }
 
-    /// Trois passes complémentaires : les genres préférés, les acteurs suivis, puis une passe
-    /// large qui évite d'enfermer Patrick dans ce qu'il a déjà aimé.
+    /// Quand la phrase nomme un genre (« un film de guerre »), toutes les passes s'y tiennent :
+    /// la demande l'emporte sur le profil. Sinon, trois passes complémentaires : les genres préférés,
+    /// les acteurs suivis, puis une passe large qui évite d'enfermer Patrick dans ce qu'il a déjà aimé.
     public func candidats(
         pour demande: DemandeCeSoir, profil: ProfilGouts, contexte: Contexte, maximum: Int = ClientClaude.candidatsMax
     ) async throws -> [CandidatSuggestion] {
-        var criteres = criteresBase(demande, profil, contexte)
+        let envie = demande.interpretation
+        let type = demande.typeEffectif
         var resumes: [TitreResume] = []
 
-        let genres = Array(profil.genresPreferes.prefix(3))
-        if !genres.isEmpty {
-            criteres.genresInclus = genres
-            resumes += try await titres(criteres, demande.type)
+        if envie.aDesGenres {
+            resumes += try await titres(type) { t in
+                var criteres = criteresBase(demande, profil, contexte, type: t)
+                criteres.genresInclus = envie.genres(pour: t)
+                return criteres.genresInclus.isEmpty ? nil : criteres
+            }
+            // Les mieux notés du même genre, pour ne pas s'en tenir aux plus populaires.
+            resumes += try await titres(type) { t in
+                var criteres = criteresBase(demande, profil, contexte, type: t)
+                criteres.genresInclus = envie.genres(pour: t)
+                criteres.tri = .note
+                criteres.votesMin = max(votesMin, 300)
+                return criteres.genresInclus.isEmpty ? nil : criteres
+            }
+        } else {
+            let genres = Array(profil.genresPreferes.prefix(3))
+            if !genres.isEmpty {
+                resumes += try await titres(type) { t in
+                    var criteres = criteresBase(demande, profil, contexte, type: t)
+                    criteres.genresInclus = genres
+                    return criteres
+                }
+            }
         }
 
         let acteurs = Array(profil.acteursPreferes.prefix(3))
-        if !acteurs.isEmpty, demande.type != .serie {
-            var parActeurs = criteresBase(demande, profil, contexte)
+        if !acteurs.isEmpty, type != .serie, !envie.aDesGenres || !envie.genresFilms.isEmpty {
+            var parActeurs = criteresBase(demande, profil, contexte, type: .film)
             parActeurs.acteurs = acteurs
             parActeurs.combinaisonPersonnes = .auMoinsUn
+            parActeurs.genresInclus = envie.genresFilms
             // Une passe qui peut ne rien donner : elle ne doit pas faire échouer la demande.
-            resumes += (try? await titres(parActeurs, .film)) ?? []
+            resumes += (try? await client.decouvrirFilms(parActeurs).resultats.map(\.titreResume)) ?? []
         }
 
-        var large = criteresBase(demande, profil, contexte)
-        large.genresInclus = []
-        resumes += try await titres(large, demande.type)
+        if !envie.aDesGenres {
+            resumes += try await titres(type) { t in
+                criteresBase(demande, profil, contexte, type: t)
+            }
+        }
 
         var vues = Set<ReferenceTitre>()
         return resumes
@@ -73,13 +97,17 @@ public struct CollecteurCandidats: Sendable {
             .map { CandidatSuggestion(titre: $0) }
     }
 
-    func criteresBase(_ demande: DemandeCeSoir, _ profil: ProfilGouts, _ contexte: Contexte) -> CriteresDecouverte {
+    func criteresBase(_ demande: DemandeCeSoir, _ profil: ProfilGouts, _ contexte: Contexte, type: TypeTitre) -> CriteresDecouverte {
         var criteres = CriteresDecouverte()
         criteres.region = region
         criteres.votesMin = votesMin
         criteres.tri = .popularite
-        criteres.genresExclus = Array(profil.genresEvites.prefix(4))
-        criteres.dureeMax = demande.dureeMaxMinutes
+        var exclus = demande.interpretation.genresExclus(pour: type)
+        for genre in profil.genresEvites.prefix(4) where !exclus.contains(genre) {
+            exclus.append(genre)
+        }
+        criteres.genresExclus = exclus
+        criteres.dureeMax = demande.dureeMaxEffective
         if !contexte.abonnements.isEmpty {
             criteres.fournisseurs = contexte.abonnements
             criteres.monetisations = [.abonnement, .gratuit, .avecPublicite]
@@ -87,17 +115,23 @@ public struct CollecteurCandidats: Sendable {
         return criteres
     }
 
-    /// TMDB sépare films et séries : une demande sans préférence interroge les deux.
-    func titres(_ criteres: CriteresDecouverte, _ type: TypeTitre?) async throws -> [TitreResume] {
-        switch type {
-        case .film:
-            return try await client.decouvrirFilms(criteres).resultats.map(\.titreResume)
-        case .serie:
-            return try await client.decouvrirSeries(criteres).resultats.map(\.titreResume)
-        case nil:
-            async let films = client.decouvrirFilms(criteres)
-            async let series = client.decouvrirSeries(criteres)
-            return try await films.resultats.map(\.titreResume) + series.resultats.map(\.titreResume)
-        }
+    /// TMDB sépare films et séries, et leurs genres n'ont pas les mêmes identifiants : chaque type
+    /// reçoit ses propres critères. Une demande sans préférence interroge les deux.
+    func titres(_ type: TypeTitre?, _ criteres: (TypeTitre) -> CriteresDecouverte?) async throws -> [TitreResume] {
+        let pourFilms = type != .serie ? criteres(.film) : nil
+        let pourSeries = type != .film ? criteres(.serie) : nil
+        async let films = films(pourFilms)
+        async let series = series(pourSeries)
+        return try await films + series
+    }
+
+    private func films(_ criteres: CriteresDecouverte?) async throws -> [TitreResume] {
+        guard let criteres else { return [] }
+        return try await client.decouvrirFilms(criteres).resultats.map(\.titreResume)
+    }
+
+    private func series(_ criteres: CriteresDecouverte?) async throws -> [TitreResume] {
+        guard let criteres else { return [] }
+        return try await client.decouvrirSeries(criteres).resultats.map(\.titreResume)
     }
 }

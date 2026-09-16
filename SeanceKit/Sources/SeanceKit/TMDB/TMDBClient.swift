@@ -65,6 +65,15 @@ public actor TMDBClient {
         ])
     }
 
+    public func rechercherFilms(_ texte: String, annee: Int, page: Int = 1) async throws -> PageTMDB<FilmResume> {
+        try await envoyer("/3/search/movie", [
+            URLQueryItem(name: "query", value: texte),
+            URLQueryItem(name: "primary_release_year", value: String(annee)),
+            URLQueryItem(name: "include_adult", value: "false"),
+            URLQueryItem(name: "page", value: String(page)),
+        ])
+    }
+
     public func rechercherSeries(_ texte: String, page: Int = 1) async throws -> PageTMDB<SerieResume> {
         try await envoyer("/3/search/tv", [
             URLQueryItem(name: "query", value: texte),

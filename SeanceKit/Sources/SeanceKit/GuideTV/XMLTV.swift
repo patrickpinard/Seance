@@ -24,6 +24,21 @@ public struct ChaineGuide: Sendable, Hashable, Identifiable {
         ChaineGuide(id: "NT1.fr", nom: "TFX"),
         ChaineGuide(id: "6ter.fr", nom: "6ter"),
     ]
+
+    /// Chaînes de la RTS : elles ne sont que dans le fichier complet de XML TV Fr.
+    public static let suisses: [ChaineGuide] = [
+        ChaineGuide(id: "RTSUn.ch", nom: "RTS 1"),
+        ChaineGuide(id: "RTSDeux.ch", nom: "RTS 2"),
+    ]
+
+    /// Toutes les chaînes proposées dans les réglages.
+    public static var catalogue: [ChaineGuide] { suisses + tntParDefaut }
+
+    /// Cochées au premier lancement : RTS, TF1, France 2, France 3, M6 et Arte.
+    public static var parDefaut: [ChaineGuide] {
+        let ids: Set = ["RTSUn.ch", "RTSDeux.ch", "TF1.fr", "France2.fr", "France3.fr", "M6.fr", "Arte.fr"]
+        return catalogue.filter { ids.contains($0.id) }
+    }
 }
 
 public struct ProgrammeTV: Sendable, Hashable {

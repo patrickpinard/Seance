@@ -46,11 +46,24 @@ public enum NormalisationTitre {
             .map { CharacterSet.alphanumerics.contains($0) ? String($0) : " " }
             .joined()
             .split(separator: " ")
-            .map(String.init)
+            // « Jerry and Marge » et « Jerry & Marge » : la conjonction anglaise vaut l'esperluette.
+            .map { $0 == "and" ? "et" : String($0) }
         guard mots.count > 1, let premier = mots.first, articlesInitiaux.contains(premier) else {
             return mots.joined(separator: " ")
         }
         return mots.dropFirst().joined(separator: " ")
+    }
+
+    /// Forme sans espaces : « Tyler Perrys » et « Tyler Perry's » se rejoignent.
+    public static func compacter(_ titre: String) -> String {
+        normaliser(titre).replacingOccurrences(of: " ", with: "")
+    }
+
+    /// Égalité normale ou compacte.
+    public static func equivalents(_ a: String, _ b: String) -> Bool {
+        let na = normaliser(a)
+        guard !na.isEmpty else { return false }
+        return na == normaliser(b) || compacter(a) == compacter(b)
     }
 }
 
@@ -68,17 +81,27 @@ public enum Rattacheur {
             // L'année d'un guide TV est celle de l'épisode : elle suit la première diffusion.
             guard annee >= anneeCandidat - toleranceAnnees else { return false }
         }
-        let normalise = NormalisationTitre.normaliser(titre)
-        guard !normalise.isEmpty else { return false }
-        return normalise == NormalisationTitre.normaliser(candidat.titre)
-            || normalise == NormalisationTitre.normaliser(candidat.titreOriginal)
+        return NormalisationTitre.equivalents(titre, candidat.titre)
+            || NormalisationTitre.equivalents(titre, candidat.titreOriginal)
+    }
+
+    /// Programme sans année (fréquent dans les guides TV) : retenu seulement si un seul titre TMDB
+    /// porte ce nom, en français ou en version originale.
+    public static func rattacherSansAnnee(titre: String, parmi candidats: [CandidatRattachement]) -> CandidatRattachement? {
+        let retenus = candidats.filter {
+            NormalisationTitre.equivalents(titre, $0.titre) || NormalisationTitre.equivalents(titre, $0.titreOriginal)
+        }
+        return Set(retenus.map(\.tmdbID)).count == 1 ? retenus.first : nil
     }
 
     /// Le candidat retenu, ou `nil` si aucun ne correspond ou si plusieurs titres TMDB différents correspondent.
     public static func rattacher(titre: String, annee: Int?, parmi candidats: [CandidatRattachement]) -> CandidatRattachement? {
         let retenus = candidats.filter { correspond(titre: titre, annee: annee, candidat: $0) }
         let identifiants = Set(retenus.map { "\($0.type.rawValue):\($0.tmdbID)" })
-        return identifiants.count == 1 ? retenus.first : nil
+        if identifiants.count == 1 { return retenus.first }
+        // Homonymes à un an près (« Safe House » 2024 et 2025) : l'année exacte départage, si elle est unique.
+        let exacts = retenus.filter { $0.annee == annee }
+        return Set(exacts.map(\.tmdbID)).count == 1 ? exacts.first : nil
     }
 }
 
@@ -91,6 +114,8 @@ extension ProgrammeTV {
         case .serie: type = .serie
         case .autre: return nil
         }
-        return Rattacheur.rattacher(titre: titre, annee: annee, parmi: candidats.filter { $0.type == type })
+        let memeType = candidats.filter { $0.type == type }
+        guard let annee else { return Rattacheur.rattacherSansAnnee(titre: titre, parmi: memeType) }
+        return Rattacheur.rattacher(titre: titre, annee: annee, parmi: memeType)
     }
 }

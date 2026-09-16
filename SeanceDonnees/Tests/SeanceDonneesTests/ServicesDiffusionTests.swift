@@ -75,7 +75,10 @@ struct ServicesDiffusionTests {
             rattachement: RattachementGuide(recherche: RechercheFixe())
         )
         let rapport = try await service.actualiser(maintenant: maintenant)
-        #expect(rapport == ServiceProgrammesTV.Rapport(programmesLus: 2, diffusionsEnregistrees: 1, recherchesEnEchec: 0))
+        #expect(rapport == ServiceProgrammesTV.Rapport(
+            programmesLus: 2, diffusionsEnregistrees: 1, recherchesEnEchec: 0,
+            filmsLus: 2, filmsRattaches: 1, filmsNonRattaches: ["Inconnu au bataillon"]
+        ))
 
         // Une seconde actualisation remplace au lieu d'accumuler.
         try await service.actualiser(maintenant: maintenant)
@@ -89,6 +92,26 @@ struct ServicesDiffusionTests {
             return
         }
         #expect(diffusion.chaine == "M6")
+    }
+
+    @Test func chainesParDefautEtRythmeDeLecture() throws {
+        let conteneur = try EntrepotSeance.conteneur(.memoire)
+        let contexte = conteneur.mainContext
+        #expect(try ServiceProgrammesTV.preparerChaines(contexte))
+        #expect(try ServiceProgrammesTV.chainesActives(contexte).contains("RTSUn.ch"))
+        // Une fois les chaînes réglées, un choix de Patrick n'est plus jamais écrasé.
+        try contexte.fetch(FetchDescriptor<Chaine>()).forEach { $0.active = false }
+        #expect(try ServiceProgrammesTV.preparerChaines(contexte) == false)
+        #expect(try ServiceProgrammesTV.chainesActives(contexte).isEmpty)
+
+        let lues = ["M6.fr", "RTSUn.ch"]
+        #expect(ServiceProgrammesTV.doitActualiser(derniereLecture: nil, chainesLues: nil, chainesActives: lues))
+        #expect(!ServiceProgrammesTV.doitActualiser(derniereLecture: maintenant, chainesLues: lues, chainesActives: lues,
+                                                    maintenant: maintenant.addingTimeInterval(3600)))
+        #expect(ServiceProgrammesTV.doitActualiser(derniereLecture: maintenant, chainesLues: lues, chainesActives: lues,
+                                                   maintenant: maintenant.addingTimeInterval(13 * 3600)))
+        #expect(ServiceProgrammesTV.doitActualiser(derniereLecture: maintenant, chainesLues: ["M6.fr"], chainesActives: lues,
+                                                   maintenant: maintenant.addingTimeInterval(60)))
     }
 
     @Test func leNASEtLesAbonnementsDuMagasin() throws {

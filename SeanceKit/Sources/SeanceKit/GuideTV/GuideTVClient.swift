@@ -22,12 +22,18 @@ public actor GuideTVClient {
         self.transport = transport
     }
 
+    /// Le fichier TNT suffit pour les chaînes françaises ; la RTS impose le fichier complet.
+    public static func fichier(pour chaines: Set<String>) -> Fichier {
+        chaines.isSubset(of: Set(ChaineGuide.tntParDefaut.map(\.id))) ? .tnt : .complet
+    }
+
     /// Films et séries des chaînes demandées ; les magazines, le sport et le reste sont écartés.
     public func programmes(
-        fichier: Fichier = .tnt,
+        fichier: Fichier? = nil,
         chaines: Set<String>,
         natures: Set<ProgrammeTV.Nature> = [.film, .serie]
     ) async throws -> XMLTV.Resultat {
+        let fichier = fichier ?? Self.fichier(pour: chaines)
         var requete = URLRequest(url: Self.urlBase.appending(path: fichier.rawValue))
         requete.setValue("application/gzip", forHTTPHeaderField: "Accept")
         let (donnees, reponse) = try await transport.envoyer(requete)

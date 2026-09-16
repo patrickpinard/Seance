@@ -1,7 +1,7 @@
 import Foundation
 
 /// Ce qu'on déduit du chemin d'un fichier vidéo du NAS (modes dossier partagé et index JSON).
-public struct FichierVideoAnalyse: Sendable, Equatable {
+public struct FichierVideoAnalyse: Sendable, Hashable {
     public var type: TypeTitre
     public var titre: String
     public var annee: Int?
@@ -20,7 +20,8 @@ public enum AnalyseNomFichier {
     public static func analyser(chemin: String) -> FichierVideoAnalyse? {
         let url = URL(fileURLWithPath: chemin)
         guard extensionsVideo.contains(url.pathExtension.lowercased()) else { return nil }
-        let nom = url.deletingPathExtension().lastPathComponent
+        // macOS livre les noms décomposés (« e » + accent) : TMDB ne les retrouve qu'en forme composée.
+        let nom = url.deletingPathExtension().lastPathComponent.precomposedStringWithCanonicalMapping
         let minuscule = nom.lowercased()
         guard !minuscule.contains("sample"), !minuscule.contains("trailer") else { return nil }
 
@@ -33,7 +34,7 @@ public enum AnalyseNomFichier {
         var titre = titreAvantMarqueurs(texte, marqueurs: [episode?.debut, annee?.debut, qualite?.debut, texte.firstIndex(of: "[")])
         if episode != nil, titre.isEmpty {
             // « S01E03.mkv » : le titre est dans le dossier de la série, au-dessus d'un éventuel « Season 01 ».
-            titre = dossierDeSerie(url).map { titreAvantMarqueurs($0, marqueurs: [anneeEntreDelimiteurs(dans: $0)?.debut, $0.firstIndex(of: "[")]) } ?? ""
+            titre = dossierDeSerie(url).map(\.precomposedStringWithCanonicalMapping).map { titreAvantMarqueurs($0, marqueurs: [anneeEntreDelimiteurs(dans: $0)?.debut, $0.firstIndex(of: "[")]) } ?? ""
         }
         guard !titre.isEmpty else { return nil }
 

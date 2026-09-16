@@ -45,6 +45,8 @@ public struct CandidatSuggestion: Sendable, Equatable, Identifiable {
 
 /// Pourquoi un titre remonte, ou pourquoi il descend : chaque raison se dit en français à l'écran.
 public enum RaisonAffinite: Sendable, Equatable, Hashable {
+    /// Le genre nommé dans la demande du soir.
+    case demande(Int)
     case genreAime(Int)
     case acteurAime(Int)
     case dureeQuiVaBien(Int)
@@ -131,7 +133,7 @@ public enum ScoreurAffinite {
 
         // Regardable sans rien louer ni attendre.
         switch candidat.disponibilite {
-        case .surNAS, .dansAbonnements:
+        case .some(.surNAS), .some(.dansAbonnements):
             valeur += 0.07
             raisons.append(.regardableMaintenant)
         default:
@@ -154,7 +156,12 @@ public enum ClassementLocal {
         candidats
             .filter { retient($0, demande: demande) }
             .map { candidat in
-                let score = ScoreurAffinite.score(candidat, profil: profil)
+                var score = ScoreurAffinite.score(candidat, profil: profil)
+                // Le genre demandé passe devant les goûts habituels et s'annonce en premier.
+                if let genre = genreDemande(candidat, demande: demande) {
+                    score.valeur = min(1, score.valeur + 0.15)
+                    score.raisons.insert(.demande(genre), at: 0)
+                }
                 return SuggestionClassee(
                     candidat: candidat,
                     score: score,
@@ -168,10 +175,21 @@ public enum ClassementLocal {
             }
     }
 
+    /// Le premier genre demandé que le candidat possède, s'il y en a un.
+    static func genreDemande(_ candidat: CandidatSuggestion, demande: DemandeCeSoir) -> Int? {
+        demande.interpretation.genres(pour: candidat.reference.type).first { candidat.titre.genres.contains($0) }
+    }
+
     static func retient(_ candidat: CandidatSuggestion, demande: DemandeCeSoir) -> Bool {
-        if let type = demande.type, candidat.reference.type != type { return false }
+        if let type = demande.typeEffectif, candidat.reference.type != type { return false }
+        let envie = demande.interpretation
+        let type = candidat.reference.type
+        if envie.aDesGenres {
+            guard genreDemande(candidat, demande: demande) != nil else { return false }
+        }
+        if !Set(envie.genresExclus(pour: type)).isDisjoint(with: candidat.titre.genres) { return false }
         // Une durée inconnue ne fait pas écarter le titre : TMDB ne la donne pas dans ses listes.
-        if let maximum = demande.dureeMaxMinutes, let duree = candidat.dureeMinutes, duree > maximum { return false }
+        if let maximum = demande.dureeMaxEffective, let duree = candidat.dureeMinutes, duree > maximum { return false }
         if candidat.disponibilite == .introuvable { return false }
         return true
     }
@@ -185,6 +203,8 @@ public enum Phrases {
     ) -> String {
         let morceaux = raisons.compactMap { raison -> String? in
             switch raison {
+            case .demande(let genre):
+                nomsGenres[genre].map { "\($0.lowercased()), comme demandé" }
             case .genreAime(let genre):
                 nomsGenres[genre].map { "\($0.lowercased()), comme tu aimes" }
             case .acteurAime(let acteur):
@@ -202,7 +222,8 @@ public enum Phrases {
         guard let premier = morceaux.first else {
             return "Proposé sur sa popularité : tes goûts ne disent encore rien de ce titre."
         }
-        let phrase = ([premier.prefix(1).uppercased() + premier.dropFirst()] + morceaux.dropFirst()).joined(separator: ", ")
+        let majuscule = premier.prefix(1).uppercased() + String(premier.dropFirst())
+        let phrase = ([majuscule] + morceaux.dropFirst()).joined(separator: ", ")
         return phrase + "."
     }
 }

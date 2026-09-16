@@ -99,7 +99,7 @@ struct CeSoirView: View {
     /// Les trois actions du cahier (EF-26).
     private func traiter(_ action: CarteSuggestion.Action, _ suggestion: SuggestionClassee) {
         switch action {
-        case .jeRegarde: try? gouts.jeRegarde(suggestion.candidat)
+        case .jeRegarde: _ = try? gouts.jeRegarde(suggestion.candidat)
         case .pasCeSoir: try? gouts.reporter(suggestion.reference)
         case .jamais: try? gouts.jamais(suggestion.reference, titre: suggestion.candidat.titre.titre)
         }

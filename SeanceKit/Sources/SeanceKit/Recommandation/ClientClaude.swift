@@ -90,18 +90,17 @@ public actor ClientClaude {
         _ demande: DemandeCeSoir, _ candidats: [CandidatSuggestion],
         _ profil: ProfilGouts, _ nomsGenres: [Int: String], _ nombre: Int
     ) throws -> URLRequest {
+        let format: [String: Any] = [
+            "type": "json_schema",
+            "name": "suggestions",
+            "schema": InviteCeSoir.schema(candidats, nombre: nombre),
+        ]
         let corps: [String: Any] = [
             "model": modele,
             "max_tokens": 1500,
             "system": InviteCeSoir.systeme,
             "messages": [["role": "user", "content": InviteCeSoir.message(demande, candidats, profil, nomsGenres, nombre)]],
-            "output_config": [
-                "format": [
-                    "type": "json_schema",
-                    "name": "suggestions",
-                    "schema": InviteCeSoir.schema(candidats, nombre: nombre),
-                ],
-            ],
+            "output_config": ["format": format],
         ]
         var requete = URLRequest(url: Self.urlBase.appending(path: "/v1/messages"))
         requete.httpMethod = "POST"
@@ -193,8 +192,8 @@ enum InviteCeSoir {
         morceaux.append("Demande de ce soir : \(envie.isEmpty ? "rien de précis, surprends-moi." : envie)")
 
         var precisions: [String] = []
-        if let type = demande.type { precisions.append(type == .film ? "un film" : "une série") }
-        if let duree = demande.dureeMaxMinutes { precisions.append("\(duree) min au maximum") }
+        if let type = demande.typeEffectif { precisions.append(type == .film ? "un film" : "une série") }
+        if let duree = demande.dureeMaxEffective { precisions.append("\(duree) min au maximum") }
         if !precisions.isEmpty { morceaux.append("Précisions : \(precisions.joined(separator: ", ")).") }
 
         morceaux.append(profilEnTexte(profil, nomsGenres))
@@ -244,44 +243,38 @@ enum InviteCeSoir {
     }
 
     static func ouRegarder(_ etat: EtatDisponibilite?) -> String? {
+        guard let etat else { return nil }
         switch etat {
-        case .surNAS: "sur ton NAS"
+        case .surNAS: return "sur ton NAS"
         case .dansAbonnements(let fournisseurs):
-            fournisseurs.isEmpty ? "dans tes abonnements" : "sur \(fournisseurs.map(\.nom).joined(separator: ", "))"
-        case .aLaTeleBientot(let diffusion): "à la télé sur \(diffusion.chaine)"
-        case .aLouerOuAcheter: "à louer ou à acheter"
-        case .introuvable, nil: nil
+            return fournisseurs.isEmpty ? "dans tes abonnements" : "sur \(fournisseurs.map(\.nom).joined(separator: ", "))"
+        case .aLaTeleBientot(let diffusion): return "à la télé sur \(diffusion.chaine)"
+        case .aLouerOuAcheter: return "à louer ou à acheter"
+        case .introuvable: return nil
         }
     }
 
     /// Le champ `id` est une énumération : la réponse ne peut pas sortir de la liste.
     static func schema(_ candidats: [CandidatSuggestion], nombre: Int) -> [String: Any] {
-        [
+        let identifiant: [String: Any] = ["type": "string", "enum": candidats.map(\.reference.description)]
+        let phrase: [String: Any] = ["type": "string", "maxLength": 200]
+        let element: [String: Any] = [
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "phrase"],
+            "properties": ["id": identifiant, "phrase": phrase],
+        ]
+        let liste: [String: Any] = [
+            "type": "array",
+            "minItems": 0,
+            "maxItems": nombre,
+            "items": element,
+        ]
+        return [
             "type": "object",
             "additionalProperties": false,
             "required": ["suggestions"],
-            "properties": [
-                "suggestions": [
-                    "type": "array",
-                    "minItems": 0,
-                    "maxItems": nombre,
-                    "items": [
-                        "type": "object",
-                        "additionalProperties": false,
-                        "required": ["id", "phrase"],
-                        "properties": [
-                            "id": [
-                                "type": "string",
-                                "enum": candidats.map(\.reference.description),
-                            ],
-                            "phrase": [
-                                "type": "string",
-                                "maxLength": 200,
-                            ],
-                        ],
-                    ],
-                ],
-            ],
+            "properties": ["suggestions": liste],
         ]
     }
 

@@ -50,3 +50,35 @@ struct IntegrationTMDBTests {
         #expect(!dates.pays.isEmpty)
     }
 }
+
+/// Lit le vrai guide (fichier complet, 18 Mo) et affiche ce qui passe ce soir sur les chaînes par défaut.
+/// `SEANCE_GUIDE_REEL=1 SEANCE_CLE_TMDB=… outils/tester.sh --filter GuideReel`
+@Suite("Guide TV réel", .enabled(if: ProcessInfo.processInfo.environment["SEANCE_CLE_TMDB"] != nil
+    && ProcessInfo.processInfo.environment["SEANCE_GUIDE_REEL"] != nil))
+struct GuideReelTests {
+    @Test func programmesRTSEtFrancaisRattaches() async throws {
+        let chaines = Set(ChaineGuide.parDefaut.map(\.id))
+        let debut = Date.now
+        let guide = try await GuideTVClient().programmes(chaines: chaines)
+        let lecture = Date.now.timeIntervalSince(debut)
+        let aVenir = guide.programmes.filter { $0.fin > .now }
+        #expect(aVenir.contains { $0.chaine == "RTSUn.ch" })
+
+        let client = TMDBClient(identifiants: .depuis(ProcessInfo.processInfo.environment["SEANCE_CLE_TMDB"] ?? ""))
+        let rattachement = RattachementGuide(recherche: client)
+        let debutRattachement = Date.now
+        let resultats = try await rattachement.rattacher(aVenir)
+        let duree = Date.now.timeIntervalSince(debutRattachement)
+
+        let films = resultats.filter { $0.programme.nature == .film }
+        let filmsRattaches = films.filter { $0.candidat != nil }
+        print("Lecture \(Int(lecture)) s, rattachement \(Int(duree)) s, échecs \(await rattachement.recherchesEnEchec)")
+        print("Films : \(filmsRattaches.count)/\(films.count) ; séries : \(resultats.filter { $0.programme.nature == .serie && $0.candidat != nil }.count)/\(resultats.filter { $0.programme.nature == .serie }.count)")
+        let format = Date.FormatStyle(date: .abbreviated, time: .shortened).locale(Locale(identifier: "fr_CH"))
+        for r in films.sorted(by: { $0.programme.debut < $1.programme.debut }) {
+            let etat = r.candidat.map { "→ TMDB \($0.tmdbID) « \($0.titre) » (\($0.annee.map(String.init) ?? "?"))" } ?? "✗ non rattaché"
+            print("\(r.programme.chaine) \(r.programme.debut.formatted(format)) \(r.programme.titre) [\(r.programme.annee.map(String.init) ?? "sans année")] \(etat)")
+        }
+        #expect(filmsRattaches.count * 2 >= films.count)
+    }
+}

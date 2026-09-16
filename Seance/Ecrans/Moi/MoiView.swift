@@ -3,13 +3,42 @@ import SeanceKit
 import SwiftData
 import SwiftUI
 
+/// Réglages classés par thème, comme l'app Réglages d'iOS : une ligne par catégorie, avec son état
+/// en un coup d'œil, et une page par catégorie.
 struct MoiView: View {
+    @Environment(EtatApp.self) private var etat
+    @Query(filter: #Predicate<Abonnement> { $0.actif }) private var abonnements: [Abonnement]
+    @Query(filter: #Predicate<Chaine> { $0.active }) private var chaines: [Chaine]
+
     var body: some View {
         NavigationStack {
             List {
+                Section("Comptes") {
+                    NavigationLink { ReglagesTMDBView() } label: {
+                        LigneReglage(titre: "TMDB", symbole: "film.stack", couleur: .teal,
+                                     valeur: etat.tmdb == nil ? "À saisir" : "Connecté")
+                    }
+                    NavigationLink { ReglagesClaudeView() } label: {
+                        LigneReglage(titre: "Claude", symbole: "sparkles", couleur: .orange,
+                                     valeur: etat.claude == nil ? "Facultatif" : "Connecté")
+                    }
+                }
+
+                Section("Où regarder") {
+                    NavigationLink { ReglagesPlateformesView() } label: {
+                        LigneReglage(titre: "Plateformes", symbole: "play.rectangle.on.rectangle.fill", couleur: .red,
+                                     valeur: abonnements.isEmpty ? "Aucune" : "\(abonnements.count)")
+                    }
+                    NavigationLink { ReglagesTeleView() } label: {
+                        LigneReglage(titre: "Télévision", symbole: "tv.fill", couleur: .blue,
+                                     valeur: chaines.isEmpty ? "Aucune chaîne" : "\(chaines.count) chaînes")
+                    }
+                }
+
                 Section {
-                    NavigationLink("Réglages") { ReglagesView() }
-                    NavigationLink("À propos") { AProposView() }
+                    NavigationLink { AProposView() } label: {
+                        LigneReglage(titre: "À propos", symbole: "info", couleur: .gray, valeur: nil)
+                    }
                 }
             }
             .scrollContentBackground(.hidden)
@@ -19,18 +48,45 @@ struct MoiView: View {
     }
 }
 
-/// EF-42 à EF-45 : clé TMDB, abonnements et chaînes.
-struct ReglagesView: View {
+/// Ligne de catégorie : pastille colorée, titre et état courant à droite.
+private struct LigneReglage: View {
+    let titre: String
+    let symbole: String
+    let couleur: Color
+    let valeur: String?
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: symbole)
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(.white)
+                .frame(width: 30, height: 30)
+                .background(couleur.gradient, in: RoundedRectangle(cornerRadius: 7, style: .continuous))
+            Text(titre)
+            Spacer()
+            if let valeur {
+                Text(valeur).foregroundStyle(.secondary)
+            }
+        }
+    }
+}
+
+/// Mise en forme commune des pages de réglages.
+private extension View {
+    func pageReglages(_ titre: String) -> some View {
+        scrollContentBackground(.hidden)
+            .background(Theme.fond)
+            .navigationTitle(titre)
+            .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+/// EF-42 : clé TMDB, testée avant d'être enregistrée dans le trousseau.
+struct ReglagesTMDBView: View {
     @Environment(EtatApp.self) private var etat
-    @Environment(\.modelContext) private var contexte
-    @Query private var abonnements: [Abonnement]
-    @Query private var chaines: [Chaine]
     @State private var jeton = ""
-    @State private var cleClaude = ""
     @State private var enTest = false
     @State private var message: String?
-    @State private var messageClaude: String?
-    @State private var catalogue: [FournisseurCatalogue] = []
 
     var body: some View {
         Form {
@@ -39,6 +95,7 @@ struct ReglagesView: View {
                     LabeledContent("Clé TMDB", value: "enregistrée")
                     Button("Supprimer la clé", role: .destructive) {
                         try? etat.supprimerCle()
+                        message = nil
                     }
                 } else {
                     SecureField("Clé d'API ou jeton d'accès en lecture", text: $jeton)
@@ -58,68 +115,11 @@ struct ReglagesView: View {
                 if let message {
                     Text(message).font(.footnote).foregroundStyle(.secondary)
                 }
-            } header: {
-                Text("TMDB")
-            }
-
-            Section {
-                if etat.claude != nil {
-                    LabeledContent("Clé Claude", value: "enregistrée")
-                    Button("Supprimer la clé", role: .destructive) {
-                        try? etat.supprimerCleClaude()
-                        messageClaude = nil
-                    }
-                } else {
-                    SecureField("Clé d'API (sk-ant-…)", text: $cleClaude)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                    Button("Enregistrer la clé") {
-                        do {
-                            try etat.enregistrerCleClaude(cleClaude)
-                            cleClaude = ""
-                            messageClaude = "Clé enregistrée dans le trousseau."
-                        } catch {
-                            messageClaude = error.localizedDescription
-                        }
-                    }
-                    .disabled(cleClaude.isEmpty)
-                    Link("Créer une clé sur console.anthropic.com",
-                         destination: URL(string: "https://console.anthropic.com/settings/keys")!)
-                }
-                if let messageClaude {
-                    Text(messageClaude).font(.footnote).foregroundStyle(.secondary)
-                }
-            } header: {
-                Text("Claude")
             } footer: {
-                Text("Sans clé, « Ce soir » classe les titres sur l'iPhone, à partir de tes goûts. Avec une clé, Claude lit ta demande et explique ses choix : environ 0,07 $ par demande.")
-            }
-
-            Section("Abonnements en Suisse") {
-                if etat.tmdb == nil {
-                    Text("Enregistre d'abord la clé TMDB.").foregroundStyle(.secondary)
-                } else if catalogue.isEmpty {
-                    ProgressView()
-                }
-                ForEach(catalogue) { fournisseur in
-                    Toggle(fournisseur.nom, isOn: liaisonAbonnement(fournisseur))
-                }
-            }
-
-            Section {
-                ForEach(ChaineGuide.tntParDefaut, id: \.id) { chaine in
-                    Toggle(chaine.nom, isOn: liaisonChaine(chaine))
-                }
-            } header: {
-                Text("Chaînes TV")
-            } footer: {
-                Text("Programmes des chaînes françaises : XML TV Fr, projet bénévole, sans garantie.")
+                Text("TMDB fournit les fiches, les affiches et les plateformes. La clé reste dans le trousseau de l'iPhone.")
             }
         }
-        .scrollContentBackground(.hidden)
-        .background(Theme.fond)
-        .navigationTitle("Réglages")
-        .task(id: etat.tmdb == nil) { await chargerCatalogue() }
+        .pageReglages("TMDB")
     }
 
     private func tester() async {
@@ -135,14 +135,84 @@ struct ReglagesView: View {
             message = "Test impossible : \(error.localizedDescription)"
         }
     }
+}
 
-    private func chargerCatalogue() async {
+/// EF-27 : clé Claude facultative.
+struct ReglagesClaudeView: View {
+    @Environment(EtatApp.self) private var etat
+    @State private var cleClaude = ""
+    @State private var message: String?
+
+    var body: some View {
+        Form {
+            Section {
+                if etat.claude != nil {
+                    LabeledContent("Clé Claude", value: "enregistrée")
+                    Button("Supprimer la clé", role: .destructive) {
+                        try? etat.supprimerCleClaude()
+                        message = nil
+                    }
+                } else {
+                    SecureField("Clé d'API (sk-ant-…)", text: $cleClaude)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                    Button("Enregistrer la clé") {
+                        do {
+                            try etat.enregistrerCleClaude(cleClaude)
+                            cleClaude = ""
+                            message = "Clé enregistrée dans le trousseau."
+                        } catch {
+                            message = error.localizedDescription
+                        }
+                    }
+                    .disabled(cleClaude.isEmpty)
+                    Link("Créer une clé sur console.anthropic.com",
+                         destination: URL(string: "https://console.anthropic.com/settings/keys")!)
+                }
+                if let message {
+                    Text(message).font(.footnote).foregroundStyle(.secondary)
+                }
+            } footer: {
+                Text("Sans clé, « Ce soir » classe les titres sur l'iPhone, à partir de tes goûts. Avec une clé, Claude lit ta demande et explique ses choix : environ 0,07 $ par demande.")
+            }
+        }
+        .pageReglages("Claude")
+    }
+}
+
+/// EF-43 : plateformes auxquelles Patrick est abonné, parmi celles que TMDB connaît en Suisse.
+struct ReglagesPlateformesView: View {
+    @Environment(EtatApp.self) private var etat
+    @Environment(\.modelContext) private var contexte
+    @Query private var abonnements: [Abonnement]
+    @State private var catalogue: [FournisseurCatalogue] = []
+
+    var body: some View {
+        Form {
+            Section {
+                if etat.tmdb == nil {
+                    Text("Enregistre d'abord la clé TMDB.").foregroundStyle(.secondary)
+                } else if catalogue.isEmpty {
+                    ProgressView()
+                }
+                ForEach(catalogue) { fournisseur in
+                    Toggle(fournisseur.nom, isOn: liaison(fournisseur))
+                }
+            } footer: {
+                Text("Disponibilités en Suisse fournies par JustWatch, via TMDB.")
+            }
+        }
+        .pageReglages("Plateformes")
+        .task(id: etat.tmdb == nil) { await charger() }
+    }
+
+    private func charger() async {
         guard let client = etat.tmdb else { return }
         let liste = (try? await client.catalogueFournisseurs(.film)) ?? []
         catalogue = liste.sorted { ($0.priorites["CH"] ?? .max) < ($1.priorites["CH"] ?? .max) }
     }
 
-    private func liaisonAbonnement(_ fournisseur: FournisseurCatalogue) -> Binding<Bool> {
+    private func liaison(_ fournisseur: FournisseurCatalogue) -> Binding<Bool> {
         Binding {
             abonnements.contains { $0.providerID == fournisseur.id && $0.actif }
         } set: { actif in
@@ -154,8 +224,83 @@ struct ReglagesView: View {
             try? contexte.save()
         }
     }
+}
 
-    private func liaisonChaine(_ chaine: ChaineGuide) -> Binding<Bool> {
+/// EF-45 à EF-51 : chaînes reçues et lecture du guide.
+struct ReglagesTeleView: View {
+    @Environment(EtatApp.self) private var etat
+    @Environment(\.modelContext) private var contexte
+    @Query private var chaines: [Chaine]
+    @State private var nonReconnusVisibles = false
+
+    var body: some View {
+        Form {
+            Section {
+                if etat.teleEnCours {
+                    HStack {
+                        Text("Lecture des programmes…")
+                        Spacer()
+                        ProgressView()
+                    }
+                } else if let derniere = etat.derniereLectureTele {
+                    LabeledContent("Dernière lecture") {
+                        Text(derniere, format: .relative(presentation: .named))
+                    }
+                }
+                if let rapport = etat.rapportTele {
+                    LabeledContent("Films reconnus", value: "\(rapport.filmsRattaches) sur \(rapport.filmsLus)")
+                    LabeledContent("Diffusions à venir", value: "\(rapport.diffusionsEnregistrees)")
+                    if !rapport.filmsNonRattaches.isEmpty {
+                        DisclosureGroup("Films non reconnus (\(rapport.filmsNonRattaches.count))", isExpanded: $nonReconnusVisibles) {
+                            ForEach(rapport.filmsNonRattaches, id: \.self) { titre in
+                                Text(titre).font(.footnote).foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+                }
+                if let erreur = etat.erreurTele {
+                    Label(erreur, systemImage: "exclamationmark.triangle")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+                Button("Actualiser maintenant") {
+                    Task { await etat.actualiserTele(contexte: contexte, force: true) }
+                }
+                .disabled(etat.teleEnCours || etat.tmdb == nil)
+            } header: {
+                Text("Guide des programmes")
+            } footer: {
+                Text("Le guide est relu toutes les 12 heures et dès que tu changes de chaînes. Un film n'apparaît que s'il est reconnu dans TMDB sans hésitation.")
+            }
+
+            Section {
+                ForEach(ChaineGuide.suisses) { chaine in
+                    Toggle(chaine.nom, isOn: liaison(chaine))
+                }
+            } header: {
+                Text("Suisse")
+            } footer: {
+                Text("Avec la RTS, Séance télécharge le guide complet (18 Mo) au lieu du guide TNT (1 Mo).")
+            }
+
+            Section {
+                ForEach(ChaineGuide.tntParDefaut) { chaine in
+                    Toggle(chaine.nom, isOn: liaison(chaine))
+                }
+            } header: {
+                Text("France")
+            } footer: {
+                Text("Programmes : XML TV Fr, projet bénévole, sans garantie.")
+            }
+        }
+        .pageReglages("Télévision")
+        // Les chaînes ont pu changer : le guide est relu en quittant la page, si nécessaire.
+        .onDisappear {
+            Task { await etat.actualiserTele(contexte: contexte) }
+        }
+    }
+
+    private func liaison(_ chaine: ChaineGuide) -> Binding<Bool> {
         Binding {
             chaines.contains { $0.identifiantGuide == chaine.id && $0.active }
         } set: { active in
@@ -204,7 +349,7 @@ struct AProposView: View {
             Section("Sources des données") {
                 Text("Cette application utilise TMDB et les API de TMDB, mais n'est ni approuvée, ni certifiée, ni validée par TMDB.")
                 Text("Disponibilités sur les plateformes : JustWatch.")
-                Text("Programmes TV des chaînes françaises : XML TV Fr, projet bénévole.")
+                Text("Programmes TV de la RTS et des chaînes françaises : XML TV Fr, projet bénévole.")
             }
 
             Section {

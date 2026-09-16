@@ -12,6 +12,7 @@
 		1A87204CC25E301D3A307919 /* SeanceWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 8B744A230DB10B098ACBAA1A /* SeanceWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		20FA4ABD083DC6765765CA01 /* SeanceDonnees in Frameworks */ = {isa = PBXBuildFile; productRef = 2CAE51A8CC0DF6130D32359E /* SeanceDonnees */; };
 		44CC27564B8FE5C1912FCED7 /* ExplorerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3279F3CE4F19B222D6A87054 /* ExplorerView.swift */; };
+		4B9275D4D5E71A9F65F5DDAF /* CeSoirView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B22994E3C0A8EC34BB582A70 /* CeSoirView.swift */; };
 		4BB80C813A05B98CADF6F397 /* RacineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E0396199B1E4C5178B12F07 /* RacineView.swift */; };
 		4D4A6E9CF41196F66D306EA3 /* MesListesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29DE681EF5C1EAA1687286C4 /* MesListesView.swift */; };
 		54F323CA789B8DA3749B81CB /* FicheDefilementTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C27D46355FD45FE0B6BCD9F /* FicheDefilementTests.swift */; };
@@ -78,6 +79,7 @@
 		7788E5AF973E89FC76F574C6 /* SeanceUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = SeanceUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		8B744A230DB10B098ACBAA1A /* SeanceWidget.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = SeanceWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		8C27D46355FD45FE0B6BCD9F /* FicheDefilementTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FicheDefilementTests.swift; sourceTree = "<group>"; };
+		B22994E3C0A8EC34BB582A70 /* CeSoirView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CeSoirView.swift; sourceTree = "<group>"; };
 		B6507C62249A2769DB1E60E0 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		BC2A60787D57F81817526B34 /* SeanceKit */ = {isa = PBXFileReference; lastKnownFileType = folder; name = SeanceKit; path = SeanceKit; sourceTree = SOURCE_ROOT; };
 		C4994130740FE5C4E9733D92 /* SeanceApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeanceApp.swift; sourceTree = "<group>"; };
@@ -163,10 +165,19 @@
 			path = Explorer;
 			sourceTree = "<group>";
 		};
+		5A85DB1D41B6EB90FB6A7935 /* CeSoir */ = {
+			isa = PBXGroup;
+			children = (
+				B22994E3C0A8EC34BB582A70 /* CeSoirView.swift */,
+			);
+			path = CeSoir;
+			sourceTree = "<group>";
+		};
 		6B0B0AC2453EF94443C6AC03 /* Ecrans */ = {
 			isa = PBXGroup;
 			children = (
 				926B0151DC70F172CA46C393 /* Accueil */,
+				5A85DB1D41B6EB90FB6A7935 /* CeSoir */,
 				4EE375953E179A32E8C952AF /* Explorer */,
 				11842A37CB6CC1E9FB06C384 /* Fiche */,
 				885C49167BD7924620D60FEF /* MesListes */,
@@ -378,6 +389,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				B771B1D712E377A57538D7D8 /* AccueilView.swift in Sources */,
+				4B9275D4D5E71A9F65F5DDAF /* CeSoirView.swift in Sources */,
 				FE7576C913266B279565E431 /* Composants.swift in Sources */,
 				030A7DD55F9553A369D2C6EB /* EtatApp.swift in Sources */,
 				44CC27564B8FE5C1912FCED7 /* ExplorerView.swift in Sources */,

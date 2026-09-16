@@ -107,7 +107,7 @@ struct AccueilView: View {
                     }
                 }
 
-                SectionTele(diffusions: diffusionsDeCeSoir)
+                SectionTele(diffusions: diffusions, lectureEnCours: etat.teleEnCours)
 
                 VStack(alignment: .leading, spacing: 12) {
                     TitreSection(titre: "Tendances") {
@@ -167,13 +167,6 @@ struct AccueilView: View {
         plateformeChoisie.map { [$0] } ?? abonnements.map(\.providerID)
     }
 
-    /// EF-46 : films et séries qui commencent entre 20 h et 23 h aujourd'hui.
-    private var diffusionsDeCeSoir: [Diffusion] {
-        let jour = DateTMDB(.now)
-        let debut = jour.instant(heure: 20)
-        let fin = jour.instant(heure: 23)
-        return diffusions.filter { $0.debut >= debut && $0.debut <= fin && $0.fin > .now }
-    }
 }
 
 /// UX-01 : bandeau vedette à faire défiler.
@@ -257,25 +250,50 @@ private struct CarrouselExplique: View {
     }
 }
 
-/// UX-19 : cartes larges des diffusions de ce soir.
+/// UX-19 : cartes larges des diffusions de ce soir ; quand la soirée est vide ou passée,
+/// les prochains films de la semaine.
 private struct SectionTele: View {
     let diffusions: [Diffusion]
+    let lectureEnCours: Bool
     @Query private var chaines: [Chaine]
 
+    /// EF-46 : ce qui commence entre 20 h et 23 h aujourd'hui et n'est pas terminé ; les films d'abord.
+    private var ceSoir: [Diffusion] {
+        let jour = DateTMDB(.now)
+        let debut = jour.instant(heure: 20)
+        let fin = jour.instant(heure: 23)
+        return diffusions
+            .filter { $0.debut >= debut && $0.debut <= fin && $0.fin > .now }
+            .sorted { ($0.typeBrut == TypeTitre.film.rawValue ? 0 : 1, $0.debut) < ($1.typeBrut == TypeTitre.film.rawValue ? 0 : 1, $1.debut) }
+    }
+
+    /// Les séries passent tous les jours : la suite de la semaine ne montre que les films.
+    private var prochainement: [Diffusion] {
+        Array(diffusions.filter { $0.debut > .now && $0.typeBrut == TypeTitre.film.rawValue }.prefix(12))
+    }
+
     var body: some View {
+        let soir = ceSoir
+        let affichees = soir.isEmpty ? prochainement : soir
         VStack(alignment: .leading, spacing: 12) {
-            TitreSection(titre: "Ce soir à la télé") {
-                Circle().fill(.red).frame(width: 8, height: 8)
+            TitreSection(titre: soir.isEmpty ? "Prochainement à la télé" : "Ce soir à la télé") {
+                if lectureEnCours {
+                    ProgressView().controlSize(.small)
+                } else if !soir.isEmpty {
+                    Circle().fill(.red).frame(width: 8, height: 8)
+                }
             }
-            if diffusions.isEmpty {
-                Text("Aucun film ni série rattaché ce soir sur tes chaînes.")
+            if affichees.isEmpty {
+                Text(lectureEnCours
+                     ? "Lecture des programmes de tes chaînes…"
+                     : "Aucun film reconnu sur tes chaînes. Choisis-les dans Moi › Télévision.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
                     .padding(.horizontal, 20)
             } else {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 12) {
-                        ForEach(diffusions) { diffusion in
+                        ForEach(affichees) { diffusion in
                             carte(diffusion)
                         }
                     }
@@ -287,6 +305,7 @@ private struct SectionTele: View {
 
     @ViewBuilder
     private func carte(_ diffusion: Diffusion) -> some View {
+        let enCours = diffusion.debut <= .now
         let contenu = VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 6) {
                 Text(nomChaine(diffusion.chaine))
@@ -294,12 +313,21 @@ private struct SectionTele: View {
                     .padding(.horizontal, 7).padding(.vertical, 4)
                     .background(.white, in: RoundedRectangle(cornerRadius: 6))
                     .foregroundStyle(.black)
-                Text(diffusion.debut, format: .dateTime.hour().minute())
-                    .font(.caption.weight(.bold))
+                if enCours {
+                    Text("En cours")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(.red)
+                } else if Calendar.current.isDateInToday(diffusion.debut) {
+                    Text(diffusion.debut, format: .dateTime.hour().minute())
+                        .font(.caption.weight(.bold))
+                } else {
+                    Text(diffusion.debut, format: .dateTime.weekday(.abbreviated).day().hour().minute())
+                        .font(.caption.weight(.bold))
+                }
             }
             Spacer()
             Text(diffusion.titreGuide).font(.headline).lineLimit(2)
-            Text("\(Int(diffusion.fin.timeIntervalSince(diffusion.debut) / 60)) min")
+            Text(detail(diffusion))
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
@@ -313,6 +341,18 @@ private struct SectionTele: View {
         } else {
             contenu
         }
+    }
+
+    /// « Film · 2000 · 155 min », « Série · S02E05 · 45 min ».
+    private func detail(_ diffusion: Diffusion) -> String {
+        var morceaux = [diffusion.typeBrut == TypeTitre.serie.rawValue ? "Série" : "Film"]
+        if let saison = diffusion.saison, let episode = diffusion.episode {
+            morceaux.append(NumeroEpisode(saison: saison, episode: episode).description)
+        } else if let annee = diffusion.anneeGuide {
+            morceaux.append(String(annee))
+        }
+        morceaux.append("\(Int(diffusion.fin.timeIntervalSince(diffusion.debut) / 60)) min")
+        return morceaux.joined(separator: " · ")
     }
 
     private func nomChaine(_ identifiant: String) -> String {

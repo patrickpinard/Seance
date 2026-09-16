@@ -179,16 +179,18 @@ public struct ProfilGouts: Sendable, Hashable {
 
         profil.genres = totalGenres.mapValues { tanh($0 / 3) }
         profil.acteurs = totalActeurs.mapValues { tanh($0 / 2) }
-        profil.nomsActeurs = profil.nomsActeurs.filter { profil.acteurs[$0.key] != nil }
+        let acteursConnus = profil.acteurs
+        profil.nomsActeurs = profil.nomsActeurs.filter { acteursConnus[$0.key] != nil }
         if !notes.isEmpty {
             profil.noteMoyenne = Double(notes.reduce(0, +)) / Double(notes.count)
         }
         if films + episodes > 0 {
             profil.partSeries = Double(episodes) / Double(films + episodes)
         }
-        if let mediane = mediane(dureesRetenues) {
-            profil.dureeHabituelleMinutes = mediane
-            let ecarts = dureesRetenues.map { abs($0 - mediane) }
+        // Nom distinct de la fonction mediane(_:), que la variable masquerait.
+        if let valeurMediane = mediane(dureesRetenues) {
+            profil.dureeHabituelleMinutes = valeurMediane
+            let ecarts = dureesRetenues.map { abs($0 - valeurMediane) }
             profil.ecartDureeMinutes = max(20, mediane(ecarts) ?? 30)
         }
         return profil

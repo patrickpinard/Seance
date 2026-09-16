@@ -128,7 +128,7 @@ struct InviteCleTMDB: View {
         ContentUnavailableView {
             Label("Clé TMDB manquante", systemImage: "key")
         } description: {
-            Text("Enregistre ta clé TMDB dans l'onglet Moi, section Réglages.")
+            Text("Enregistre ta clé TMDB dans l'onglet Moi, rubrique TMDB.")
         }
     }
 }

@@ -10,7 +10,7 @@ https://claude.ai/code/artifact/2dddc5b3-a9c7-4408-afd3-263d00b99e49
 
 | Dossier | Contenu | Compilation |
 | --- | --- | --- |
-| `SeanceKit/` | Moteur sans persistance : client TMDB, critères Explorer, programmes TV (XML TV Fr, gzip, XMLTV), rattachement à TMDB, trousseau | Command Line Tools ou Xcode |
+| `SeanceKit/` | Moteur sans persistance : client TMDB, critères Explorer, programmes TV (XML TV Fr, gzip, XMLTV), rattachement à TMDB, trousseau, profil de goûts et suggestions du soir | Command Line Tools ou Xcode |
 | `SeanceDonnees/` | Modèle SwiftData (configurations « Utilisateur » et « Cache ») | Xcode seulement : les macros `@Model` n'existent pas dans les Command Line Tools |
 | `Seance/` | App iPhone (écran provisoire du jalon 1) | Xcode |
 | `SeanceWidget/` | Widget (vide au jalon 1) | Xcode |
@@ -40,5 +40,7 @@ Les tests de `SeanceDonnees` se lancent dans Xcode (schéma du paquet `SeanceDon
 ## Sources de données
 
 - TMDB : catalogue, plateformes par pays (données JustWatch), dates. Attribution obligatoire.
+- API Claude : classement et explication des suggestions de « Ce soir » (EF-22 à EF-27). Clé facultative :
+  sans elle, le classement se fait sur l'iPhone, à partir du profil de goûts.
 - XML TV Fr : programmes des chaînes françaises, projet bénévole, un téléchargement par jour après 3 h.
 - API SRG SSR EPG : programmes RTS (jalon 2, clé à créer).

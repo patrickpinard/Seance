@@ -6,12 +6,18 @@ import Testing
 actor RechercheSimulee: RechercheTMDB {
     var films: [String: [[String: Any]]] = [:]
     var series: [String: [[String: Any]]] = [:]
+    /// Réponses de la recherche restreinte à l'année, par « titre|année ».
+    var filmsParAnnee: [String: [[String: Any]]] = [:]
     var enEchec: Set<String> = []
     private(set) var appels: [String] = []
 
-    init(films: [String: [[String: Any]]] = [:], series: [String: [[String: Any]]] = [:], enEchec: Set<String> = []) {
+    init(
+        films: [String: [[String: Any]]] = [:], series: [String: [[String: Any]]] = [:],
+        filmsParAnnee: [String: [[String: Any]]] = [:], enEchec: Set<String> = []
+    ) {
         self.films = films
         self.series = series
+        self.filmsParAnnee = filmsParAnnee
         self.enEchec = enEchec
     }
 
@@ -19,6 +25,11 @@ actor RechercheSimulee: RechercheTMDB {
         appels.append("film:\(texte)")
         if enEchec.contains(texte) { throw URLError(.timedOut) }
         return pageDe(films[texte] ?? [], FilmResume.self)
+    }
+
+    func rechercherFilms(_ texte: String, annee: Int, page: Int) async throws -> PageTMDB<FilmResume> {
+        appels.append("film:\(texte)|\(annee)")
+        return pageDe(filmsParAnnee["\(texte)|\(annee)"] ?? films[texte] ?? [], FilmResume.self)
     }
 
     func rechercherSeries(_ texte: String, page: Int) async throws -> PageTMDB<SerieResume> {
@@ -65,7 +76,35 @@ struct RattachementGuideTests {
         ])
 
         #expect(resultats.map { $0.candidat?.tmdbID } == [267_860, 267_860, 2734, nil, nil])
-        #expect(await recherche.appels == ["film:La chute de Londres", "serie:New York Unité Spéciale"])
+        // Les recherches partent en parallèle : seul compte qu'il n'y en ait qu'une par titre.
+        #expect(await recherche.appels.sorted() == ["film:La chute de Londres", "film:Que le meilleur gagne !", "serie:New York Unité Spéciale"])
+    }
+
+    @Test func rediffusionSansAnneeReprendLePassageDate() async throws {
+        let recherche = RechercheSimulee(films: ["Two Lovers": [
+            RechercheSimulee.film(10362, "Two Lovers", "Two Lovers", "2008-11-19"),
+            RechercheSimulee.film(77, "Two Lovers", "Two Lovers", "2011-02-01"),
+        ]])
+        let guide = RattachementGuide(recherche: recherche)
+        let resultats = try await guide.rattacher([
+            programme("Two Lovers", "Film", annee: 2008),
+            programme("Two Lovers", "Film", annee: nil, debut: "2026-09-21 13:35"),
+        ])
+
+        #expect(resultats.map { $0.candidat?.tmdbID } == [10362, 10362])
+    }
+
+    @Test func titreCourantRetrouveParSonAnnee() async throws {
+        let recherche = RechercheSimulee(
+            films: ["Le Pari": [RechercheSimulee.film(1, "Le Pari", "The Bet", "2019-05-01")]],
+            filmsParAnnee: ["Le Pari|1997": [RechercheSimulee.film(12_345, "Le Pari", "Le Pari", "1997-12-10")]]
+        )
+        let guide = RattachementGuide(recherche: recherche)
+        let resultats = try await guide.rattacher([programme("Le Pari", "Film", annee: 1997), programme("Inconnu", "Film", annee: 2001)])
+
+        #expect(resultats.map { $0.candidat?.tmdbID } == [12_345, nil])
+        // Sans aucun homonyme, la seconde recherche ne servirait à rien.
+        #expect(await recherche.appels.sorted() == ["film:Inconnu", "film:Le Pari", "film:Le Pari|1997"])
     }
 
     @Test func uneRechercheEnEchecNeBloquePasLesAutres() async throws {

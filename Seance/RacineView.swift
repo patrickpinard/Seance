@@ -1,9 +1,11 @@
 import SeanceKit
+import SwiftData
 import SwiftUI
 
 /// Barre d'onglets (UX, navigation) : Explorer est l'onglet de recherche d'iOS 26, en rond séparé.
 struct RacineView: View {
     @Environment(EtatApp.self) private var etat
+    @Environment(\.modelContext) private var contexte
     @State private var onglet = "accueil"
 
     var body: some View {
@@ -25,6 +27,9 @@ struct RacineView: View {
             }
         }
         .tint(Theme.accent)
+        .task { await etat.chargerGenres() }
+        // Relancé quand la clé TMDB arrive : sans elle, rien ne peut être rattaché.
+        .task(id: etat.tmdb == nil) { await etat.demarrer(contexte: contexte) }
         .onOpenURL { url in
             guard let reference = LienProfond.reference(url) else { return }
             onglet = "accueil"
