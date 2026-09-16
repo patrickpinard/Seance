@@ -1,0 +1,117 @@
+# Description du projet Xcode, lue par XcodeGen (outils/generer-projet.sh).
+# Seance.xcodeproj est généré : modifier ce fichier, pas le projet.
+name: Seance
+
+options:
+  bundleIdPrefix: ch.patrick
+  deploymentTarget:
+    iOS: "26.0"
+  developmentLanguage: fr
+  createIntermediateGroups: true
+
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    SWIFT_STRICT_CONCURRENCY: complete
+    CODE_SIGN_STYLE: Automatic
+    # Équipe personnelle de Patrick (compte Apple gratuit).
+    DEVELOPMENT_TEAM: GATK475J3P
+
+packages:
+  SeanceKit:
+    path: SeanceKit
+  SeanceDonnees:
+    path: SeanceDonnees
+
+targets:
+  Seance:
+    type: application
+    platform: iOS
+    sources:
+      - Seance
+    dependencies:
+      - package: SeanceKit
+      - package: SeanceDonnees
+      - target: SeanceWidget
+    entitlements:
+      path: Seance/Seance.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.ch.patrick.seance
+    info:
+      path: Seance/Info.plist
+      properties:
+        CFBundleDisplayName: Séance
+        CFBundleDevelopmentRegion: fr
+        UILaunchScreen: {}
+        UIUserInterfaceStyle: Dark
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+        UIBackgroundModes:
+          - fetch
+          - processing
+        BGTaskSchedulerPermittedIdentifiers:
+          - ch.patrick.seance.rafraichissement
+          - ch.patrick.seance.programmes-tv
+        ITSAppUsesNonExemptEncryption: false
+        CFBundleURLTypes:
+          - CFBundleURLName: ch.patrick.seance
+            CFBundleURLSchemes:
+              - seance
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: ch.patrick.seance
+        TARGETED_DEVICE_FAMILY: "1"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+
+  SeanceWidget:
+    type: app-extension
+    platform: iOS
+    sources:
+      - SeanceWidget
+    dependencies:
+      - package: SeanceKit
+      - package: SeanceDonnees
+    entitlements:
+      path: SeanceWidget/SeanceWidget.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.ch.patrick.seance
+    info:
+      path: SeanceWidget/Info.plist
+      properties:
+        CFBundleDisplayName: Séance
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: ch.patrick.seance.widget
+        TARGETED_DEVICE_FAMILY: "1"
+
+  SeanceUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - SeanceUITests
+    dependencies:
+      - target: Seance
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: ch.patrick.seance.uitests
+        TARGETED_DEVICE_FAMILY: "1"
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_TARGET_NAME: Seance
+
+schemes:
+  Seance:
+    build:
+      targets:
+        Seance: all
+        SeanceWidget: all
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets:
+        - SeanceUITests

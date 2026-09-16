@@ -1,0 +1,88 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <title>Séance</title>
+  <defs>
+    <!-- Fond : nuit de salle obscure, réchauffée en haut à gauche par le projecteur -->
+    <linearGradient id="fond" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2B150E"/>
+      <stop offset="0.45" stop-color="#120B0C"/>
+      <stop offset="1" stop-color="#06060A"/>
+    </linearGradient>
+    <radialGradient id="lueur" cx="0.2" cy="0.14" r="0.7">
+      <stop offset="0" stop-color="#FF7A3D" stop-opacity="0.34"/>
+      <stop offset="0.55" stop-color="#FF7A3D" stop-opacity="0.05"/>
+      <stop offset="1" stop-color="#FF7A3D" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Faisceau du projecteur -->
+    <linearGradient id="faisceau" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FFD9A8" stop-opacity="0.55"/>
+      <stop offset="0.6" stop-color="#FF8A4A" stop-opacity="0.12"/>
+      <stop offset="1" stop-color="#FF8A4A" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="flou" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="22"/>
+    </filter>
+
+    <!-- Billet -->
+    <linearGradient id="billet" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FF4F2A"/>
+      <stop offset="0.55" stop-color="#FF7A3D"/>
+      <stop offset="1" stop-color="#FFB84D"/>
+    </linearGradient>
+    <linearGradient id="reflet" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.38"/>
+      <stop offset="0.42" stop-color="#FFFFFF" stop-opacity="0.06"/>
+      <stop offset="0.5" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+    <mask id="decoupe" maskUnits="userSpaceOnUse" x="-400" y="-300" width="800" height="600">
+      <rect x="-400" y="-300" width="800" height="600" fill="#FFFFFF"/>
+      <!-- Encoches latérales -->
+      <circle cx="-300" cy="0" r="56" fill="#000000"/>
+      <circle cx="300" cy="0" r="56" fill="#000000"/>
+      <!-- Perforation du talon -->
+      <g fill="#000000">
+        <circle cx="140" cy="-152" r="11"/>
+        <circle cx="140" cy="-114" r="11"/>
+        <circle cx="140" cy="-76" r="11"/>
+        <circle cx="140" cy="-38" r="11"/>
+        <circle cx="140" cy="0" r="11"/>
+        <circle cx="140" cy="38" r="11"/>
+        <circle cx="140" cy="76" r="11"/>
+        <circle cx="140" cy="114" r="11"/>
+        <circle cx="140" cy="152" r="11"/>
+      </g>
+    </mask>
+    <filter id="ombre" x="-30%" y="-30%" width="160%" height="170%">
+      <feDropShadow dx="0" dy="34" stdDeviation="36" flood-color="#000000" flood-opacity="0.6"/>
+    </filter>
+    <filter id="halo" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="0" stdDeviation="30" flood-color="#FF6A3D" flood-opacity="0.45"/>
+    </filter>
+  </defs>
+
+  <rect width="1024" height="1024" fill="url(#fond)"/>
+  <rect width="1024" height="1024" fill="url(#lueur)"/>
+
+  <!-- Le faisceau part du coin et vient éclairer le billet -->
+  <polygon points="-40,-40 150,-40 760,560 560,760" fill="url(#faisceau)" filter="url(#flou)"/>
+
+  <g transform="translate(512 540) rotate(-10) scale(1.1)">
+    <g filter="url(#halo)">
+      <g filter="url(#ombre)">
+        <g mask="url(#decoupe)">
+          <rect x="-300" y="-196" width="600" height="392" rx="60" fill="url(#billet)"/>
+          <rect x="-300" y="-196" width="600" height="392" rx="60" fill="url(#reflet)"/>
+        </g>
+      </g>
+    </g>
+
+    <!-- Triangle « lecture », coins arrondis -->
+    <path d="M -128 -100 L -128 100 L 52 0 Z" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="44" stroke-linejoin="round"/>
+
+    <!-- Talon : deux lignes, comme la mention d'un billet -->
+    <g stroke="#FFFFFF" stroke-opacity="0.55" stroke-width="22" stroke-linecap="round">
+      <line x1="184" y1="-44" x2="228" y2="-44"/>
+      <line x1="184" y1="8" x2="214" y2="8"/>
+    </g>
+  </g>
+</svg>

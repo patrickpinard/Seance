@@ -1,0 +1,428 @@
+{
+  "adult": false,
+  "backdrop_path": "/2w4xG178RpB4MDAIfTkqAuSJzec.jpg",
+  "belongs_to_collection": {
+    "id": 10,
+    "name": "Star Wars Collection",
+    "poster_path": "/pWVLFh4OuejTpUaDQbB1C4zoS2p.jpg",
+    "backdrop_path": "/iY2ujEY2m68OTTlPFTiHub9joHS.jpg"
+  },
+  "budget": 11000000,
+  "genres": [
+    {
+      "id": 12,
+      "name": "Adventure"
+    },
+    {
+      "id": 28,
+      "name": "Action"
+    },
+    {
+      "id": 878,
+      "name": "Science Fiction"
+    }
+  ],
+  "homepage": "http://www.starwars.com/films/star-wars-episode-iv-a-new-hope",
+  "id": 11,
+  "imdb_id": "tt0076759",
+  "origin_country": [
+    "US"
+  ],
+  "original_language": "en",
+  "original_title": "Star Wars",
+  "overview": "Princess Leia is captured and held hostage by the evil Imperial forces in their effort to take over the galactic Empire. Venturesome Luke Skywalker and dashing captain Han Solo team together with the loveable robot duo R2-D2 and C-3PO to rescue the beautiful princess and restore peace and justice in the Empire.",
+  "popularity": 20.6912,
+  "poster_path": "/6FfCtAuVAW8XJjZ7eWeLibRLWTw.jpg",
+  "production_companies": [
+    {
+      "id": 1,
+      "logo_path": "/tlVSws0RvvtPBwViUyOFAO0vcQS.png",
+      "name": "Lucasfilm Ltd.",
+      "origin_country": "US"
+    },
+    {
+      "id": 25,
+      "logo_path": "/qZCc1lty5FzX30aOCVRBLzaVmcp.png",
+      "name": "20th Century Fox",
+      "origin_country": "US"
+    }
+  ],
+  "production_countries": [
+    {
+      "iso_3166_1": "US",
+      "name": "United States of America"
+    }
+  ],
+  "release_date": "1977-05-25",
+  "revenue": 775398007,
+  "runtime": 121,
+  "spoken_languages": [
+    {
+      "english_name": "English",
+      "iso_639_1": "en",
+      "name": "English"
+    }
+  ],
+  "status": "Released",
+  "tagline": "A long time ago in a galaxy far, far away...",
+  "title": "Star Wars",
+  "video": false,
+  "vote_average": 8.2,
+  "vote_count": 22061,
+  "credits": {
+    "cast": [
+      {
+        "adult": false,
+        "gender": 2,
+        "id": 819,
+        "known_for_department": "Acting",
+        "name": "Edward Norton",
+        "original_name": "Edward Norton",
+        "popularity": 26.99,
+        "profile_path": "/8nytsqL59SFJTVYVrN72k6qkGgJ.jpg",
+        "cast_id": 4,
+        "character": "The Narrator",
+        "credit_id": "52fe4250c3a36847f80149f3",
+        "order": 0
+      },
+      {
+        "adult": false,
+        "gender": 2,
+        "id": 287,
+        "known_for_department": "Acting",
+        "name": "Brad Pitt",
+        "original_name": "Brad Pitt",
+        "popularity": 45.202,
+        "profile_path": "/huV2cdcolEUwJy37QvH914vup7d.jpg",
+        "cast_id": 5,
+        "character": "Tyler Durden",
+        "credit_id": "52fe4250c3a36847f80149f7",
+        "order": 1
+      },
+      {
+        "adult": false,
+        "gender": 1,
+        "id": 1283,
+        "known_for_department": "Acting",
+        "name": "Helena Bonham Carter",
+        "original_name": "Helena Bonham Carter",
+        "popularity": 22.112,
+        "profile_path": "/DDeITcCpnBd0CkAIRPhggy9bt5.jpg",
+        "cast_id": 285,
+        "character": "Marla Singer",
+        "credit_id": "631f0de8bd32090082733691",
+        "order": 2
+      },
+      {
+        "adult": false,
+        "gender": 2,
+        "id": 7470,
+        "known_for_department": "Acting",
+        "name": "Meat Loaf",
+        "original_name": "Meat Loaf",
+        "popularity": 7.738,
+        "profile_path": "/7gKLR1u46OB8WJ6m06LemNBCMx6.jpg",
+        "cast_id": 7,
+        "character": "Robert \"Bob\" Paulson",
+        "credit_id": "52fe4250c3a36847f80149ff",
+        "order": 3
+      },
+      {
+        "adult": false,
+        "gender": 2,
+        "id": 7499,
+        "known_for_department": "Acting",
+        "name": "Jared Leto",
+        "original_name": "Jared Leto",
+        "popularity": 18.969,
+        "profile_path": "/ca3x0OfIKbJppZh8S1Alx3GfUZO.jpg",
+        "cast_id": 286,
+        "character": "Angel Face",
+        "credit_id": "631f0e29ce9e91007f757d86",
+        "order": 4
+      }
+    ],
+    "crew": [
+      {
+        "adult": false,
+        "gender": 2,
+        "id": 7467,
+        "known_for_department": "Directing",
+        "name": "David Fincher",
+        "original_name": "David Fincher",
+        "popularity": 18.371,
+        "profile_path": "/tpEczFclQZeKAiCeKZZ0adRvtfz.jpg",
+        "credit_id": "631f0289568463007bbe28a5",
+        "department": "Directing",
+        "job": "Director"
+      },
+      {
+        "adult": false,
+        "gender": 2,
+        "id": 7469,
+        "known_for_department": "Writing",
+        "name": "Jim Uhls",
+        "original_name": "Jim Uhls",
+        "popularity": 0.87,
+        "profile_path": "/eJPUwP933EiwEWqxEBzPv6Xf0nC.jpg",
+        "credit_id": "56380f0cc3a3681b5c0200be",
+        "department": "Writing",
+        "job": "Screenplay"
+      }
+    ]
+  },
+  "release_dates": {
+    "results": [
+      {
+        "iso_3166_1": "CH",
+        "release_dates": [
+          {
+            "certification": "18",
+            "descriptors": [],
+            "iso_639_1": "de",
+            "note": "",
+            "release_date": "1999-11-04T00:00:00.000Z",
+            "type": 3
+          },
+          {
+            "certification": "18",
+            "descriptors": [],
+            "iso_639_1": "fr",
+            "note": "",
+            "release_date": "1999-11-10T00:00:00.000Z",
+            "type": 3
+          }
+        ]
+      },
+      {
+        "iso_3166_1": "US",
+        "release_dates": [
+          {
+            "certification": "",
+            "descriptors": [],
+            "iso_639_1": "",
+            "note": "CMJ Film Festival",
+            "release_date": "1999-09-21T00:00:00.000Z",
+            "type": 1
+          },
+          {
+            "certification": "",
+            "descriptors": [],
+            "iso_639_1": "",
+            "note": "Westwood, California (Premiere)",
+            "release_date": "1999-10-06T00:00:00.000Z",
+            "type": 1
+          },
+          {
+            "certification": "R",
+            "descriptors": [],
+            "iso_639_1": "",
+            "note": "",
+            "release_date": "1999-10-15T00:00:00.000Z",
+            "type": 3
+          }
+        ]
+      },
+      {
+        "iso_3166_1": "FR",
+        "release_dates": [
+          {
+            "certification": "16",
+            "descriptors": [],
+            "iso_639_1": "",
+            "note": "",
+            "release_date": "1999-11-10T00:00:00.000Z",
+            "type": 3
+          },
+          {
+            "certification": "",
+            "descriptors": [],
+            "iso_639_1": "",
+            "note": "Re-release",
+            "release_date": "2019-05-15T00:00:00.000Z",
+            "type": 3
+          },
+          {
+            "certification": "16",
+            "descriptors": [],
+            "iso_639_1": "",
+            "note": "VOD",
+            "release_date": "2011-09-08T00:00:00.000Z",
+            "type": 4
+          },
+          {
+            "certification": "18",
+            "descriptors": [],
+            "iso_639_1": "",
+            "note": "Prime Video",
+            "release_date": "2019-07-18T00:00:00.000Z",
+            "type": 4
+          },
+          {
+            "certification": "16",
+            "descriptors": [],
+            "iso_639_1": "",
+            "note": "Netflix",
+            "release_date": "2021-10-01T00:00:00.000Z",
+            "type": 4
+          },
+          {
+            "certification": "",
+            "descriptors": [],
+            "iso_639_1": "",
+            "note": "Disney+",
+            "release_date": "2021-12-31T00:00:00.000Z",
+            "type": 4
+          },
+          {
+            "certification": "16",
+            "descriptors": [],
+            "iso_639_1": "",
+            "note": "DVD",
+            "release_date": "2000-11-15T00:00:00.000Z",
+            "type": 5
+          },
+          {
+            "certification": "16",
+            "descriptors": [],
+            "iso_639_1": "",
+            "note": "Blu-Ray",
+            "release_date": "2009-11-25T00:00:00.000Z",
+            "type": 5
+          }
+        ]
+      }
+    ]
+  },
+  "watch/providers": {
+    "results": {
+      "CH": {
+        "link": "https://www.themoviedb.org/movie/550-fight-club/watch?locale=CH",
+        "flatrate": [
+          {
+            "logo_path": "/emthp39XA2YScoYL1p0sdbAH2WA.jpg",
+            "provider_id": 119,
+            "provider_name": "Amazon Prime Video",
+            "display_priority": 1
+          },
+          {
+            "logo_path": "/7rwgEs15tFwyR9NPQ5vpzxTj19Q.jpg",
+            "provider_id": 337,
+            "provider_name": "Disney Plus",
+            "display_priority": 2
+          },
+          {
+            "logo_path": "/5OtaT8STJ8ZMkKt994C5XxrEAaP.jpg",
+            "provider_id": 622,
+            "provider_name": "UPC TV",
+            "display_priority": 40
+          }
+        ],
+        "buy": [
+          {
+            "logo_path": "/rVOOhp6V8FheEAKtFAJMLMbnaMZ.jpg",
+            "provider_id": 150,
+            "provider_name": "blue TV",
+            "display_priority": 3
+          },
+          {
+            "logo_path": "/peURlLlr8jggOwK53fJ5wdQl05y.jpg",
+            "provider_id": 2,
+            "provider_name": "Apple TV",
+            "display_priority": 4
+          },
+          {
+            "logo_path": "/tbEdFQDwx5LEVr8WpSeXQSIirVq.jpg",
+            "provider_id": 3,
+            "provider_name": "Google Play Movies",
+            "display_priority": 5
+          },
+          {
+            "logo_path": "/shq88b09gTBYC4hA7K7MUL8Q4zP.jpg",
+            "provider_id": 68,
+            "provider_name": "Microsoft Store",
+            "display_priority": 6
+          },
+          {
+            "logo_path": "/5GEbAhFW2S5T8zVc1MNvz00pIzM.jpg",
+            "provider_id": 35,
+            "provider_name": "Rakuten TV",
+            "display_priority": 10
+          },
+          {
+            "logo_path": "/jmyYN1124dDIzqMysLekixy3AzF.jpg",
+            "provider_id": 164,
+            "provider_name": "Hollystar",
+            "display_priority": 1000
+          }
+        ],
+        "rent": [
+          {
+            "logo_path": "/rVOOhp6V8FheEAKtFAJMLMbnaMZ.jpg",
+            "provider_id": 150,
+            "provider_name": "blue TV",
+            "display_priority": 3
+          },
+          {
+            "logo_path": "/peURlLlr8jggOwK53fJ5wdQl05y.jpg",
+            "provider_id": 2,
+            "provider_name": "Apple TV",
+            "display_priority": 4
+          },
+          {
+            "logo_path": "/tbEdFQDwx5LEVr8WpSeXQSIirVq.jpg",
+            "provider_id": 3,
+            "provider_name": "Google Play Movies",
+            "display_priority": 5
+          },
+          {
+            "logo_path": "/shq88b09gTBYC4hA7K7MUL8Q4zP.jpg",
+            "provider_id": 68,
+            "provider_name": "Microsoft Store",
+            "display_priority": 6
+          },
+          {
+            "logo_path": "/5GEbAhFW2S5T8zVc1MNvz00pIzM.jpg",
+            "provider_id": 35,
+            "provider_name": "Rakuten TV",
+            "display_priority": 10
+          },
+          {
+            "logo_path": "/jmyYN1124dDIzqMysLekixy3AzF.jpg",
+            "provider_id": 164,
+            "provider_name": "Hollystar",
+            "display_priority": 1000
+          }
+        ]
+      }
+    }
+  },
+  "videos": {
+    "results": [
+      {
+        "iso_639_1": "en",
+        "iso_3166_1": "US",
+        "name": "Fight Club (1999) Trailer - Starring Brad Pitt, Edward Norton, Helena Bonham Carter",
+        "key": "O-b2VfmmbyA",
+        "site": "YouTube",
+        "size": 720,
+        "type": "Trailer",
+        "official": false,
+        "published_at": "2016-03-05T02:03:14.000Z",
+        "id": "639d5326be6d88007f170f44"
+      },
+      {
+        "iso_639_1": "en",
+        "iso_3166_1": "US",
+        "name": "#TBT Trailer",
+        "key": "BdJKm16Co6M",
+        "site": "YouTube",
+        "size": 1080,
+        "type": "Trailer",
+        "official": true,
+        "published_at": "2014-10-02T19:20:22.000Z",
+        "id": "5c9294240e0a267cd516835f"
+      }
+    ]
+  }
+}
