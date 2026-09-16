@@ -133,7 +133,7 @@ struct SectionsSoiree: View {
             VStack(alignment: .leading, spacing: 10) {
                 entete("Ma soirée", symbole: "moon.stars.fill")
                 if soiree.isEmpty {
-                    MessageEtat(texte: "Rien de prévu pour l'instant. Touche 🌙 sur un titre ci-dessous, sur une fiche ou dans Mes listes pour l'ajouter à ta soirée.",
+                    MessageEtat(texte: "Rien de prévu pour l'instant. Touche 🌙 sur une fiche ou dans Mes listes pour garder un titre pour ce soir.",
                                 symbole: "moon.stars")
                         .padding(.horizontal, -20)
                 }

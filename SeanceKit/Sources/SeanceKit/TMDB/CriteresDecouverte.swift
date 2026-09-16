@@ -30,6 +30,8 @@ public struct CriteresDecouverte: Sendable, Hashable, Codable {
         case note
         case date
         case titre
+        /// Les plus votés : les titres que tout le monde connaît.
+        case votes
     }
 
     public var genresInclus: [Int] = []
@@ -132,6 +134,7 @@ public struct CriteresDecouverte: Sendable, Hashable, Codable {
         case (.date, .serie): "first_air_date"
         case (.titre, .film): "title"
         case (.titre, .serie): "name"
+        case (.votes, _): "vote_count"
         }
     }
 }

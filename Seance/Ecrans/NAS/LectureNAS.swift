@@ -73,7 +73,9 @@ struct BoutonLectureNAS: View {
             return
         }
         openURL(lien) { acceptee in
-            if !acceptee {
+            if acceptee {
+                etat.nas.noterLecture(fichier)
+            } else {
                 absent = lecteur
                 etat.journal.noter(.lecture, "\(lecteur.nom) n'a pas pu ouvrir la vidéo.",
                                    conseil: "Vérifie que \(lecteur.nom) est installée, ou choisis l'autre app dans Moi › NAS.")

@@ -141,3 +141,16 @@ struct DisponibiliteTests {
         #expect(etats.map(critere.retient) == attendus)
     }
 }
+
+@Suite("Lecture depuis le NAS")
+struct LectureExterneTests {
+    @Test func demanderApresDixMinutesOublierApresDouzeHeures() {
+        let debut = Date.suisse("2026-09-17 20:00")
+        let lecture = LectureExterne(reference: ReferenceTitre(type: .serie, tmdbID: 108_978), titre: "Reacher",
+                                     episode: NumeroEpisode(saison: 1, episode: 3), debut: debut)
+        #expect(lecture.decision(maintenant: debut.addingTimeInterval(120)) == .attendre)
+        #expect(lecture.decision(maintenant: debut.addingTimeInterval(50 * 60)) == .demander)
+        #expect(lecture.decision(maintenant: debut.addingTimeInterval(13 * 3600)) == .oublier)
+        #expect(lecture.libelle == "Reacher S01E03")
+    }
+}

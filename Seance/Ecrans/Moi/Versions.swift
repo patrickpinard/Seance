@@ -20,6 +20,27 @@ struct NoteVersion: Identifiable {
 
     static let historique: [NoteVersion] = [
         NoteVersion(
+            numero: "1.2",
+            date: "17 septembre 2026",
+            resume: "Statistiques et bilan de l'année, widgets, Siri, fiche acteur et premier lancement guidé.",
+            fonctionnalites: [
+                Fonctionnalite(symbole: "chart.bar.fill", titre: "Statistiques",
+                               detail: "Heures regardées, mois par mois, acteurs et genres favoris, plus grosse soirée ; le bilan de l'année en cartes à partager."),
+                Fonctionnalite(symbole: "square.grid.2x2.fill", titre: "Widgets",
+                               detail: "Ma soirée, prochains épisodes à cocher d'un ✓ et À venir, sur l'écran d'accueil et l'écran verrouillé."),
+                Fonctionnalite(symbole: "mic.fill", titre: "Siri et Raccourcis",
+                               detail: "« Qu'est-ce que je regarde ce soir avec Séance ? » et « Ajoute Reacher à ma soirée dans Séance »."),
+                Fonctionnalite(symbole: "person.crop.rectangle.stack", titre: "Fiche acteur",
+                               detail: "Sa filmographie avec ce que tu as vu, ce qui reste et ce qui est regardable ce soir."),
+                Fonctionnalite(symbole: "hand.wave.fill", titre: "Premier lancement",
+                               detail: "Plateformes, genres préférés et une dizaine de films à noter : les suggestions sont justes dès le départ."),
+                Fonctionnalite(symbole: "checkmark.circle", titre: "Après le NAS",
+                               detail: "De retour d'Infuse ou de VLC, Séance propose de marquer le film ou l'épisode comme vu."),
+                Fonctionnalite(symbole: "moon.stars", titre: "Ce soir allégé",
+                               detail: "La page se concentre sur ta soirée, tes épisodes et ta liste ; la recherche d'un titre se fait dans Explorer."),
+            ]
+        ),
+        NoteVersion(
             numero: "1.1",
             date: "17 septembre 2026",
             resume: "Suivi des séries, alertes complètes et version Mac.",
@@ -83,44 +104,66 @@ struct NoteVersion: Identifiable {
     ]
 }
 
-/// Onglet « Versions » d'À propos : une section par version, la version installée signalée.
+/// Onglet « Versions » d'À propos : une ligne repliable par version, toutes fermées au départ
+/// pour garder la page courte.
 struct ListeVersions: View {
     let versionInstallee: String
 
+    @State private var ouvertes: Set<String> = []
+
     var body: some View {
-        ForEach(NoteVersion.historique) { version in
-            Section {
-                ForEach(version.fonctionnalites) { fonctionnalite in
-                    HStack(alignment: .top, spacing: 12) {
-                        Image(systemName: fonctionnalite.symbole)
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundStyle(Theme.accent)
-                            .frame(width: 28, height: 28)
-                            .background(Theme.accent.opacity(0.15), in: RoundedRectangle(cornerRadius: 7, style: .continuous))
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(fonctionnalite.titre).font(.subheadline.weight(.semibold))
-                            Text(fonctionnalite.detail).font(.footnote).foregroundStyle(.secondary)
+        Section {
+            ForEach(NoteVersion.historique) { version in
+                DisclosureGroup(isExpanded: Binding(
+                    get: { ouvertes.contains(version.numero) },
+                    set: { ouverte in
+                        if ouverte { ouvertes.insert(version.numero) } else { ouvertes.remove(version.numero) }
+                    }
+                )) {
+                    ForEach(version.fonctionnalites) { fonctionnalite in
+                        HStack(alignment: .top, spacing: 12) {
+                            Image(systemName: fonctionnalite.symbole)
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundStyle(Theme.accent)
+                                .frame(width: 28, height: 28)
+                                .background(Theme.accent.opacity(0.15), in: RoundedRectangle(cornerRadius: 7, style: .continuous))
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(fonctionnalite.titre).font(.subheadline.weight(.semibold))
+                                Text(fonctionnalite.detail).font(.footnote).foregroundStyle(.secondary)
+                            }
                         }
+                        .padding(.vertical, 2)
                     }
-                    .padding(.vertical, 2)
+                } label: {
+                    entete(version)
                 }
-            } header: {
-                HStack(alignment: .firstTextBaseline) {
-                    Text("Version \(version.numero)").font(.headline).foregroundStyle(.primary)
-                    if version.numero == versionInstallee {
-                        Text("installée")
-                            .font(.caption2.weight(.bold))
-                            .padding(.horizontal, 6).padding(.vertical, 2)
-                            .background(Theme.accent, in: Capsule())
-                            .foregroundStyle(.black)
-                    }
-                    Spacer()
-                    Text(version.date).font(.caption)
-                }
-                .textCase(nil)
-            } footer: {
-                Text(version.resume)
+                .tint(Theme.accent)
             }
+        } footer: {
+            Text("Touche une version pour voir ce qu'elle apporte.")
         }
+    }
+
+    private func entete(_ version: NoteVersion) -> some View {
+        VStack(alignment: .leading, spacing: 3) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text("Version \(version.numero)").font(.headline)
+                if version.numero == versionInstallee {
+                    Text("installée")
+                        .font(.caption2.weight(.bold))
+                        .padding(.horizontal, 6).padding(.vertical, 2)
+                        .background(Theme.accent, in: Capsule())
+                        .foregroundStyle(.black)
+                }
+                Spacer()
+                Text(version.date).font(.caption).foregroundStyle(.secondary)
+            }
+            Text(version.resume)
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .lineLimit(2)
+        }
+        .padding(.vertical, 2)
+        .accessibilityElement(children: .combine)
     }
 }

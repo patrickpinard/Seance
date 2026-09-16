@@ -14,6 +14,11 @@ public enum EntrepotSeance {
         case dossier(URL)
     }
 
+    /// Dossier partagé avec le widget, pour ce qui n'est pas dans SwiftData (liste des prochains épisodes).
+    public static var dossierPartage: URL? {
+        FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: groupeApp)
+    }
+
     public static var modelesUtilisateur: [any PersistentModel.Type] {
         [Suivi.self, Visionnage.self, ListePerso.self, FiltreEnregistre.self,
          Interet.self, Abonnement.self, Chaine.self, SourceNAS.self, SuggestionReportee.self, SelectionSoir.self]

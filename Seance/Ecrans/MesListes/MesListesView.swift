@@ -53,6 +53,11 @@ struct MesListesView: View {
             .navigationTitle("Mes listes")
             .destinationsTitres()
             .refreshable { await etat.alertes.planifier(contexte: contexte, tmdb: etat.tmdb) }
+            .onChange(of: etat.listeDemandee, initial: true) { _, demande in
+                guard let demande else { return }
+                onglet = demande
+                etat.listeDemandee = nil
+            }
         }
     }
 

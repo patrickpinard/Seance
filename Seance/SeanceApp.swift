@@ -4,7 +4,7 @@ import SwiftUI
 
 @main
 struct SeanceApp: App {
-    private let conteneur = Result { try EntrepotSeance.conteneur(.groupeApp) }
+    private let conteneur = ConteneurApp.resultat
     @State private var etat = EtatApp()
 
     var body: some Scene {

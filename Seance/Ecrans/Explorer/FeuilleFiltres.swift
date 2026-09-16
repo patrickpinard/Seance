@@ -76,6 +76,7 @@ enum LibellesFiltres {
         case .note: "note"
         case .date: "date"
         case .titre: "titre"
+        case .votes: "nombre de votes"
         }
     }
 

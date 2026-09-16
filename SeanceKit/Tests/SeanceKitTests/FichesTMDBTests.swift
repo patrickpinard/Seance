@@ -88,6 +88,55 @@ struct TitresMixtesTests {
     }
 }
 
+@Suite("Fiche acteur")
+struct FicheActeurTests {
+    private func credit(_ id: Int, _ type: String, _ titre: String, _ date: String, genres: [Int] = [28], role: String = "Rôle", job: String? = nil) -> [String: Any] {
+        var json: [String: Any] = ["id": id, "media_type": type, "genre_ids": genres, "character": role, "vote_average": 7, "vote_count": 100]
+        if type == "tv" { json["name"] = titre; json["first_air_date"] = date } else { json["title"] = titre; json["release_date"] = date }
+        if let job { json["job"] = job; json["character"] = nil }
+        return json
+    }
+
+    @Test func compteFiltresEtRealisations() {
+        let filmographie = Construire.decoder(Filmographie.self, [
+            "cast": [
+                credit(1, "movie", "John Wick", "2014-10-24"),
+                credit(2, "movie", "Speed", "1994-06-10"),
+                credit(3, "movie", "Something's Gotta Give", "2003-12-12", genres: [35, 18]),
+                credit(4, "movie", "Documentaire", "2020-01-01", genres: [99], role: "Himself"),
+                credit(5, "tv", "Talk-show", "2015-01-01", genres: [10767], role: "Self"),
+                credit(6, "movie", "John Wick 5", "2030-01-01"),
+                credit(7, "tv", "Swedish Dicks", "2016-08-01", genres: [35]),
+            ],
+            "crew": [credit(8, "movie", "Man of Tai Chi", "2013-07-05", job: "Director"), credit(1, "movie", "John Wick", "2014-10-24", job: "Producer")],
+        ])
+        let aujourdhui = DateTMDB(annee: 2026, mois: 9, jour: 17)
+        let vus: Set<ReferenceTitre> = [ReferenceTitre(type: .film, tmdbID: 1)]
+
+        // Documentaire, talk-show et film pas encore sorti ne comptent pas.
+        #expect(AnalyseFilmographie.compte(filmographie.roles, type: .film, vus: vus, aujourdhui: aujourdhui) == .init(vus: 1, total: 3))
+        #expect(AnalyseFilmographie.compte(filmographie.roles, type: .serie, vus: vus, aujourdhui: aujourdhui) == .init(vus: 0, total: 1))
+        #expect(filmographie.realisations.map(\.titre) == ["Man of Tai Chi"])
+
+        var filtres = AnalyseFilmographie.Filtres()
+        filtres.actionSeulement = true
+        filtres.pasVus = true
+        #expect(AnalyseFilmographie.filtrer(filmographie.roles, filtres: filtres, vus: vus, regardables: []).map(\.titre) == ["John Wick 5", "Speed"])
+        filtres = AnalyseFilmographie.Filtres()
+        filtres.ceSoir = true
+        #expect(AnalyseFilmographie.filtrer(filmographie.roles, filtres: filtres, vus: vus,
+                                            regardables: [ReferenceTitre(type: .film, tmdbID: 2)]).map(\.titre) == ["Speed"])
+    }
+
+    @Test func ageAujourdhuiOuAuDeces() {
+        let keanu = Construire.decoder(FichePersonne.self, ["id": 6384, "name": "Keanu Reeves", "biography": "", "birthday": "1964-09-02"])
+        #expect(keanu.age(aujourdhui: DateTMDB(annee: 2026, mois: 9, jour: 17)) == 62)
+        #expect(keanu.age(aujourdhui: DateTMDB(annee: 2026, mois: 9, jour: 1)) == 61)
+        let decede = Construire.decoder(FichePersonne.self, ["id": 1, "name": "X", "biography": "", "birthday": "1940-05-10", "deathday": "2000-01-01"])
+        #expect(decede.age(aujourdhui: DateTMDB(annee: 2026, mois: 9, jour: 17)) == 59)
+    }
+}
+
 @Suite("Fiche reconstituée quand TMDB échoue")
 struct FicheParMorceauxTests {
     @Test func erreur500SurLesComplementsGroupes() async throws {

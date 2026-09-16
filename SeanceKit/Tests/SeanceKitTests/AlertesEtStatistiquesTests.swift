@@ -152,12 +152,29 @@ struct StatistiquesTests {
         #expect(bilan.recordEpisodes == RecordSoiree(jour: DateTMDB(annee: 2026, mois: 9, jour: 5), nombreEpisodes: 3))
     }
 
+    @Test func genresDeSeriesRegroupes() {
+        let bilan = Statistiques.calculer(visionnages)
+        // Heat, La Chute de la Maison Blanche et Reacher (Action & Adventure) : trois titres d'action.
+        #expect(bilan.genres.first == Classement(cle: 28, nombreTitres: 3))
+        #expect(!bilan.genres.contains { $0.cle == 10759 })
+    }
+
+    @Test func soireeQuiDepasseMinuit() {
+        let tard = (0..<4).map { rang in
+            VisionnageStat(reference: reacher, dureeMinutes: 50, vuLe: Date.suisse("2026-09-12 22:30").addingTimeInterval(TimeInterval(rang * 3000)))
+        }
+        // 22 h 30, 23 h 20, 0 h 10 et 1 h : une seule soirée, celle du samedi.
+        let bilan = Statistiques.calculer(visionnages + tard)
+        #expect(bilan.recordEpisodes == RecordSoiree(jour: DateTMDB(annee: 2026, mois: 9, jour: 12), nombreEpisodes: 4))
+    }
+
     @Test func classementsParTitresDifferents() {
         let bilan = Statistiques.calculer(visionnages, nombreActeurs: 2, nombreGenres: 2)
         // Une série vue en quatre épisodes compte pour un titre.
         #expect(bilan.acteurs.map(\.cle) == ["Al Pacino", "Alan Ritchson"])
         #expect(bilan.acteurs.map(\.nombreTitres) == [1, 1])
-        #expect(bilan.genres.first == Classement(cle: 28, nombreTitres: 2))
+        // Les quatre épisodes de Reacher (Action & Adventure) ajoutent un seul titre d'action.
+        #expect(bilan.genres.first == Classement(cle: 28, nombreTitres: 3))
     }
 
     @Test func surUnePeriode() {

@@ -102,6 +102,11 @@ public actor TMDBClient {
         try await fiche("/3/movie/\(id)", complements: complements, type: .film)
     }
 
+    /// Portrait et biographie d'une personne (EF-30).
+    public func personne(_ id: Int) async throws -> FichePersonne {
+        try await envoyer("/3/person/\(id)", [])
+    }
+
     /// Rôles d'une personne, films et séries confondus (EF-30, EF-59).
     public func filmographie(personne id: Int) async throws -> Filmographie {
         try await envoyer("/3/person/\(id)/combined_credits", [])

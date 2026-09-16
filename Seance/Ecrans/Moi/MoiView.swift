@@ -9,18 +9,29 @@ struct MoiView: View {
     @Environment(EtatApp.self) private var etat
     @Query(filter: #Predicate<Abonnement> { $0.actif }) private var abonnements: [Abonnement]
     @Query(filter: #Predicate<Chaine> { $0.active }) private var chaines: [Chaine]
+    @Query private var interets: [Interet]
+    @Query private var visionnages: [Visionnage]
+    @State private var gouts = false
 
     var body: some View {
         NavigationStack {
             List {
+                Section("Toi") {
+                    Button { gouts = true } label: {
+                        LigneReglage(titre: "Mes goûts", symbole: "heart.fill", couleur: .pink,
+                                     valeur: Set(interets.map(\.libelle)).isEmpty ? "À choisir" : "\(Set(interets.map(\.libelle)).count) genres")
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityHint("Choisir tes genres et noter des films connus")
+                    NavigationLink { StatistiquesView() } label: {
+                        LigneReglage(titre: "Statistiques", symbole: "chart.bar.fill", couleur: .purple, valeur: libelleStatistiques)
+                    }
+                }
+
                 Section("Comptes") {
                     NavigationLink { ReglagesTMDBView() } label: {
                         LigneReglage(titre: "TMDB", symbole: "film.stack", couleur: .teal,
                                      valeur: etat.tmdb == nil ? "À saisir" : "Connecté")
-                    }
-                    NavigationLink { ReglagesClaudeView() } label: {
-                        LigneReglage(titre: "Claude", symbole: "sparkles", couleur: .orange,
-                                     valeur: etat.claude == nil ? "Facultatif" : "Connecté")
                     }
                 }
 
@@ -56,12 +67,35 @@ struct MoiView: View {
                         LigneReglage(titre: "À propos", symbole: "info", couleur: .gray, valeur: nil)
                     }
                 }
+
+                #if DEBUG
+                if ApercuWidgetsView.actif {
+                    Section("Développement") {
+                        NavigationLink { ApercuWidgetsView() } label: {
+                            LigneReglage(titre: "Aperçu des widgets", symbole: "square.grid.2x2.fill", couleur: .gray, valeur: nil)
+                        }
+                    }
+                }
+                #endif
             }
             .scrollContentBackground(.hidden)
             .background(Theme.fond)
             .navigationTitle("Moi")
+            .destinationsTitres()
             .task { await etat.alertes.actualiserAutorisation() }
+            .sheet(isPresented: $gouts) {
+                BienvenueView(mode: .gouts) { gouts = false }
+            }
         }
+    }
+
+    /// Les heures de l'année, ou l'annonce du bilan en décembre.
+    private var libelleStatistiques: String? {
+        let annee = Calendar.current.component(.year, from: .now)
+        if ServiceStatistiques.bilanOuvert(), !visionnages.isEmpty { return "Bilan \(String(annee)) prêt" }
+        let debut = ServiceStatistiques.bornesAnnee(annee).lowerBound
+        let minutes = visionnages.filter { $0.vuLe >= debut }.reduce(0) { $0 + $1.dureeMinutes }
+        return minutes == 0 ? nil : "\(Format.duree(minutes)) en \(String(annee))"
     }
 
     private var libelleAlertes: String {
@@ -160,49 +194,6 @@ struct ReglagesTMDBView: View {
             message = Journal.conseil(error) ?? "Le test n'a pas abouti : vérifie la connexion Internet, puis réessaie."
             etat.journal.noter(.tmdb, "La clé TMDB n'a pas pu être testée.", erreur: error)
         }
-    }
-}
-
-/// EF-27 : clé Claude facultative.
-struct ReglagesClaudeView: View {
-    @Environment(EtatApp.self) private var etat
-    @State private var cleClaude = ""
-    @State private var message: String?
-
-    var body: some View {
-        Form {
-            Section {
-                if etat.claude != nil {
-                    LabeledContent("Clé Claude", value: "enregistrée")
-                    Button("Supprimer la clé", role: .destructive) {
-                        try? etat.supprimerCleClaude()
-                        message = nil
-                    }
-                } else {
-                    SecureField("Clé d'API (sk-ant-…)", text: $cleClaude)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                    Button("Enregistrer la clé") {
-                        do {
-                            try etat.enregistrerCleClaude(cleClaude)
-                            cleClaude = ""
-                            message = "Clé enregistrée dans le trousseau."
-                        } catch {
-                            message = error.localizedDescription
-                        }
-                    }
-                    .disabled(cleClaude.isEmpty)
-                    Link("Créer une clé sur console.anthropic.com",
-                         destination: URL(string: "https://console.anthropic.com/settings/keys")!)
-                }
-                if let message {
-                    Text(message).font(.footnote).foregroundStyle(.secondary)
-                }
-            } footer: {
-                Text("Sans clé, « Ce soir » classe les titres sur l'appareil, à partir de tes goûts. Avec une clé, Claude lit ta demande et explique ses choix : environ 0,07 $ par demande.")
-            }
-        }
-        .pageReglages("Claude")
     }
 }
 

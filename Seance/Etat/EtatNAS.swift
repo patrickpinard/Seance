@@ -18,6 +18,10 @@ final class EtatNAS {
     private(set) var derniereAnalyse: Date?
     /// Réglages utilisés par la dernière analyse réussie : s'ils ont changé, la bibliothèque est à refaire.
     private(set) var reglagesAnalyses: ReglagesNAS?
+    /// Vidéo confiée à une app de lecture ; gardée si Séance est fermée entre-temps.
+    private(set) var lectureEnCours: LectureExterne?
+    /// Question « As-tu regardé… ? » à poser au retour dans l'app.
+    var lectureAConfirmer: LectureExterne?
 
     /// Une analyse par jour suffit : les films arrivent sur le NAS au compte-gouttes.
     static let intervalleAnalyse: TimeInterval = 24 * 3600
@@ -31,6 +35,7 @@ final class EtatNAS {
         static let lecteur = "nas.lecteur"
         static let derniereAnalyse = "nas.derniereAnalyse"
         static let reglagesAnalyses = "nas.reglagesAnalyses"
+        static let lectureEnCours = "nas.lectureEnCours"
     }
 
     init(coffre: any CoffreCles) {
@@ -41,6 +46,55 @@ final class EtatNAS {
         derniereAnalyse = defauts.object(forKey: Cle.derniereAnalyse) as? Date
         reglagesAnalyses = defauts.data(forKey: Cle.reglagesAnalyses).flatMap { try? JSONDecoder().decode(ReglagesNAS.self, from: $0) }
         motDePasseEnregistre = ((try? coffre.lire(.nas)) ?? nil) != nil
+        lectureEnCours = defauts.data(forKey: Cle.lectureEnCours).flatMap { try? JSONDecoder().decode(LectureExterne.self, from: $0) }
+    }
+
+    // MARK: Lecture puis « vu »
+
+    /// La vidéo vient d'être confiée à l'app de lecture.
+    func noterLecture(_ fichier: FichierNAS) {
+        guard let reference = fichier.reference else { return }
+        let episode = fichier.saison.flatMap { saison in fichier.episode.map { NumeroEpisode(saison: saison, episode: $0) } }
+        memoriserLecture(LectureExterne(reference: reference, titre: fichier.titre, episode: episode, debut: .now))
+    }
+
+    /// Au retour dans Séance : la question arrive après au moins 10 minutes de lecture.
+    func verifierRetour(maintenant: Date = .now) {
+        guard let lecture = lectureEnCours else { return }
+        switch lecture.decision(maintenant: maintenant) {
+        case .attendre: break
+        case .demander:
+            lectureAConfirmer = lecture
+            memoriserLecture(nil)
+        case .oublier:
+            memoriserLecture(nil)
+        }
+    }
+
+    /// « Oui, marquer vu » : le film, ou l'épisode précis, rejoint l'historique.
+    func confirmerLecture(_ lecture: LectureExterne, contexte: ModelContext, tmdb: TMDBClient?) async {
+        guard let tmdb else { return }
+        let service = ServiceSuivi(contexte: contexte)
+        do {
+            switch (lecture.reference.type, lecture.episode) {
+            case (.film, _):
+                try service.marquerVu(film: try await tmdb.film(lecture.reference.tmdbID, complements: []))
+            case (.serie, let numero?):
+                async let serie = tmdb.serie(lecture.reference.tmdbID)
+                async let saison = tmdb.saison(numero.saison, serie: lecture.reference.tmdbID)
+                let episodes = try await saison.episodes.filter { $0.numeroEpisode == numero }
+                _ = try service.cocher(episodes, serie: try await serie)
+            case (.serie, nil):
+                return
+            }
+        } catch {
+            journal?.noter(.lecture, "« \(lecture.libelle) » n'a pas pu être marqué comme vu.", erreur: error)
+        }
+    }
+
+    private func memoriserLecture(_ lecture: LectureExterne?) {
+        lectureEnCours = lecture
+        UserDefaults.standard.set(lecture.flatMap { try? JSONEncoder().encode($0) }, forKey: Cle.lectureEnCours)
     }
 
     var estConfigure: Bool {

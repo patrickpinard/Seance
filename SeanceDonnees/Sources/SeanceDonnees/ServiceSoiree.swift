@@ -42,4 +42,33 @@ public struct ServiceSoiree {
         }
         try contexte.save()
     }
+
+    /// Le prochain épisode de chaque série de la liste préparée pour les widgets, d'après les épisodes
+    /// cochés depuis : les séries de la soirée d'abord, puis les plus récemment regardées.
+    public func prochainsEpisodes(_ instantane: InstantaneWidgets?, maintenant: Date = .now) throws -> [InstantaneWidgets.Prochain] {
+        guard let instantane else { return [] }
+        let suivi = ServiceSuivi(contexte: contexte)
+        var vus: [Int: Set<NumeroEpisode>] = [:]
+        var derniers: [Int: Date] = [:]
+        for serie in instantane.series {
+            let visionnages = try suivi.visionnages(serie.reference)
+            vus[serie.id] = Set(visionnages.compactMap { v in
+                guard let saison = v.saison, let episode = v.episode else { return nil }
+                return NumeroEpisode(saison: saison, episode: episode)
+            })
+            derniers[serie.id] = visionnages.last?.vuLe
+        }
+        let soiree = Set(try selection(maintenant: maintenant).filter { $0.reference.type == .serie }.map(\.tmdbID))
+        return instantane.prochains(vus: vus, derniersVisionnages: derniers, soiree: soiree)
+    }
+
+    /// La réponse à « Qu'est-ce que je regarde ce soir ? ».
+    public func phrase(_ instantane: InstantaneWidgets?, maintenant: Date = .now) throws -> String {
+        let soiree = try selection(maintenant: maintenant).map { PhraseSoiree.Titre(reference: $0.reference, nom: $0.titre) }
+        let aVoir = StatutSuivi.aVoir.rawValue
+        let liste = try contexte.fetch(FetchDescriptor<Suivi>(
+            predicate: #Predicate { $0.statutBrut == aVoir }, sortBy: [SortDescriptor(\.ajouteLe, order: .reverse)]
+        ))
+        return PhraseSoiree.texte(soiree: soiree, prochains: try prochainsEpisodes(instantane, maintenant: maintenant), aVoir: liste.map(\.titre))
+    }
 }

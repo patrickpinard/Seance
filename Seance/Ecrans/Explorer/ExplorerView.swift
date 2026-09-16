@@ -20,11 +20,12 @@ struct ExplorerView: View {
     @AppStorage("explorer.liste") private var enListe = false
     @AppStorage("explorer.recentes") private var recentesBrut = ""
     @FocusState private var rechercheActive: Bool
+    @State private var chemin = NavigationPath()
 
     private let colonnes = [GridItem(.adaptive(minimum: 105), spacing: 12, alignment: .top)]
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $chemin) {
             Group {
                 if etat.tmdb == nil {
                     InviteCleTMDB()
@@ -65,6 +66,16 @@ struct ExplorerView: View {
                 guard let client = etat.tmdb else { return }
                 await modele.recharger(client: client, contexte: contexte, abonnements: abonnements.map(\.providerID))
             }
+            // « Dans Explorer » depuis une fiche acteur : Explorer revient à la racine, filtré sur la personne.
+            .onChange(of: etat.filtreExplorerDemande, initial: true) { _, demande in
+                guard let demande else { return }
+                var filtres = modele.filtres
+                filtres.personnes = [demande]
+                modele.filtres = filtres
+                texte = ""
+                chemin = NavigationPath()
+                etat.filtreExplorerDemande = nil
+            }
             .onChange(of: modele.erreur) { _, erreur in
                 guard erreur != nil else { return }
                 etat.journal.noter(.tmdb, "Explorer n'a pas pu charger les résultats.", erreur: modele.erreurDetaillee)
@@ -91,19 +102,23 @@ struct ExplorerView: View {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 8) {
                         ForEach(personnes) { personne in
-                            Button { filtrerPar(personne) } label: {
+                            NavigationLink(value: ReferencePersonne(id: personne.id, nom: personne.nom)) {
                                 HStack(spacing: 6) {
                                     ImageDistante(url: ImageTMDB.url(personne.cheminPortrait, .portrait), coins: 14)
                                         .frame(width: 28, height: 28)
                                     Text(personne.nom).font(.subheadline.weight(.semibold))
-                                    Image(systemName: "line.3.horizontal.decrease").font(.caption2).foregroundStyle(.secondary)
+                                    Image(systemName: "chevron.right").font(.caption2).foregroundStyle(.secondary)
                                 }
                                 .padding(.trailing, 12).padding(.leading, 3)
                                 .frame(height: 34)
                                 .background(Theme.surface, in: Capsule())
                             }
                             .buttonStyle(.plain)
-                            .accessibilityHint("Filtre Explorer sur cette personne")
+                            .simultaneousGesture(TapGesture().onEnded { memoriser(texte) })
+                            .contextMenu {
+                                Button("Filtrer Explorer sur \(personne.nom)", systemImage: "line.3.horizontal.decrease") { filtrerPar(personne) }
+                            }
+                            .accessibilityHint("Ouvre sa fiche : filmographie, vus et pas vus")
                         }
                     }
                     .padding(.horizontal, 20)

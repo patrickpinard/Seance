@@ -152,7 +152,11 @@ private struct ContenuFiche: View {
                         ScrollView(.horizontal, showsIndicators: false) {
                             LazyHStack(alignment: .top, spacing: 14) {
                                 ForEach(fiche.casting) { personne in
-                                    CartePersonne(personne: personne)
+                                    NavigationLink(value: ReferencePersonne(id: personne.id, nom: personne.nom)) {
+                                        CartePersonne(personne: personne)
+                                    }
+                                    .buttonStyle(.plain)
+                                    .help("Voir la fiche de \(personne.nom) : filmographie, vus et pas vus")
                                 }
                             }
                             .padding(.horizontal, 20)

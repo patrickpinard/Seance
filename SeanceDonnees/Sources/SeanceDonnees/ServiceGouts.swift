@@ -99,10 +99,68 @@ public struct ServiceGouts {
         let reports = try contexte.fetch(FetchDescriptor<SuggestionReportee>())
         return CollecteurCandidats.Contexte(
             abonnements: abonnements.map(\.providerID),
-            dejaVus: Set(visionnages.map { ReferenceTitre(type: $0.type, tmdbID: $0.tmdbID) }),
+            // Vu : un visionnage enregistré, ou un titre marqué terminé (notation rapide, liste).
+            dejaVus: Set(visionnages.map { ReferenceTitre(type: $0.type, tmdbID: $0.tmdbID) })
+                .union(suivis.filter { $0.statut == .termine }.map(\.reference)),
             exclus: Set(suivis.filter { $0.statut == .exclu || $0.exclusionLangue }.map(\.reference)),
             reportes: Set(reports.filter { $0.jusquA > maintenant }.map(\.reference))
         )
+    }
+
+    // MARK: - Premier lancement (EF-60 à EF-62)
+
+    /// Un goût choisi sur la grille : son nom, ses genres TMDB (films et séries), ses mots-clés.
+    public struct InteretDeclare: Sendable, Hashable {
+        public var libelle: String
+        public var genres: [Int]
+        public var motsCles: [Int]
+
+        public init(libelle: String, genres: [Int], motsCles: [Int] = []) {
+            self.libelle = libelle
+            self.genres = genres
+            self.motsCles = motsCles
+        }
+    }
+
+    /// Vrai dès que Séance connaît quelque chose des goûts : intérêts, notes ou titres suivis.
+    public func dejaPersonnalise() throws -> Bool {
+        try contexte.fetchCount(FetchDescriptor<Interet>()) > 0 || contexte.fetchCount(FetchDescriptor<Suivi>()) > 0
+    }
+
+    public func interetsDeclares() throws -> Set<String> {
+        Set(try contexte.fetch(FetchDescriptor<Interet>()).map(\.libelle))
+    }
+
+    /// Remplace les intérêts déclarés par la nouvelle sélection de la grille.
+    public func declarer(_ interets: [InteretDeclare]) throws {
+        try contexte.delete(model: Interet.self)
+        for interet in interets {
+            for genre in interet.genres {
+                contexte.insert(Interet(libelle: interet.libelle, genreID: genre))
+            }
+            for motCle in interet.motsCles {
+                contexte.insert(Interet(libelle: interet.libelle, motCleID: motCle))
+            }
+        }
+        try contexte.save()
+    }
+
+    /// Notation rapide : un titre connu, déjà vu, noté de 1 à 10. Il rejoint les titres terminés
+    /// sans compter dans les statistiques, faute de date de visionnage.
+    @discardableResult
+    public func noterTitreConnu(_ titre: TitreResume, note: Int) throws -> Suivi {
+        let suivi = try ServiceSuivi(contexte: contexte).suivi(titre.reference) ?? {
+            let nouveau = Suivi(reference: titre.reference, titre: titre.titre, statut: .termine, cheminAffiche: titre.cheminAffiche)
+            contexte.insert(nouveau)
+            return nouveau
+        }()
+        suivi.note = min(10, max(1, note))
+        if suivi.statut == .aVoir { suivi.statut = .termine }
+        if suivi.genres.isEmpty { suivi.genres = titre.genres }
+        // Un titre noté par curiosité ne déclenche pas d'alertes.
+        suivi.alertesActives = false
+        try contexte.save()
+        return suivi
     }
 
     // MARK: - Les trois boutons de « Ce soir » (EF-26)

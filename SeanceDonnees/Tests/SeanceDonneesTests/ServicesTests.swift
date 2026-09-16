@@ -86,6 +86,21 @@ struct ServicesTests {
         #expect(try service.visionnages(serie.reference).compactMap(\.note) == [9])
     }
 
+    @Test func cocherDepuisUnWidget() throws {
+        let conteneur = try EntrepotSeance.conteneur(.memoire)
+        let contexte = conteneur.mainContext
+        let service = ServiceSuivi(contexte: contexte)
+        let reacher = ReferenceTitre(type: .serie, tmdbID: 108_978)
+        contexte.insert(Suivi(reference: reacher, titre: "Reacher", statut: .aVoir))
+        let numero = NumeroEpisode(saison: 2, episode: 6)
+        #expect(try service.cocher(numero, serie: reacher, dureeMinutes: 50))
+        // Deux touches sur le même bouton : un seul visionnage.
+        #expect(try !service.cocher(numero, serie: reacher, dureeMinutes: 50))
+        #expect(try service.episodesVus(reacher) == [numero])
+        #expect(try service.suivi(reacher)?.statut == .enCours)
+        #expect(try service.visionnages(reacher).first?.dureeMinutes == 50)
+    }
+
     @Test func exclusionDeLangue() throws {
         let conteneur = try EntrepotSeance.conteneur(.memoire)
         let service = ServiceSuivi(contexte: conteneur.mainContext)
@@ -161,5 +176,128 @@ struct ServiceSoireeTests {
 
         try service.retirer(heat, maintenant: soir)
         #expect(try service.selection(maintenant: soir).isEmpty)
+    }
+}
+
+@Suite("Siri et widgets")
+@MainActor
+struct SiriEtWidgetsTests {
+    @Test func prochainsEpisodesApresCochageEtPhrase() throws {
+        let conteneur = try EntrepotSeance.conteneur(.memoire)
+        let contexte = conteneur.mainContext
+        let reacher = ReferenceTitre(type: .serie, tmdbID: 108_978)
+        let instantane = InstantaneWidgets(series: [
+            .init(id: 108_978, nom: "Reacher", cheminAffiche: nil, episodes: [
+                .init(saison: 2, numero: 6, titre: nil, dureeMinutes: 50), .init(saison: 2, numero: 7, titre: nil, dureeMinutes: 50),
+            ]),
+        ])
+        let service = ServiceSoiree(contexte: contexte)
+        #expect(try service.phrase(nil) == "Rien de prévu ce soir. Ouvre Séance : l'onglet Ce soir te propose des idées selon tes goûts.")
+
+        // Le ✓ d'un widget fait passer au suivant.
+        try ServiceSuivi(contexte: contexte).cocher(NumeroEpisode(saison: 2, episode: 6), serie: reacher, dureeMinutes: 50)
+        #expect(try service.prochainsEpisodes(instantane).first?.episode.numero == 7)
+
+        try service.retenir(reacher, titre: "Reacher", cheminAffiche: nil)
+        #expect(try service.phrase(instantane) == "Ce soir, tu as prévu Reacher, saison 2, épisode 7.")
+    }
+}
+
+@Suite("Premier lancement")
+@MainActor
+struct PremierLancementTests {
+    private func film(_ id: Int, _ titre: String, genres: [Int]) throws -> TitreResume {
+        let json = #"{"id": \#(id), "title": "\#(titre)", "original_title": "\#(titre)", "original_language": "en", "overview": "", "genre_ids": \#(genres), "vote_average": 8, "vote_count": 9000, "popularity": 50, "release_date": "2014-10-24"}"#
+        return try JSONDecoder().decode(FilmResume.self, from: Data(json.utf8)).titreResume
+    }
+
+    @Test func genresEtNotesFontLeProfilEtSortentDesSuggestions() throws {
+        let conteneur = try EntrepotSeance.conteneur(.memoire)
+        let contexte = conteneur.mainContext
+        let gouts = ServiceGouts(contexte: contexte)
+        #expect(try !gouts.dejaPersonnalise())
+
+        try gouts.declarer([
+            .init(libelle: "Action", genres: [28, 10759]),
+            .init(libelle: "Arts martiaux", genres: [], motsCles: [779, 780]),
+        ])
+        #expect(try gouts.interetsDeclares() == ["Action", "Arts martiaux"])
+        #expect(try gouts.dejaPersonnalise())
+
+        // Une nouvelle sélection remplace l'ancienne.
+        try gouts.declarer([.init(libelle: "Thriller", genres: [53])])
+        #expect(try gouts.interetsDeclares() == ["Thriller"])
+
+        let wick = try film(245_891, "John Wick", genres: [28, 53])
+        try gouts.noterTitreConnu(wick, note: 9)
+        try gouts.noterTitreConnu(try film(1, "Comédie ratée", genres: [35]), note: 2)
+
+        let profil = try gouts.profil()
+        #expect(profil.affinite(genre: 53) > 0.5)
+        #expect(profil.affinite(genre: 35) < 0)
+        #expect(try gouts.contexteCandidats().dejaVus.contains(wick.reference))
+        let suivi = try #require(try ServiceSuivi(contexte: contexte).suivi(wick.reference))
+        #expect(suivi.statut == .termine && suivi.note == 9 && !suivi.alertesActives)
+    }
+}
+
+@Suite("Statistiques et bilan")
+@MainActor
+struct ServiceStatistiquesTests {
+    @Test func heuresMeilleurFilmEtAnnees() throws {
+        let conteneur = try EntrepotSeance.conteneur(.memoire)
+        let contexte = conteneur.mainContext
+        let heat = ReferenceTitre(type: .film, tmdbID: 949)
+        let wick = ReferenceTitre(type: .film, tmdbID: 245_891)
+        let reacher = ReferenceTitre(type: .serie, tmdbID: 108_978)
+        let suiviHeat = Suivi(reference: heat, titre: "Heat", statut: .termine)
+        suiviHeat.genres = [28, 80]
+        suiviHeat.acteursPrincipaux = ["Al Pacino", "Robert De Niro"]
+        contexte.insert(suiviHeat)
+        let suiviWick = Suivi(reference: wick, titre: "John Wick", statut: .termine)
+        suiviWick.genres = [28]
+        suiviWick.acteursPrincipaux = ["Keanu Reeves"]
+        contexte.insert(suiviWick)
+        let suiviReacher = Suivi(reference: reacher, titre: "Reacher", statut: .enCours)
+        suiviReacher.genres = [10759]
+        contexte.insert(suiviReacher)
+
+        let mars = Date.suisse("2026-03-14 21:00")
+        let heatVu = Visionnage(reference: heat, dureeMinutes: 170, vuLe: mars)
+        heatVu.note = 9
+        contexte.insert(heatVu)
+        let wickVu = Visionnage(reference: wick, dureeMinutes: 101, vuLe: Date.suisse("2026-06-01 21:00"))
+        wickVu.note = 9
+        contexte.insert(wickVu)
+        for episode in 1...3 {
+            contexte.insert(Visionnage(reference: reacher, saison: 1, episode: episode, dureeMinutes: 50, vuLe: Date.suisse("2026-06-02 20:00").addingTimeInterval(Double(episode) * 3600)))
+        }
+        contexte.insert(Visionnage(reference: heat, dureeMinutes: 170, vuLe: Date.suisse("2025-12-24 21:00")))
+        try contexte.save()
+
+        let service = ServiceStatistiques(contexte: contexte)
+        let annee = try service.bilan(annee: 2026)
+        #expect(annee.minutesTotales == 170 + 101 + 150)
+        #expect(annee.nombreFilms == 2 && annee.nombreEpisodes == 3)
+        #expect(annee.genres.first?.cle == 28)
+        #expect(annee.recordEpisodes?.nombreEpisodes == 3)
+        #expect(try service.bilan(annee: nil).minutesTotales == 591)
+        #expect(try service.annees() == [2026, 2025])
+        // À note égale, le plus récent l'emporte.
+        #expect(try service.meilleurFilm(annee: 2026)?.titre == "John Wick")
+        #expect(try service.meilleurFilm(annee: 2025) == nil)
+        #expect(ServiceStatistiques.bilanOuvert(maintenant: Date.suisse("2026-12-02 10:00")))
+        #expect(!ServiceStatistiques.bilanOuvert(maintenant: Date.suisse("2026-09-17 10:00")))
+    }
+}
+
+private extension Date {
+    /// Heure de Suisse, par exemple `Date.suisse("2026-09-17 21:10")`.
+    static func suisse(_ texte: String) -> Date {
+        let format = DateFormatter()
+        format.locale = Locale(identifier: "en_US_POSIX")
+        format.timeZone = TimeZone(identifier: "Europe/Zurich")
+        format.dateFormat = "yyyy-MM-dd HH:mm"
+        return format.date(from: texte)!
     }
 }

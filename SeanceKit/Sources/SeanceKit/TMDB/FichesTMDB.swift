@@ -213,6 +213,8 @@ public struct CreditPersonne: Decodable, Sendable, Hashable {
     public let genres: [Int]
     public let cheminAffiche: String?
     public let personnage: String?
+    /// Poste dans l'équipe technique (« Director ») pour une réalisation.
+    public let poste: String?
     public let noteMoyenne: Double?
     public let nombreVotes: Int?
     public let date: DateTMDB?
@@ -230,6 +232,7 @@ public struct CreditPersonne: Decodable, Sendable, Hashable {
         case genres = "genre_ids"
         case cheminAffiche = "poster_path"
         case personnage = "character"
+        case poste = "job"
         case noteMoyenne = "vote_average"
         case nombreVotes = "vote_count"
         case releaseDate = "release_date"
@@ -255,24 +258,117 @@ public struct CreditPersonne: Decodable, Sendable, Hashable {
         genres = try c.decodeIfPresent([Int].self, forKey: .genres) ?? []
         cheminAffiche = try c.decodeIfPresent(String.self, forKey: .cheminAffiche)
         personnage = try c.decodeIfPresent(String.self, forKey: .personnage)
+        poste = try c.decodeIfPresent(String.self, forKey: .poste)
         noteMoyenne = try c.decodeIfPresent(Double.self, forKey: .noteMoyenne)
         nombreVotes = try c.decodeIfPresent(Int.self, forKey: .nombreVotes)
     }
 }
 
 public struct Filmographie: Decodable, Sendable {
-    /// Rôles d'acteur uniquement, du plus récent au plus ancien (EF-31) ; une même œuvre n'apparaît qu'une fois.
+    /// Rôles d'acteur, du plus récent au plus ancien (EF-31) ; une même œuvre n'apparaît qu'une fois.
     public let roles: [CreditPersonne]
+    /// Films et séries réalisés, dans le même ordre.
+    public let realisations: [CreditPersonne]
 
     enum CodingKeys: String, CodingKey {
         case roles = "cast"
+        case equipe = "crew"
     }
 
     public init(from decoder: any Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
+        roles = Self.ordonner(try c.decode([CreditPersonne].self, forKey: .roles))
+        realisations = Self.ordonner((try c.decodeIfPresent([CreditPersonne].self, forKey: .equipe) ?? []).filter { $0.poste == "Director" })
+    }
+
+    private static func ordonner(_ credits: [CreditPersonne]) -> [CreditPersonne] {
         var vus = Set<ReferenceTitre>()
-        roles = try c.decode([CreditPersonne].self, forKey: .roles)
+        return credits
             .filter { vus.insert($0.reference).inserted }
             .sorted { ($0.date ?? DateTMDB(annee: 0, mois: 1, jour: 1)) > ($1.date ?? DateTMDB(annee: 0, mois: 1, jour: 1)) }
+    }
+}
+
+/// Fiche d'une personne (EF-30) : portrait, biographie, naissance.
+public struct FichePersonne: Decodable, Sendable, Identifiable {
+    public let id: Int
+    public let nom: String
+    public let biographie: String
+    public let cheminPortrait: String?
+    public let domaine: String?
+    public let lieuNaissance: String?
+    let naissanceBrute: String?
+    let decesBrut: String?
+
+    public var dateNaissance: DateTMDB? { DateTMDB(texte: naissanceBrute) }
+    public var dateDeces: DateTMDB? { DateTMDB(texte: decesBrut) }
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case nom = "name"
+        case biographie = "biography"
+        case cheminPortrait = "profile_path"
+        case domaine = "known_for_department"
+        case lieuNaissance = "place_of_birth"
+        case naissanceBrute = "birthday"
+        case decesBrut = "deathday"
+    }
+
+    /// Âge aujourd'hui, ou âge au décès.
+    public func age(aujourdhui: DateTMDB) -> Int? {
+        guard let naissance = dateNaissance else { return nil }
+        let fin = dateDeces ?? aujourdhui
+        let anniversairePasse = (fin.mois, fin.jour) >= (naissance.mois, naissance.jour)
+        return fin.annee - naissance.annee - (anniversairePasse ? 0 : 1)
+    }
+}
+
+/// Ce que la fiche acteur compte et filtre (EF-31 à EF-33).
+public enum AnalyseFilmographie {
+    public struct Filtres: Sendable, Hashable {
+        public var type: TypeTitre = .film
+        public var actionSeulement = false
+        public var pasVus = false
+        /// Seulement ce qui est regardable ce soir : NAS, abonnements ou télé.
+        public var ceSoir = false
+
+        public init() {}
+    }
+
+    public struct Compte: Sendable, Equatable {
+        public let vus: Int
+        public let total: Int
+    }
+
+    /// Documentaires, actualités, téléréalité et talk-shows : des apparitions, pas des rôles.
+    static let genresEcartes: Set<Int> = [99, 10763, 10764, 10767]
+
+    /// Les vrais rôles : sans apparitions dans son propre rôle ni émissions.
+    public static func significatifs(_ credits: [CreditPersonne]) -> [CreditPersonne] {
+        credits.filter { credit in
+            guard credit.genres.allSatisfy({ !genresEcartes.contains($0) }) else { return false }
+            let role = (credit.personnage ?? "").lowercased()
+            let propreRole = ["self", "himself", "herself", "lui-même", "elle-même", "narrator", "voice"].contains { role.contains($0) }
+            return !propreRole
+        }
+    }
+
+    /// « 12 films vus sur 38 » : titres déjà sortis seulement.
+    public static func compte(_ credits: [CreditPersonne], type: TypeTitre, vus: Set<ReferenceTitre>, aujourdhui: DateTMDB) -> Compte {
+        let sortis = significatifs(credits).filter { $0.type == type && ($0.date.map { $0 <= aujourdhui } ?? false) }
+        return Compte(vus: sortis.filter { vus.contains($0.reference) }.count, total: sortis.count)
+    }
+
+    public static func filtrer(
+        _ credits: [CreditPersonne], filtres: Filtres, vus: Set<ReferenceTitre>, regardables: Set<ReferenceTitre>
+    ) -> [CreditPersonne] {
+        let action = filtres.type == .film ? 28 : 10759
+        return significatifs(credits).filter { credit in
+            guard credit.type == filtres.type else { return false }
+            if filtres.actionSeulement, !credit.genres.contains(action) { return false }
+            if filtres.pasVus, vus.contains(credit.reference) { return false }
+            if filtres.ceSoir, !regardables.contains(credit.reference) { return false }
+            return true
+        }
     }
 }

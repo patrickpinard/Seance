@@ -91,6 +91,17 @@ public struct ServiceSuivi {
         return ajoutes
     }
 
+    /// Coche un épisode connu par son seul numéro, depuis un widget ou Siri, sans fiche TMDB ;
+    /// `false` s'il était déjà vu.
+    @discardableResult
+    public func cocher(_ numero: NumeroEpisode, serie: ReferenceTitre, dureeMinutes: Int, le date: Date = .now) throws -> Bool {
+        guard numero.saison > 0, try !episodesVus(serie).contains(numero) else { return false }
+        contexte.insert(Visionnage(reference: serie, saison: numero.saison, episode: numero.episode, dureeMinutes: dureeMinutes, vuLe: date))
+        if let suivi = try suivi(serie), suivi.statut == .aVoir { suivi.statut = .enCours }
+        try contexte.save()
+        return true
+    }
+
     public func decocher(_ numero: NumeroEpisode, serie: ReferenceTitre) throws {
         for visionnage in try visionnages(serie) where visionnage.saison == numero.saison && visionnage.episode == numero.episode {
             contexte.delete(visionnage)

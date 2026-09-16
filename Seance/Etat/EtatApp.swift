@@ -9,14 +9,18 @@ import UserNotifications
 @Observable
 final class EtatApp {
     private(set) var tmdb: TMDBClient?
-    /// Absent tant qu'aucune clé Claude n'est enregistrée : « Ce soir » classe alors en local (EF-27).
-    private(set) var claude: ClientClaude?
-    /// Noms des genres TMDB, chargés une fois : ils servent aux phrases et à l'invite de Claude.
+    /// Noms des genres TMDB, chargés une fois : ils servent aux filtres, aux phrases et aux statistiques.
     private(set) var nomsGenres: [Int: String] = [:]
     /// Genres TMDB par type, dans l'ordre alphabétique, pour les filtres d'Explorer.
     private(set) var genres: [TypeTitre: [Genre]] = [:]
     /// Fiche demandée par un lien profond ; l'accueil l'ouvre puis remet la demande à zéro.
     var ficheDemandee: ReferenceTitre?
+    /// Demandé depuis une fiche acteur : Explorer s'ouvre filtré sur cette personne.
+    var filtreExplorerDemande: PersonneFiltre?
+    /// Onglet à ouvrir, demandé depuis un autre écran (Ce soir vers Explorer).
+    var ongletDemande: OngletRacine?
+    /// Demandé par le widget « À venir » : Mes listes s'ouvre sur cet onglet.
+    var listeDemandee: MesListesView.Onglet?
     let depot = DepotCles()
     let nas: EtatNAS
     let alertes = EtatAlertes()
@@ -57,7 +61,6 @@ final class EtatApp {
         UNUserNotificationCenter.current().delegate = delegue
         delegueNotifications = delegue
         tmdb = try? depot.client()
-        claude = try? depot.clientClaude()
     }
 
     /// Les deux référentiels de genres, films et séries, en un seul dictionnaire.
@@ -127,28 +130,6 @@ final class EtatApp {
     private func service(_ contexte: ModelContext) -> ServiceProgrammesTV? {
         guard let tmdb else { return nil }
         return ServiceProgrammesTV(contexte: contexte, guide: GuideTVClient(), rattachement: RattachementGuide(recherche: tmdb))
-    }
-
-    /// La clé Claude n'est pas testée contre l'API : un appel d'essai coûterait une vraie demande.
-    /// Seule sa forme est vérifiée.
-    func enregistrerCleClaude(_ cle: String) throws {
-        let propre = cle.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard propre.hasPrefix("sk-ant-"), propre.count > 20 else { throw ErreurCle.formatInattendu }
-        try depot.coffre.enregistrer(propre, pour: .claude)
-        claude = ClientClaude(cle: propre)
-    }
-
-    func supprimerCleClaude() throws {
-        try depot.coffre.supprimer(.claude)
-        claude = nil
-    }
-
-    enum ErreurCle: Error, LocalizedError {
-        case formatInattendu
-
-        var errorDescription: String? {
-            "Une clé Claude commence par « sk-ant- »."
-        }
     }
 
     /// Teste la clé contre TMDB avant de l'enregistrer : une clé refusée ne remplace pas la précédente.

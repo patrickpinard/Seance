@@ -17,8 +17,8 @@ settings:
     # Équipe personnelle de Patrick (compte Apple gratuit).
     DEVELOPMENT_TEAM: GATK475J3P
     # Version affichée dans À propos › Versions ; à changer avec Seance/Ecrans/Moi/Versions.swift.
-    MARKETING_VERSION: "1.1"
-    CURRENT_PROJECT_VERSION: "3"
+    MARKETING_VERSION: "1.2"
+    CURRENT_PROJECT_VERSION: "4"
 
 packages:
   SeanceKit:
@@ -34,6 +34,8 @@ targets:
     platform: iOS
     sources:
       - Seance
+      # Vues et ✓ des widgets, aussi affichés dans l'aperçu de test de l'app.
+      - SeanceWidget/Partage
     dependencies:
       - package: SeanceKit
       - package: SeanceDonnees

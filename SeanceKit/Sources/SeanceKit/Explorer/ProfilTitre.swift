@@ -106,7 +106,7 @@ extension FiltresExplorer {
         return titres.sorted { a, b in
             let avant: Bool
             switch tri {
-            case .popularite: avant = a.nombreVotes > b.nombreVotes
+            case .popularite, .votes: avant = a.nombreVotes > b.nombreVotes
             case .note: avant = a.noteMoyenne > b.noteMoyenne
             case .date: avant = (a.date?.description ?? "") > (b.date?.description ?? "")
             case .titre: avant = a.titre.localizedStandardCompare(b.titre) == .orderedDescending
