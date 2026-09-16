@@ -42,6 +42,9 @@ public struct CriteresDecouverte: Sendable, Hashable, Codable {
     public var motsClesExclus: [Int] = []
     public var sortieDepuis: DateTMDB?
     public var sortieJusqua: DateTMDB?
+    /// Séries seulement : un épisode diffusé dans cet intervalle (`air_date`).
+    public var episodesDepuis: DateTMDB?
+    public var episodesJusqua: DateTMDB?
     public var typesSortie: [TypeSortie] = []
     public var noteMin: Double?
     public var noteMax: Double?
@@ -92,15 +95,22 @@ public struct CriteresDecouverte: Sendable, Hashable, Codable {
         case .film:
             ajouterListe("with_cast", acteurs, combinaisonPersonnes)
             ajouterListe("with_crew", realisateurs, combinaisonPersonnes)
-            ajouterValeur("primary_release_date.gte", sortieDepuis)
-            ajouterValeur("primary_release_date.lte", sortieJusqua)
-            if !typesSortie.isEmpty {
+            if typesSortie.isEmpty {
+                ajouterValeur("primary_release_date.gte", sortieDepuis)
+                ajouterValeur("primary_release_date.lte", sortieJusqua)
+            } else {
+                // TMDB n'applique le type de sortie qu'avec les dates de sortie de la région :
+                // sans `release_date`, le filtre est ignoré (vérifié le 16 septembre 2026).
                 ajouterListe("with_release_type", typesSortie.map(\.rawValue), .auMoinsUn)
                 p.append(URLQueryItem(name: "region", value: region))
+                ajouterValeur("release_date.gte", sortieDepuis)
+                ajouterValeur("release_date.lte", sortieJusqua ?? DateTMDB(annee: 2100, mois: 12, jour: 31))
             }
         case .serie:
             ajouterValeur("first_air_date.gte", sortieDepuis)
             ajouterValeur("first_air_date.lte", sortieJusqua)
+            ajouterValeur("air_date.gte", episodesDepuis)
+            ajouterValeur("air_date.lte", episodesJusqua)
         }
 
         if !fournisseurs.isEmpty || !monetisations.isEmpty {
@@ -123,5 +133,54 @@ public struct CriteresDecouverte: Sendable, Hashable, Codable {
         case (.titre, .film): "title"
         case (.titre, .serie): "name"
         }
+    }
+}
+
+extension CriteresDecouverte {
+    /// Genres de télé sans intérêt pour des nouveautés : actualités, téléréalité, feuilletons, talk-shows.
+    static let genresTeleEcartes = [10763, 10764, 10766, 10767]
+
+    /// Nouveautés de l'accueil : films sortis et séries avec un épisode diffusé aujourd'hui ou dans
+    /// les sept derniers jours, les plus populaires d'abord.
+    public static func nouveautes(_ type: TypeTitre, periode: PeriodeTendance, maintenant: Date = .now) -> CriteresDecouverte {
+        var criteres = CriteresDecouverte()
+        let (debut, aujourdhui) = periode.bornes(maintenant: maintenant)
+        switch type {
+        case .film:
+            criteres.sortieDepuis = debut
+            criteres.sortieJusqua = aujourdhui
+        case .serie:
+            criteres.episodesDepuis = debut
+            criteres.episodesJusqua = aujourdhui
+            criteres.genresExclus = genresTeleEcartes
+        }
+        return criteres
+    }
+}
+
+extension SerieDetail {
+    /// L'épisode qui fait d'une série une nouveauté de la période : le dernier diffusé, sinon le
+    /// prochain s'il tombe dans l'intervalle (TMDB met parfois à jour avec retard).
+    public func episodeNouveau(depuis debut: DateTMDB, jusqua fin: DateTMDB) -> EpisodeTMDB? {
+        [dernierEpisode, prochainEpisode]
+            .compactMap { $0 }
+            .first { episode in
+                guard let date = episode.dateDiffusion else { return false }
+                return date >= debut && date <= fin
+            }
+    }
+
+    /// Vrai quand la série elle-même commence dans la période.
+    public func commence(depuis debut: DateTMDB, jusqua fin: DateTMDB) -> Bool {
+        guard let premiereDiffusion else { return false }
+        return premiereDiffusion >= debut && premiereDiffusion <= fin
+    }
+}
+
+extension PeriodeTendance {
+    /// Premier et dernier jour de la période, à l'heure suisse.
+    public func bornes(maintenant: Date = .now) -> (debut: DateTMDB, fin: DateTMDB) {
+        let fin = DateTMDB(maintenant)
+        return (self == .jour ? fin : DateTMDB(maintenant.addingTimeInterval(-6 * 86_400)), fin)
     }
 }

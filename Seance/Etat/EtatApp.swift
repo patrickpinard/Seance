@@ -12,9 +12,12 @@ final class EtatApp {
     private(set) var claude: ClientClaude?
     /// Noms des genres TMDB, chargés une fois : ils servent aux phrases et à l'invite de Claude.
     private(set) var nomsGenres: [Int: String] = [:]
+    /// Genres TMDB par type, dans l'ordre alphabétique, pour les filtres d'Explorer.
+    private(set) var genres: [TypeTitre: [Genre]] = [:]
     /// Fiche demandée par un lien profond ; l'accueil l'ouvre puis remet la demande à zéro.
     var ficheDemandee: ReferenceTitre?
     let depot = DepotCles()
+    let nas: EtatNAS
 
     // Télévision (EF-45 à EF-51)
     private(set) var teleEnCours = false
@@ -25,7 +28,12 @@ final class EtatApp {
     private enum CleReglage {
         static let derniereLectureTele = "tele.derniereLecture"
         static let chainesLues = "tele.chainesLues"
+        static let versionGuide = "tele.version"
     }
+
+    /// À augmenter quand les diffusions enregistrées gagnent des informations : le guide est alors relu
+    /// sans attendre 12 heures. Version 2 : images des cartes.
+    private static let versionGuide = 2
 
     init() {
         #if DEBUG
@@ -35,6 +43,7 @@ final class EtatApp {
             try? depot.coffre.enregistrer(cle, pour: .tmdb)
         }
         #endif
+        nas = EtatNAS(coffre: depot.coffre)
         tmdb = try? depot.client()
         claude = try? depot.clientClaude()
     }
@@ -44,7 +53,11 @@ final class EtatApp {
         guard nomsGenres.isEmpty, let tmdb else { return }
         async let films = tmdb.genres(.film)
         async let series = tmdb.genres(.serie)
-        let tous = ((try? await films) ?? []) + ((try? await series) ?? [])
+        let listeFilms = (try? await films) ?? []
+        let listeSeries = (try? await series) ?? []
+        let tous = listeFilms + listeSeries
+        let ordre: (Genre, Genre) -> Bool = { $0.nom.localizedStandardCompare($1.nom) == .orderedAscending }
+        genres = [.film: listeFilms.sorted(by: ordre), .serie: listeSeries.sorted(by: ordre)]
         nomsGenres = Dictionary(tous.map { ($0.id, $0.nom) }, uniquingKeysWith: { premier, _ in premier })
     }
 
@@ -52,6 +65,7 @@ final class EtatApp {
     func demarrer(contexte: ModelContext) async {
         _ = try? ServiceProgrammesTV.preparerChaines(contexte)
         await actualiserTele(contexte: contexte)
+        await nas.analyser(contexte: contexte, tmdb: tmdb, automatique: true)
     }
 
     /// Relit le guide TV si la dernière lecture a plus de 12 h ou si les chaînes cochées ont changé ;
@@ -60,7 +74,8 @@ final class EtatApp {
         guard !teleEnCours, let service = service(contexte),
               let actives = try? ServiceProgrammesTV.chainesActives(contexte) else { return }
         let lues = UserDefaults.standard.stringArray(forKey: CleReglage.chainesLues)
-        guard force || ServiceProgrammesTV.doitActualiser(
+        let versionAJour = UserDefaults.standard.integer(forKey: CleReglage.versionGuide) == Self.versionGuide
+        guard force || !versionAJour || ServiceProgrammesTV.doitActualiser(
             derniereLecture: derniereLectureTele, chainesLues: lues, chainesActives: actives
         ) else { return }
 
@@ -73,6 +88,7 @@ final class EtatApp {
             derniereLectureTele = maintenant
             UserDefaults.standard.set(maintenant, forKey: CleReglage.derniereLectureTele)
             UserDefaults.standard.set(actives, forKey: CleReglage.chainesLues)
+            UserDefaults.standard.set(Self.versionGuide, forKey: CleReglage.versionGuide)
         } catch is CancellationError {
             return
         } catch {

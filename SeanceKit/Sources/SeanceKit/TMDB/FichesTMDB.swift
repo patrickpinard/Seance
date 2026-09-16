@@ -9,6 +9,8 @@ public enum ComplementFiche: Sendable, Hashable, CaseIterable {
     case datesDeSortie
     case fournisseurs
     case videos
+    /// Sous-genres d'Explorer (EF-53) vérifiés sur la fiche.
+    case motsCles
 
     func valeurTMDB(pour type: TypeTitre) -> String? {
         switch (self, type) {
@@ -19,6 +21,7 @@ public enum ComplementFiche: Sendable, Hashable, CaseIterable {
         case (.datesDeSortie, .serie): nil
         case (.fournisseurs, _): "watch/providers"
         case (.videos, _): "videos"
+        case (.motsCles, _): "keywords"
         }
     }
 }
@@ -73,12 +76,34 @@ public struct Casting: Decodable, Sendable {
     }
 }
 
-public struct Video: Decodable, Sendable, Hashable {
+/// Mots-clés d'une fiche : TMDB les range sous `keywords` pour un film, sous `results` pour une série.
+public struct MotsCles: Decodable, Sendable, Hashable {
+    public let ids: [Int]
+
+    private struct MotCle: Decodable {
+        let id: Int
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case keywords
+        case results
+    }
+
+    public init(from decoder: any Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        let liste = try c.decodeIfPresent([MotCle].self, forKey: .keywords) ?? c.decodeIfPresent([MotCle].self, forKey: .results) ?? []
+        ids = liste.map(\.id)
+    }
+}
+
+public struct Video: Decodable, Sendable, Hashable, Identifiable {
     public let cle: String
     public let site: String
     public let type: String
     public let nom: String
     public let officielle: Bool?
+    /// « fr », « en »…
+    public let langue: String?
 
     enum CodingKeys: String, CodingKey {
         case cle = "key"
@@ -86,6 +111,18 @@ public struct Video: Decodable, Sendable, Hashable {
         case type
         case nom = "name"
         case officielle = "official"
+        case langue = "iso_639_1"
+    }
+
+    public var id: String { cle }
+
+    /// Lecteur intégré de YouTube, sans cookie de suivi.
+    public var urlIntegration: URL? {
+        site == "YouTube" ? URL(string: "https://www.youtube-nocookie.com/embed/\(cle)?playsinline=1&autoplay=1&rel=0") : nil
+    }
+
+    public var urlVignette: URL? {
+        site == "YouTube" ? URL(string: "https://img.youtube.com/vi/\(cle)/hqdefault.jpg") : nil
     }
 
     public var urlYouTube: URL? {
@@ -100,11 +137,17 @@ public struct ListeVideos: Decodable, Sendable {
         case resultats = "results"
     }
 
-    /// Bandes-annonces YouTube, officielles d'abord (UX-09).
+    /// Bandes-annonces et teasers YouTube (UX-09) : en français d'abord, puis les bandes-annonces
+    /// avant les teasers, les officielles avant les autres.
     public var bandesAnnonces: [Video] {
-        resultats
-            .filter { $0.type == "Trailer" && $0.site == "YouTube" }
-            .sorted { ($0.officielle ?? false) && !($1.officielle ?? false) }
+        func rang(_ v: Video, _ position: Int) -> (Int, Int, Int, Int) {
+            (v.langue == "fr" ? 0 : 1, v.type == "Trailer" ? 0 : 1, v.officielle == true ? 0 : 1, position)
+        }
+        return resultats
+            .filter { ($0.type == "Trailer" || $0.type == "Teaser") && $0.site == "YouTube" }
+            .enumerated()
+            .sorted { rang($0.element, $0.offset) < rang($1.element, $1.offset) }
+            .map(\.element)
     }
 }
 
@@ -129,6 +172,7 @@ public struct FicheFilm: Decodable, Sendable, Identifiable {
     public let datesDeSortie: DatesDeSortie?
     public let fournisseurs: FournisseursParPays?
     public let videos: ListeVideos?
+    public let motsCles: MotsCles?
 
     public var dateSortie: DateTMDB? { DateTMDB(texte: dateSortieBrute) }
     public var reference: ReferenceTitre { ReferenceTitre(type: .film, tmdbID: id) }
@@ -154,6 +198,7 @@ public struct FicheFilm: Decodable, Sendable, Identifiable {
         case datesDeSortie = "release_dates"
         case fournisseurs = "watch/providers"
         case videos
+        case motsCles = "keywords"
     }
 }
 

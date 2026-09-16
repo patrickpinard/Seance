@@ -16,12 +16,17 @@ settings:
     CODE_SIGN_STYLE: Automatic
     # Équipe personnelle de Patrick (compte Apple gratuit).
     DEVELOPMENT_TEAM: GATK475J3P
+    # Version affichée dans À propos › Versions ; à changer avec Seance/Ecrans/Moi/Versions.swift.
+    MARKETING_VERSION: "0.9"
+    CURRENT_PROJECT_VERSION: "1"
 
 packages:
   SeanceKit:
     path: SeanceKit
   SeanceDonnees:
     path: SeanceDonnees
+  SeanceNAS:
+    path: SeanceNAS
 
 targets:
   Seance:
@@ -32,6 +37,7 @@ targets:
     dependencies:
       - package: SeanceKit
       - package: SeanceDonnees
+      - package: SeanceNAS
       - target: SeanceWidget
     entitlements:
       path: Seance/Seance.entitlements
@@ -43,6 +49,8 @@ targets:
       properties:
         CFBundleDisplayName: Séance
         CFBundleDevelopmentRegion: fr
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         UILaunchScreen: {}
         UIUserInterfaceStyle: Dark
         UISupportedInterfaceOrientations:
@@ -54,6 +62,11 @@ targets:
           - ch.patrick.seance.rafraichissement
           - ch.patrick.seance.programmes-tv
         ITSAppUsesNonExemptEncryption: false
+        NSLocalNetworkUsageDescription: Séance lit la liste des films et séries de ton NAS, sur le réseau de la maison.
+        # Apps de lecture qui ouvrent les vidéos du NAS (EF-74).
+        LSApplicationQueriesSchemes:
+          - infuse
+          - vlc-x-callback
         CFBundleURLTypes:
           - CFBundleURLName: ch.patrick.seance
             CFBundleURLSchemes:
@@ -82,6 +95,8 @@ targets:
       path: SeanceWidget/Info.plist
       properties:
         CFBundleDisplayName: Séance
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         NSExtension:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension
     settings:

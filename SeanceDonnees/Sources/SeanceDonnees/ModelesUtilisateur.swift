@@ -104,16 +104,29 @@ public final class FiltreEnregistre {
     public var alerteActive: Bool = false
     public var derniersResultats: [ReferenceTitre] = []
     public var creeLe: Date = Date.now
+    /// `FiltresExplorer` encodé en JSON : personnes, sous-genres et filtres de l'app compris.
+    public var filtresJSON: Data?
 
     public var criteres: CriteresDecouverte {
         get { (try? JSONDecoder().decode(CriteresDecouverte.self, from: criteresJSON)) ?? CriteresDecouverte() }
         set { criteresJSON = (try? JSONEncoder().encode(newValue)) ?? Data() }
     }
 
+    public var filtres: FiltresExplorer? {
+        get { filtresJSON.flatMap { try? JSONDecoder().decode(FiltresExplorer.self, from: $0) } }
+        set { filtresJSON = newValue.flatMap { try? JSONEncoder().encode($0) } }
+    }
+
     public init(nom: String, type: TypeTitre, criteres: CriteresDecouverte) {
         self.nom = nom
         typeBrut = type.rawValue
         criteresJSON = (try? JSONEncoder().encode(criteres)) ?? Data()
+    }
+
+    /// Enregistre un réglage d'Explorer ; les critères TMDB sont gardés à part pour les alertes (EF-58).
+    public convenience init(nom: String, filtres: FiltresExplorer, abonnements: [Int]) {
+        self.init(nom: nom, type: filtres.type, criteres: filtres.criteres(abonnements: abonnements))
+        self.filtres = filtres
     }
 }
 

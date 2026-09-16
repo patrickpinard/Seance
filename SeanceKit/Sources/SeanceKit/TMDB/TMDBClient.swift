@@ -109,7 +109,13 @@ public actor TMDBClient {
 
     static func parametresComplements(_ complements: Set<ComplementFiche>, type: TypeTitre) -> [URLQueryItem] {
         let valeurs = ComplementFiche.allCases.filter(complements.contains).compactMap { $0.valeurTMDB(pour: type) }
-        return valeurs.isEmpty ? [] : [URLQueryItem(name: "append_to_response", value: valeurs.joined(separator: ","))]
+        guard !valeurs.isEmpty else { return [] }
+        var items = [URLQueryItem(name: "append_to_response", value: valeurs.joined(separator: ","))]
+        // Sans ce paramètre, TMDB ne renvoie que les vidéos en français : souvent aucune.
+        if complements.contains(.videos) {
+            items.append(URLQueryItem(name: "include_video_language", value: "fr,en,null"))
+        }
+        return items
     }
 
     public func saison(_ numero: Int, serie id: Int) async throws -> SaisonDetail {

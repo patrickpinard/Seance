@@ -17,6 +17,8 @@ struct FicheAffichee {
     var pourcentage: Int
     var offres: OffresRegion?
     var casting: [PersonneCasting]
+    /// Bandes-annonces et teasers YouTube, en français d'abord.
+    var videos: [Video]
     var langueOriginale: String
     var film: FicheFilm?
     var serie: SerieDetail?
@@ -34,6 +36,7 @@ struct FicheAffichee {
         pourcentage = Int((film.noteMoyenne * 10).rounded())
         offres = film.fournisseurs?.offres()
         casting = film.casting?.principaux(15) ?? []
+        videos = film.videos?.bandesAnnonces ?? []
         langueOriginale = film.langueOriginale
         self.film = film
     }
@@ -50,6 +53,7 @@ struct FicheAffichee {
         pourcentage = Int((serie.noteMoyenne * 10).rounded())
         offres = serie.fournisseurs?.offres()
         casting = serie.casting?.principaux(15) ?? []
+        videos = serie.videos?.bandesAnnonces ?? []
         langueOriginale = serie.langueOriginale
         self.serie = serie
     }
@@ -100,6 +104,7 @@ private struct ContenuFiche: View {
     @State private var etatDisponibilite: EtatDisponibilite = .introuvable
     @State private var suivi: Suivi?
     @State private var vu = false
+    @State private var videoChoisie: Video?
 
     var body: some View {
         ScrollView {
@@ -107,6 +112,7 @@ private struct ContenuFiche: View {
                 enTete
                 actions
                 BlocOuRegarder(etat: etatDisponibilite)
+                SectionNASFiche(reference: fiche.reference)
                 if let accroche = fiche.accroche, !accroche.isEmpty {
                     Text(accroche).italic().foregroundStyle(.secondary).padding(.horizontal, 20)
                 }
@@ -117,6 +123,7 @@ private struct ContenuFiche: View {
                     }
                     .padding(.horizontal, 20)
                 }
+                SectionBandesAnnonces(videos: fiche.videos) { videoChoisie = $0 }
                 if !fiche.casting.isEmpty {
                     VStack(alignment: .leading, spacing: 12) {
                         TitreSection("Casting")
@@ -139,6 +146,9 @@ private struct ContenuFiche: View {
         }
         .ignoresSafeArea(edges: .top)
         .task { rafraichir() }
+        .sheet(item: $videoChoisie) { video in
+            LecteurBandeAnnonce(video: video)
+        }
     }
 
     /// UX-06 : image de fond, affiche, titre, année, genres, durée et anneau de note.
@@ -171,28 +181,31 @@ private struct ContenuFiche: View {
         .padding(.bottom, 60)
     }
 
+    /// Actions en icônes : « + » ajoute à « À voir », « − » retire ; l'œil marque vu ; ▶︎ la bande-annonce.
     private var actions: some View {
-        HStack(spacing: 10) {
-            Button {
+        HStack(spacing: 14) {
+            BoutonIcone(
+                symbole: suivi == nil ? "plus" : "minus",
+                libelle: suivi == nil ? "Ajouter à voir" : "Retirer de mes listes",
+                principal: suivi == nil,
+                actif: suivi != nil
+            ) {
                 basculerAVoir()
-            } label: {
-                Label(suivi == nil ? "À voir" : "Dans mes listes", systemImage: suivi == nil ? "plus" : "checkmark")
-                    .frame(maxWidth: .infinity)
             }
-            .buttonStyle(.borderedProminent)
 
             if let film = fiche.film {
-                Button {
+                BoutonIcone(symbole: vu ? "eye.fill" : "eye", libelle: vu ? "Vu" : "Marquer vu", actif: vu) {
                     marquerVu(film)
-                } label: {
-                    Label(vu ? "Vu" : "Marquer vu", systemImage: vu ? "eye.fill" : "eye")
-                        .frame(maxWidth: .infinity)
                 }
-                .buttonStyle(.bordered)
-                .sensoryFeedback(.success, trigger: vu)
             }
+
+            if let video = fiche.videos.first {
+                BoutonIcone(symbole: "play.rectangle.fill", libelle: "Bande-annonce") {
+                    videoChoisie = video
+                }
+            }
+            Spacer()
         }
-        .controlSize(.large)
         .padding(.horizontal, 20)
     }
 

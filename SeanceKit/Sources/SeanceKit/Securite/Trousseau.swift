@@ -6,6 +6,8 @@ public enum CleAPI: String, Sendable, CaseIterable {
     case tmdb
     case claude
     case srgssr
+    /// Mot de passe du partage SMB du NAS (EF-86) : saisi dans l'app, jamais ailleurs.
+    case nas
 }
 
 public protocol CoffreCles: Sendable {

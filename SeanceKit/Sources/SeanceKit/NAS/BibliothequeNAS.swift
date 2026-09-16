@@ -153,17 +153,37 @@ public actor RattachementNAS {
     }
 
     public func rattacher(_ entrees: [EntreeNAS]) async throws -> [EntreeRattachee] {
-        var resultat: [EntreeRattachee] = []
-        for entree in entrees {
-            try Task.checkCancellation()
-            resultat.append(EntreeRattachee(entree: entree, titre: try await titre(pour: entree)))
+        // Une recherche par œuvre, six à la fois : les épisodes d'une série partagent la leur.
+        var representants: [String: EntreeNAS] = [:]
+        var ordre: [String] = []
+        for entree in entrees where representants[Self.cle(entree)] == nil {
+            representants[Self.cle(entree)] = entree
+            ordre.append(Self.cle(entree))
         }
-        return resultat
+        var trouves: [String: TitreResume] = [:]
+        try await withThrowingTaskGroup(of: (String, TitreResume?).self) { groupe in
+            var reste = ordre[...]
+            for _ in 0..<6 {
+                guard let cle = reste.popFirst(), let entree = representants[cle] else { break }
+                groupe.addTask { (cle, try await self.titre(pour: entree)) }
+            }
+            while let (cle, titre) = try await groupe.next() {
+                trouves[cle] = titre
+                if let suivante = reste.popFirst(), let entree = representants[suivante] {
+                    groupe.addTask { (suivante, try await self.titre(pour: entree)) }
+                }
+            }
+        }
+        return entrees.map { EntreeRattachee(entree: $0, titre: trouves[Self.cle($0)]) }
+    }
+
+    private static func cle(_ entree: EntreeNAS) -> String {
+        entree.cleOeuvre + "|" + String(entree.analyse.annee ?? 0)
     }
 
     private func titre(pour entree: EntreeNAS) async throws -> TitreResume? {
         let analyse = entree.analyse
-        let cle = entree.cleOeuvre + "|" + String(analyse.annee ?? 0)
+        let cle = Self.cle(entree)
         if let connu = parOeuvre[cle] { return connu }
 
         let trouve: TitreResume?

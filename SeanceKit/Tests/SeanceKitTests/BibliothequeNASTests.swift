@@ -86,3 +86,23 @@ struct NASReelTests {
         #expect(Double(reconnus.count) / Double(max(1, resultats.count)) > 0.7)
     }
 }
+
+@Suite("Lecture depuis le NAS")
+struct LecteurVideoTests {
+    @Test func lienInfuseEtVLCAvecIdentifiantsEncodes() throws {
+        let reglages = ReglagesNAS()
+        let video = try #require(reglages.url(chemin: "Séries/Reacher/Saison 01/Reacher.S01E03.mkv", motDePasse: "p@ss:w/rd"))
+        let infuse = try #require(LecteurVideo.infuse.lien(pour: video))
+        #expect(infuse.scheme == "infuse")
+        #expect(infuse.host == "x-callback-url")
+
+        // L'app de lecture décode une fois et retrouve l'adresse SMB exacte, mot de passe compris.
+        let valeur = try #require(URLComponents(url: infuse, resolvingAgainstBaseURL: false)?.queryItems?.first { $0.name == "url" }?.value)
+        let relue = try #require(URL(string: valeur))
+        #expect(relue == video)
+        #expect(relue.password(percentEncoded: false) == "p@ss:w/rd")
+        #expect(relue.path(percentEncoded: false) == "/Films/Séries/Reacher/Saison 01/Reacher.S01E03.mkv")
+
+        #expect(LecteurVideo.vlc.lien(pour: video)?.absoluteString.hasPrefix("vlc-x-callback://x-callback-url/stream?url=smb%3A%2F%2Fadmin%3A") == true)
+    }
+}

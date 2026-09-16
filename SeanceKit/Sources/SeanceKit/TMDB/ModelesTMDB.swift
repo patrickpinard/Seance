@@ -337,8 +337,11 @@ public struct SerieDetail: Decodable, Sendable, Identifiable {
     public let casting: Casting?
     public let fournisseurs: FournisseursParPays?
     public let videos: ListeVideos?
+    public let motsCles: MotsCles?
+    let premiereDiffusionBrute: String?
 
     public var reference: ReferenceTitre { ReferenceTitre(type: .serie, tmdbID: id) }
+    public var premiereDiffusion: DateTMDB? { DateTMDB(texte: premiereDiffusionBrute) }
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -362,6 +365,8 @@ public struct SerieDetail: Decodable, Sendable, Identifiable {
         case casting = "aggregate_credits"
         case fournisseurs = "watch/providers"
         case videos
+        case motsCles = "keywords"
+        case premiereDiffusionBrute = "first_air_date"
     }
 }
 

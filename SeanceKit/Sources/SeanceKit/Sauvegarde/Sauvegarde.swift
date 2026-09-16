@@ -68,12 +68,15 @@ public struct Sauvegarde: Codable, Sendable, Equatable {
         public var type: TypeTitre
         public var criteres: CriteresDecouverte
         public var alerteActive: Bool
+        /// Réglages complets d'Explorer, filtres de l'app compris ; absents des sauvegardes anciennes.
+        public var filtres: FiltresExplorer?
 
-        public init(nom: String, type: TypeTitre, criteres: CriteresDecouverte, alerteActive: Bool) {
+        public init(nom: String, type: TypeTitre, criteres: CriteresDecouverte, alerteActive: Bool, filtres: FiltresExplorer? = nil) {
             self.nom = nom
             self.type = type
             self.criteres = criteres
             self.alerteActive = alerteActive
+            self.filtres = filtres
         }
     }
 

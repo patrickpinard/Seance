@@ -51,7 +51,7 @@ struct FichesTMDBTests {
         func complements(_ r: URLRequest) -> String? {
             URLComponents(url: r.url!, resolvingAgainstBaseURL: false)?.queryItems?.first { $0.name == "append_to_response" }?.value
         }
-        #expect(complements(requetes[0]) == "credits,release_dates,watch/providers,videos")
+        #expect(complements(requetes[0]) == "credits,release_dates,watch/providers,videos,keywords")
         // Pas de dates de sortie pour une série ; casting cumulé de toutes les saisons.
         #expect(complements(requetes[1]) == "aggregate_credits,watch/providers")
     }
@@ -85,5 +85,30 @@ struct TitresMixtesTests {
         #expect(page.resultats.compactMap(\.personne).map(\.nom) == ["Keanu Reeves"])
         #expect(page.resultats.compactMap(\.titre).map(\.date) == [DateTMDB(annee: 2022, mois: 2, jour: 4)])
         #expect(page.resultats[1] == .autre)
+    }
+}
+
+@Suite("Bandes-annonces")
+struct BandesAnnoncesTests {
+    @Test func francaisDabordPuisBandesAnnoncesAvantTeasers() throws {
+        let json = #"""
+        {"results": [
+          {"key": "a", "site": "YouTube", "type": "Featurette", "name": "Making of", "official": true, "iso_639_1": "fr"},
+          {"key": "b", "site": "YouTube", "type": "Teaser", "name": "Teaser", "official": true, "iso_639_1": "en"},
+          {"key": "c", "site": "YouTube", "type": "Trailer", "name": "Official Trailer", "official": true, "iso_639_1": "en"},
+          {"key": "d", "site": "Vimeo", "type": "Trailer", "name": "Vimeo", "official": true, "iso_639_1": "fr"},
+          {"key": "e", "site": "YouTube", "type": "Teaser", "name": "Teaser [VF]", "official": false, "iso_639_1": "fr"},
+          {"key": "f", "site": "YouTube", "type": "Trailer", "name": "Bande-annonce [VF]", "official": true, "iso_639_1": "fr"}
+        ]}
+        """#
+        let liste = try JSONDecoder().decode(ListeVideos.self, from: Data(json.utf8))
+        #expect(liste.bandesAnnonces.map(\.cle) == ["f", "e", "c", "b"])
+        #expect(liste.bandesAnnonces.first?.urlIntegration?.host == "www.youtube-nocookie.com")
+    }
+
+    @Test func videosDemandeesEnFrancaisEtEnAnglais() {
+        let items = TMDBClient.parametresComplements([.videos, .casting], type: .film)
+        #expect(items.first { $0.name == "include_video_language" }?.value == "fr,en,null")
+        #expect(TMDBClient.parametresComplements([.casting], type: .film).count == 1)
     }
 }

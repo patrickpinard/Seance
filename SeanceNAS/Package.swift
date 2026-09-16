@@ -21,5 +21,6 @@ let package = Package(
                 .product(name: "AMSMB2", package: "AMSMB2"),
             ]
         ),
+        .testTarget(name: "SeanceNASTests", dependencies: ["SeanceNAS"]),
     ]
 )

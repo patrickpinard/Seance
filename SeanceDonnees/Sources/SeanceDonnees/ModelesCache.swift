@@ -35,6 +35,10 @@ public final class Diffusion {
     public var typeBrut: String = TypeTitre.film.rawValue
     /// `nil` tant que la diffusion n'est pas rattachée : elle n'apparaît alors nulle part.
     public var tmdbID: Int?
+    /// Images TMDB du titre rattaché, puis vignette du guide TV en secours.
+    public var cheminFond: String?
+    public var cheminAffiche: String?
+    public var imageGuide: String?
 
     public init(programme: ProgrammeTV, rattachement: CandidatRattachement?) {
         chaine = programme.chaine
@@ -46,6 +50,9 @@ public final class Diffusion {
         episode = programme.episode
         typeBrut = (programme.nature == .serie ? TypeTitre.serie : .film).rawValue
         tmdbID = rattachement?.tmdbID
+        cheminFond = rattachement?.cheminFond
+        cheminAffiche = rattachement?.cheminAffiche
+        imageGuide = programme.image?.absoluteString
     }
 }
 
@@ -82,18 +89,29 @@ public final class AlertePlanifiee {
     }
 }
 
-/// Un film ou un épisode présent sur le NAS (EF-72 à EF-74).
+/// Un film ou un épisode présent sur le NAS (EF-72 à EF-74). Titre et affiche sont recopiés de TMDB
+/// à l'analyse : la bibliothèque s'affiche sans réseau.
 @Model
 public final class FichierNAS {
     public var tmdbID: Int?
     public var typeBrut: String = TypeTitre.film.rawValue
     public var saison: Int?
     public var episode: Int?
+    /// Chemin relatif au partage : « Films/Heat.1995.mkv ».
     public var chemin: String = ""
     /// « 4K », « 1080p », « 720p »…
     public var qualite: String?
     public var tailleOctets: Int64 = 0
     public var indexeLe: Date = Date.now
+    /// Premier dossier du chemin : « Films », « NEW », « Séries ».
+    public var dossier: String = ""
+    /// Titre TMDB s'il est reconnu, sinon celui lu dans le nom du fichier.
+    public var titre: String = ""
+    public var annee: Int?
+    public var cheminAffiche: String?
+    public var cheminFond: String?
+    public var noteMoyenne: Double = 0
+    public var nombreVotes: Int = 0
 
     public init(chemin: String, type: TypeTitre, tmdbID: Int? = nil, qualite: String? = nil, tailleOctets: Int64 = 0) {
         self.chemin = chemin
@@ -101,5 +119,19 @@ public final class FichierNAS {
         self.tmdbID = tmdbID
         self.qualite = qualite
         self.tailleOctets = tailleOctets
+        dossier = chemin.split(separator: "/").first.map(String.init) ?? ""
+        titre = (chemin as NSString).lastPathComponent
+    }
+
+    public var type: TypeTitre {
+        TypeTitre(rawValue: typeBrut) ?? .film
+    }
+
+    public var reference: ReferenceTitre? {
+        tmdbID.map { ReferenceTitre(type: type, tmdbID: $0) }
+    }
+
+    public var nomFichier: String {
+        (chemin as NSString).lastPathComponent
     }
 }

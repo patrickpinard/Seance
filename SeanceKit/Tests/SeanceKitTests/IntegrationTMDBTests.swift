@@ -82,3 +82,57 @@ struct GuideReelTests {
         #expect(filmsRattaches.count * 2 >= films.count)
     }
 }
+
+/// Chaque critère d'Explorer doit réduire le nombre de résultats annoncé par TMDB.
+/// `SEANCE_CLE_TMDB=… outils/tester.sh --filter FiltresReels`
+@Suite("Filtres réels", .enabled(if: ProcessInfo.processInfo.environment["SEANCE_CLE_TMDB"] != nil))
+struct FiltresReelsTests {
+    private let client = TMDBClient(identifiants: .depuis(ProcessInfo.processInfo.environment["SEANCE_CLE_TMDB"] ?? ""))
+
+    private func total(_ filtres: FiltresExplorer) async throws -> Int {
+        let criteres = filtres.criteres(abonnements: [8, 119, 337])
+        switch filtres.type {
+        case .film: return try await client.decouvrirFilms(criteres).nombreResultats
+        case .serie: return try await client.decouvrirSeries(criteres).nombreResultats
+        }
+    }
+
+    @Test(arguments: [TypeTitre.film, .serie])
+    func chaqueCritereReduitLeNombre(type: TypeTitre) async throws {
+        // TMDB plafonne le nombre annoncé à 20 001 : la base reste en dessous pour que chaque critère se voie.
+        var base = FiltresExplorer(type: type)
+        base.votesMin = 300
+        let reference = try await total(base)
+        #expect(reference < 20_000)
+        var cas: [(String, FiltresExplorer)] = []
+        func ajouter(_ nom: String, _ modifier: (inout FiltresExplorer) -> Void) {
+            var f = base
+            modifier(&f)
+            cas.append((nom, f))
+        }
+        ajouter("genre") { $0.genresInclus = [type == .film ? 28 : 10759] }
+        ajouter("genre exclu") { $0.genresExclus = [type == .film ? 18 : 18] }
+        ajouter("sous-genre") { $0.sousGenres = ["artsMartiaux"] }
+        if type == .film { ajouter("personne") { $0.personnes = [PersonneFiltre(id: 6384, nom: "Keanu", cheminPortrait: nil)] } }
+        ajouter("période") { $0.anneeDebut = 1990; $0.anneeFin = 1999 }
+        if type == .film { ajouter("type de sortie") { $0.typesSortie = [.salles] } }
+        ajouter("note") { $0.noteMin = 7 }
+        ajouter("votes") { $0.votesMin = 2000 }
+        ajouter("durée") { $0.dureeMax = type == .film ? 90 : 30 }
+        ajouter("langue") { $0.langue = "fr" }
+        ajouter("plateformes") { $0.mesPlateformes = true }
+        ajouter("monétisation") { $0.monetisations = [.location] }
+        ajouter("tri par note (même nombre)") { $0.tri = .note }
+
+        print("\(type) — sans filtre : \(reference)")
+        for (nom, filtres) in cas {
+            let n = try await total(filtres)
+            print("\(type) — \(nom) : \(n)")
+            if nom.hasPrefix("tri") {
+                #expect(n == reference)
+            } else {
+                #expect(n < reference, "\(nom) ne réduit pas les résultats (\(n) sur \(reference))")
+            }
+        }
+    }
+}

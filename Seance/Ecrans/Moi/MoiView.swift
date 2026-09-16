@@ -33,6 +33,10 @@ struct MoiView: View {
                         LigneReglage(titre: "Télévision", symbole: "tv.fill", couleur: .blue,
                                      valeur: chaines.isEmpty ? "Aucune chaîne" : "\(chaines.count) chaînes")
                     }
+                    NavigationLink { ReglagesNASView() } label: {
+                        LigneReglage(titre: "NAS", symbole: "externaldrive.fill", couleur: .green,
+                                     valeur: etat.nas.estConfigure ? "Configuré" : "À configurer")
+                    }
                 }
 
                 Section {
@@ -314,13 +318,24 @@ struct ReglagesTeleView: View {
     }
 }
 
-/// À propos (EF-44) : description de l'app, sources des données et droits d'auteur.
+/// À propos (EF-44) : l'application, ses sources et les droits d'auteur, et l'historique des versions.
 struct AProposView: View {
+    enum Onglet: String, CaseIterable, Identifiable {
+        case application = "Séance"
+        case versions = "Versions"
+
+        var id: String { rawValue }
+    }
+
+    @State private var onglet = Onglet.application
+
+    private var numeroVersion: String {
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.9"
+    }
+
     private var version: String {
-        let infos = Bundle.main.infoDictionary
-        let version = infos?["CFBundleShortVersionString"] as? String ?? "1.0"
-        let construction = infos?["CFBundleVersion"] as? String ?? "1"
-        return "Version \(version) (\(construction))"
+        let construction = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1"
+        return "Version \(numeroVersion) (\(construction))"
     }
 
     var body: some View {
@@ -335,21 +350,23 @@ struct AProposView: View {
                         .accessibilityHidden(true)
                     Text("Séance").font(.title.weight(.heavy))
                     Text(version).font(.footnote).foregroundStyle(.secondary)
+                    Picker("Onglet", selection: $onglet) {
+                        ForEach(Onglet.allCases) { onglet in
+                            Text(onglet.rawValue).tag(onglet)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    .padding(.top, 8)
                 }
                 .frame(maxWidth: .infinity)
                 .listRowBackground(Color.clear)
             }
 
-            Section("L'application") {
-                Text("Séance est ton guide personnel des films et séries d'action. Elle te dit où regarder chaque titre en Suisse : sur tes plateformes, à la télévision ou sur ton NAS, ou comment l'obtenir légalement.")
-                Text("Elle suit tes séries épisode par épisode, garde la trace de ce que tu as vu et te prévient des nouvelles saisons, des sorties et des passages à la télé. Chaque soir, elle te propose des idées choisies selon tes goûts, toutes vérifiées dans TMDB.")
-                Text("Tes données restent sur ton iPhone. Une sauvegarde régulière dans un fichier les protège.")
-            }
-
-            Section("Sources des données") {
-                Text("Cette application utilise TMDB et les API de TMDB, mais n'est ni approuvée, ni certifiée, ni validée par TMDB.")
-                Text("Disponibilités sur les plateformes : JustWatch.")
-                Text("Programmes TV de la RTS et des chaînes françaises : XML TV Fr, projet bénévole.")
+            switch onglet {
+            case .application:
+                application
+            case .versions:
+                ListeVersions(versionInstallee: numeroVersion)
             }
 
             Section {
@@ -364,5 +381,21 @@ struct AProposView: View {
         .background(Theme.fond)
         .navigationTitle("À propos")
         .navigationBarTitleDisplayMode(.inline)
+    }
+
+    @ViewBuilder
+    private var application: some View {
+        Section("L'application") {
+            Text("Séance est ton guide personnel des films et séries d'action. Elle te dit où regarder chaque titre en Suisse : sur tes plateformes, à la télévision ou sur ton NAS, ou comment l'obtenir légalement.")
+            Text("Elle suit tes séries épisode par épisode, garde la trace de ce que tu as vu et te prévient des nouvelles saisons, des sorties et des passages à la télé. Chaque soir, elle te propose des idées choisies selon tes goûts, toutes vérifiées dans TMDB.")
+            Text("Tes données restent sur ton iPhone. Une sauvegarde régulière dans un fichier les protège.")
+        }
+
+        Section("Sources des données") {
+            Text("Cette application utilise TMDB et les API de TMDB, mais n'est ni approuvée, ni certifiée, ni validée par TMDB.")
+            Text("Disponibilités sur les plateformes : JustWatch.")
+            Text("Programmes TV de la RTS et des chaînes françaises : XML TV Fr, projet bénévole.")
+            Text("Accès au NAS : AMSMB2 et libsmb2, sous licence LGPL.")
+        }
     }
 }

@@ -8,25 +8,33 @@ public struct CandidatRattachement: Sendable, Hashable {
     public let titreOriginal: String
     /// Année de sortie d'un film, ou de première diffusion d'une série.
     public let annee: Int?
+    /// Images TMDB, reprises par les cartes « Ce soir à la télé ».
+    public var cheminAffiche: String?
+    public var cheminFond: String?
 
-    public init(tmdbID: Int, type: TypeTitre, titre: String, titreOriginal: String, annee: Int?) {
+    public init(tmdbID: Int, type: TypeTitre, titre: String, titreOriginal: String, annee: Int?,
+                cheminAffiche: String? = nil, cheminFond: String? = nil) {
         self.tmdbID = tmdbID
         self.type = type
         self.titre = titre
         self.titreOriginal = titreOriginal
         self.annee = annee
+        self.cheminAffiche = cheminAffiche
+        self.cheminFond = cheminFond
     }
 }
 
 extension FilmResume {
     public var candidat: CandidatRattachement {
-        CandidatRattachement(tmdbID: id, type: .film, titre: titre, titreOriginal: titreOriginal, annee: dateSortie?.annee)
+        CandidatRattachement(tmdbID: id, type: .film, titre: titre, titreOriginal: titreOriginal, annee: dateSortie?.annee,
+                             cheminAffiche: cheminAffiche, cheminFond: cheminFond)
     }
 }
 
 extension SerieResume {
     public var candidat: CandidatRattachement {
-        CandidatRattachement(tmdbID: id, type: .serie, titre: nom, titreOriginal: nomOriginal, annee: premiereDiffusion?.annee)
+        CandidatRattachement(tmdbID: id, type: .serie, titre: nom, titreOriginal: nomOriginal, annee: premiereDiffusion?.annee,
+                             cheminAffiche: cheminAffiche, cheminFond: cheminFond)
     }
 }
 

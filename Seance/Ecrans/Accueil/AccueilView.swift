@@ -9,8 +9,52 @@ final class AccueilModele {
     var tendancesJour: [TitreResume] = []
     var tendancesSemaine: [TitreResume] = []
     var nouveautes: [TitreResume] = []
+    /// Nouveaux films et séries avec un épisode récent, du jour ou de la semaine.
+    var nouveauxFilms: [TitreResume] = []
+    var nouvellesSeries: [TitreResume] = []
+    /// Pour chaque série : l'épisode diffusé dans la période, ou sa première diffusion.
+    var datesSeries: [ReferenceTitre: String] = [:]
+    var nouveautesChargees = false
     var erreur: String?
     var charge = false
+
+    func chargerNouveautes(client: TMDBClient, periode: PeriodeTendance) async {
+        async let films = client.decouvrirFilms(CriteresDecouverte.nouveautes(.film, periode: periode))
+        async let series = client.decouvrirSeries(CriteresDecouverte.nouveautes(.serie, periode: periode))
+        // Sans affiche, une carte ne dit rien ; hors français et anglais, pas de version regardable (EF-28).
+        func retenir(_ titres: [TitreResume]) -> [TitreResume] {
+            titres.filter { $0.cheminAffiche != nil && RegleLangue.accepte(langueOriginale: $0.langueOriginale, exclu: false) }
+        }
+        nouveauxFilms = retenir((try? await films.resultats.map(\.titreResume)) ?? [])
+        let seriesRetenues = retenir((try? await series.resultats.map(\.titreResume)) ?? [])
+        datesSeries = await Self.datesDesEpisodes(seriesRetenues, periode: periode, client: client)
+        nouvellesSeries = seriesRetenues
+        nouveautesChargees = true
+    }
+
+    /// `discover` ne dit pas quel épisode est sorti : la fiche de chaque série le donne.
+    private static func datesDesEpisodes(_ series: [TitreResume], periode: PeriodeTendance, client: TMDBClient) async -> [ReferenceTitre: String] {
+        let (debut, fin) = periode.bornes()
+        return await withTaskGroup(of: (ReferenceTitre, String?).self) { groupe in
+            for titre in series {
+                groupe.addTask {
+                    guard let serie = try? await client.serie(titre.reference.tmdbID) else { return (titre.reference, nil) }
+                    if let episode = serie.episodeNouveau(depuis: debut, jusqua: fin), let date = episode.dateDiffusion {
+                        return (titre.reference, "S\(episode.saison)E\(episode.numero) · \(LibelleDate.jour(date))")
+                    }
+                    if serie.commence(depuis: debut, jusqua: fin), let date = serie.premiereDiffusion {
+                        return (titre.reference, "Nouvelle · \(LibelleDate.jour(date))")
+                    }
+                    return (titre.reference, nil)
+                }
+            }
+            var dates: [ReferenceTitre: String] = [:]
+            for await (reference, libelle) in groupe {
+                dates[reference] = libelle
+            }
+            return dates
+        }
+    }
 
     /// EF-01, EF-28 : tendances, et nouveautés des 30 derniers jours sur les plateformes cochées.
     func charger(client: TMDBClient, abonnements: [Int]) async {
@@ -38,6 +82,11 @@ final class AccueilModele {
     }
 }
 
+/// Écrans ouverts depuis l'accueil, en plus des fiches.
+enum DestinationAccueil: Hashable {
+    case nas
+}
+
 struct AccueilView: View {
     @Environment(EtatApp.self) private var etat
     @Environment(\.modelContext) private var contexte
@@ -45,6 +94,7 @@ struct AccueilView: View {
     @Query(sort: \Diffusion.debut) private var diffusions: [Diffusion]
     @State private var modele = AccueilModele()
     @State private var semaine = false
+    @State private var periodeNouveautes = PeriodeTendance.jour
     @State private var plateformeChoisie: Int?
     /// EF-62 : les tendances et les nouveautés reclassées selon les goûts, sans réseau ni Claude.
     @State private var pourToi: [SuggestionClassee] = []
@@ -59,8 +109,12 @@ struct AccueilView: View {
                             await modele.charger(client: client, abonnements: plateformesRetenues)
                             rafraichirPourToi()
                         }
+                        .task(id: periodeNouveautes) {
+                            await modele.chargerNouveautes(client: client, periode: periodeNouveautes)
+                        }
                         .refreshable {
                             await modele.charger(client: client, abonnements: plateformesRetenues)
+                            await modele.chargerNouveautes(client: client, periode: periodeNouveautes)
                             rafraichirPourToi()
                         }
                 } else {
@@ -69,6 +123,22 @@ struct AccueilView: View {
             }
             .background(Theme.fond)
             .destinationsTitres()
+            .navigationDestination(for: DestinationAccueil.self) { destination in
+                switch destination {
+                case .nas: NASView()
+                }
+            }
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        chemin.append(DestinationAccueil.nas)
+                    } label: {
+                        Label("NAS", systemImage: "externaldrive.fill")
+                            .labelStyle(.titleAndIcon)
+                    }
+                    .accessibilityIdentifier("boutonNAS")
+                }
+            }
         }
         .onChange(of: etat.ficheDemandee, initial: true) { _, reference in
             guard let reference else { return }
@@ -108,6 +178,10 @@ struct AccueilView: View {
                 }
 
                 SectionTele(diffusions: diffusions, lectureEnCours: etat.teleEnCours)
+
+                SectionNouveautes(modele: modele, periode: $periodeNouveautes)
+
+                SectionNAS { chemin.append(DestinationAccueil.nas) }
 
                 VStack(alignment: .leading, spacing: 12) {
                     TitreSection(titre: "Tendances") {
@@ -207,13 +281,15 @@ private struct BandeauVedette: View {
 
 private struct Carrousel: View {
     let titres: [TitreResume]
+    /// Ligne sous le titre à la place de l'année, par exemple la date de sortie.
+    var sousTitre: (TitreResume) -> String? = { _ in nil }
 
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             LazyHStack(alignment: .top, spacing: 12) {
                 ForEach(titres) { titre in
                     NavigationLink(value: titre.reference) {
-                        CarteAffiche(titre: titre)
+                        CarteAffiche(titre: titre, sousTitre: sousTitre(titre))
                     }
                     .buttonStyle(.plain)
                 }
@@ -247,6 +323,79 @@ private struct CarrouselExplique: View {
             }
             .padding(.horizontal, 20)
         }
+    }
+}
+
+/// Aperçu du NAS : les arrivées du dossier NEW d'abord, puis les films les mieux notés.
+private struct SectionNAS: View {
+    let toutVoir: () -> Void
+    @Query(filter: #Predicate<FichierNAS> { $0.tmdbID != nil }, sort: \FichierNAS.noteMoyenne, order: .reverse)
+    private var fichiers: [FichierNAS]
+
+    var body: some View {
+        let oeuvres = OeuvreNAS.regrouper(fichiers)
+        let apercu = Array((oeuvres.filter(\.nouveaute) + oeuvres.filter { !$0.nouveaute }).prefix(15))
+        if !apercu.isEmpty {
+            VStack(alignment: .leading, spacing: 12) {
+                TitreSection(titre: "Sur ton NAS") {
+                    Button("Tout voir", action: toutVoir)
+                        .font(.subheadline.weight(.semibold))
+                }
+                ScrollView(.horizontal, showsIndicators: false) {
+                    LazyHStack(alignment: .top, spacing: 12) {
+                        ForEach(apercu) { oeuvre in
+                            CarteOeuvreNAS(oeuvre: oeuvre, largeur: 118)
+                        }
+                    }
+                    .padding(.horizontal, 20)
+                }
+            }
+        }
+    }
+}
+
+/// Les nouveautés du jour ou de la semaine : films sortis, puis séries avec un épisode diffusé.
+private struct SectionNouveautes: View {
+    let modele: AccueilModele
+    @Binding var periode: PeriodeTendance
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            TitreSection(titre: "Nouveautés") {
+                Picker("Période", selection: $periode) {
+                    Text("Aujourd'hui").tag(PeriodeTendance.jour)
+                    Text("Semaine").tag(PeriodeTendance.semaine)
+                }
+                .pickerStyle(.segmented)
+                .frame(width: 190)
+            }
+            if modele.nouveautesChargees && modele.nouveauxFilms.isEmpty && modele.nouvellesSeries.isEmpty {
+                Text(periode == .jour ? "Rien de neuf aujourd'hui : regarde la semaine." : "Aucune nouveauté cette semaine.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 20)
+            }
+            if !modele.nouveauxFilms.isEmpty {
+                sousTitre("Films")
+                Carrousel(titres: modele.nouveauxFilms) { titre in
+                    titre.date.map { "Sortie \(LibelleDate.jour($0))" }
+                }
+            }
+            if !modele.nouvellesSeries.isEmpty {
+                sousTitre("Séries et nouveaux épisodes")
+                Carrousel(titres: modele.nouvellesSeries) { titre in
+                    modele.datesSeries[titre.reference]
+                }
+            }
+        }
+        .animation(.easeOut(duration: 0.2), value: periode)
+    }
+
+    private func sousTitre(_ texte: String) -> some View {
+        Text(texte.uppercased())
+            .font(.caption.weight(.bold))
+            .foregroundStyle(.secondary)
+            .padding(.horizontal, 20)
     }
 }
 
@@ -306,34 +455,40 @@ private struct SectionTele: View {
     @ViewBuilder
     private func carte(_ diffusion: Diffusion) -> some View {
         let enCours = diffusion.debut <= .now
-        let contenu = VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 6) {
-                Text(nomChaine(diffusion.chaine))
-                    .font(.caption.weight(.heavy))
+        let contenu = ZStack(alignment: .bottomLeading) {
+            ImageDistante(url: image(diffusion), coins: 0)
+            LinearGradient(colors: [.black.opacity(0.35), .clear, .black.opacity(0.85)], startPoint: .top, endPoint: .bottom)
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 6) {
+                    Text(nomChaine(diffusion.chaine))
+                        .font(.caption.weight(.heavy))
+                        .padding(.horizontal, 7).padding(.vertical, 4)
+                        .background(.white, in: RoundedRectangle(cornerRadius: 6))
+                        .foregroundStyle(.black)
+                    Group {
+                        if enCours {
+                            Text("En cours").foregroundStyle(.red)
+                        } else if Calendar.current.isDateInToday(diffusion.debut) {
+                            Text(diffusion.debut, format: .dateTime.hour().minute())
+                        } else {
+                            Text(diffusion.debut, format: .dateTime.weekday(.abbreviated).day().hour().minute())
+                        }
+                    }
+                    .font(.caption.weight(.bold))
                     .padding(.horizontal, 7).padding(.vertical, 4)
-                    .background(.white, in: RoundedRectangle(cornerRadius: 6))
-                    .foregroundStyle(.black)
-                if enCours {
-                    Text("En cours")
-                        .font(.caption.weight(.bold))
-                        .foregroundStyle(.red)
-                } else if Calendar.current.isDateInToday(diffusion.debut) {
-                    Text(diffusion.debut, format: .dateTime.hour().minute())
-                        .font(.caption.weight(.bold))
-                } else {
-                    Text(diffusion.debut, format: .dateTime.weekday(.abbreviated).day().hour().minute())
-                        .font(.caption.weight(.bold))
+                    .background(.black.opacity(0.55), in: RoundedRectangle(cornerRadius: 6))
                 }
+                Spacer()
+                Text(diffusion.titreGuide).font(.headline).lineLimit(2)
+                Text(detail(diffusion))
+                    .font(.caption)
+                    .foregroundStyle(.white.opacity(0.75))
             }
-            Spacer()
-            Text(diffusion.titreGuide).font(.headline).lineLimit(2)
-            Text(detail(diffusion))
-                .font(.caption)
-                .foregroundStyle(.secondary)
+            .padding(12)
+            .foregroundStyle(.white)
         }
-        .padding(12)
-        .frame(width: 250, height: 140, alignment: .leading)
-        .background(Theme.surface, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .frame(width: 280, height: 158)
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
 
         if let tmdbID = diffusion.tmdbID {
             NavigationLink(value: ReferenceTitre(type: TypeTitre(rawValue: diffusion.typeBrut) ?? .film, tmdbID: tmdbID)) { contenu }
@@ -341,6 +496,13 @@ private struct SectionTele: View {
         } else {
             contenu
         }
+    }
+
+    /// L'image de fond TMDB en priorité, puis l'affiche, puis la vignette du guide.
+    private func image(_ diffusion: Diffusion) -> URL? {
+        ImageTMDB.url(diffusion.cheminFond, .fond)
+            ?? ImageTMDB.url(diffusion.cheminAffiche, .fond)
+            ?? diffusion.imageGuide.flatMap(URL.init(string:))
     }
 
     /// « Film · 2000 · 155 min », « Série · S02E05 · 45 min ».
@@ -357,5 +519,16 @@ private struct SectionTele: View {
 
     private func nomChaine(_ identifiant: String) -> String {
         chaines.first { $0.identifiantGuide == identifiant }?.nom ?? identifiant
+    }
+}
+
+/// « aujourd'hui », « hier », « lun. 14 sept. ».
+enum LibelleDate {
+    static func jour(_ date: DateTMDB, maintenant: Date = .now) -> String {
+        let aujourdhui = DateTMDB(maintenant)
+        if date == aujourdhui { return "aujourd'hui" }
+        if date == DateTMDB(maintenant.addingTimeInterval(-86_400)) { return "hier" }
+        let instant = date.instant(heure: 12)
+        return instant.formatted(.dateTime.weekday(.abbreviated).day().month(.abbreviated).locale(Locale(identifier: "fr_CH")))
     }
 }

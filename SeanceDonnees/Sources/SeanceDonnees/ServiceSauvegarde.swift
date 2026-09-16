@@ -27,7 +27,8 @@ public struct ServiceSauvegarde {
             Sauvegarde.Liste(nom: $0.nom, creeeLe: $0.creeeLe, titres: $0.titres)
         }
         s.filtres = try contexte.fetch(FetchDescriptor<FiltreEnregistre>(sortBy: [SortDescriptor(\.creeLe)])).map {
-            Sauvegarde.Filtre(nom: $0.nom, type: TypeTitre(rawValue: $0.typeBrut) ?? .film, criteres: $0.criteres, alerteActive: $0.alerteActive)
+            Sauvegarde.Filtre(nom: $0.nom, type: TypeTitre(rawValue: $0.typeBrut) ?? .film, criteres: $0.criteres,
+                              alerteActive: $0.alerteActive, filtres: $0.filtres)
         }
         s.interets = try contexte.fetch(FetchDescriptor<Interet>()).map {
             Sauvegarde.Interet(libelle: $0.libelle, genreID: $0.genreID, motCleID: $0.motCleID, poids: $0.poids)
@@ -74,6 +75,7 @@ public struct ServiceSauvegarde {
         }
         for f in plan.filtres {
             let filtre = FiltreEnregistre(nom: f.nom, type: f.type, criteres: f.criteres)
+            filtre.filtres = f.filtres
             filtre.alerteActive = f.alerteActive
             contexte.insert(filtre)
         }

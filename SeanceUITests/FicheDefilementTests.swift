@@ -2,6 +2,7 @@ import XCTest
 
 /// Parcours d'interface réels dans le simulateur. La clé TMDB est passée par l'environnement du
 /// test (`SEANCE_CLE_TMDB`), jamais écrite dans le dépôt.
+@MainActor
 final class FicheDefilementTests: XCTestCase {
     private func lancer() -> XCUIApplication {
         let app = XCUIApplication()

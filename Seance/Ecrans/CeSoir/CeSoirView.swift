@@ -94,6 +94,8 @@ struct CeSoirView: View {
             .padding(20)
             .animation(.easeOut(duration: 0.25), value: modele.resultat?.suggestions.map(\.id) ?? [])
         }
+        // Faire défiler les suggestions range le clavier et rend la barre d'onglets.
+        .scrollDismissesKeyboard(.immediately)
     }
 
     /// Les trois actions du cahier (EF-26).
@@ -113,6 +115,7 @@ private struct Demande: View {
     @Binding var demande: DemandeCeSoir
     let enCours: Bool
     let chercher: () -> Void
+    @FocusState private var saisieActive: Bool
 
     private static let durees: [(String, Int?)] = [("Peu importe", nil), ("Moins de 1 h 30", 90), ("Moins de 2 h", 120)]
 
@@ -127,6 +130,20 @@ private struct Demande: View {
                 .padding(14)
                 .background(Theme.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                 .submitLabel(.search)
+                .focused($saisieActive)
+                // Champ sur plusieurs lignes : la touche Retour y insère un saut de ligne au lieu de
+                // valider. Il est retiré aussitôt, le clavier se range et la recherche part.
+                .onChange(of: demande.envie) { _, texte in
+                    guard texte.contains("\n") else { return }
+                    demande.envie = texte.replacingOccurrences(of: "\n", with: " ").trimmingCharacters(in: .whitespaces)
+                    lancer()
+                }
+                .toolbar {
+                    ToolbarItemGroup(placement: .keyboard) {
+                        Spacer()
+                        Button("OK") { saisieActive = false }
+                    }
+                }
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
@@ -145,7 +162,7 @@ private struct Demande: View {
                 }
             }
 
-            Button(action: chercher) {
+            Button(action: lancer) {
                 HStack {
                     Spacer()
                     if enCours {
@@ -163,6 +180,12 @@ private struct Demande: View {
             .buttonStyle(.plain)
             .disabled(enCours)
         }
+    }
+
+    private func lancer() {
+        saisieActive = false
+        guard !enCours else { return }
+        chercher()
     }
 }
 
@@ -202,29 +225,15 @@ private struct CarteSuggestion: View {
             }
             .buttonStyle(.plain)
 
-            HStack(spacing: 8) {
-                bouton("Je regarde", "play.fill", .jeRegarde, principal: true)
-                bouton("Pas ce soir", "clock.arrow.circlepath", .pasCeSoir)
-                bouton("Jamais", "hand.thumbsdown", .jamais)
+            HStack(spacing: 12) {
+                Spacer()
+                BoutonIcone(symbole: "hand.thumbsdown", libelle: "Jamais", taille: 40) { action(.jamais) }
+                BoutonIcone(symbole: "clock.arrow.circlepath", libelle: "Pas ce soir", taille: 40) { action(.pasCeSoir) }
+                BoutonIcone(symbole: "play.fill", libelle: "Je regarde", principal: true, taille: 40) { action(.jeRegarde) }
             }
         }
         .padding(14)
         .background(Theme.surface, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-    }
-
-    private func bouton(_ libelle: String, _ icone: String, _ valeur: Action, principal: Bool = false) -> some View {
-        Button { action(valeur) } label: {
-            Label(libelle, systemImage: icone)
-                .font(.caption.weight(.semibold))
-                .labelStyle(.titleAndIcon)
-                .padding(.horizontal, 10)
-                .frame(height: 34)
-                .frame(maxWidth: principal ? .infinity : nil)
-                .foregroundStyle(principal ? Color.black : Color.primary)
-                .background(principal ? AnyShapeStyle(Theme.degradeAccent) : AnyShapeStyle(Color.white.opacity(0.1)),
-                            in: Capsule())
-        }
-        .buttonStyle(.plain)
     }
 }
 

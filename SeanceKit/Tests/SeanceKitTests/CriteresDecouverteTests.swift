@@ -51,6 +51,36 @@ struct CriteresDecouverteTests {
         #expect(p["sort_by"] == "name.asc")
     }
 
+    @Test func nouveautesDuJourEtDeLaSemaine() {
+        let mercredi = Date.suisse("2026-09-16 22:30")
+        let films = dictionnaire(CriteresDecouverte.nouveautes(.film, periode: .semaine, maintenant: mercredi).parametres(pour: .film))
+        #expect(films["primary_release_date.gte"] == "2026-09-10")
+        #expect(films["primary_release_date.lte"] == "2026-09-16")
+
+        let series = dictionnaire(CriteresDecouverte.nouveautes(.serie, periode: .jour, maintenant: mercredi).parametres(pour: .serie))
+        #expect(series["air_date.gte"] == "2026-09-16")
+        #expect(series["air_date.lte"] == "2026-09-16")
+        #expect(series["first_air_date.gte"] == nil)
+        #expect(series["without_genres"] == "10763|10764|10766|10767")
+    }
+
+    @Test func episodeQuiFaitLaNouveaute() throws {
+        let json = #"""
+        {"id": 1, "name": "Reacher", "original_name": "Reacher", "original_language": "en", "overview": "", "status": "Returning Series",
+         "in_production": true, "number_of_seasons": 3, "number_of_episodes": 24, "episode_run_time": [50], "seasons": [],
+         "vote_average": 8, "vote_count": 3000, "genres": [], "first_air_date": "2022-02-03",
+         "last_episode_to_air": {"id": 10, "name": "Épisode 5", "overview": "", "episode_number": 5, "season_number": 3, "air_date": "2026-09-14"},
+         "next_episode_to_air": {"id": 11, "name": "Épisode 6", "overview": "", "episode_number": 6, "season_number": 3, "air_date": "2026-09-21"}}
+        """#
+        let serie = try JSONDecoder().decode(SerieDetail.self, from: Data(json.utf8))
+        let semaine = PeriodeTendance.semaine.bornes(maintenant: Date.suisse("2026-09-16 22:30"))
+        #expect(semaine.debut == DateTMDB(annee: 2026, mois: 9, jour: 10))
+        #expect(serie.episodeNouveau(depuis: semaine.debut, jusqua: semaine.fin)?.numero == 5)
+        #expect(!serie.commence(depuis: semaine.debut, jusqua: semaine.fin))
+        let jour = PeriodeTendance.jour.bornes(maintenant: Date.suisse("2026-09-16 22:30"))
+        #expect(serie.episodeNouveau(depuis: jour.debut, jusqua: jour.fin) == nil)
+    }
+
     @Test func personnesToutesOuAuMoinsUne() {
         var c = CriteresDecouverte()
         c.acteurs = [6384, 2975]
@@ -69,6 +99,9 @@ struct CriteresDecouverteTests {
         #expect(p["with_release_type"] == "3|4")
         #expect(p["region"] == "CH")
         #expect(p["watch_region"] == nil)
+        // Sans date de sortie régionale, TMDB ignorerait le type de sortie.
+        #expect(p["release_date.lte"] == "2100-12-31")
+        #expect(p["primary_release_date.lte"] == nil)
     }
 
     @Test func triParDate() {

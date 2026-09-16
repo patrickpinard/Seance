@@ -72,7 +72,10 @@ struct RattachementTests {
 
     @Test func candidatsDepuisLesReponsesTMDB() throws {
         let film = try #require(try JSONDecoder().decode(PageTMDB<FilmResume>.self, from: Fixture.donnees("search_movie")).resultats.first)
-        #expect(film.candidat == CandidatRattachement(tmdbID: 550, type: .film, titre: "Fight Club", titreOriginal: "Fight Club", annee: 1999))
+        let candidat = film.candidat
+        #expect(candidat == CandidatRattachement(tmdbID: 550, type: .film, titre: "Fight Club", titreOriginal: "Fight Club", annee: 1999,
+                                                 cheminAffiche: film.cheminAffiche, cheminFond: film.cheminFond))
+        #expect(candidat.cheminAffiche != nil)
     }
 }
 
