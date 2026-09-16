@@ -20,6 +20,23 @@ struct NoteVersion: Identifiable {
 
     static let historique: [NoteVersion] = [
         NoteVersion(
+            numero: "1.0",
+            date: "16 septembre 2026",
+            resume: "Première version stable : NAS, Explorer et fiches fiabilisés à l'usage sur l'iPhone.",
+            fonctionnalites: [
+                Fonctionnalite(symbole: "externaldrive.fill", titre: "NAS fiable",
+                               detail: "Dossiers retrouvés quelle que soit l'écriture des accents, accès au réseau local demandé proprement, bibliothèque relue dès que les réglages changent."),
+                Fonctionnalite(symbole: "line.3.horizontal.decrease", titre: "Explorer vérifié",
+                               detail: "Chaque filtre réduit bien les résultats ; NAS, télé et titres vus partent de ta liste."),
+                Fonctionnalite(symbole: "calendar", titre: "Nouveautés datées",
+                               detail: "Date de sortie des films et des nouveaux épisodes du jour ou de la semaine."),
+                Fonctionnalite(symbole: "circle.grid.2x1.fill", titre: "Actions en icônes",
+                               detail: "À voir, vu, bande-annonce, lecture : des boutons compacts partout."),
+                Fonctionnalite(symbole: "info.circle", titre: "Versions",
+                               detail: "L'historique des versions et de leurs fonctionnalités, ici même."),
+            ]
+        ),
+        NoteVersion(
             numero: "0.9",
             date: "16 septembre 2026",
             resume: "Première version complète à l'essai sur l'iPhone de Patrick.",

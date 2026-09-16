@@ -120,7 +120,7 @@ struct NASView: View {
             VStack(alignment: .leading, spacing: 16) {
                 Picker("Rayon", selection: $rayon) {
                     ForEach(Rayon.allCases) { rayon in
-                        Text(rayon.rawValue).tag(rayon)
+                        Text(libelle(rayon)).tag(rayon)
                     }
                 }
                 .pickerStyle(.segmented)
@@ -201,6 +201,12 @@ struct NASView: View {
                 .buttonStyle(.plain)
             }
         }
+    }
+
+    /// « Séries 15 » : le nombre de titres du rayon, pour voir d'un coup d'œil ce que l'analyse a trouvé.
+    private func libelle(_ rayon: Rayon) -> String {
+        let nombre = rayon == .nonReconnus ? fichiers.filter { $0.tmdbID == nil }.count : oeuvres(du: rayon).count
+        return nombre == 0 ? rayon.rawValue : "\(rayon.rawValue) \(nombre)"
     }
 
     private func oeuvres(du rayon: Rayon) -> [OeuvreNAS] {

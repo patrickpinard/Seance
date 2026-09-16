@@ -4,7 +4,7 @@ import SeanceKit
 
 public enum ErreurNAS: LocalizedError, Equatable {
     case adresseInvalide
-    case dossierAbsent(String)
+    case dossierAbsent(String, presents: [String])
     case motDePasseManquant
     case reseauLocalRefuse
     case injoignable(String)
@@ -12,7 +12,10 @@ public enum ErreurNAS: LocalizedError, Equatable {
     public var errorDescription: String? {
         switch self {
         case .adresseInvalide: "L'adresse du NAS n'est pas valide."
-        case .dossierAbsent(let dossier): "Le dossier « \(dossier) » est introuvable sur le partage."
+        case .dossierAbsent(let dossier, let presents):
+            presents.isEmpty
+                ? "Le dossier « \(dossier) » est introuvable sur le partage."
+                : "Le dossier « \(dossier) » est introuvable sur le partage. Dossiers présents : \(presents.joined(separator: ", "))."
         case .motDePasseManquant: "Enregistre d'abord le mot de passe du NAS."
         case .reseauLocalRefuse:
             "iOS bloque l'accès au réseau local. Active Séance dans Réglages › Confidentialité et sécurité › Réseau local, puis réessaie."
@@ -65,19 +68,15 @@ public struct ExplorateurSMB: ExplorateurFichiers {
     public func listerVideos(dossiers: [String]) async throws -> [FichierDistant] {
         try await avecPartage { client in
             var fichiers: [FichierDistant] = []
-            for dossier in dossiers {
-                let elements: [[URLResourceKey: Any]]
-                do {
-                    elements = try await client.contentsOfDirectory(atPath: dossier, recursive: true)
-                } catch let erreur as POSIXError where erreur.code == .ENOENT {
-                    throw ErreurNAS.dossierAbsent(dossier)
-                }
+            for dossier in try await Self.resoudre(dossiers, client: client) {
+                let elements = try await client.contentsOfDirectory(atPath: dossier, recursive: true)
                 for element in elements {
                     guard (element[.isDirectoryKey] as? Bool) != true,
                           let chemin = element[.pathKey] as? String,
                           AnalyseNomFichier.extensionsVideo.contains((chemin as NSString).pathExtension.lowercased())
                     else { continue }
                     let taille = (element[.fileSizeKey] as? Int64) ?? Int64((element[.fileSizeKey] as? Int) ?? 0)
+                    // Le chemin garde l'écriture exacte du NAS : c'est elle que la lecture redemandera.
                     let relatif = chemin.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
                     fichiers.append(FichierDistant(chemin: relatif, taille: taille))
                 }
@@ -90,15 +89,37 @@ public struct ExplorateurSMB: ExplorateurFichiers {
     public func tester() async throws -> [String: Int] {
         try await avecPartage { client in
             var comptes: [String: Int] = [:]
-            for dossier in reglages.dossiers {
-                do {
-                    comptes[dossier] = try await client.contentsOfDirectory(atPath: dossier).count
-                } catch {
-                    throw ErreurNAS.dossierAbsent(dossier)
-                }
+            let reels = try await Self.resoudre(reglages.dossiers, client: client)
+            for (declare, reel) in zip(reglages.dossiers, reels) {
+                comptes[declare] = try await client.contentsOfDirectory(atPath: reel).count
             }
             return comptes
         }
+    }
+
+    /// Retrouve le nom exact de chaque dossier déclaré à la racine du partage. Un dossier créé depuis
+    /// un Mac s'écrit souvent « e » + accent combinant : « Séries » tapé sur l'iPhone ne lui est égal
+    /// qu'après normalisation. La casse est ignorée aussi.
+    static func resoudre(_ dossiers: [String], client: SMB2Manager) async throws -> [String] {
+        let racine = try await client.contentsOfDirectory(atPath: "")
+        let presents = racine
+            .filter { ($0[.isDirectoryKey] as? Bool) == true }
+            .compactMap { $0[.nameKey] as? String }
+            .filter { !$0.hasPrefix(".") && !$0.hasPrefix("#") && !$0.hasPrefix("@") }
+        return try dossiers.map { dossier in
+            guard let reel = correspondance(dossier, parmi: presents) else {
+                throw ErreurNAS.dossierAbsent(dossier, presents: presents.map(\.precomposedStringWithCanonicalMapping).sorted())
+            }
+            return reel
+        }
+    }
+
+    static func correspondance(_ dossier: String, parmi presents: [String]) -> String? {
+        func cle(_ nom: String) -> String {
+            nom.precomposedStringWithCanonicalMapping.trimmingCharacters(in: .whitespaces).lowercased()
+        }
+        let voulu = cle(dossier.trimmingCharacters(in: CharacterSet(charactersIn: "/")))
+        return presents.first { cle($0) == voulu }
     }
 
     private func avecPartage<Resultat: Sendable>(_ travail: (SMB2Manager) async throws -> Resultat) async throws -> Resultat {

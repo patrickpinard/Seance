@@ -119,7 +119,8 @@ public final class FichierNAS {
         self.tmdbID = tmdbID
         self.qualite = qualite
         self.tailleOctets = tailleOctets
-        dossier = chemin.split(separator: "/").first.map(String.init) ?? ""
+        // Forme composée : « Séries » écrit depuis un Mac se compare alors comme celui tapé sur l'iPhone.
+        dossier = (chemin.split(separator: "/").first.map(String.init) ?? "").precomposedStringWithCanonicalMapping
         titre = (chemin as NSString).lastPathComponent
     }
 

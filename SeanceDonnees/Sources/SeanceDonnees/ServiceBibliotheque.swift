@@ -14,6 +14,10 @@ public struct ServiceBibliotheque {
         public var recherchesEnEchec = 0
         /// Chemins des vidéos gardées sans titre TMDB, ou dont le nom n'a pas pu être lu.
         public var nonReconnues: [String] = []
+        /// Vidéos lues dans chaque dossier déclaré : montre d'un coup d'œil qu'un dossier a bien été parcouru.
+        public var videosParDossier: [String: Int] = [:]
+        public var seriesReconnues = 0
+        public var filmsReconnus = 0
     }
 
     public let contexte: ModelContext
@@ -37,6 +41,12 @@ public struct ServiceBibliotheque {
             videosLues: fichiers.count, videosRetenues: index.entrees.count, doublons: index.doublons,
             recherchesEnEchec: await rattachement.recherchesEnEchec
         )
+        for fichier in fichiers {
+            let dossier = (fichier.chemin.split(separator: "/").first.map(String.init) ?? "").precomposedStringWithCanonicalMapping
+            rapport.videosParDossier[dossier, default: 0] += 1
+        }
+        rapport.filmsReconnus = Set(rattachees.filter { $0.entree.analyse.type == .film }.compactMap { $0.titre?.reference }).count
+        rapport.seriesReconnues = Set(rattachees.filter { $0.entree.analyse.type == .serie }.compactMap { $0.titre?.reference }).count
         try contexte.delete(model: FichierNAS.self)
 
         for r in rattachees {

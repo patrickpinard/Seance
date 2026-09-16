@@ -16,6 +16,8 @@ final class EtatNAS {
     private(set) var rapport: ServiceBibliotheque.Rapport?
     private(set) var erreur: String?
     private(set) var derniereAnalyse: Date?
+    /// Réglages utilisés par la dernière analyse réussie : s'ils ont changé, la bibliothèque est à refaire.
+    private(set) var reglagesAnalyses: ReglagesNAS?
 
     /// Une analyse par jour suffit : les films arrivent sur le NAS au compte-gouttes.
     static let intervalleAnalyse: TimeInterval = 24 * 3600
@@ -26,6 +28,7 @@ final class EtatNAS {
         static let reglages = "nas.reglages"
         static let lecteur = "nas.lecteur"
         static let derniereAnalyse = "nas.derniereAnalyse"
+        static let reglagesAnalyses = "nas.reglagesAnalyses"
     }
 
     init(coffre: any CoffreCles) {
@@ -34,11 +37,17 @@ final class EtatNAS {
         reglages = defauts.data(forKey: Cle.reglages).flatMap { try? JSONDecoder().decode(ReglagesNAS.self, from: $0) } ?? ReglagesNAS()
         lecteur = defauts.string(forKey: Cle.lecteur).flatMap(LecteurVideo.init(rawValue:)) ?? .infuse
         derniereAnalyse = defauts.object(forKey: Cle.derniereAnalyse) as? Date
+        reglagesAnalyses = defauts.data(forKey: Cle.reglagesAnalyses).flatMap { try? JSONDecoder().decode(ReglagesNAS.self, from: $0) }
         motDePasseEnregistre = ((try? coffre.lire(.nas)) ?? nil) != nil
     }
 
     var estConfigure: Bool {
         reglages.estComplet && motDePasseEnregistre
+    }
+
+    /// Vrai si la bibliothèque correspond aux réglages actuels (dossiers, partage, adresse).
+    var analyseAJour: Bool {
+        derniereAnalyse != nil && reglagesAnalyses == reglages
     }
 
     func enregistrer(_ nouveaux: ReglagesNAS) {
@@ -73,7 +82,7 @@ final class EtatNAS {
     /// `automatique` : lancée au démarrage, seulement si la dernière analyse date d'hier.
     func analyser(contexte: ModelContext, tmdb: TMDBClient?, automatique: Bool = false) async {
         guard !enCours, let tmdb, estConfigure else { return }
-        if automatique, let derniereAnalyse, Date.now.timeIntervalSince(derniereAnalyse) < Self.intervalleAnalyse { return }
+        if automatique, analyseAJour, let derniereAnalyse, Date.now.timeIntervalSince(derniereAnalyse) < Self.intervalleAnalyse { return }
 
         enCours = true
         erreur = nil
@@ -84,7 +93,9 @@ final class EtatNAS {
             )
             let maintenant = Date.now
             derniereAnalyse = maintenant
+            reglagesAnalyses = reglages
             UserDefaults.standard.set(maintenant, forKey: Cle.derniereAnalyse)
+            UserDefaults.standard.set(try? JSONEncoder().encode(reglages), forKey: Cle.reglagesAnalyses)
         } catch is CancellationError {
             return
         } catch {

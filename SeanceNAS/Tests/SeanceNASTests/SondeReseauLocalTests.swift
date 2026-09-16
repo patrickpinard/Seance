@@ -17,8 +17,20 @@ struct SondeReseauLocalTests {
         #expect(ErreurNAS.message(refus) == "Le NAS refuse l'utilisateur ou le mot de passe.")
     }
 
-    @Test func sondeDuNASDeLaMaison() async throws {
-        try #require(ProcessInfo.processInfo.environment["SEANCE_SONDE_NAS"] != nil)
+    @Test func dossierRetrouveMalgreLaFormeDeLAccent() {
+        let depuisLeMac = "Se\u{0301}ries"   // « e » + accent combinant, tel que macOS l'écrit
+        // Swift juge les deux écritures égales, le NAS non : on compare les caractères Unicode.
+        #expect(depuisLeMac.unicodeScalars.count != "Séries".unicodeScalars.count)
+        let retrouve = ExplorateurSMB.correspondance("Séries", parmi: ["Films", "NEW", depuisLeMac])
+        #expect(retrouve.map { Array($0.unicodeScalars) } == Array(depuisLeMac.unicodeScalars))
+        #expect(ExplorateurSMB.correspondance("séries/", parmi: ["Films", depuisLeMac]) != nil)
+        #expect(ExplorateurSMB.correspondance("Series", parmi: ["Films", depuisLeMac]) == nil)
+        let erreur = ErreurNAS.dossierAbsent("Series", presents: ["Films", "NEW", "Séries"])
+        #expect(erreur.errorDescription?.contains("Dossiers présents : Films, NEW, Séries") == true)
+    }
+
+    @Test(.enabled(if: ProcessInfo.processInfo.environment["SEANCE_SONDE_NAS"] != nil))
+    func sondeDuNASDeLaMaison() async throws {
         let resultat = await SondeReseauLocal.tester(hote: "192.168.1.220", delai: 5)
         print("Sonde NAS : \(resultat)")
         // Sur le Mac, le processus de test n'a pas l'autorisation « Réseau local » : la sonde doit le dire.

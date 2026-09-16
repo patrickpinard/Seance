@@ -78,9 +78,20 @@ struct ReglagesNASView: View {
                         Text(date, format: .relative(presentation: .named))
                     }
                 }
+                if etat.nas.derniereAnalyse != nil, !etat.nas.analyseAJour, !etat.nas.enCours {
+                    Label("Réglages modifiés : relance l'analyse pour mettre la bibliothèque à jour.", systemImage: "arrow.triangle.2.circlepath")
+                        .font(.footnote)
+                        .foregroundStyle(.orange)
+                }
                 if let rapport = etat.nas.rapport {
                     LabeledContent("Vidéos lues", value: "\(rapport.videosLues)")
-                    LabeledContent("Reconnues dans TMDB", value: "\(rapport.reconnues) sur \(rapport.videosRetenues)")
+                    ForEach(rapport.videosParDossier.sorted(by: { $0.key < $1.key }), id: \.key) { dossier, nombre in
+                        LabeledContent("   \(dossier)", value: "\(nombre) vidéo\(nombre > 1 ? "s" : "")")
+                            .font(.footnote)
+                    }
+                    LabeledContent("Films reconnus", value: "\(rapport.filmsReconnus)")
+                    LabeledContent("Séries reconnues", value: "\(rapport.seriesReconnues)")
+                    LabeledContent("Vidéos reconnues", value: "\(rapport.reconnues) sur \(rapport.videosRetenues)")
                     if rapport.doublons > 0 {
                         LabeledContent("Copies en double", value: "\(rapport.doublons)")
                     }
@@ -166,7 +177,8 @@ struct ReglagesNASView: View {
             let comptes = try await etat.nas.tester()
             let detail = liste.map { "\($0) : \(comptes[$0] ?? 0) éléments" }.joined(separator: ", ")
             resultatTest = "Connexion réussie. \(detail)."
-            if etat.nas.derniereAnalyse == nil {
+            // Nouveaux dossiers, autre partage : la bibliothèque est relue aussitôt.
+            if !etat.nas.analyseAJour {
                 await etat.nas.analyser(contexte: contexte, tmdb: etat.tmdb)
             }
         } catch {

@@ -83,6 +83,18 @@ struct NASReelTests {
         for r in resultats where r.titre == nil {
             print("  non reconnu : \(r.entree.fichier.chemin) → « \(r.entree.analyse.titre) » \(r.entree.analyse.annee.map(String.init) ?? "")")
         }
+        // Détail des séries : une ligne par dossier, avec le type lu et le titre TMDB retenu.
+        var parDossier: [String: (type: TypeTitre, episodes: Int, titre: String?, affiche: String?)] = [:]
+        for r in resultats where r.entree.dossier.precomposedStringWithCanonicalMapping == "Séries" {
+            let composants = r.entree.fichier.chemin.split(separator: "/")
+            let dossier = composants.count > 1 ? String(composants[1]) : r.entree.fichier.chemin
+            var ligne = parDossier[dossier] ?? (r.entree.analyse.type, 0, r.titre?.titre, r.titre?.cheminAffiche)
+            ligne.episodes += 1
+            parDossier[dossier] = ligne
+        }
+        for (dossier, ligne) in parDossier.sorted(by: { $0.key < $1.key }) {
+            print("  série \(dossier) : type \(ligne.type), \(ligne.episodes) fichiers, TMDB « \(ligne.titre ?? "—") », affiche \(ligne.affiche ?? "—")")
+        }
         #expect(Double(reconnus.count) / Double(max(1, resultats.count)) > 0.7)
     }
 }

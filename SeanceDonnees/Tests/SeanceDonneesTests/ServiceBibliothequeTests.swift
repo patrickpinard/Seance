@@ -37,8 +37,9 @@ struct ServiceBibliothequeTests {
         FichierDistant(chemin: "Films/Heat.1995.1080p.mkv", taille: 8_000),
         FichierDistant(chemin: "Films/Heat.1995.2160p.mkv", taille: 20_000),
         FichierDistant(chemin: "NEW/Film.Inconnu.2025.mkv", taille: 3_000),
-        FichierDistant(chemin: "Séries/Reacher/Saison 01/Reacher.S01E01.mkv", taille: 2_000),
-        FichierDistant(chemin: "Séries/Reacher/Saison 01/Reacher.S01E02.mkv", taille: 2_000),
+        // Écrit depuis un Mac : « e » + accent combinant.
+        FichierDistant(chemin: "Se\u{0301}ries/Reacher/Saison 01/Reacher.S01E01.mkv", taille: 2_000),
+        FichierDistant(chemin: "Se\u{0301}ries/Reacher/Saison 01/Reacher.S01E02.mkv", taille: 2_000),
         FichierDistant(chemin: "Privé/Vacances.2024.mkv", taille: 1_000),
     ]
 
@@ -57,6 +58,8 @@ struct ServiceBibliothequeTests {
         #expect(rapport.doublons == 1)
         #expect(rapport.reconnues == 3)
         #expect(rapport.nonReconnues == ["NEW/Film.Inconnu.2025.mkv"])
+        #expect(rapport.videosParDossier == ["Films": 2, "NEW": 1, "Séries": 2])
+        #expect(rapport.filmsReconnus == 1 && rapport.seriesReconnues == 1)
 
         let enMagasin = try contexte.fetch(FetchDescriptor<FichierNAS>(sortBy: [SortDescriptor(\.chemin)]))
         #expect(enMagasin.map(\.chemin) == [
@@ -66,6 +69,9 @@ struct ServiceBibliothequeTests {
         let heat = try #require(enMagasin.first)
         #expect(heat.titre == "Heat" && heat.cheminAffiche == "/heat.jpg" && heat.qualite == "4K" && heat.dossier == "Films")
         #expect(enMagasin[3].reference == ReferenceTitre(type: .serie, tmdbID: 108_978) && enMagasin[3].episode == 2)
+        #expect(enMagasin[3].dossier.unicodeScalars.count == "Séries".unicodeScalars.count)
+        // Le chemin garde l'écriture du NAS, indispensable pour relire le fichier.
+        #expect(enMagasin[3].chemin.unicodeScalars.count > "Séries/Reacher/Saison 01/Reacher.S01E02.mkv".unicodeScalars.count)
         #expect(enMagasin[1].titre == "Film Inconnu" && enMagasin[1].tmdbID == nil)
     }
 
