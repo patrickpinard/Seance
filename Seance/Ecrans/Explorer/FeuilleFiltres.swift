@@ -452,13 +452,18 @@ struct FeuilleFiltres: View {
         .buttonStyle(.plain)
         .accessibilityIdentifier("voirResultats")
         .padding(.horizontal, 20)
+        .padding(.top, 12)
         .padding(.bottom, 8)
-        .background(alignment: .bottom) {
-            // Le contenu défile sous le bouton : un fondu le garde lisible.
-            LinearGradient(colors: [Theme.fond.opacity(0), Theme.fond], startPoint: .top, endPoint: .center)
-                .frame(height: 110)
-                .ignoresSafeArea()
-                .allowsHitTesting(false)
+        .background {
+            // Le contenu défile sous le bouton : un fondu puis le fond de l'écran le gardent lisible.
+            VStack(spacing: 0) {
+                LinearGradient(colors: [Theme.fond.opacity(0), Theme.fond], startPoint: .top, endPoint: .bottom)
+                    .frame(height: 28)
+                Theme.fond
+            }
+            .padding(.top, -28)
+            .ignoresSafeArea(edges: .bottom)
+            .allowsHitTesting(false)
         }
     }
 

@@ -15,6 +15,8 @@ final class ExplorerModele {
     private(set) var enCours = false
     private(set) var termine = false
     private(set) var erreur: String?
+    /// Erreur d'origine, pour le journal.
+    private(set) var erreurDetaillee: (any Error)?
 
     private var page = 0
     private var nombrePages = 1
@@ -93,7 +95,8 @@ final class ExplorerModele {
             return
         } catch {
             guard generation == generationDemandee else { return }
-            erreur = error.localizedDescription
+            erreur = Journal.conseil(error) ?? "Les résultats n'ont pas pu être chargés."
+            erreurDetaillee = error
             termine = true
         }
     }

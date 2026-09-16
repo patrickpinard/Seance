@@ -6,6 +6,7 @@ import SwiftUI
 struct RacineView: View {
     @Environment(EtatApp.self) private var etat
     @Environment(\.modelContext) private var contexte
+    @Environment(\.scenePhase) private var phase
     @State private var onglet = "accueil"
 
     var body: some View {
@@ -30,6 +31,15 @@ struct RacineView: View {
         .task { await etat.chargerGenres() }
         // Relancé quand la clé TMDB arrive : sans elle, rien ne peut être rattaché.
         .task(id: etat.tmdb == nil) { await etat.demarrer(contexte: contexte) }
+        // Retour dans l'app : programmes et alertes remis à jour s'ils datent.
+        .onChange(of: phase) { _, nouvelle in
+            guard nouvelle == .active else { return }
+            Task { await etat.revenirAuPremierPlan(contexte: contexte) }
+        }
+        // Une alerte touchée demande une fiche : elle s'ouvre dans l'accueil.
+        .onChange(of: etat.ficheDemandee) { _, demande in
+            if demande != nil { onglet = "accueil" }
+        }
         .onOpenURL { url in
             guard let reference = LienProfond.reference(url) else { return }
             onglet = "accueil"

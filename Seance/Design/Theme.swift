@@ -28,6 +28,8 @@ enum ImageTMDB {
         case fond = "w780"
         case fondGrand = "w1280"
         case portrait = "w185"
+        /// Image d'un épisode.
+        case vignette = "w300"
         case logo = "w92"
     }
 

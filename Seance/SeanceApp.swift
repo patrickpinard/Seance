@@ -23,5 +23,10 @@ struct SeanceApp: App {
                 )
             }
         }
+        // Réveil accordé par iOS de temps en temps : les alertes restent à jour sans ouvrir l'app.
+        .backgroundTask(.appRefresh(EtatAlertes.tacheFond)) {
+            guard case .success(let conteneur) = conteneur else { return }
+            await etat.rafraichirEnFond(conteneur: conteneur)
+        }
     }
 }

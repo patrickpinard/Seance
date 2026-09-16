@@ -20,6 +20,27 @@ struct NoteVersion: Identifiable {
 
     static let historique: [NoteVersion] = [
         NoteVersion(
+            numero: "1.1",
+            date: "17 septembre 2026",
+            resume: "Suivi des séries, alertes complètes et version Mac.",
+            fonctionnalites: [
+                Fonctionnalite(symbole: "checklist", titre: "Épisodes",
+                               detail: "Cases à cocher par saison, « vu jusqu'ici », notes, prochain épisode à regarder et progression."),
+                Fonctionnalite(symbole: "bell.badge.fill", titre: "Alertes",
+                               detail: "Cloche sur chaque fiche : annonce d'une saison ou d'une sortie, la veille, le jour même, arrivée sur tes plateformes ou en location, passages à la télé."),
+                Fonctionnalite(symbole: "calendar", titre: "À venir",
+                               detail: "Le calendrier des prochains épisodes, sorties et passages télé de tes titres surveillés."),
+                Fonctionnalite(symbole: "play.tv", titre: "Accueil par plateforme",
+                               detail: "Choisir Netflix ou Prime Video filtre les nouveautés, les titres populaires et les suggestions ; « Tout voir » ouvre chaque liste complète."),
+                Fonctionnalite(symbole: "list.bullet.rectangle", titre: "Mes listes",
+                               detail: "Glisser pour marquer terminé, retirer ou couper les alertes ; progression et prochaine date sur chaque titre."),
+                Fonctionnalite(symbole: "desktopcomputer", titre: "Version Mac",
+                               detail: "La même app sur le Mac, avec lecture directe des films du NAS monté."),
+                Fonctionnalite(symbole: "stethoscope", titre: "Journal",
+                               detail: "Les problèmes rencontrés, expliqués simplement avec ce que tu peux faire, dans À propos."),
+            ]
+        ),
+        NoteVersion(
             numero: "1.0",
             date: "16 septembre 2026",
             resume: "Première version stable : NAS, Explorer et fiches fiabilisés à l'usage sur l'iPhone.",
@@ -50,7 +71,7 @@ struct NoteVersion: Identifiable {
                 Fonctionnalite(symbole: "film", titre: "Fiches",
                                detail: "Où regarder en Suisse, bandes-annonces en streaming, casting et lecture depuis le NAS."),
                 Fonctionnalite(symbole: "bookmark.fill", titre: "Mes listes",
-                               detail: "Titres à voir et suivi des séries épisode par épisode."),
+                               detail: "Titres à voir, en cours et terminés."),
                 Fonctionnalite(symbole: "tv.fill", titre: "Télévision",
                                detail: "Programmes de la RTS et des chaînes françaises, reconnus dans TMDB."),
                 Fonctionnalite(symbole: "externaldrive.fill", titre: "NAS",

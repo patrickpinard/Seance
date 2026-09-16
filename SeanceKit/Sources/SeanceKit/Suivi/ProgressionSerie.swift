@@ -45,6 +45,33 @@ public enum ProgressionSerie {
         episodesOrdonnes(episodes).filter { $0.numeroEpisode <= cible }
     }
 
+    /// Le prochain épisode à regarder sans charger les saisons (EF-12) : celui qui suit le dernier vu,
+    /// d'après le nombre d'épisodes de chaque saison. Disponible s'il est déjà diffusé, d'après le
+    /// dernier épisode diffusé annoncé par TMDB. `nil` quand tout ce qui existe a été vu.
+    public static func suivant(
+        vus: Set<NumeroEpisode>, saisons: [SaisonResume], dernierDiffuse: EpisodeTMDB?
+    ) -> (numero: NumeroEpisode, disponible: Bool)? {
+        let reelles = saisons.filter { $0.numero > 0 && $0.nombreEpisodes > 0 }.sorted { $0.numero < $1.numero }
+        let candidat: NumeroEpisode?
+        if let dernierVu = vus.filter({ $0.saison > 0 }).max() {
+            if let saison = reelles.first(where: { $0.numero == dernierVu.saison }), dernierVu.episode < saison.nombreEpisodes {
+                candidat = NumeroEpisode(saison: dernierVu.saison, episode: dernierVu.episode + 1)
+            } else {
+                candidat = reelles.first { $0.numero > dernierVu.saison }.map { NumeroEpisode(saison: $0.numero, episode: 1) }
+            }
+        } else {
+            candidat = reelles.first.map { NumeroEpisode(saison: $0.numero, episode: 1) }
+        }
+        guard let candidat else { return nil }
+        let disponible = dernierDiffuse.map { candidat <= $0.numeroEpisode } ?? false
+        return (candidat, disponible)
+    }
+
+    /// Nombre d'épisodes connus, saisons spéciales exclues.
+    public static func total(_ saisons: [SaisonResume]) -> Int {
+        saisons.filter { $0.numero > 0 }.reduce(0) { $0 + $1.nombreEpisodes }
+    }
+
     static func episodesOrdonnes(_ episodes: [EpisodeTMDB]) -> [EpisodeTMDB] {
         episodes.filter { $0.saison > 0 }.sorted { $0.numeroEpisode < $1.numeroEpisode }
     }

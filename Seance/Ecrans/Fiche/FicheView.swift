@@ -71,7 +71,17 @@ struct FicheView: View {
             if let fiche {
                 ContenuFiche(fiche: fiche)
             } else if let erreur {
-                ContentUnavailableView("Fiche indisponible", systemImage: "wifi.exclamationmark", description: Text(erreur))
+                ContentUnavailableView {
+                    Label("Fiche indisponible", systemImage: "wifi.exclamationmark")
+                } description: {
+                    Text(erreur)
+                } actions: {
+                    Button("Réessayer") {
+                        self.erreur = nil
+                        Task { await charger() }
+                    }
+                    .buttonStyle(.borderedProminent)
+                }
             } else {
                 ProgressView()
             }
@@ -82,7 +92,7 @@ struct FicheView: View {
 
     private func charger() async {
         guard let client = etat.tmdb else {
-            erreur = "Clé TMDB manquante."
+            erreur = "Enregistre d'abord ta clé TMDB dans Moi › TMDB."
             return
         }
         do {
@@ -92,19 +102,24 @@ struct FicheView: View {
             case .serie:
                 fiche = FicheAffichee(serie: try await client.serie(reference.tmdbID, complements: [.casting, .fournisseurs, .videos]))
             }
+        } catch is CancellationError {
+            return
         } catch {
-            erreur = error.localizedDescription
+            erreur = Journal.conseil(error) ?? "TMDB ne répond pas pour l'instant."
+            etat.journal.noter(.tmdb, "Une fiche n'a pas pu être chargée.", erreur: error)
         }
     }
 }
 
 private struct ContenuFiche: View {
     let fiche: FicheAffichee
+    @Environment(EtatApp.self) private var etat
     @Environment(\.modelContext) private var contexte
     @State private var etatDisponibilite: EtatDisponibilite = .introuvable
     @State private var suivi: Suivi?
     @State private var vu = false
     @State private var videoChoisie: Video?
+    @State private var dansSoiree = false
 
     var body: some View {
         ScrollView {
@@ -113,15 +128,22 @@ private struct ContenuFiche: View {
                 actions
                 BlocOuRegarder(etat: etatDisponibilite)
                 SectionNASFiche(reference: fiche.reference)
-                if let accroche = fiche.accroche, !accroche.isEmpty {
-                    Text(accroche).italic().foregroundStyle(.secondary).padding(.horizontal, 20)
-                }
-                if !fiche.synopsis.isEmpty {
+                if !fiche.synopsis.isEmpty || !(fiche.accroche ?? "").isEmpty {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Synopsis").font(.headline)
-                        Text(fiche.synopsis).foregroundStyle(.secondary)
+                        TitreSection("Synopsis")
+                        VStack(alignment: .leading, spacing: 8) {
+                            if let accroche = fiche.accroche, !accroche.isEmpty {
+                                Text(accroche).italic()
+                            }
+                            if !fiche.synopsis.isEmpty {
+                                Text(fiche.synopsis).foregroundStyle(.secondary)
+                            }
+                        }
+                        .padding(.horizontal, 20)
                     }
-                    .padding(.horizontal, 20)
+                }
+                if let serie = fiche.serie {
+                    SectionEpisodes(serie: serie)
                 }
                 SectionBandesAnnonces(videos: fiche.videos) { videoChoisie = $0 }
                 if !fiche.casting.isEmpty {
@@ -188,31 +210,132 @@ private struct ContenuFiche: View {
                 symbole: suivi == nil ? "plus" : "minus",
                 libelle: suivi == nil ? "Ajouter à voir" : "Retirer de mes listes",
                 principal: suivi == nil,
-                actif: suivi != nil
+                actif: suivi != nil,
+                explication: suivi == nil
+                    ? "Ajouter à « À voir » dans Mes listes. La cloche 🔔 s'active pour te prévenir des sorties et des nouveaux épisodes."
+                    : "Retirer ce titre de Mes listes, avec ses alertes."
             ) {
                 basculerAVoir()
             }
 
             if let film = fiche.film {
-                BoutonIcone(symbole: vu ? "eye.fill" : "eye", libelle: vu ? "Vu" : "Marquer vu", actif: vu) {
+                BoutonIcone(symbole: vu ? "eye.fill" : "eye", libelle: vu ? "Vu" : "Marquer vu", actif: vu,
+                            explication: vu ? "Tu as vu ce film : il compte dans tes goûts et ne revient plus dans les suggestions."
+                                            : "Marquer ce film comme vu : Séance affine tes goûts et ne te le propose plus.") {
                     marquerVu(film)
                 }
             }
 
+            boutonAlertes
+
             if let video = fiche.videos.first {
-                BoutonIcone(symbole: "play.rectangle.fill", libelle: "Bande-annonce") {
+                BoutonIcone(symbole: "play.rectangle.fill", libelle: "Bande-annonce",
+                            explication: "Voir la bande-annonce, lue en streaming : rien n'est enregistré sur l'appareil.") {
                     videoChoisie = video
                 }
             }
             Spacer()
+            menuAutres
         }
         .padding(.horizontal, 20)
+    }
+
+    /// 🔔 Surveillance du titre : un film se bascule d'un geste ; une série propose ses deux rythmes.
+    @ViewBuilder
+    private var boutonAlertes: some View {
+        let actives = suivi?.alertesActives == true
+        if fiche.serie != nil {
+            Menu {
+                Section("Me prévenir") {
+                    Button { reglerAlertes(.episodes) } label: {
+                        Label("À chaque épisode", systemImage: actives && suivi?.modeAlertes == .episodes ? "checkmark" : "bell.badge")
+                    }
+                    Button { reglerAlertes(.saisons) } label: {
+                        Label("Aux nouvelles saisons seulement", systemImage: actives && suivi?.modeAlertes == .saisons ? "checkmark" : "bell")
+                    }
+                    if actives {
+                        Button(role: .destructive) { reglerAlertes(nil) } label: {
+                            Label("Plus d'alertes", systemImage: "bell.slash")
+                        }
+                    }
+                }
+            } label: {
+                RondIcone(symbole: actives ? "bell.fill" : "bell", actif: actives)
+            }
+            .help("Alertes : nouvelles saisons, veille et jour des épisodes, arrivée sur tes plateformes, passages à la télé")
+            .accessibilityLabel(actives ? "Alertes activées" : "Me prévenir")
+        } else {
+            BoutonIcone(symbole: actives ? "bell.fill" : "bell", libelle: actives ? "Alertes activées" : "Me prévenir de la sortie", actif: actives,
+                        explication: actives
+                            ? "Tu seras prévenu : date de sortie annoncée, la veille, le jour même et arrivée sur tes plateformes. Touche pour couper."
+                            : "Être prévenu de la sortie : date annoncée, la veille, le jour même et arrivée sur tes plateformes.") {
+                reglerAlertes(actives ? nil : .episodes)
+            }
+        }
+    }
+
+    /// « … » : partager, voir sur TMDB, écarter faute de version française (EF-29).
+    private var menuAutres: some View {
+        let adresse = URL(string: "https://www.themoviedb.org/\(fiche.reference.type == .film ? "movie" : "tv")/\(fiche.reference.tmdbID)")!
+        return Menu {
+            Button {
+                let service = ServiceSoiree(contexte: contexte)
+                if dansSoiree {
+                    try? service.retirer(fiche.reference)
+                } else {
+                    try? service.retenir(fiche.reference, titre: fiche.titre, cheminAffiche: fiche.cheminAffiche)
+                }
+                rafraichir()
+            } label: {
+                Label(dansSoiree ? "Retirer de ma soirée" : "Ajouter à ma soirée", systemImage: dansSoiree ? "moon.fill" : "moon.stars")
+            }
+            ShareLink(item: adresse, subject: Text(fiche.titre)) {
+                Label("Partager", systemImage: "square.and.arrow.up")
+            }
+            Link(destination: adresse) {
+                Label("Voir sur TMDB", systemImage: "safari")
+            }
+            if suivi?.exclusionLangue != true {
+                Button(role: .destructive) {
+                    try? ServiceSuivi(contexte: contexte).exclureLangue(fiche.reference, titre: fiche.titre)
+                    rafraichir()
+                } label: {
+                    Label("Ni VF ni sous-titres FR", systemImage: "captions.bubble")
+                }
+            }
+        } label: {
+            RondIcone(symbole: "ellipsis", taille: 40)
+        }
+        .help("Ma soirée, partager, voir sur TMDB, écarter faute de version française")
+        .accessibilityLabel("Plus d'actions")
+    }
+
+    private func reglerAlertes(_ mode: ModeAlerteSerie?) {
+        let service = ServiceSuivi(contexte: contexte)
+        var cible = suivi
+        if cible == nil, mode != nil {
+            if let film = fiche.film {
+                cible = try? service.suivre(film: film)
+            } else if let serie = fiche.serie {
+                cible = try? service.suivre(serie: serie)
+            }
+        }
+        guard let cible else { return }
+        cible.alertesActives = mode != nil
+        if let mode { cible.modeAlertes = mode }
+        try? contexte.save()
+        rafraichir()
+        Task {
+            if mode != nil { await etat.alertes.demanderAutorisation() }
+            await etat.alertes.planifier(contexte: contexte, tmdb: etat.tmdb)
+        }
     }
 
     private func rafraichir() {
         let suiviService = ServiceSuivi(contexte: contexte)
         suivi = try? suiviService.suivi(fiche.reference)
         vu = (try? suiviService.estVu(fiche.reference)) ?? false
+        dansSoiree = (try? ServiceSoiree(contexte: contexte).estRetenu(fiche.reference)) ?? false
         etatDisponibilite = (try? ServiceDisponibilite(contexte: contexte).etat(fiche.reference, offres: fiche.offres)) ?? .introuvable
     }
 
@@ -227,6 +350,11 @@ private struct ContenuFiche: View {
             _ = try? service.suivre(serie: serie)
         }
         rafraichir()
+        // Suivre un titre, c'est vouloir être prévenu : l'autorisation est demandée à ce moment-là (EF-81).
+        Task {
+            await etat.alertes.demanderAutorisation()
+            await etat.alertes.planifier(contexte: contexte, tmdb: etat.tmdb)
+        }
     }
 
     private func marquerVu(_ film: FicheFilm) {
@@ -242,7 +370,7 @@ private struct BlocOuRegarder: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Où regarder").font(.headline)
+            Text("Où regarder").font(.title3.weight(.bold))
             HStack(spacing: 12) {
                 Image(systemName: icone).font(.title3).foregroundStyle(Theme.accent).frame(width: 28)
                 VStack(alignment: .leading, spacing: 2) {

@@ -85,6 +85,7 @@ struct CarteAffiche: View {
     }
 }
 
+/// Puce de choix unique (plateforme, saison, type) : même apparence que les critères d'Explorer.
 struct PuceFiltre: View {
     let libelle: String
     var active = false
@@ -94,12 +95,14 @@ struct PuceFiltre: View {
         Button(action: action) {
             Text(libelle)
                 .font(.subheadline.weight(.semibold))
+                .lineLimit(1)
                 .padding(.horizontal, 14)
                 .frame(height: 34)
                 .foregroundStyle(active ? Color.black : Color.primary)
-                .background(active ? AnyShapeStyle(Color.white) : AnyShapeStyle(Theme.surface), in: Capsule())
+                .background(active ? AnyShapeStyle(Theme.degradeAccent) : AnyShapeStyle(Theme.surface), in: Capsule())
         }
         .buttonStyle(.plain)
+        .accessibilityAddTraits(active ? .isSelected : [])
     }
 }
 
@@ -109,9 +112,14 @@ struct TitreSection<Accessoire: View>: View {
     @ViewBuilder var accessoire: Accessoire
 
     var body: some View {
-        HStack {
-            Text(titre).font(.title3.weight(.bold))
-            Spacer()
+        HStack(spacing: 10) {
+            // Le titre tient sur une ligne : il rétrécit un peu plutôt que de passer à la ligne.
+            Text(titre)
+                .font(.title3.weight(.bold))
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
+                .layoutPriority(1)
+            Spacer(minLength: 4)
             accessoire
         }
         .padding(.horizontal, 20)
@@ -126,7 +134,8 @@ extension TitreSection where Accessoire == EmptyView {
 }
 
 /// Bouton d'action réduit à son icône, rond : les rangées d'actions restent compactes sur iPhone.
-/// Le libellé n'est pas affiché mais reste lu par VoiceOver.
+/// Le libellé n'est pas affiché mais reste lu par VoiceOver. Un appui prolongé affiche une bulle
+/// qui explique le bouton ; sur Mac, la même explication apparaît au survol.
 struct BoutonIcone: View {
     let symbole: String
     let libelle: String
@@ -135,15 +144,45 @@ struct BoutonIcone: View {
     /// État atteint (vu, dans la liste) : icône orange sur fond teinté.
     var actif = false
     var taille: CGFloat = 46
+    /// Phrase de la bulle d'aide ; à défaut, le libellé.
+    var explication: String?
     let action: () -> Void
 
+    @State private var bulle = false
+
     var body: some View {
-        Button(action: action) {
-            RondIcone(symbole: symbole, principal: principal, actif: actif, taille: taille)
+        RondIcone(symbole: symbole, principal: principal, actif: actif, taille: taille)
+            .onTapGesture(perform: action)
+            .onLongPressGesture(minimumDuration: 0.45) { bulle = true }
+            .sensoryFeedback(.selection, trigger: actif)
+            .sensoryFeedback(.impact(weight: .light), trigger: bulle) { _, nouveau in nouveau }
+            .popover(isPresented: $bulle, arrowEdge: .bottom) {
+                BulleAide(titre: libelle, texte: explication)
+            }
+            .help(explication ?? libelle)
+            .accessibilityElement()
+            .accessibilityLabel(libelle)
+            .accessibilityHint(explication ?? "")
+            .accessibilityAddTraits(.isButton)
+            .accessibilityAction { action() }
+    }
+}
+
+/// Bulle d'aide d'un bouton : son nom, puis ce qu'il fait.
+struct BulleAide: View {
+    let titre: String
+    var texte: String?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(titre).font(.subheadline.weight(.semibold))
+            if let texte {
+                Text(texte).font(.footnote).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+            }
         }
-        .buttonStyle(.plain)
-        .accessibilityLabel(libelle)
-        .sensoryFeedback(.selection, trigger: actif)
+        .padding(14)
+        .frame(maxWidth: 280, alignment: .leading)
+        .presentationCompactAdaptation(.popover)
     }
 }
 
@@ -169,13 +208,65 @@ struct RondIcone: View {
     }
 }
 
-/// Invite affichée tant que la clé TMDB manque.
+/// Message d'une section vide ou en erreur, partout le même : icône, phrase, action éventuelle.
+struct MessageEtat: View {
+    enum Ton { case information, attente, probleme }
+
+    let texte: String
+    var symbole = "info.circle"
+    var ton = Ton.information
+    var libelleAction: String?
+    var action: (() -> Void)?
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 10) {
+            if ton == .attente {
+                ProgressView().controlSize(.small)
+            } else {
+                Image(systemName: ton == .probleme ? "exclamationmark.triangle.fill" : symbole)
+                    .foregroundStyle(ton == .probleme ? Color.orange : Color.secondary)
+            }
+            VStack(alignment: .leading, spacing: 6) {
+                Text(texte)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                if let libelleAction, let action {
+                    Button(libelleAction, action: action)
+                        .font(.footnote.weight(.semibold))
+                        .tint(Theme.accent)
+                }
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(12)
+        .background(Theme.surface.opacity(0.6), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .padding(.horizontal, 20)
+    }
+}
+
+/// « Tout voir » à droite d'un titre de section de l'accueil.
+struct BoutonToutVoir: View {
+    let action: () -> Void
+
+    var body: some View {
+        Button("Tout voir", action: action)
+            .font(.subheadline.weight(.semibold))
+            .tint(Theme.accent)
+            .fixedSize()
+    }
+}
+
+/// Invite affichée tant que la clé TMDB manque : elle ouvre directement la page de saisie.
 struct InviteCleTMDB: View {
     var body: some View {
         ContentUnavailableView {
-            Label("Clé TMDB manquante", systemImage: "key")
+            Label("Clé TMDB à saisir", systemImage: "key")
         } description: {
-            Text("Enregistre ta clé TMDB dans l'onglet Moi, rubrique TMDB.")
+            Text("Séance lit les films, séries et plateformes sur TMDB. La clé est gratuite et reste dans le trousseau de l'appareil.")
+        } actions: {
+            NavigationLink("Saisir ma clé TMDB") { ReglagesTMDBView() }
+                .buttonStyle(.borderedProminent)
         }
     }
 }

@@ -69,20 +69,42 @@ public struct ExplorateurSMB: ExplorateurFichiers {
         try await avecPartage { client in
             var fichiers: [FichierDistant] = []
             for dossier in try await Self.resoudre(dossiers, client: client) {
-                let elements = try await client.contentsOfDirectory(atPath: dossier, recursive: true)
-                for element in elements {
-                    guard (element[.isDirectoryKey] as? Bool) != true,
-                          let chemin = element[.pathKey] as? String,
-                          AnalyseNomFichier.extensionsVideo.contains((chemin as NSString).pathExtension.lowercased())
-                    else { continue }
-                    let taille = (element[.fileSizeKey] as? Int64) ?? Int64((element[.fileSizeKey] as? Int) ?? 0)
-                    // Le chemin garde l'écriture exacte du NAS : c'est elle que la lecture redemandera.
-                    let relatif = chemin.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
-                    fichiers.append(FichierDistant(chemin: relatif, taille: taille))
-                }
+                fichiers += try await Self.parcourir(dossier, client: client)
             }
             return fichiers
         }
+    }
+
+    /// Profondeur maximale : `Séries/Nom/Saison 01` en demande trois ; au-delà, sans doute une boucle.
+    static let profondeurMax = 6
+
+    /// Parcourt un dossier et ses sous-dossiers en assemblant les chemins avec les noms exacts du NAS.
+    /// La lecture récursive d'AMSMB2 reconstruit les chemins par une URL, qui peut réécrire les accents
+    /// (« Séries ») : le NAS ne retrouvait alors plus les sous-dossiers. Un sous-dossier illisible est
+    /// ignoré plutôt que de faire échouer toute l'analyse.
+    static func parcourir(_ dossier: String, client: SMB2Manager, profondeur: Int = 0) async throws -> [FichierDistant] {
+        var fichiers: [FichierDistant] = []
+        for element in try await client.contentsOfDirectory(atPath: dossier) {
+            guard let nom = element[.nameKey] as? String, retenu(nom) else { continue }
+            let chemin = dossier + "/" + nom
+            if (element[.isDirectoryKey] as? Bool) == true {
+                guard profondeur < profondeurMax else { continue }
+                do {
+                    fichiers += try await parcourir(chemin, client: client, profondeur: profondeur + 1)
+                } catch let erreur as POSIXError where [.ENOENT, .EACCES, .EPERM, .ENOTDIR].contains(erreur.code) {
+                    continue
+                }
+            } else if AnalyseNomFichier.extensionsVideo.contains((nom as NSString).pathExtension.lowercased()) {
+                let taille = (element[.fileSizeKey] as? Int64) ?? Int64((element[.fileSizeKey] as? Int) ?? 0)
+                fichiers.append(FichierDistant(chemin: chemin, taille: taille))
+            }
+        }
+        return fichiers
+    }
+
+    /// Écarte les fichiers cachés et les dossiers techniques du Synology (`@eaDir`, `#recycle`).
+    static func retenu(_ nom: String) -> Bool {
+        !nom.hasPrefix(".") && !nom.hasPrefix("@") && !nom.hasPrefix("#") && nom != "Thumbs.db"
     }
 
     /// EF-87 : ouvre le partage et compte les éléments de premier niveau de chaque dossier déclaré.
@@ -105,7 +127,7 @@ public struct ExplorateurSMB: ExplorateurFichiers {
         let presents = racine
             .filter { ($0[.isDirectoryKey] as? Bool) == true }
             .compactMap { $0[.nameKey] as? String }
-            .filter { !$0.hasPrefix(".") && !$0.hasPrefix("#") && !$0.hasPrefix("@") }
+            .filter(retenu)
         return try dossiers.map { dossier in
             guard let reel = correspondance(dossier, parmi: presents) else {
                 throw ErreurNAS.dossierAbsent(dossier, presents: presents.map(\.precomposedStringWithCanonicalMapping).sorted())

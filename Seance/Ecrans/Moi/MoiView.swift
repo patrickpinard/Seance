@@ -39,6 +39,18 @@ struct MoiView: View {
                     }
                 }
 
+                Section("Me prévenir") {
+                    NavigationLink { ReglagesAlertesView() } label: {
+                        LigneReglage(titre: "Alertes", symbole: "bell.badge.fill", couleur: .red, valeur: libelleAlertes)
+                    }
+                }
+
+                Section("Mes données") {
+                    NavigationLink { ReglagesSauvegardeView() } label: {
+                        LigneReglage(titre: "Sauvegarde", symbole: "externaldrive.badge.icloud", couleur: .indigo, valeur: nil)
+                    }
+                }
+
                 Section {
                     NavigationLink { AProposView() } label: {
                         LigneReglage(titre: "À propos", symbole: "info", couleur: .gray, valeur: nil)
@@ -48,6 +60,15 @@ struct MoiView: View {
             .scrollContentBackground(.hidden)
             .background(Theme.fond)
             .navigationTitle("Moi")
+            .task { await etat.alertes.actualiserAutorisation() }
+        }
+    }
+
+    private var libelleAlertes: String {
+        switch etat.alertes.autorisation {
+        case .authorized, .provisional, .ephemeral: "Activées"
+        case .denied: "Désactivées"
+        default: "À activer"
         }
     }
 }
@@ -76,7 +97,7 @@ private struct LigneReglage: View {
 }
 
 /// Mise en forme commune des pages de réglages.
-private extension View {
+extension View {
     func pageReglages(_ titre: String) -> some View {
         scrollContentBackground(.hidden)
             .background(Theme.fond)
@@ -120,7 +141,7 @@ struct ReglagesTMDBView: View {
                     Text(message).font(.footnote).foregroundStyle(.secondary)
                 }
             } footer: {
-                Text("TMDB fournit les fiches, les affiches et les plateformes. La clé reste dans le trousseau de l'iPhone.")
+                Text("TMDB fournit les fiches, les affiches et les plateformes. La clé reste dans le trousseau de l'appareil.")
             }
         }
         .pageReglages("TMDB")
@@ -136,7 +157,8 @@ struct ReglagesTMDBView: View {
         } catch ErreurTMDB.identifiantsRefuses {
             message = "TMDB refuse cette clé. Vérifie-la sur themoviedb.org, dans Paramètres › API."
         } catch {
-            message = "Test impossible : \(error.localizedDescription)"
+            message = Journal.conseil(error) ?? "Le test n'a pas abouti : vérifie la connexion Internet, puis réessaie."
+            etat.journal.noter(.tmdb, "La clé TMDB n'a pas pu être testée.", erreur: error)
         }
     }
 }
@@ -177,7 +199,7 @@ struct ReglagesClaudeView: View {
                     Text(message).font(.footnote).foregroundStyle(.secondary)
                 }
             } footer: {
-                Text("Sans clé, « Ce soir » classe les titres sur l'iPhone, à partir de tes goûts. Avec une clé, Claude lit ta demande et explique ses choix : environ 0,07 $ par demande.")
+                Text("Sans clé, « Ce soir » classe les titres sur l'appareil, à partir de tes goûts. Avec une clé, Claude lit ta demande et explique ses choix : environ 0,07 $ par demande.")
             }
         }
         .pageReglages("Claude")
@@ -323,6 +345,7 @@ struct AProposView: View {
     enum Onglet: String, CaseIterable, Identifiable {
         case application = "Séance"
         case versions = "Versions"
+        case journal = "Journal"
 
         var id: String { rawValue }
     }
@@ -367,6 +390,8 @@ struct AProposView: View {
                 application
             case .versions:
                 ListeVersions(versionInstallee: numeroVersion)
+            case .journal:
+                SectionsJournal()
             }
 
             Section {
@@ -388,7 +413,7 @@ struct AProposView: View {
         Section("L'application") {
             Text("Séance est ton guide personnel des films et séries d'action. Elle te dit où regarder chaque titre en Suisse : sur tes plateformes, à la télévision ou sur ton NAS, ou comment l'obtenir légalement.")
             Text("Elle suit tes séries épisode par épisode, garde la trace de ce que tu as vu et te prévient des nouvelles saisons, des sorties et des passages à la télé. Chaque soir, elle te propose des idées choisies selon tes goûts, toutes vérifiées dans TMDB.")
-            Text("Tes données restent sur ton iPhone. Une sauvegarde régulière dans un fichier les protège.")
+            Text("Tes données restent sur ton appareil. Une sauvegarde dans un fichier, depuis Moi › Sauvegarde, les protège et permet de les reprendre sur un autre appareil.")
         }
 
         Section("Sources des données") {

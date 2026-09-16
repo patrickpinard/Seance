@@ -126,15 +126,19 @@ struct NASView: View {
                 .pickerStyle(.segmented)
 
                 resume
+                if let erreur = etat.nas.erreur {
+                    MessageEtat(texte: erreur, ton: .probleme, libelleAction: "Réessayer") { analyser() }
+                        .padding(.horizontal, -20)
+                }
 
                 if rayon == .nonReconnus {
                     nonReconnus
                 } else {
                     let oeuvres = oeuvres(du: rayon)
                     if oeuvres.isEmpty {
-                        Text(recherche.isEmpty ? "Rien dans ce rayon." : "Aucun titre ne correspond.")
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
+                        MessageEtat(texte: recherche.isEmpty ? "Rien dans ce rayon." : "Aucun titre ne correspond à « \(recherche) ».",
+                                    symbole: "externaldrive")
+                            .padding(.horizontal, -20)
                     }
                     LazyVGrid(columns: colonnes, spacing: 18) {
                         ForEach(oeuvres) { oeuvre in
@@ -161,15 +165,6 @@ struct NASView: View {
         }
         .font(.caption)
         .foregroundStyle(.secondary)
-        .overlay(alignment: .bottomLeading) {
-            if let erreur = etat.nas.erreur {
-                Label(erreur, systemImage: "exclamationmark.triangle")
-                    .font(.caption)
-                    .foregroundStyle(.orange)
-                    .offset(y: 20)
-            }
-        }
-        .padding(.bottom, etat.nas.erreur == nil ? 0 : 24)
     }
 
     private var nonReconnus: some View {

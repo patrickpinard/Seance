@@ -48,6 +48,34 @@ struct ProgressionSerieTests {
     }
 }
 
+@Suite("Prochain épisode sans charger les saisons")
+struct ProchainEpisodeTests {
+    private let saisons: [SaisonResume] = Construire.decoder([SaisonResume].self, [
+        ["id": 0, "name": "Épisodes spéciaux", "season_number": 0, "episode_count": 3],
+        ["id": 1, "name": "Saison 1", "season_number": 1, "episode_count": 8],
+        ["id": 2, "name": "Saison 2", "season_number": 2, "episode_count": 8],
+        ["id": 3, "name": "Saison 3", "season_number": 3, "episode_count": 0],
+    ])
+    private let dernierDiffuse = Construire.episode(2, 5, diffuse: "2026-09-10")
+
+    @Test func premierEpisodeQuandRienVu() throws {
+        let suivant = try #require(ProgressionSerie.suivant(vus: [], saisons: saisons, dernierDiffuse: dernierDiffuse))
+        #expect(suivant.numero == NumeroEpisode(saison: 1, episode: 1) && suivant.disponible)
+        #expect(ProgressionSerie.total(saisons) == 16)
+    }
+
+    @Test func passageALaSaisonSuivanteEtEpisodePasEncoreDiffuse() throws {
+        let finSaison = try #require(ProgressionSerie.suivant(vus: [NumeroEpisode(saison: 1, episode: 8)], saisons: saisons, dernierDiffuse: dernierDiffuse))
+        #expect(finSaison.numero == NumeroEpisode(saison: 2, episode: 1))
+        let attente = try #require(ProgressionSerie.suivant(vus: [NumeroEpisode(saison: 2, episode: 5)], saisons: saisons, dernierDiffuse: dernierDiffuse))
+        #expect(attente.numero == NumeroEpisode(saison: 2, episode: 6) && !attente.disponible)
+    }
+
+    @Test func toutVu() {
+        #expect(ProgressionSerie.suivant(vus: [NumeroEpisode(saison: 2, episode: 8)], saisons: saisons, dernierDiffuse: dernierDiffuse) == nil)
+    }
+}
+
 @Suite("Langue et disponibilité")
 struct DisponibiliteTests {
     private let maintenant = Date.suisse("2026-09-17 19:00")

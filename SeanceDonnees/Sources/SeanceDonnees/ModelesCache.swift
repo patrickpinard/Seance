@@ -62,6 +62,10 @@ public final class EtatPlateformes {
     public var tmdbID: Int = 0
     public var typeBrut: String = TypeTitre.film.rawValue
     public var fournisseurs: [Int] = []
+    /// Boutiques de location ou d'achat connues : leur apparition annonce la sortie numérique.
+    public var locationAchat: [Int] = []
+    /// Dernière annonce connue (nouvelle saison, date de sortie) ; `nil` avant la première vérification.
+    public var annonce: String?
     public var verifieLe: Date = Date.now
 
     public init(reference: ReferenceTitre, fournisseurs: [Int], verifieLe: Date = .now) {
@@ -69,6 +73,36 @@ public final class EtatPlateformes {
         typeBrut = reference.type.rawValue
         self.fournisseurs = fournisseurs
         self.verifieLe = verifieLe
+    }
+}
+
+/// Un rendez-vous d'un titre surveillé (épisode, saison, sortie, télé), pour « À venir » et le widget.
+@Model
+public final class Echeance {
+    public var tmdbID: Int = 0
+    public var typeBrut: String = TypeTitre.film.rawValue
+    public var titre: String = ""
+    public var cheminAffiche: String?
+    public var date: Date = Date.now
+    public var libelle: String = ""
+    public var natureBrut: String = EcheancePrevue.Nature.sortie.rawValue
+
+    public init(_ echeance: EcheancePrevue, cheminAffiche: String?) {
+        tmdbID = echeance.reference.tmdbID
+        typeBrut = echeance.reference.type.rawValue
+        titre = echeance.titre
+        self.cheminAffiche = cheminAffiche
+        date = echeance.date
+        libelle = echeance.libelle
+        natureBrut = echeance.nature.rawValue
+    }
+
+    public var reference: ReferenceTitre {
+        ReferenceTitre(type: TypeTitre(rawValue: typeBrut) ?? .film, tmdbID: tmdbID)
+    }
+
+    public var nature: EcheancePrevue.Nature {
+        EcheancePrevue.Nature(rawValue: natureBrut) ?? .sortie
     }
 }
 
@@ -80,6 +114,10 @@ public final class AlertePlanifiee {
     public var motif: String = ""
     public var date: Date = Date.now
     public var envoyee: Bool = false
+    /// Alerte ponctuelle (annonce, arrivée) : gardée avec son texte jusqu'à son envoi.
+    public var ponctuelle: Bool = false
+    public var titre: String = ""
+    public var corps: String = ""
 
     public init(reference: ReferenceTitre, motif: String, date: Date) {
         tmdbID = reference.tmdbID

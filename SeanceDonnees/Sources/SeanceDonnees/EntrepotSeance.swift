@@ -16,11 +16,11 @@ public enum EntrepotSeance {
 
     public static var modelesUtilisateur: [any PersistentModel.Type] {
         [Suivi.self, Visionnage.self, ListePerso.self, FiltreEnregistre.self,
-         Interet.self, Abonnement.self, Chaine.self, SourceNAS.self, SuggestionReportee.self]
+         Interet.self, Abonnement.self, Chaine.self, SourceNAS.self, SuggestionReportee.self, SelectionSoir.self]
     }
 
     public static var modelesCache: [any PersistentModel.Type] {
-        [TitreCache.self, Diffusion.self, EtatPlateformes.self, AlertePlanifiee.self, FichierNAS.self]
+        [TitreCache.self, Diffusion.self, EtatPlateformes.self, AlertePlanifiee.self, FichierNAS.self, Echeance.self]
     }
 
     public static func conteneur(_ emplacement: Emplacement = .groupeApp) throws -> ModelContainer {

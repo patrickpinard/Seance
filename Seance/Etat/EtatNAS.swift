@@ -23,6 +23,8 @@ final class EtatNAS {
     static let intervalleAnalyse: TimeInterval = 24 * 3600
 
     private let coffre: any CoffreCles
+    /// Renseigné par l'état de l'app : les problèmes vont au journal d'À propos.
+    var journal: Journal?
 
     private enum Cle {
         static let reglages = "nas.reglages"
@@ -100,15 +102,40 @@ final class EtatNAS {
             return
         } catch {
             self.erreur = ErreurNAS.message(error)
+            journal?.noter(.nas, Self.injoignable(error) ? "Le NAS n'est pas joignable." : "L'analyse du NAS a échoué.",
+                           erreur: error, conseil: ErreurNAS.message(error))
         }
     }
 
     /// Lien qui ouvre la vidéo dans l'app de lecture ; `nil` sans mot de passe.
     func lien(pour fichier: FichierNAS, avec lecteur: LecteurVideo) -> URL? {
+        #if targetEnvironment(macCatalyst)
+        // Sur Mac, le partage est souvent déjà monté : le fichier s'ouvre dans le lecteur par défaut.
+        // Sinon, le Finder monte le partage (identifiants demandés ou repris du trousseau de macOS).
+        let monte = URL(filePath: "/Volumes").appending(path: reglages.partage).appending(path: fichier.chemin)
+        if FileManager.default.fileExists(atPath: monte.path(percentEncoded: false)) { return monte }
+        return reglages.url(chemin: fichier.chemin)
+        #else
         guard let motDePasse = try? coffre.lire(.nas),
               let video = reglages.url(chemin: fichier.chemin, motDePasse: motDePasse)
         else { return nil }
         return lecteur.lien(pour: video)
+        #endif
+    }
+
+    /// Réseau local refusé, NAS éteint ou hors du Wi-Fi de la maison.
+    static func injoignable(_ erreur: any Error) -> Bool {
+        if let nas = erreur as? ErreurNAS {
+            switch nas {
+            case .reseauLocalRefuse, .injoignable: return true
+            default: return false
+            }
+        }
+        if let posix = erreur as? POSIXError {
+            return [.EHOSTUNREACH, .ENETUNREACH, .EHOSTDOWN, .ETIMEDOUT, .ECONNREFUSED, .ENETDOWN].contains(posix.code)
+        }
+        let texte = erreur.localizedDescription.lowercased()
+        return texte.contains("no route to host") || texte.contains("timed out") || texte.contains("host is down")
     }
 
     private func explorateur() throws -> ExplorateurSMB {

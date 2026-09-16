@@ -16,21 +16,37 @@ struct BoutonLectureNAS: View {
     @State private var sansMotDePasse = false
 
     var body: some View {
+        #if targetEnvironment(macCatalyst)
+        // Sur Mac, un seul choix : le lecteur vidéo par défaut de macOS.
+        Button { lire(avec: etat.nas.lecteur) } label: { etiquette }
+            .buttonStyle(.plain)
+            .accessibilityLabel(libelle)
+        #else
+        menu
+        #endif
+    }
+
+    @ViewBuilder
+    private var etiquette: some View {
+        if grand {
+            Label(libelle, systemImage: "play.fill")
+                .font(.headline)
+                .frame(maxWidth: .infinity)
+                .frame(height: 50)
+                .foregroundStyle(.black)
+                .background(Theme.degradeAccent, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        } else {
+            RondIcone(symbole: "play.fill", principal: true, taille: 38)
+        }
+    }
+
+    private var menu: some View {
         Menu {
             ForEach(LecteurVideo.allCases) { lecteur in
                 Button("Lire avec \(lecteur.nom)", systemImage: "play.fill") { lire(avec: lecteur) }
             }
         } label: {
-            if grand {
-                Label(libelle, systemImage: "play.fill")
-                    .font(.headline)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 50)
-                    .foregroundStyle(.black)
-                    .background(Theme.degradeAccent, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-            } else {
-                RondIcone(symbole: "play.fill", principal: true, taille: 38)
-            }
+            etiquette
         } primaryAction: {
             lire(avec: etat.nas.lecteur)
         }
@@ -53,10 +69,15 @@ struct BoutonLectureNAS: View {
     private func lire(avec lecteur: LecteurVideo) {
         guard let lien = etat.nas.lien(pour: fichier, avec: lecteur) else {
             sansMotDePasse = true
+            etat.journal.noter(.lecture, "La lecture n'a pas pu démarrer : mot de passe du NAS manquant.", conseil: "Enregistre-le dans Moi › NAS.")
             return
         }
         openURL(lien) { acceptee in
-            if !acceptee { absent = lecteur }
+            if !acceptee {
+                absent = lecteur
+                etat.journal.noter(.lecture, "\(lecteur.nom) n'a pas pu ouvrir la vidéo.",
+                                   conseil: "Vérifie que \(lecteur.nom) est installée, ou choisis l'autre app dans Moi › NAS.")
+            }
         }
     }
 }

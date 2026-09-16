@@ -3,12 +3,28 @@ import SeanceKit
 import SwiftData
 import SwiftUI
 
+/// Ce que l'accueil montre : tout le catalogue ou certaines plateformes, et les sections télé et NAS.
+struct SourcesAccueil: Codable, Hashable {
+    /// `nil` : tout le catalogue TMDB ; sinon, les plateformes choisies.
+    var plateformes: [Int]?
+    var tele = true
+    var nas = true
+
+    var filtrees: [Int]? {
+        guard let plateformes, !plateformes.isEmpty else { return nil }
+        return plateformes.sorted()
+    }
+
+    var modifiees: Bool {
+        filtrees != nil || !tele || !nas
+    }
+}
+
 @MainActor
 @Observable
 final class AccueilModele {
     var tendancesJour: [TitreResume] = []
     var tendancesSemaine: [TitreResume] = []
-    var nouveautes: [TitreResume] = []
     /// Nouveaux films et séries avec un épisode récent, du jour ou de la semaine.
     var nouveauxFilms: [TitreResume] = []
     var nouvellesSeries: [TitreResume] = []
@@ -16,67 +32,66 @@ final class AccueilModele {
     var datesSeries: [ReferenceTitre: String] = [:]
     var nouveautesChargees = false
     var erreur: String?
+    /// Dernière erreur, pour le journal ; `erreur` garde la phrase affichée.
+    var erreurDetaillee: (any Error)?
     var charge = false
 
-    func chargerNouveautes(client: TMDBClient, periode: PeriodeTendance) async {
-        async let films = client.decouvrirFilms(CriteresDecouverte.nouveautes(.film, periode: periode))
-        async let series = client.decouvrirSeries(CriteresDecouverte.nouveautes(.serie, periode: periode))
+    /// Critères limités aux plateformes choisies, en abonnement ou gratuites, en Suisse.
+    static func surPlateformes(_ criteres: CriteresDecouverte, _ plateformes: [Int]?) -> CriteresDecouverte {
+        guard let plateformes, !plateformes.isEmpty else { return criteres }
+        var c = criteres
+        c.fournisseurs = plateformes
+        c.monetisations = [.abonnement, .gratuit, .avecPublicite]
+        return c
+    }
+
+    /// TMDB n'a pas de tendances par plateforme : ce sont alors les titres les plus populaires qu'elles proposent.
+    static func populaires(_ plateformes: [Int]) -> CriteresDecouverte {
+        var c = surPlateformes(CriteresDecouverte(), plateformes)
+        c.votesMin = 50
+        return c
+    }
+
+    /// Films et séries alternés, pour qu'aucun des deux ne masque l'autre.
+    static func entrelacer(_ a: [TitreResume], _ b: [TitreResume]) -> [TitreResume] {
+        (0..<max(a.count, b.count)).flatMap { i in [i < a.count ? a[i] : nil, i < b.count ? b[i] : nil].compactMap { $0 } }
+    }
+
+    func chargerNouveautes(client: TMDBClient, periode: PeriodeTendance, plateformes: [Int]?) async {
+        async let films = client.decouvrirFilms(Self.surPlateformes(CriteresDecouverte.nouveautes(.film, periode: periode), plateformes))
+        async let series = client.decouvrirSeries(Self.surPlateformes(CriteresDecouverte.nouveautes(.serie, periode: periode), plateformes))
         // Sans affiche, une carte ne dit rien ; hors français et anglais, pas de version regardable (EF-28).
         func retenir(_ titres: [TitreResume]) -> [TitreResume] {
             titres.filter { $0.cheminAffiche != nil && RegleLangue.accepte(langueOriginale: $0.langueOriginale, exclu: false) }
         }
         nouveauxFilms = retenir((try? await films.resultats.map(\.titreResume)) ?? [])
         let seriesRetenues = retenir((try? await series.resultats.map(\.titreResume)) ?? [])
-        datesSeries = await Self.datesDesEpisodes(seriesRetenues, periode: periode, client: client)
+        datesSeries = await DatesNouveautes.episodes(seriesRetenues, periode: periode, client: client)
         nouvellesSeries = seriesRetenues
         nouveautesChargees = true
     }
 
-    /// `discover` ne dit pas quel épisode est sorti : la fiche de chaque série le donne.
-    private static func datesDesEpisodes(_ series: [TitreResume], periode: PeriodeTendance, client: TMDBClient) async -> [ReferenceTitre: String] {
-        let (debut, fin) = periode.bornes()
-        return await withTaskGroup(of: (ReferenceTitre, String?).self) { groupe in
-            for titre in series {
-                groupe.addTask {
-                    guard let serie = try? await client.serie(titre.reference.tmdbID) else { return (titre.reference, nil) }
-                    if let episode = serie.episodeNouveau(depuis: debut, jusqua: fin), let date = episode.dateDiffusion {
-                        return (titre.reference, "S\(episode.saison)E\(episode.numero) · \(LibelleDate.jour(date))")
-                    }
-                    if serie.commence(depuis: debut, jusqua: fin), let date = serie.premiereDiffusion {
-                        return (titre.reference, "Nouvelle · \(LibelleDate.jour(date))")
-                    }
-                    return (titre.reference, nil)
-                }
-            }
-            var dates: [ReferenceTitre: String] = [:]
-            for await (reference, libelle) in groupe {
-                dates[reference] = libelle
-            }
-            return dates
-        }
-    }
-
-    /// EF-01, EF-28 : tendances, et nouveautés des 30 derniers jours sur les plateformes cochées.
-    func charger(client: TMDBClient, abonnements: [Int]) async {
+    /// Tendances (EF-01) : celles de TMDB pour tout le catalogue, sinon les titres populaires des plateformes choisies.
+    func charger(client: TMDBClient, plateformes: [Int]?) async {
         erreur = nil
         do {
-            var criteres = CriteresDecouverte()
-            criteres.fournisseurs = abonnements
-            criteres.monetisations = [.abonnement]
-            criteres.sortieDepuis = DateTMDB(Date.now.addingTimeInterval(-30 * 86_400))
-            criteres.genresInclus = [28]
-
-            async let jour = client.tendances(.jour)
-            async let semaine = client.tendances(.semaine)
-            async let films: [TitreResume] = abonnements.isEmpty ? [] : client.decouvrirFilms(criteres).resultats.map(\.titreResume)
-
-            tendancesJour = try await jour
-            tendancesSemaine = try await semaine
-            nouveautes = try await films.filter {
-                RegleLangue.accepte(langueOriginale: $0.langueOriginale, exclu: false)
+            if let plateformes {
+                async let films = client.decouvrirFilms(Self.populaires(plateformes))
+                async let series = client.decouvrirSeries(Self.populaires(plateformes))
+                let melange = Self.entrelacer(try await films.resultats.map(\.titreResume), try await series.resultats.map(\.titreResume))
+                tendancesJour = melange
+                tendancesSemaine = melange
+            } else {
+                async let jour = client.tendances(.jour)
+                async let semaine = client.tendances(.semaine)
+                tendancesJour = try await jour
+                tendancesSemaine = try await semaine
             }
+        } catch is CancellationError {
+            return
         } catch {
-            erreur = error.localizedDescription
+            erreur = Journal.conseil(error) ?? "TMDB ne répond pas pour l'instant : tire vers le bas pour réessayer."
+            erreurDetaillee = error
         }
         charge = true
     }
@@ -85,6 +100,9 @@ final class AccueilModele {
 /// Écrans ouverts depuis l'accueil, en plus des fiches.
 enum DestinationAccueil: Hashable {
     case nas
+    case tele
+    case nouveautes(PeriodeTendance, plateformes: [Int]?)
+    case tendances(PeriodeTendance, plateformes: [Int]?)
 }
 
 struct AccueilView: View {
@@ -92,30 +110,45 @@ struct AccueilView: View {
     @Environment(\.modelContext) private var contexte
     @Query(filter: #Predicate<Abonnement> { $0.actif }, sort: \Abonnement.nom) private var abonnements: [Abonnement]
     @Query(sort: \Diffusion.debut) private var diffusions: [Diffusion]
+    @AppStorage("accueil.sources") private var sourcesBrutes = Data()
     @State private var modele = AccueilModele()
-    @State private var semaine = false
+    @State private var periodeTendances = PeriodeTendance.jour
     @State private var periodeNouveautes = PeriodeTendance.jour
-    @State private var plateformeChoisie: Int?
+    @State private var reglageSources = false
     /// EF-62 : les tendances et les nouveautés reclassées selon les goûts, sans réseau ni Claude.
     @State private var pourToi: [SuggestionClassee] = []
     @State private var chemin = NavigationPath()
+
+    private var sources: SourcesAccueil {
+        (try? JSONDecoder().decode(SourcesAccueil.self, from: sourcesBrutes)) ?? SourcesAccueil()
+    }
+
+    /// Les plateformes choisies encore cochées dans les réglages.
+    private var plateformes: [Int]? {
+        sources.filtrees.map { ids in ids.filter { id in abonnements.contains { $0.providerID == id } } }.flatMap { $0.isEmpty ? nil : $0 }
+    }
 
     var body: some View {
         NavigationStack(path: $chemin) {
             Group {
                 if let client = etat.tmdb {
                     contenu
-                        .task(id: plateformesRetenues) {
-                            await modele.charger(client: client, abonnements: plateformesRetenues)
+                        .task(id: plateformes) {
+                            await modele.charger(client: client, plateformes: plateformes)
                             rafraichirPourToi()
                         }
-                        .task(id: periodeNouveautes) {
-                            await modele.chargerNouveautes(client: client, periode: periodeNouveautes)
+                        .task(id: CleNouveautes(periode: periodeNouveautes, plateformes: plateformes)) {
+                            await modele.chargerNouveautes(client: client, periode: periodeNouveautes, plateformes: plateformes)
+                            rafraichirPourToi()
                         }
                         .refreshable {
-                            await modele.charger(client: client, abonnements: plateformesRetenues)
-                            await modele.chargerNouveautes(client: client, periode: periodeNouveautes)
+                            await modele.charger(client: client, plateformes: plateformes)
+                            await modele.chargerNouveautes(client: client, periode: periodeNouveautes, plateformes: plateformes)
                             rafraichirPourToi()
+                        }
+                        .onChange(of: modele.erreur) { _, erreur in
+                            guard erreur != nil else { return }
+                            etat.journal.noter(.tmdb, "L'accueil n'a pas pu se charger.", erreur: modele.erreurDetaillee)
                         }
                 } else {
                     InviteCleTMDB()
@@ -126,18 +159,33 @@ struct AccueilView: View {
             .navigationDestination(for: DestinationAccueil.self) { destination in
                 switch destination {
                 case .nas: NASView()
+                case .tele: ProgrammeTeleView()
+                case .nouveautes(let periode, let plateformes): NouveautesView(periode: periode, plateformes: plateformes)
+                case .tendances(let periode, let plateformes): TendancesView(periode: periode, plateformes: plateformes)
                 }
             }
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        chemin.append(DestinationAccueil.nas)
-                    } label: {
-                        Label("NAS", systemImage: "externaldrive.fill")
-                            .labelStyle(.titleAndIcon)
+                ToolbarItemGroup(placement: .topBarTrailing) {
+                    Button { reglageSources = true } label: {
+                        Label("Sources", systemImage: sources.modifiees ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle")
                     }
-                    .accessibilityIdentifier("boutonNAS")
+                    .help("Choisir les sources affichées : plateformes, télévision, NAS")
+                    .accessibilityIdentifier("boutonSources")
+                    if sources.nas {
+                        Button { chemin.append(DestinationAccueil.nas) } label: {
+                            Label("NAS", systemImage: "externaldrive.fill")
+                        }
+                        .help("Ouvrir la bibliothèque du NAS")
+                        .accessibilityIdentifier("boutonNAS")
+                    }
                 }
+            }
+            .sheet(isPresented: $reglageSources) {
+                ReglageSourcesAccueil(sources: Binding {
+                    sources
+                } set: { nouvelles in
+                    sourcesBrutes = (try? JSONEncoder().encode(nouvelles)) ?? Data()
+                }, abonnements: abonnements)
             }
         }
         .onChange(of: etat.ficheDemandee, initial: true) { _, reference in
@@ -149,64 +197,54 @@ struct AccueilView: View {
 
     private var contenu: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 26) {
+            VStack(alignment: .leading, spacing: 28) {
                 BandeauVedette(titres: Array(modele.tendancesSemaine.prefix(5)))
 
-                if !abonnements.isEmpty {
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 8) {
-                            PuceFiltre(libelle: "Tout", active: plateformeChoisie == nil) { plateformeChoisie = nil }
-                            ForEach(abonnements) { abonnement in
-                                PuceFiltre(libelle: abonnement.nom, active: plateformeChoisie == abonnement.providerID) {
-                                    plateformeChoisie = abonnement.providerID
-                                }
-                            }
+                if let erreur = modele.erreur {
+                    MessageEtat(texte: erreur, ton: .probleme, libelleAction: "Réessayer") {
+                        guard let client = etat.tmdb else { return }
+                        Task {
+                            await modele.charger(client: client, plateformes: plateformes)
+                            rafraichirPourToi()
                         }
-                        .padding(.horizontal, 20)
                     }
                 }
 
                 if !pourToi.isEmpty {
                     VStack(alignment: .leading, spacing: 12) {
-                        TitreSection(titre: "Pour toi") {
-                            Text("d'après tes goûts")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
+                        TitreSection("Pour toi")
                         CarrouselExplique(suggestions: pourToi)
                     }
                 }
 
-                SectionTele(diffusions: diffusions, lectureEnCours: etat.teleEnCours)
+                if sources.tele {
+                    SectionTele(diffusions: diffusions, lectureEnCours: etat.teleEnCours) {
+                        chemin.append(DestinationAccueil.tele)
+                    }
+                }
 
-                SectionNouveautes(modele: modele, periode: $periodeNouveautes)
+                SectionNouveautes(modele: modele, periode: $periodeNouveautes) {
+                    chemin.append(DestinationAccueil.nouveautes(periodeNouveautes, plateformes: plateformes))
+                }
 
-                SectionNAS { chemin.append(DestinationAccueil.nas) }
+                if sources.nas {
+                    SectionNAS { chemin.append(DestinationAccueil.nas) }
+                }
 
                 VStack(alignment: .leading, spacing: 12) {
-                    TitreSection(titre: "Tendances") {
-                        Picker("Période", selection: $semaine) {
-                            Text("Aujourd'hui").tag(false)
-                            Text("Semaine").tag(true)
+                    TitreSection(titre: plateformes == nil ? "Tendances" : "Populaires") {
+                        if plateformes == nil {
+                            ChoixPeriode(periode: $periodeTendances)
                         }
-                        .pickerStyle(.segmented)
-                        .frame(width: 190)
+                        BoutonToutVoir { chemin.append(DestinationAccueil.tendances(periodeTendances, plateformes: plateformes)) }
                     }
-                    Carrousel(titres: semaine ? modele.tendancesSemaine : modele.tendancesJour)
-                }
-
-                if !modele.nouveautes.isEmpty {
-                    VStack(alignment: .leading, spacing: 12) {
-                        TitreSection("Action sur tes plateformes")
-                        Carrousel(titres: modele.nouveautes)
+                    if let plateformes {
+                        Text("Sur \(nomsPlateformes(plateformes))")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .padding(.horizontal, 20)
                     }
-                }
-
-                if let erreur = modele.erreur {
-                    Label(erreur, systemImage: "exclamationmark.triangle")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                        .padding(.horizontal, 20)
+                    Carrousel(titres: periodeTendances == .semaine ? modele.tendancesSemaine : modele.tendancesJour)
                 }
             }
             .padding(.bottom, 40)
@@ -217,8 +255,18 @@ struct AccueilView: View {
         }
     }
 
+    private struct CleNouveautes: Hashable {
+        let periode: PeriodeTendance
+        let plateformes: [Int]?
+    }
+
+    private func nomsPlateformes(_ ids: [Int]) -> String {
+        let noms = abonnements.filter { ids.contains($0.providerID) }.map(\.nom)
+        return noms.count > 2 ? "\(noms.count) plateformes" : noms.joined(separator: " et ")
+    }
+
     /// Le même classement que « Ce soir », appliqué à ce qui est déjà affiché : aucun appel
-    /// supplémentaire à TMDB, et rien qui sorte de l'iPhone.
+    /// supplémentaire à TMDB, et rien qui sorte de l'appareil.
     private func rafraichirPourToi() {
         let gouts = ServiceGouts(contexte: contexte)
         guard let profil = try? gouts.profil(), !profil.estVide,
@@ -228,19 +276,102 @@ struct AccueilView: View {
             return
         }
         var vues = Set<ReferenceTitre>()
-        let candidats = (modele.nouveautes + modele.tendancesSemaine + modele.tendancesJour)
+        let candidats = (modele.nouveauxFilms + modele.nouvellesSeries + modele.tendancesSemaine + modele.tendancesJour)
             .filter { vues.insert($0.reference).inserted }
             .filter { !exclusions.dejaVus.contains($0.reference) && !exclusions.exclus.contains($0.reference) }
             .filter { RegleLangue.accepte(langueOriginale: $0.langueOriginale, exclu: false) }
             .map { CandidatSuggestion(titre: $0) }
         pourToi = Array(ClassementLocal.classer(candidats, profil: profil, nomsGenres: etat.nomsGenres).prefix(12))
     }
+}
 
-    /// UX-18 : la puce choisie restreint les nouveautés à une plateforme.
-    private var plateformesRetenues: [Int] {
-        plateformeChoisie.map { [$0] } ?? abonnements.map(\.providerID)
+/// Période d'une section, en menu compact : « Aujourd'hui ⌄ ».
+struct ChoixPeriode: View {
+    @Binding var periode: PeriodeTendance
+
+    var body: some View {
+        Menu {
+            Picker("Période", selection: $periode) {
+                Text("Aujourd'hui").tag(PeriodeTendance.jour)
+                Text("Cette semaine").tag(PeriodeTendance.semaine)
+            }
+        } label: {
+            HStack(spacing: 4) {
+                Text(periode == .jour ? "Aujourd'hui" : "Semaine")
+                Image(systemName: "chevron.down").font(.caption2.weight(.bold))
+            }
+            .font(.subheadline.weight(.semibold))
+            .foregroundStyle(.primary)
+            .padding(.horizontal, 10)
+            .frame(height: 30)
+            .background(Theme.surface, in: Capsule())
+        }
+        .fixedSize()
     }
+}
 
+/// Feuille « Sources » de l'accueil : plateformes affichées, télévision et NAS.
+private struct ReglageSourcesAccueil: View {
+    @Binding var sources: SourcesAccueil
+    let abonnements: [Abonnement]
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    Picker("Afficher", selection: Binding {
+                        sources.plateformes == nil
+                    } set: { toutLeCatalogue in
+                        sources.plateformes = toutLeCatalogue ? nil : abonnements.map(\.providerID)
+                    }) {
+                        Text("Tout le catalogue").tag(true)
+                        Text("Mes plateformes").tag(false)
+                    }
+                    .pickerStyle(.segmented)
+                    .listRowBackground(Color.clear)
+
+                    if sources.plateformes != nil {
+                        if abonnements.isEmpty {
+                            Text("Coche d'abord tes abonnements dans Moi › Plateformes.").foregroundStyle(.secondary)
+                        }
+                        ForEach(abonnements) { abonnement in
+                            Toggle(abonnement.nom, isOn: Binding {
+                                sources.plateformes?.contains(abonnement.providerID) == true
+                            } set: { actif in
+                                var liste = sources.plateformes ?? []
+                                if actif { liste.append(abonnement.providerID) } else { liste.removeAll { $0 == abonnement.providerID } }
+                                sources.plateformes = liste
+                            })
+                            .tint(Theme.accent)
+                        }
+                    }
+                } header: {
+                    Text("Films et séries")
+                } footer: {
+                    Text("Nouveautés, tendances et suggestions « Pour toi » ne montrent que ce qui est disponible sur les plateformes choisies.")
+                }
+
+                Section {
+                    Toggle("Ce soir à la télé", isOn: $sources.tele).tint(Theme.accent)
+                    Toggle("Sur ton NAS", isOn: $sources.nas).tint(Theme.accent)
+                } header: {
+                    Text("Aussi sur l'accueil")
+                }
+            }
+            .scrollContentBackground(.hidden)
+            .background(Theme.fond)
+            .navigationTitle("Sources")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("OK") { dismiss() }
+                }
+            }
+        }
+        .presentationDetents([.medium, .large])
+        .presentationBackground(Theme.fond)
+    }
 }
 
 /// UX-01 : bandeau vedette à faire défiler.
@@ -338,8 +469,7 @@ private struct SectionNAS: View {
         if !apercu.isEmpty {
             VStack(alignment: .leading, spacing: 12) {
                 TitreSection(titre: "Sur ton NAS") {
-                    Button("Tout voir", action: toutVoir)
-                        .font(.subheadline.weight(.semibold))
+                    BoutonToutVoir(action: toutVoir)
                 }
                 ScrollView(.horizontal, showsIndicators: false) {
                     LazyHStack(alignment: .top, spacing: 12) {
@@ -358,22 +488,20 @@ private struct SectionNAS: View {
 private struct SectionNouveautes: View {
     let modele: AccueilModele
     @Binding var periode: PeriodeTendance
+    let toutVoir: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             TitreSection(titre: "Nouveautés") {
-                Picker("Période", selection: $periode) {
-                    Text("Aujourd'hui").tag(PeriodeTendance.jour)
-                    Text("Semaine").tag(PeriodeTendance.semaine)
-                }
-                .pickerStyle(.segmented)
-                .frame(width: 190)
+                ChoixPeriode(periode: $periode)
+                BoutonToutVoir(action: toutVoir)
             }
             if modele.nouveautesChargees && modele.nouveauxFilms.isEmpty && modele.nouvellesSeries.isEmpty {
-                Text(periode == .jour ? "Rien de neuf aujourd'hui : regarde la semaine." : "Aucune nouveauté cette semaine.")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-                    .padding(.horizontal, 20)
+                if periode == .jour {
+                    MessageEtat(texte: "Rien de neuf aujourd'hui.", symbole: "calendar", libelleAction: "Voir la semaine") { periode = .semaine }
+                } else {
+                    MessageEtat(texte: "Aucune nouveauté cette semaine.", symbole: "calendar")
+                }
             }
             if !modele.nouveauxFilms.isEmpty {
                 sousTitre("Films")
@@ -404,6 +532,7 @@ private struct SectionNouveautes: View {
 private struct SectionTele: View {
     let diffusions: [Diffusion]
     let lectureEnCours: Bool
+    let toutVoir: () -> Void
     @Query private var chaines: [Chaine]
 
     /// EF-46 : ce qui commence entre 20 h et 23 h aujourd'hui et n'est pas terminé ; les films d'abord.
@@ -431,14 +560,16 @@ private struct SectionTele: View {
                 } else if !soir.isEmpty {
                     Circle().fill(.red).frame(width: 8, height: 8)
                 }
+                if !diffusions.isEmpty {
+                    BoutonToutVoir(action: toutVoir)
+                }
             }
             if affichees.isEmpty {
-                Text(lectureEnCours
-                     ? "Lecture des programmes de tes chaînes…"
-                     : "Aucun film reconnu sur tes chaînes. Choisis-les dans Moi › Télévision.")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-                    .padding(.horizontal, 20)
+                if lectureEnCours {
+                    MessageEtat(texte: "Lecture des programmes de tes chaînes…", ton: .attente)
+                } else {
+                    MessageEtat(texte: "Aucun film reconnu sur tes chaînes pour l'instant. Choisis-les dans Moi › Télévision.", symbole: "tv")
+                }
             } else {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 12) {
@@ -530,5 +661,32 @@ enum LibelleDate {
         if date == DateTMDB(maintenant.addingTimeInterval(-86_400)) { return "hier" }
         let instant = date.instant(heure: 12)
         return instant.formatted(.dateTime.weekday(.abbreviated).day().month(.abbreviated).locale(Locale(identifier: "fr_CH")))
+    }
+}
+
+/// Dates affichées sous les nouveautés : l'épisode diffusé dans la période, ou la première diffusion.
+enum DatesNouveautes {
+    /// `discover` ne dit pas quel épisode est sorti : la fiche de chaque série le donne.
+    static func episodes(_ series: [TitreResume], periode: PeriodeTendance, client: TMDBClient) async -> [ReferenceTitre: String] {
+        let (debut, fin) = periode.bornes()
+        return await withTaskGroup(of: (ReferenceTitre, String?).self) { groupe in
+            for titre in series {
+                groupe.addTask {
+                    guard let serie = try? await client.serie(titre.reference.tmdbID) else { return (titre.reference, nil) }
+                    if let episode = serie.episodeNouveau(depuis: debut, jusqua: fin), let date = episode.dateDiffusion {
+                        return (titre.reference, "S\(episode.saison)E\(episode.numero) · \(LibelleDate.jour(date))")
+                    }
+                    if serie.commence(depuis: debut, jusqua: fin), let date = serie.premiereDiffusion {
+                        return (titre.reference, "Nouvelle · \(LibelleDate.jour(date))")
+                    }
+                    return (titre.reference, nil)
+                }
+            }
+            var dates: [ReferenceTitre: String] = [:]
+            for await (reference, libelle) in groupe {
+                dates[reference] = libelle
+            }
+            return dates
+        }
     }
 }

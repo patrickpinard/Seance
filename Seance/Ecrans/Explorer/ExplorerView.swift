@@ -65,6 +65,10 @@ struct ExplorerView: View {
                 guard let client = etat.tmdb else { return }
                 await modele.recharger(client: client, contexte: contexte, abonnements: abonnements.map(\.providerID))
             }
+            .onChange(of: modele.erreur) { _, erreur in
+                guard erreur != nil else { return }
+                etat.journal.noter(.tmdb, "Explorer n'a pas pu charger les résultats.", erreur: modele.erreurDetaillee)
+            }
             .sheet(isPresented: $feuilleOuverte) {
                 FeuilleFiltres(depart: modele.filtres, modele: modele) { modele.filtres = $0 }
             }
@@ -195,9 +199,10 @@ struct ExplorerView: View {
                 resultats
 
                 if let erreur = modele.erreur {
-                    Label(erreur, systemImage: "exclamationmark.triangle")
-                        .font(.footnote).foregroundStyle(.secondary)
-                        .padding(.horizontal, 20)
+                    MessageEtat(texte: erreur, ton: .probleme, libelleAction: "Réessayer") {
+                        guard let client = etat.tmdb else { return }
+                        Task { await modele.recharger(client: client, contexte: contexte, abonnements: abonnements.map(\.providerID)) }
+                    }
                 }
             }
             .padding(.vertical, 12)
@@ -276,7 +281,9 @@ struct ExplorerView: View {
             } else if modele.enCours {
                 ProgressView().controlSize(.small)
             }
-            Text("· triés par \(LibellesFiltres.nom(modele.filtres.tri))")
+            if modele.total != nil {
+                Text("· triés par \(LibellesFiltres.nom(modele.filtres.tri))")
+            }
         }
         .font(.subheadline)
         .foregroundStyle(.secondary)

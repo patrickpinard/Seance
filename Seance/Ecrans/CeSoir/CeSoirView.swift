@@ -30,9 +30,16 @@ final class CeSoirModele {
                 demande, candidats: candidats, profil: profil,
                 nomsGenres: etat.nomsGenres, forcerLocal: forcerLocal
             )
+            // Claude configuré mais indisponible : le classement local a pris le relais.
+            if let resultat, etat.claude != nil, !forcerLocal, resultat.origine == .local, let avertissement = resultat.avertissement {
+                etat.journal.noter(.claude, avertissement, conseil: "Les idées viennent du classement local. Vérifie la clé Claude dans Moi › Claude si cela se répète.")
+            }
+        } catch is CancellationError {
+            return
         } catch {
             resultat = nil
-            erreur = error.localizedDescription
+            erreur = Journal.conseil(error) ?? "Impossible de réunir des idées pour l'instant : réessaie dans un moment."
+            etat.journal.noter(.tmdb, "« Ce soir » n'a pas pu réunir de suggestions.", erreur: error)
         }
     }
 
@@ -47,6 +54,7 @@ struct CeSoirView: View {
     @Environment(EtatApp.self) private var etat
     @Environment(\.modelContext) private var contexte
     @State private var modele = CeSoirModele()
+    @State private var soiree = SoireeModele()
 
     private var gouts: ServiceGouts { ServiceGouts(contexte: contexte) }
 
@@ -62,18 +70,36 @@ struct CeSoirView: View {
             .background(Theme.fond)
             .navigationTitle("Ce soir")
             .destinationsTitres()
+            .task(id: etat.tmdb != nil) { await soiree.charger(etat: etat, contexte: contexte) }
         }
     }
 
     private var contenu: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 22) {
+                SectionsSoiree(modele: soiree)
+
+                Label("Une idée pour ce soir ?", systemImage: "sparkles")
+                    .font(.title3.weight(.bold))
+                    .labelStyle(EtiquetteSection())
+                    .padding(.top, 8)
+
                 Demande(demande: $modele.demande, enCours: modele.enCours) {
                     Task { await modele.chercher(etat: etat, gouts: gouts) }
                 }
 
                 if let erreur = modele.erreur {
-                    Message(texte: erreur, icone: "exclamationmark.triangle")
+                    MessageEtat(texte: erreur, ton: .probleme)
+                        .padding(.horizontal, -20)
+                } else if modele.resultat == nil {
+                    MessageEtat(
+                        texte: modele.enCours
+                            ? "Séance réunit les titres disponibles sur tes plateformes…"
+                            : "Décris ton envie, choisis film ou série, puis touche « Trouve-moi ça ». Seuls des titres disponibles sur tes plateformes, en français ou sous-titrés, sont proposés.",
+                        symbole: "sparkles",
+                        ton: modele.enCours ? .attente : .information
+                    )
+                    .padding(.horizontal, -20)
                 }
 
                 if let resultat = modele.resultat {
@@ -96,12 +122,17 @@ struct CeSoirView: View {
         }
         // Faire défiler les suggestions range le clavier et rend la barre d'onglets.
         .scrollDismissesKeyboard(.immediately)
+        .refreshable { await soiree.charger(etat: etat, contexte: contexte) }
     }
 
     /// Les trois actions du cahier (EF-26).
     private func traiter(_ action: CarteSuggestion.Action, _ suggestion: SuggestionClassee) {
         switch action {
-        case .jeRegarde: _ = try? gouts.jeRegarde(suggestion.candidat)
+        case .jeRegarde:
+            _ = try? gouts.jeRegarde(suggestion.candidat)
+            // « Je regarde » : le titre rejoint la soirée.
+            try? ServiceSoiree(contexte: contexte).retenir(suggestion.reference, titre: suggestion.candidat.titre.titre,
+                                                           cheminAffiche: suggestion.candidat.titre.cheminAffiche)
         case .pasCeSoir: try? gouts.reporter(suggestion.reference)
         case .jamais: try? gouts.jamais(suggestion.reference, titre: suggestion.candidat.titre.titre)
         }
@@ -122,7 +153,7 @@ private struct Demande: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             Text("De quoi as-tu envie ?")
-                .font(.title3.weight(.bold))
+                .font(.headline)
             // Le micro du clavier suffit à dicter son envie (EF-22).
             TextField("Un truc nerveux, pas trop long…", text: $demande.envie, axis: .vertical)
                 .lineLimit(2...4)
@@ -227,9 +258,12 @@ private struct CarteSuggestion: View {
 
             HStack(spacing: 12) {
                 Spacer()
-                BoutonIcone(symbole: "hand.thumbsdown", libelle: "Jamais", taille: 40) { action(.jamais) }
-                BoutonIcone(symbole: "clock.arrow.circlepath", libelle: "Pas ce soir", taille: 40) { action(.pasCeSoir) }
-                BoutonIcone(symbole: "play.fill", libelle: "Je regarde", principal: true, taille: 40) { action(.jeRegarde) }
+                BoutonIcone(symbole: "hand.thumbsdown", libelle: "Jamais", taille: 40,
+                            explication: "Ne plus jamais proposer ce titre. Séance en tient compte pour tes goûts.") { action(.jamais) }
+                BoutonIcone(symbole: "clock.arrow.circlepath", libelle: "Pas ce soir", taille: 40,
+                            explication: "Écarter ce titre pour ce soir : il pourra revenir dès demain.") { action(.pasCeSoir) }
+                BoutonIcone(symbole: "moon.stars.fill", libelle: "Je regarde ce soir", principal: true, taille: 40,
+                            explication: "Ajouter ce titre à « Ma soirée » et à Mes listes.") { action(.jeRegarde) }
             }
         }
         .padding(14)
@@ -271,8 +305,8 @@ private struct Bandeau: View {
             Label(
                 resultat.origine == .claude
                     ? "Classé par Claude parmi \(candidats) titres vérifiés."
-                    : "Classé sur ton iPhone, sans réseau, parmi \(candidats) titres.",
-                systemImage: resultat.origine == .claude ? "sparkles" : "iphone"
+                    : "Classé sur cet appareil, d'après tes goûts, parmi \(candidats) titres.",
+                systemImage: resultat.origine == .claude ? "sparkles" : "person.crop.circle"
             )
             if let avertissement = resultat.avertissement {
                 Text(avertissement)
@@ -284,16 +318,5 @@ private struct Bandeau: View {
         .font(.footnote)
         .foregroundStyle(.secondary)
         .padding(.top, 4)
-    }
-}
-
-private struct Message: View {
-    let texte: String
-    let icone: String
-
-    var body: some View {
-        Label(texte, systemImage: icone)
-            .font(.footnote)
-            .foregroundStyle(.secondary)
     }
 }

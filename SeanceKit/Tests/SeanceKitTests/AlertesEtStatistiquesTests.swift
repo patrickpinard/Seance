@@ -23,14 +23,20 @@ struct PlanificateurAlertesTests {
 
     @Test func episodeEtNouvelleSaison() throws {
         let maintenant = Date.suisse("2026-09-17 09:00")
+        // Diffusé aujourd'hui : la veille est passée, reste le jour même.
         let episode = try Construire.serie(prochain: Construire.episode(3, 4, diffuse: "2026-09-17"))
         #expect(PlanificateurAlertes.episodes(episode, maintenant: maintenant, reglages: reglages).map(\.motif)
             == [.nouvelEpisode(NumeroEpisode(saison: 3, episode: 4))])
 
         let saison = try Construire.serie(prochain: Construire.episode(4, 1, diffuse: "2026-10-02"))
         let alertes = PlanificateurAlertes.episodes(saison, maintenant: maintenant, reglages: reglages)
-        #expect(alertes.map(\.motif) == [.nouvelleSaison(4)])
-        #expect(alertes.first?.date == Date.suisse("2026-10-02 18:00"))
+        #expect(alertes.map(\.motif) == [.veilleEpisode(NumeroEpisode(saison: 4, episode: 1)), .nouvelleSaison(4)])
+        #expect(alertes.map(\.date) == [Date.suisse("2026-10-01 18:00"), Date.suisse("2026-10-02 18:00")])
+
+        // En mode « saisons », un épisode ordinaire ne déclenche rien ; une nouvelle saison, si.
+        let prochainEpisode = try Construire.serie(prochain: Construire.episode(3, 5, diffuse: "2026-09-24"))
+        #expect(PlanificateurAlertes.episodes(prochainEpisode, mode: .saisons, maintenant: maintenant, reglages: reglages).isEmpty)
+        #expect(PlanificateurAlertes.episodes(saison, mode: .saisons, maintenant: maintenant, reglages: reglages).count == 2)
 
         var sansEpisodes = reglages
         sansEpisodes.typesActifs.remove(.episode)
@@ -42,8 +48,54 @@ struct PlanificateurAlertesTests {
             (3, "2026-10-08T00:00:00.000Z"), (2, "2026-10-01T00:00:00.000Z"), (4, "2026-12-15T00:00:00.000Z"), (1, "2026-09-01T00:00:00.000Z"),
         ])
         let alertes = PlanificateurAlertes.sortiesFilm(chute, titre: "Film", dates: dates, maintenant: Date.suisse("2026-09-17 09:00"), reglages: reglages)
-        #expect(alertes.map(\.motif) == [.sortieSalles, .sortieNumerique])
-        #expect(alertes.map(\.date) == [Date.suisse("2026-10-01 18:00"), Date.suisse("2026-12-15 18:00")])
+        #expect(alertes.map(\.motif) == [.veilleSortie(salles: true), .sortieSalles, .sortieNumerique])
+        #expect(alertes.map(\.date) == [Date.suisse("2026-09-30 18:00"), Date.suisse("2026-10-01 18:00"), Date.suisse("2026-12-15 18:00")])
+    }
+
+    @Test func sortieEnFranceOuMondialeFauteDeDateSuisse() {
+        let france = Construire.decoder(DatesDeSortie.self, ["results": [
+            ["iso_3166_1": "US", "release_dates": [["release_date": "2026-10-03T00:00:00.000Z", "type": 3]]],
+            ["iso_3166_1": "FR", "release_dates": [["release_date": "2026-10-08T00:00:00.000Z", "type": 3]]],
+        ]])
+        var sansVeille = reglages
+        sansVeille.veille = false
+        let maintenant = Date.suisse("2026-09-17 09:00")
+        #expect(PlanificateurAlertes.sortiesFilm(chute, titre: "Film", dates: france, maintenant: maintenant, reglages: sansVeille).map(\.date)
+            == [Date.suisse("2026-10-08 18:00")])
+
+        let mondiale = PlanificateurAlertes.sortiesFilm(chute, titre: "Film", dates: nil, dateMondiale: DateTMDB(annee: 2026, mois: 11, jour: 4),
+                                                        maintenant: maintenant, reglages: sansVeille)
+        #expect(mondiale.map(\.motif) == [.sortie])
+    }
+
+    @Test func annoncesDeSaisonEtDeSortie() throws {
+        let maintenant = Date.suisse("2026-09-17 09:00")
+        let saison = try Construire.serie(prochain: Construire.episode(4, 1, diffuse: "2027-03-12"))
+        let annonce = try #require(PlanificateurAlertes.annonceSerie(saison))
+        #expect(annonce.cle == "saison:4@2027-03-12")
+
+        // Première observation : rien ; puis la date apparaît : une alerte, au prochain envoi.
+        #expect(PlanificateurAlertes.annonce(chute, titre: "Reacher", avant: nil, apres: annonce.cle,
+                                             motif: .annonceSaison(saison: 4, date: annonce.date), maintenant: maintenant, reglages: reglages).isEmpty)
+        let alertes = PlanificateurAlertes.annonce(chute, titre: "Reacher", avant: PlanificateurAlertes.aucuneAnnonce, apres: annonce.cle,
+                                                   motif: .annonceSaison(saison: 4, date: annonce.date), maintenant: maintenant, reglages: reglages)
+        #expect(alertes.map(\.date) == [Date.suisse("2026-09-17 18:00")])
+        #expect(PlanificateurAlertes.texte(alertes[0].motif, fuseau: .suisse) == "La saison 4 arrive le 12 mars 2027")
+
+        // Un épisode ordinaire n'est pas une annonce.
+        #expect(PlanificateurAlertes.annonceSerie(try Construire.serie(prochain: Construire.episode(3, 5, diffuse: "2026-09-24"))) == nil)
+        #expect(PlanificateurAlertes.annonceFilm(dates: nil, dateMondiale: DateTMDB(annee: 2026, mois: 11, jour: 4),
+                                                 aujourdhui: DateTMDB(maintenant))?.cle == "sortie@2026-11-04")
+    }
+
+    @Test func disponibleEnLocationUneSeuleFois() {
+        let apple = Construire.fournisseur(2, "Apple TV", priorite: 1)
+        let google = Construire.fournisseur(3, "Google Play", priorite: 2)
+        let apres = Construire.offres(location: [google, apple], achat: [apple])
+        let maintenant = Date.suisse("2026-09-17 09:00")
+        #expect(PlanificateurAlertes.arriveesEnLocation(chute, titre: "Film", avant: [], apres: apres, maintenant: maintenant, reglages: reglages)
+            .map(\.motif) == [.disponibleEnLocation(nom: "Apple TV")])
+        #expect(PlanificateurAlertes.arriveesEnLocation(chute, titre: "Film", avant: [3], apres: apres, maintenant: maintenant, reglages: reglages).isEmpty)
     }
 
     @Test func diffusionTeleEtRappel() {

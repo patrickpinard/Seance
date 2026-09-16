@@ -88,6 +88,27 @@ struct TitresMixtesTests {
     }
 }
 
+@Suite("Fiche reconstituée quand TMDB échoue")
+struct FicheParMorceauxTests {
+    @Test func erreur500SurLesComplementsGroupes() async throws {
+        let base = #"{"id": 108978, "name": "Reacher", "original_name": "Reacher", "original_language": "en", "overview": "", "status": "Returning Series", "in_production": true, "number_of_seasons": 3, "number_of_episodes": 24, "episode_run_time": [50], "seasons": [], "vote_average": 8, "vote_count": 3000, "genres": []}"#
+        let transport = TransportSimule([
+            .init(code: 500, corps: Data(#"{"status_message": "Encoding::CompatibilityError"}"#.utf8)),
+            .init(code: 200, corps: Data(base.utf8)),
+            .init(code: 500, corps: Data()),
+            .init(code: 200, corps: Data(#"{"results": {"CH": {"flatrate": [{"provider_id": 119, "provider_name": "Prime Video", "display_priority": 1}]}}}"#.utf8)),
+        ])
+        let client = TMDBClient(identifiants: .jetonLecture("t"), transport: transport)
+        let serie = try await client.serie(108_978, complements: [.casting, .fournisseurs])
+        #expect(serie.nom == "Reacher")
+        // Le casting a encore échoué seul : il manque, mais la fiche et les plateformes sont là.
+        #expect(serie.casting == nil)
+        #expect(serie.fournisseurs?.offres()?.abonnement.first?.nom == "Prime Video")
+        let chemins = await transport.requetes.map { $0.url!.path() }
+        #expect(chemins == ["/3/tv/108978", "/3/tv/108978", "/3/tv/108978/aggregate_credits", "/3/tv/108978/watch/providers"])
+    }
+}
+
 @Suite("Bandes-annonces")
 struct BandesAnnoncesTests {
     @Test func francaisDabordPuisBandesAnnoncesAvantTeasers() throws {

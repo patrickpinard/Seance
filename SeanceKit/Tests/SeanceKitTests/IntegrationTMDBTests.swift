@@ -136,3 +136,18 @@ struct FiltresReelsTests {
         }
     }
 }
+
+@Suite("Fiche série réelle", .enabled(if: ProcessInfo.processInfo.environment["SEANCE_CLE_TMDB"] != nil))
+struct FicheSerieReelleTests {
+    private let client = TMDBClient(identifiants: .depuis(ProcessInfo.processInfo.environment["SEANCE_CLE_TMDB"] ?? ""))
+
+    @Test(arguments: [108_978, 1399, 94997])
+    func ficheCommeLApp(id: Int) async throws {
+        do {
+            let serie = try await client.serie(id, complements: [.casting, .fournisseurs, .videos])
+            #expect(!serie.nom.isEmpty)
+        } catch {
+            Issue.record("Série \(id) : \(error)")
+        }
+    }
+}

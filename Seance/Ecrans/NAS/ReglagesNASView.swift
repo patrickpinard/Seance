@@ -36,7 +36,7 @@ struct ReglagesNASView: View {
             } header: {
                 Text("Connexion SMB")
             } footer: {
-                Text("Le mot de passe reste dans le trousseau de l'iPhone. Il n'est ni sauvegardé ni envoyé ailleurs qu'au NAS et à l'app de lecture.")
+                Text("Le mot de passe reste dans le trousseau de l'appareil. Il n'est ni sauvegardé ni envoyé ailleurs qu'au NAS et à l'app de lecture.")
             }
 
             Section {
@@ -118,6 +118,7 @@ struct ReglagesNASView: View {
                 Text("L'analyse lit les noms de fichiers et les rattache à TMDB. Elle se relance seule une fois par jour.")
             }
 
+            #if !targetEnvironment(macCatalyst)
             Section {
                 Picker("App de lecture", selection: Binding { etat.nas.lecteur } set: { etat.nas.choisir($0) }) {
                     ForEach(LecteurVideo.allCases) { lecteur in
@@ -129,12 +130,10 @@ struct ReglagesNASView: View {
             } footer: {
                 Text("Infuse ou VLC lisent la vidéo directement sur le NAS, sans la copier sur l'iPhone.")
             }
+            #endif
         }
-        .scrollContentBackground(.hidden)
         .scrollDismissesKeyboard(.immediately)
-        .background(Theme.fond)
-        .navigationTitle("NAS")
-        .navigationBarTitleDisplayMode(.inline)
+        .pageReglages("NAS")
         .onAppear(perform: charger)
     }
 
@@ -183,6 +182,8 @@ struct ReglagesNASView: View {
             }
         } catch {
             resultatTest = ErreurNAS.message(error)
+            etat.journal.noter(.nas, EtatNAS.injoignable(error) ? "Le NAS n'est pas joignable." : "Le test de connexion au NAS a échoué.",
+                               erreur: error, conseil: ErreurNAS.message(error))
         }
     }
 }

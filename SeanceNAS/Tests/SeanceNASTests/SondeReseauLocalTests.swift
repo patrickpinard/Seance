@@ -29,6 +29,14 @@ struct SondeReseauLocalTests {
         #expect(erreur.errorDescription?.contains("Dossiers présents : Films, NEW, Séries") == true)
     }
 
+    @Test func dossiersTechniquesDuSynologyEcartes() {
+        #expect(!ExplorateurSMB.retenu("@eaDir"))
+        #expect(!ExplorateurSMB.retenu("#recycle"))
+        #expect(!ExplorateurSMB.retenu(".DS_Store"))
+        #expect(ExplorateurSMB.retenu("Saison 01"))
+        #expect(ExplorateurSMB.retenu("Mr. Robot"))
+    }
+
     @Test(.enabled(if: ProcessInfo.processInfo.environment["SEANCE_SONDE_NAS"] != nil))
     func sondeDuNASDeLaMaison() async throws {
         let resultat = await SondeReseauLocal.tester(hote: "192.168.1.220", delai: 5)

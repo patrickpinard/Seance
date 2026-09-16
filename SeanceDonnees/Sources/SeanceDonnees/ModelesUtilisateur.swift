@@ -32,6 +32,14 @@ public final class Suivi {
     /// Identifiants TMDB des mêmes acteurs : le profil de goûts et les critères TMDB les exigent (EF-62).
     public var acteursPrincipauxIDs: [Int] = []
     public var genres: [Int] = []
+    /// Cloche de la fiche : les alertes restent actives même quand le titre est terminé.
+    public var alertesActives: Bool = true
+    public var modeAlertesBrut: String = ModeAlerteSerie.episodes.rawValue
+
+    public var modeAlertes: ModeAlerteSerie {
+        get { ModeAlerteSerie(rawValue: modeAlertesBrut) ?? .episodes }
+        set { modeAlertesBrut = newValue.rawValue }
+    }
 
     public var type: TypeTitre {
         get { TypeTitre(rawValue: typeBrut) ?? .film }
@@ -226,5 +234,29 @@ public final class SourceNAS {
         modeBrut = mode.rawValue
         self.adresse = adresse
         self.signetDossier = signetDossier
+    }
+}
+
+/// Un titre retenu pour la soirée (« Ma soirée » dans Ce soir). La soirée va de 6 h à 6 h le lendemain.
+@Model
+public final class SelectionSoir {
+    public var tmdbID: Int = 0
+    public var typeBrut: String = TypeTitre.film.rawValue
+    public var titre: String = ""
+    public var cheminAffiche: String?
+    /// Jour de la soirée, par exemple « 2026-09-17 ».
+    public var soiree: String = ""
+    public var ajouteLe: Date = Date.now
+
+    public init(reference: ReferenceTitre, titre: String, cheminAffiche: String?, soiree: String) {
+        tmdbID = reference.tmdbID
+        typeBrut = reference.type.rawValue
+        self.titre = titre
+        self.cheminAffiche = cheminAffiche
+        self.soiree = soiree
+    }
+
+    public var reference: ReferenceTitre {
+        ReferenceTitre(type: TypeTitre(rawValue: typeBrut) ?? .film, tmdbID: tmdbID)
     }
 }

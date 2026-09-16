@@ -94,12 +94,12 @@ public actor TMDBClient {
 
     /// Fiche d'une série ; les compléments arrivent dans le même appel (ENF-03).
     public func serie(_ id: Int, complements: Set<ComplementFiche> = []) async throws -> SerieDetail {
-        try await envoyer("/3/tv/\(id)", Self.parametresComplements(complements, type: .serie))
+        try await fiche("/3/tv/\(id)", complements: complements, type: .serie)
     }
 
     /// Fiche d'un film ; les compléments arrivent dans le même appel (ENF-03).
     public func film(_ id: Int, complements: Set<ComplementFiche> = Set(ComplementFiche.allCases)) async throws -> FicheFilm {
-        try await envoyer("/3/movie/\(id)", Self.parametresComplements(complements, type: .film))
+        try await fiche("/3/movie/\(id)", complements: complements, type: .film)
     }
 
     /// Rôles d'une personne, films et séries confondus (EF-30, EF-59).
@@ -161,16 +161,50 @@ public actor TMDBClient {
     private func envoyer<Reponse: Decodable & Sendable>(
         _ chemin: String, _ parametres: [URLQueryItem]
     ) async throws -> Reponse {
+        let donnees = try await recevoir(chemin, parametres)
+        do {
+            return try JSONDecoder().decode(Reponse.self, from: donnees)
+        } catch {
+            throw ErreurTMDB.decodage(String(describing: error))
+        }
+    }
+
+    /// Fiche avec compléments. TMDB échoue parfois (erreur 500) quand les compléments sont regroupés
+    /// dans `append_to_response` alors que chacun répond seul : la fiche est alors reconstituée morceau
+    /// par morceau, et un complément en échec est simplement laissé de côté.
+    private func fiche<Reponse: Decodable & Sendable>(
+        _ chemin: String, complements: Set<ComplementFiche>, type: TypeTitre
+    ) async throws -> Reponse {
+        do {
+            return try await envoyer(chemin, Self.parametresComplements(complements, type: type))
+        } catch ErreurTMDB.http(let code, _) where code >= 500 && !complements.isEmpty {
+            guard var objet = try JSONSerialization.jsonObject(with: await recevoir(chemin, [])) as? [String: Any] else {
+                throw ErreurTMDB.decodage("Fiche illisible")
+            }
+            for complement in ComplementFiche.allCases where complements.contains(complement) {
+                guard let cle = complement.valeurTMDB(pour: type) else { continue }
+                let parametres = complement == .videos ? [URLQueryItem(name: "include_video_language", value: "fr,en,null")] : []
+                if let donnees = try? await recevoir("\(chemin)/\(cle)", parametres),
+                   let sousObjet = try? JSONSerialization.jsonObject(with: donnees) {
+                    objet[cle] = sousObjet
+                }
+            }
+            do {
+                return try JSONDecoder().decode(Reponse.self, from: JSONSerialization.data(withJSONObject: objet))
+            } catch {
+                throw ErreurTMDB.decodage(String(describing: error))
+            }
+        }
+    }
+
+    /// Corps brut d'une réponse réussie ; les autres statuts deviennent des erreurs TMDB.
+    private func recevoir(_ chemin: String, _ parametres: [URLQueryItem]) async throws -> Data {
         let requete = requete(chemin, parametres)
         for tentative in 1...tentativesMax {
             let (donnees, reponse) = try await transport.envoyer(requete)
             switch reponse.statusCode {
             case 200..<300:
-                do {
-                    return try JSONDecoder().decode(Reponse.self, from: donnees)
-                } catch {
-                    throw ErreurTMDB.decodage(String(describing: error))
-                }
+                return donnees
             case 401:
                 throw ErreurTMDB.identifiantsRefuses
             case 429 where tentative < tentativesMax:

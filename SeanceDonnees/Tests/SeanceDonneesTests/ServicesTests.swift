@@ -141,3 +141,25 @@ struct ServicesTests {
         #expect(try contexte.fetch(FetchDescriptor<TitreCache>()).map(\.tmdbID) == [2])
     }
 }
+
+@Suite("Ma soirée")
+@MainActor
+struct ServiceSoireeTests {
+    @Test func retenirSansDoublonEtSoireeDeSixHeureASixHeure() throws {
+        let conteneur = try EntrepotSeance.conteneur(.memoire)
+        let service = ServiceSoiree(contexte: conteneur.mainContext)
+        let heat = ReferenceTitre(type: .film, tmdbID: 949)
+        let soir = Date(timeIntervalSince1970: 1_789_588_800) // 16.09.2026 22:00 en Suisse
+
+        try service.retenir(heat, titre: "Heat", cheminAffiche: nil, maintenant: soir)
+        try service.retenir(heat, titre: "Heat", cheminAffiche: nil, maintenant: soir)
+        #expect(try service.selection(maintenant: soir).count == 1)
+
+        // À 1 h du matin, c'est encore la même soirée ; le lendemain à midi, une nouvelle.
+        #expect(try service.estRetenu(heat, maintenant: soir.addingTimeInterval(3 * 3600)))
+        #expect(try service.selection(maintenant: soir.addingTimeInterval(14 * 3600)).isEmpty)
+
+        try service.retirer(heat, maintenant: soir)
+        #expect(try service.selection(maintenant: soir).isEmpty)
+    }
+}

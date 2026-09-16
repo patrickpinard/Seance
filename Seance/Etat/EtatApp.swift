@@ -2,6 +2,7 @@ import SeanceDonnees
 import SeanceKit
 import SwiftData
 import SwiftUI
+import UserNotifications
 
 /// État partagé par tous les écrans : le client TMDB, présent seulement si une clé est enregistrée.
 @MainActor
@@ -18,6 +19,10 @@ final class EtatApp {
     var ficheDemandee: ReferenceTitre?
     let depot = DepotCles()
     let nas: EtatNAS
+    let alertes = EtatAlertes()
+    let journal = Journal()
+    /// Gardé ici : le centre de notifications ne retient son délégué que faiblement.
+    private var delegueNotifications: DelegueNotifications?
 
     // Télévision (EF-45 à EF-51)
     private(set) var teleEnCours = false
@@ -44,6 +49,13 @@ final class EtatApp {
         }
         #endif
         nas = EtatNAS(coffre: depot.coffre)
+        nas.journal = journal
+        alertes.journal = journal
+        let delegue = DelegueNotifications { [weak self] url in
+            self?.ficheDemandee = LienProfond.reference(url)
+        }
+        UNUserNotificationCenter.current().delegate = delegue
+        delegueNotifications = delegue
         tmdb = try? depot.client()
         claude = try? depot.clientClaude()
     }
@@ -66,6 +78,20 @@ final class EtatApp {
         _ = try? ServiceProgrammesTV.preparerChaines(contexte)
         await actualiserTele(contexte: contexte)
         await nas.analyser(contexte: contexte, tmdb: tmdb, automatique: true)
+        // Après la télé : les passages des titres suivis entrent dans les alertes.
+        await alertes.planifier(contexte: contexte, tmdb: tmdb)
+    }
+
+    /// Retour dans l'app : programmes TV s'ils datent, puis alertes et « À venir » s'ils datent d'une heure.
+    func revenirAuPremierPlan(contexte: ModelContext) async {
+        await actualiserTele(contexte: contexte)
+        await alertes.planifierSiAncien(contexte: contexte, tmdb: tmdb)
+    }
+
+    /// Réveil en arrière-plan (tâche « rafraîchissement ») : programmes TV puis alertes.
+    func rafraichirEnFond(conteneur: ModelContainer) async {
+        await actualiserTele(contexte: conteneur.mainContext)
+        await alertes.planifier(contexte: conteneur.mainContext, tmdb: tmdb)
     }
 
     /// Relit le guide TV si la dernière lecture a plus de 12 h ou si les chaînes cochées ont changé ;
@@ -92,7 +118,9 @@ final class EtatApp {
         } catch is CancellationError {
             return
         } catch {
-            erreurTele = "Lecture du guide TV impossible : \(error.localizedDescription)"
+            erreurTele = "Le programme TV n'a pas pu être lu."
+            journal.noter(.tele, "Le programme TV n'a pas pu être lu.", erreur: error,
+                          conseil: Journal.conseil(error) ?? "Le guide XML TV Fr est peut-être indisponible : Séance réessaiera plus tard.")
         }
     }
 

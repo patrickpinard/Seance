@@ -80,16 +80,18 @@ public enum ElementMixte: Decodable, Sendable, Hashable {
     }
 }
 
-public enum PeriodeTendance: String, Sendable, CaseIterable {
+public enum PeriodeTendance: String, Sendable, Hashable, CaseIterable {
     case jour = "day"
     case semaine = "week"
 }
 
 extension TMDBClient {
     /// Carrousel « Tendances » et sa bascule Aujourd'hui / Cette semaine (UX-02).
-    public func tendances(_ periode: PeriodeTendance) async throws -> [TitreResume] {
-        let page: PageTMDB<ElementMixte> = try await envoyerPublic("/3/trending/all/\(periode.rawValue)", [])
-        return page.resultats.compactMap(\.titre)
+    public func tendances(_ periode: PeriodeTendance, page: Int = 1) async throws -> [TitreResume] {
+        let reponse: PageTMDB<ElementMixte> = try await envoyerPublic(
+            "/3/trending/all/\(periode.rawValue)", page == 1 ? [] : [URLQueryItem(name: "page", value: String(page))]
+        )
+        return reponse.resultats.compactMap(\.titre)
     }
 
     /// Recherche de films, séries et personnes à la fois (EF-05).
