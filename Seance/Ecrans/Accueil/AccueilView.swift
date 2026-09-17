@@ -117,6 +117,9 @@ struct AccueilView: View {
     @State private var reglageSources = false
     /// EF-62 : les tendances et les nouveautés reclassées selon les goûts, sans réseau ni Claude.
     @State private var pourToi: [SuggestionClassee] = []
+    /// « Parce que tu as aimé… » : ce que TMDB rapproche des titres notés 8 ou plus.
+    @State private var similaires: [TitreSimilaire] = []
+    @Query(sort: \Suivi.ajouteLe, order: .reverse) private var suivis: [Suivi]
     @State private var chemin = NavigationPath()
 
     private var sources: SourcesAccueil {
@@ -141,6 +144,7 @@ struct AccueilView: View {
                             await modele.chargerNouveautes(client: client, periode: periodeNouveautes, plateformes: plateformes)
                             rafraichirPourToi()
                         }
+                        .task(id: titresAimes) { await chargerSimilaires(client: client) }
                         .refreshable {
                             await modele.charger(client: client, plateformes: plateformes)
                             await modele.chargerNouveautes(client: client, periode: periodeNouveautes, plateformes: plateformes)
@@ -217,6 +221,13 @@ struct AccueilView: View {
                     }
                 }
 
+                if !similaires.isEmpty {
+                    VStack(alignment: .leading, spacing: 12) {
+                        TitreSection(titresAimes.count == 1 ? "Parce que tu as aimé \(similaires[0].parceQue.titre)" : "Parce que tu as aimé…")
+                        CarrouselSimilaires(similaires: similaires, avecPhrase: titresAimes.count > 1)
+                    }
+                }
+
                 if sources.tele {
                     SectionTele(diffusions: diffusions, lectureEnCours: etat.teleEnCours) {
                         chemin.append(DestinationAccueil.tele)
@@ -263,6 +274,34 @@ struct AccueilView: View {
     private func nomsPlateformes(_ ids: [Int]) -> String {
         let noms = abonnements.filter { ids.contains($0.providerID) }.map(\.nom)
         return noms.count > 2 ? "\(noms.count) plateformes" : noms.joined(separator: " et ")
+    }
+
+    /// Les titres notés 8 ou plus : leur liste change quand une note change, et relance les recommandations.
+    private var titresAimes: [ReferenceTitre] {
+        suivis.filter { ($0.note ?? 0) >= TitresSimilaires.noteMinimale && $0.statut != .exclu }.map(\.reference)
+    }
+
+    /// Recommandations TMDB des six titres les mieux notés, lues en parallèle ; un titre sans réponse est ignoré.
+    private func chargerSimilaires(client: TMDBClient) async {
+        let gouts = ServiceGouts(contexte: contexte)
+        guard let aimes = try? gouts.titresAimes(), !aimes.isEmpty else {
+            similaires = []
+            return
+        }
+        let recommandations = await withTaskGroup(of: (ReferenceTitre, [TitreResume]).self) { groupe in
+            for aime in aimes {
+                groupe.addTask { (aime.reference, (try? await client.recommandations(aime.reference)) ?? []) }
+            }
+            var resultat: [ReferenceTitre: [TitreResume]] = [:]
+            for await (reference, titres) in groupe { resultat[reference] = titres }
+            return resultat
+        }
+        guard !Task.isCancelled else { return }
+        let exclusions = try? gouts.contexteCandidats()
+        similaires = TitresSimilaires.selectionner(
+            aimes: aimes, recommandations: recommandations,
+            exclus: (exclusions?.dejaVus ?? []).union(exclusions?.exclus ?? [])
+        )
     }
 
     /// Le même classement que « Ce soir », appliqué à ce qui est déjà affiché : aucun appel
@@ -377,10 +416,11 @@ private struct ReglageSourcesAccueil: View {
 /// UX-01 : bandeau vedette à faire défiler.
 private struct BandeauVedette: View {
     let titres: [TitreResume]
+    @State private var page = 0
 
     var body: some View {
-        TabView {
-            ForEach(titres) { titre in
+        TabView(selection: $page) {
+            ForEach(Array(titres.enumerated()), id: \.element.id) { rang, titre in
                 NavigationLink(value: titre.reference) {
                     ZStack(alignment: .bottomLeading) {
                         ImageDistante(url: ImageTMDB.url(titre.cheminFond, .fondGrand), coins: 0)
@@ -403,10 +443,29 @@ private struct BandeauVedette: View {
                     }
                 }
                 .buttonStyle(.plain)
+                .tag(rang)
             }
         }
         .tabViewStyle(.page(indexDisplayMode: .automatic))
+        // Sur le Mac, les pages ne se glissent pas à la souris : flèches, en boucle.
+        #if targetEnvironment(macCatalyst)
+        .overlay(alignment: .leading) {
+            if titres.count > 1 {
+                FlecheDefilement(sens: .gauche) { tourner(-1) }
+            }
+        }
+        .overlay(alignment: .trailing) {
+            if titres.count > 1 {
+                FlecheDefilement(sens: .droite) { tourner(1) }
+            }
+        }
+        #endif
         .frame(height: 440)
+    }
+
+    private func tourner(_ sens: Int) {
+        guard !titres.isEmpty else { return }
+        withAnimation(.snappy) { page = (page + sens + titres.count) % titres.count }
     }
 }
 
@@ -416,7 +475,7 @@ private struct Carrousel: View {
     var sousTitre: (TitreResume) -> String? = { _ in nil }
 
     var body: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
+        DefilementHorizontal {
             LazyHStack(alignment: .top, spacing: 12) {
                 ForEach(titres) { titre in
                     NavigationLink(value: titre.reference) {
@@ -425,6 +484,7 @@ private struct Carrousel: View {
                     .buttonStyle(.plain)
                 }
             }
+            .scrollTargetLayout()
             .padding(.horizontal, 20)
         }
         .scrollTargetBehavior(.viewAligned)
@@ -436,7 +496,7 @@ private struct CarrouselExplique: View {
     let suggestions: [SuggestionClassee]
 
     var body: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
+        DefilementHorizontal {
             LazyHStack(alignment: .top, spacing: 12) {
                 ForEach(suggestions) { suggestion in
                     NavigationLink(value: suggestion.reference) {
@@ -447,6 +507,35 @@ private struct CarrouselExplique: View {
                                 .foregroundStyle(.secondary)
                                 .lineLimit(3, reservesSpace: true)
                                 .frame(width: 140, alignment: .leading)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, 20)
+        }
+    }
+}
+
+/// « Parce que tu as aimé… » : sous chaque affiche, le titre aimé qui l'amène quand il y en a plusieurs.
+private struct CarrouselSimilaires: View {
+    let similaires: [TitreSimilaire]
+    let avecPhrase: Bool
+
+    var body: some View {
+        DefilementHorizontal {
+            LazyHStack(alignment: .top, spacing: 12) {
+                ForEach(similaires) { similaire in
+                    NavigationLink(value: similaire.titre.reference) {
+                        VStack(alignment: .leading, spacing: 6) {
+                            CarteAffiche(titre: similaire.titre)
+                            if avecPhrase {
+                                Text(similaire.phrase)
+                                    .font(.caption2)
+                                    .foregroundStyle(.secondary)
+                                    .lineLimit(2, reservesSpace: true)
+                                    .frame(width: 118, alignment: .leading)
+                            }
                         }
                     }
                     .buttonStyle(.plain)
@@ -471,7 +560,7 @@ private struct SectionNAS: View {
                 TitreSection(titre: "Sur ton NAS") {
                     BoutonToutVoir(action: toutVoir)
                 }
-                ScrollView(.horizontal, showsIndicators: false) {
+                DefilementHorizontal {
                     LazyHStack(alignment: .top, spacing: 12) {
                         ForEach(apercu) { oeuvre in
                             CarteOeuvreNAS(oeuvre: oeuvre, largeur: 118)
@@ -571,7 +660,7 @@ private struct SectionTele: View {
                     MessageEtat(texte: "Aucun film reconnu sur tes chaînes pour l'instant. Choisis-les dans Réglages › Télévision.", symbole: "tv")
                 }
             } else {
-                ScrollView(.horizontal, showsIndicators: false) {
+                DefilementHorizontal {
                     HStack(spacing: 12) {
                         ForEach(affichees) { diffusion in
                             carte(diffusion)

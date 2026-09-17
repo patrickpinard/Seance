@@ -67,16 +67,16 @@ public enum ElementMixte: Decodable, Sendable, Hashable {
     public var personne: PersonneResume? {
         if case .personne(let p) = self { p } else { nil }
     }
+}
 
-    private struct PersonneBrute: Decodable {
-        let id: Int
-        let name: String
-        let profile_path: String?
-        let known_for_department: String?
+private struct PersonneBrute: Decodable, Sendable {
+    let id: Int
+    let name: String
+    let profile_path: String?
+    let known_for_department: String?
 
-        var resume: PersonneResume {
-            PersonneResume(id: id, nom: name, cheminPortrait: profile_path, domaine: known_for_department)
-        }
+    var resume: PersonneResume {
+        PersonneResume(id: id, nom: name, cheminPortrait: profile_path, domaine: known_for_department)
     }
 }
 
@@ -92,6 +92,16 @@ extension TMDBClient {
             "/3/trending/all/\(periode.rawValue)", page == 1 ? [] : [URLQueryItem(name: "page", value: String(page))]
         )
         return reponse.resultats.compactMap(\.titre)
+    }
+
+    /// Recherche de personnes seules : la portée « Acteurs » d'Explorer, triée par popularité par TMDB.
+    public func rechercherPersonnes(_ texte: String, page: Int = 1) async throws -> [PersonneResume] {
+        let resultat: PageTMDB<PersonneBrute> = try await envoyerPublic("/3/search/person", [
+            URLQueryItem(name: "query", value: texte),
+            URLQueryItem(name: "include_adult", value: "false"),
+            URLQueryItem(name: "page", value: String(page)),
+        ])
+        return resultat.resultats.map(\.resume)
     }
 
     /// Recherche de films, séries et personnes à la fois (EF-05).

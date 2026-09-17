@@ -7,20 +7,39 @@ public struct VisionnageStat: Sendable, Hashable {
     public var vuLe: Date
     public var genres: [Int]
     public var acteurs: [String]
+    /// Identifiants TMDB des acteurs, dans le même ordre ; vide pour un titre suivi avant qu'ils soient gardés.
+    public var acteursIDs: [Int]
 
-    public init(reference: ReferenceTitre, dureeMinutes: Int, vuLe: Date, genres: [Int] = [], acteurs: [String] = []) {
+    public init(
+        reference: ReferenceTitre, dureeMinutes: Int, vuLe: Date, genres: [Int] = [], acteurs: [String] = [], acteursIDs: [Int] = []
+    ) {
         self.reference = reference
         self.dureeMinutes = dureeMinutes
         self.vuLe = vuLe
         self.genres = genres
         self.acteurs = acteurs
+        self.acteursIDs = acteursIDs
     }
 }
 
 public struct Classement<Cle: Hashable & Sendable>: Sendable, Hashable {
     public var cle: Cle
-    /// Nombre de titres différents, pas de visionnages : une série compte une fois.
-    public var nombreTitres: Int
+    /// Les titres différents comptés, le plus récemment vu d'abord : une série compte une fois.
+    /// La fiche acteur ouverte depuis les statistiques montre exactement ces titres.
+    public var titres: [ReferenceTitre]
+
+    public var nombreTitres: Int { titres.count }
+}
+
+/// Un acteur du classement (EF-35) : son identifiant TMDB quand il est connu, sinon son seul nom.
+public struct ActeurStat: Sendable, Hashable {
+    public var id: Int?
+    public var nom: String
+
+    public init(id: Int?, nom: String) {
+        self.id = id
+        self.nom = nom
+    }
 }
 
 public struct Periode: Sendable, Hashable, Comparable {
@@ -51,7 +70,7 @@ public struct BilanStatistiques: Sendable, Hashable {
     public var parMois: [Periode: Int] = [:]
     /// Semaines ISO (lundi à dimanche).
     public var parSemaine: [Periode: Int] = [:]
-    public var acteurs: [Classement<String>] = []
+    public var acteurs: [Classement<ActeurStat>] = []
     public var genres: [Classement<Int>] = []
     /// La plus grosse soirée en épisodes (EF-36).
     public var recordEpisodes: RecordSoiree?
@@ -75,9 +94,12 @@ public enum Statistiques {
         let retenus = visionnages.filter { periode?.contains($0.vuLe) ?? true }
 
         var bilan = BilanStatistiques()
-        var titresParActeur: [String: Set<ReferenceTitre>] = [:]
+        // Par identifiant TMDB : deux homonymes restent distincts, et un nom corrigé sur TMDB ne scinde rien.
+        var titresParActeur: [ActeurStat: Set<ReferenceTitre>] = [:]
+        var nomsParID: [Int: String] = [:]
         var titresParGenre: [Int: Set<ReferenceTitre>] = [:]
         var episodesParJour: [DateTMDB: Int] = [:]
+        var derniereVue: [ReferenceTitre: Date] = [:]
 
         for v in retenus {
             bilan.minutesTotales += v.dureeMinutes
@@ -95,12 +117,20 @@ public enum Statistiques {
             bilan.parMois[Periode(annee: mois.year!, numero: mois.month!), default: 0] += v.dureeMinutes
             let semaine = calendrier.dateComponents([.yearForWeekOfYear, .weekOfYear], from: v.vuLe)
             bilan.parSemaine[Periode(annee: semaine.yearForWeekOfYear!, numero: semaine.weekOfYear!), default: 0] += v.dureeMinutes
-            for acteur in v.acteurs { titresParActeur[acteur, default: []].insert(v.reference) }
+            derniereVue[v.reference] = max(derniereVue[v.reference] ?? .distantPast, v.vuLe)
+            let identifiants: [Int?] = v.acteursIDs.count == v.acteurs.count ? v.acteursIDs.map { $0 } : v.acteurs.map { _ in nil }
+            for (nom, id) in zip(v.acteurs, identifiants) {
+                if let id { nomsParID[id] = nomsParID[id] ?? nom }
+                let cle = ActeurStat(id: id, nom: id.flatMap { nomsParID[$0] } ?? nom)
+                titresParActeur[cle, default: []].insert(v.reference)
+            }
             for genre in Set(v.genres.map(genreCommun)) { titresParGenre[genre, default: []].insert(v.reference) }
         }
 
-        bilan.acteurs = classer(titresParActeur, garder: nombreActeurs, departage: <)
-        bilan.genres = classer(titresParGenre, garder: nombreGenres, departage: <)
+        bilan.acteurs = classer(titresParActeur, derniereVue: derniereVue, garder: nombreActeurs) {
+            ($0.nom, $0.id ?? 0) < ($1.nom, $1.id ?? 0)
+        }
+        bilan.genres = classer(titresParGenre, derniereVue: derniereVue, garder: nombreGenres, departage: <)
         if let record = episodesParJour.max(by: { ($0.value, $1.key) < ($1.value, $0.key) }) {
             bilan.recordEpisodes = RecordSoiree(jour: record.key, nombreEpisodes: record.value)
         }
@@ -119,10 +149,14 @@ public enum Statistiques {
     }
 
     private static func classer<Cle: Hashable & Sendable>(
-        _ titres: [Cle: Set<ReferenceTitre>], garder: Int, departage: (Cle, Cle) -> Bool
+        _ titres: [Cle: Set<ReferenceTitre>], derniereVue: [ReferenceTitre: Date], garder: Int, departage: (Cle, Cle) -> Bool
     ) -> [Classement<Cle>] {
         titres
-            .map { Classement(cle: $0.key, nombreTitres: $0.value.count) }
+            .map { cle, references in
+                Classement(cle: cle, titres: references.sorted {
+                    (derniereVue[$0] ?? .distantPast, $1.tmdbID) > (derniereVue[$1] ?? .distantPast, $0.tmdbID)
+                })
+            }
             .sorted { $0.nombreTitres != $1.nombreTitres ? $0.nombreTitres > $1.nombreTitres : departage($0.cle, $1.cle) }
             .prefix(garder)
             .map { $0 }

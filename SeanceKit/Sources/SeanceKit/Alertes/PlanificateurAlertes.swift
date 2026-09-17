@@ -32,12 +32,14 @@ public enum MotifAlerte: Sendable, Hashable {
     case diffusionTele(chaine: String, debut: Date)
     case rappelDiffusion(chaine: String, debut: Date)
     case bandeAnnonce
+    /// « Suivre un acteur » : un film où il joue vient d'apparaître dans sa filmographie.
+    case nouveauFilmActeur(nom: String, date: DateTMDB?)
 
     public var type: TypeAlerte {
         switch self {
         case .arriveeSurPlateforme, .disponibleEnLocation: .arriveePlateforme
         case .nouvelEpisode, .nouvelleSaison, .veilleEpisode, .annonceSaison: .episode
-        case .sortieSalles, .sortieNumerique, .sortie, .veilleSortie, .annonceSortie: .sortieFilm
+        case .sortieSalles, .sortieNumerique, .sortie, .veilleSortie, .annonceSortie, .nouveauFilmActeur: .sortieFilm
         case .diffusionTele, .rappelDiffusion: .diffusionTele
         case .bandeAnnonce: .bandeAnnonce
         }
@@ -47,7 +49,7 @@ public enum MotifAlerte: Sendable, Hashable {
     /// gardée jusqu'à son envoi. Les autres découlent d'une date et se recalculent à chaque passage.
     public var ponctuelle: Bool {
         switch self {
-        case .annonceSaison, .annonceSortie, .arriveeSurPlateforme, .disponibleEnLocation: true
+        case .annonceSaison, .annonceSortie, .arriveeSurPlateforme, .disponibleEnLocation, .nouveauFilmActeur: true
         default: false
         }
     }
@@ -69,6 +71,7 @@ public enum MotifAlerte: Sendable, Hashable {
         case .diffusionTele(let chaine, let debut): "tele:\(chaine):\(Int(debut.timeIntervalSince1970))"
         case .rappelDiffusion(let chaine, let debut): "rappel:\(chaine):\(Int(debut.timeIntervalSince1970))"
         case .bandeAnnonce: "bande-annonce"
+        case .nouveauFilmActeur(let nom, _): "acteur:\(nom)"
         }
     }
 }
@@ -94,6 +97,8 @@ public struct AlertePrevue: Sendable, Hashable {
 public protocol SourceAlertes: Sendable {
     func film(_ id: Int, complements: Set<ComplementFiche>) async throws -> FicheFilm
     func serie(_ id: Int, complements: Set<ComplementFiche>) async throws -> SerieDetail
+    /// Pour les acteurs suivis.
+    func filmographie(personne id: Int) async throws -> Filmographie
 }
 
 extension TMDBClient: SourceAlertes {}
@@ -324,6 +329,24 @@ public enum PlanificateurAlertes {
         return [AlertePrevue(reference: reference, titre: titre, motif: motif, date: prochainEnvoi(apres: maintenant, reglages: reglages))]
     }
 
+    /// « Suivre un acteur » : les films où il joue, apparus depuis la dernière vérification et pas encore sortis
+    /// (ou sans date). La première vérification mémorise la filmographie sans rien signaler ; les apparitions
+    /// « dans son propre rôle » et les voix ne comptent pas.
+    public static func nouveauxFilms(
+        acteur nom: String, connus: Set<Int>?, filmographie: Filmographie,
+        maintenant: Date, reglages: ReglagesAlertes
+    ) -> (alertes: [AlertePrevue], connus: Set<Int>) {
+        let films = AnalyseFilmographie.significatifs(filmographie.roles).filter { $0.type == .film }
+        let tous = Set(filmographie.roles.filter { $0.type == .film }.map(\.tmdbID))
+        guard let connus, reglages.annonces, reglages.typesActifs.contains(.sortieFilm) else { return ([], tous.union(connus ?? [])) }
+        let aujourdhui = DateTMDB(maintenant, fuseau: reglages.fuseau)
+        let envoi = prochainEnvoi(apres: maintenant, reglages: reglages)
+        let alertes = films
+            .filter { !connus.contains($0.tmdbID) && ($0.date.map { $0 >= aujourdhui } ?? true) }
+            .map { AlertePrevue(reference: $0.reference, titre: $0.titre, motif: .nouveauFilmActeur(nom: nom, date: $0.date), date: envoi) }
+        return (alertes, tous.union(connus))
+    }
+
     /// EF-49 : un titre attendu passe à la télé dans les 5 jours ; alerte à 18 h le jour même, puis rappel.
     public static func diffusions(
         _ reference: ReferenceTitre, titre: String, diffusions: [DiffusionPrevue],
@@ -397,6 +420,8 @@ public enum PlanificateurAlertes {
         case .diffusionTele(let chaine, let debut): return "Ce soir sur \(chaine) à \(debut.formatted(heure))"
         case .rappelDiffusion(let chaine, let debut): return "Commence à \(debut.formatted(heure)) sur \(chaine)"
         case .bandeAnnonce: return "Nouvelle bande-annonce"
+        case .nouveauFilmActeur(let nom, let date):
+            return date.map { "Nouveau film avec \(nom), sortie prévue le \(jour($0))" } ?? "Nouveau film annoncé avec \(nom)"
         }
     }
 

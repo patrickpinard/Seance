@@ -11,7 +11,7 @@ struct SectionBandesAnnonces: View {
         if !videos.isEmpty {
             VStack(alignment: .leading, spacing: 12) {
                 TitreSection("Bandes-annonces")
-                ScrollView(.horizontal, showsIndicators: false) {
+                DefilementHorizontal {
                     LazyHStack(alignment: .top, spacing: 12) {
                         ForEach(videos.prefix(8)) { video in
                             Button { choisir(video) } label: { vignette(video) }

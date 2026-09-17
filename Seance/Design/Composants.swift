@@ -127,6 +127,76 @@ struct AnneauNote: View {
     }
 }
 
+/// Carrousel horizontal d'images. Sur le Mac, la molette d'une souris défile à la verticale et un clic ne fait pas
+/// glisser : des flèches apparaissent sur les bords tant qu'il reste quelque chose à voir de ce côté.
+struct DefilementHorizontal<Contenu: View>: View {
+    @ViewBuilder var contenu: Contenu
+
+    @State private var position = ScrollPosition(edge: .leading)
+    @State private var geometrie = Geometrie()
+
+    private struct Geometrie: Equatable {
+        var decalage: CGFloat = 0
+        var visible: CGFloat = 0
+        var total: CGFloat = 0
+    }
+
+    var body: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            contenu
+        }
+        .scrollPosition($position)
+        .onScrollGeometryChange(for: Geometrie.self) { g in
+            Geometrie(decalage: g.contentOffset.x, visible: g.containerSize.width, total: g.contentSize.width)
+        } action: { _, nouvelle in
+            geometrie = nouvelle
+        }
+        #if targetEnvironment(macCatalyst)
+        .overlay(alignment: .leading) {
+            if geometrie.decalage > 1 {
+                FlecheDefilement(sens: .gauche) { defiler(-1) }
+            }
+        }
+        .overlay(alignment: .trailing) {
+            if geometrie.decalage + geometrie.visible < geometrie.total - 1 {
+                FlecheDefilement(sens: .droite) { defiler(1) }
+            }
+        }
+        #endif
+    }
+
+    /// Avance ou recule des quatre cinquièmes de la largeur visible : la dernière carte reste en vue.
+    private func defiler(_ sens: CGFloat) {
+        let maximum = max(0, geometrie.total - geometrie.visible)
+        let cible = min(max(0, geometrie.decalage + sens * geometrie.visible * 0.8), maximum)
+        withAnimation(.snappy) { position.scrollTo(x: cible) }
+    }
+}
+
+/// Flèche ‹ › des carrousels et du bandeau, pour le Mac.
+struct FlecheDefilement: View {
+    enum Sens { case gauche, droite }
+
+    let sens: Sens
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: sens == .gauche ? "chevron.left" : "chevron.right")
+                .font(.system(size: 15, weight: .bold))
+                .frame(width: 38, height: 38)
+                .background(.regularMaterial, in: Circle())
+                .overlay(Circle().strokeBorder(.white.opacity(0.15), lineWidth: 1))
+                .shadow(color: .black.opacity(0.4), radius: 6)
+                .contentShape(Circle())
+        }
+        .buttonStyle(.plain)
+        .padding(.horizontal, 8)
+        .help(sens == .gauche ? "Précédents" : "Suivants")
+        .accessibilityLabel(sens == .gauche ? "Faire défiler vers la gauche" : "Faire défiler vers la droite")
+    }
+}
+
 /// Carte d'un titre dans un carrousel ou une grille (UX-03).
 struct CarteAffiche: View {
     let titre: TitreResume

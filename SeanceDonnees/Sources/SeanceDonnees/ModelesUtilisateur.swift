@@ -199,6 +199,25 @@ public enum SourceGuide: String, Codable, Sendable {
     case xmltvfr
 }
 
+/// « Suivre un acteur » : un nouveau film où il joue déclenche une alerte.
+@Model
+public final class ActeurSuivi {
+    public var personneID: Int = 0
+    public var nom: String = ""
+    public var cheminPortrait: String?
+    public var suiviLe: Date = Date.now
+    /// Films TMDB déjà vus dans sa filmographie ; vide avant la première vérification.
+    public var filmsConnus: [Int] = []
+    /// `nil` tant que la filmographie n'a pas été lue : la première lecture ne signale rien.
+    public var verifieLe: Date?
+
+    public init(personneID: Int, nom: String, cheminPortrait: String?) {
+        self.personneID = personneID
+        self.nom = nom
+        self.cheminPortrait = cheminPortrait
+    }
+}
+
 /// Une chaîne de télé reçue (EF-45).
 @Model
 public final class Chaine {

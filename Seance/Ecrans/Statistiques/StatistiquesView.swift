@@ -38,8 +38,9 @@ struct StatistiquesView: View {
                         GraphiqueMois(bilan: bilan, annee: annee)
                     }
                     if !bilan.acteurs.isEmpty {
+                        // EF-35 : les dix acteurs les plus regardés.
                         carte("Acteurs favoris", symbole: "person.2.fill") {
-                            ClassementActeurs(classement: Array(bilan.acteurs.prefix(5)), identifiants: identifiantsActeurs())
+                            ClassementActeurs(classement: bilan.acteurs, periode: libellePeriode)
                         }
                     }
                     if !bilan.genres.isEmpty {
@@ -91,6 +92,9 @@ struct StatistiquesView: View {
                 .help("Choisir l'année affichée")
             }
         }
+        .navigationDestination(for: TitresAvecActeur.self) { comptes in
+            PersonneView(personne: comptes.personne, comptes: comptes)
+        }
         .fullScreenCover(item: Binding(get: { bilanAnnee.map(AnneeBilan.init) }, set: { bilanAnnee = $0?.id })) { choix in
             BilanAnneeView(annee: choix.id)
         }
@@ -140,18 +144,6 @@ struct StatistiquesView: View {
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Theme.surface, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-    }
-
-    /// Nom → identifiant TMDB, pour ouvrir la fiche d'un acteur du classement.
-    private func identifiantsActeurs() -> [String: Int] {
-        let suivis = (try? contexte.fetch(FetchDescriptor<Suivi>())) ?? []
-        var resultat: [String: Int] = [:]
-        for suivi in suivis where suivi.acteursPrincipaux.count == suivi.acteursPrincipauxIDs.count {
-            for (nom, id) in zip(suivi.acteursPrincipaux, suivi.acteursPrincipauxIDs) where resultat[nom] == nil {
-                resultat[nom] = id
-            }
-        }
-        return resultat
     }
 }
 
@@ -307,9 +299,17 @@ private struct GraphiqueMois: View {
     }
 }
 
+/// Un acteur touché dans les statistiques : sa fiche montre en tête les titres comptés, les mêmes que le chiffre.
+struct TitresAvecActeur: Hashable {
+    let personne: ReferencePersonne
+    /// « cette année », « en 2025 » ou « depuis le début ».
+    let periode: String
+    let titres: [ReferenceTitre]
+}
+
 private struct ClassementActeurs: View {
-    let classement: [Classement<String>]
-    let identifiants: [String: Int]
+    let classement: [Classement<ActeurStat>]
+    let periode: String
 
     var body: some View {
         VStack(spacing: 10) {
@@ -319,16 +319,18 @@ private struct ClassementActeurs: View {
                         .font(.headline.monospacedDigit())
                         .foregroundStyle(rang == 0 ? Theme.accent : .secondary)
                         .frame(width: 22)
-                    Text(acteur.cle).font(.body.weight(rang == 0 ? .semibold : .regular)).lineLimit(1)
+                    Text(acteur.cle.nom).font(.body.weight(rang == 0 ? .semibold : .regular)).lineLimit(1)
                     Spacer()
                     Text(Format.pluriel(acteur.nombreTitres, "titre")).font(.subheadline).foregroundStyle(.secondary)
-                    if identifiants[acteur.cle] != nil {
+                    if acteur.cle.id != nil {
                         Image(systemName: "chevron.right").font(.caption.weight(.semibold)).foregroundStyle(.tertiary)
                     }
                 }
                 .contentShape(Rectangle())
-                if let id = identifiants[acteur.cle] {
-                    NavigationLink(value: ReferencePersonne(id: id, nom: acteur.cle)) { contenu }
+                // Sans identifiant (titre suivi avant la version 1.1), pas de fiche sûre à ouvrir.
+                if let id = acteur.cle.id {
+                    NavigationLink(value: TitresAvecActeur(personne: ReferencePersonne(id: id, nom: acteur.cle.nom),
+                                                           periode: periode, titres: acteur.titres)) { contenu }
                         .buttonStyle(.plain)
                 } else {
                     contenu

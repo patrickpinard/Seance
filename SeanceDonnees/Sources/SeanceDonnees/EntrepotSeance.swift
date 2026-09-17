@@ -21,7 +21,7 @@ public enum EntrepotSeance {
 
     public static var modelesUtilisateur: [any PersistentModel.Type] {
         [Suivi.self, Visionnage.self, ListePerso.self, FiltreEnregistre.self,
-         Interet.self, Abonnement.self, Chaine.self, SourceNAS.self, SuggestionReportee.self, SelectionSoir.self]
+         Interet.self, Abonnement.self, Chaine.self, SourceNAS.self, SuggestionReportee.self, SelectionSoir.self, ActeurSuivi.self]
     }
 
     public static var modelesCache: [any PersistentModel.Type] {

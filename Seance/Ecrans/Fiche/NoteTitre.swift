@@ -3,6 +3,33 @@ import SeanceKit
 import SwiftData
 import SwiftUI
 
+/// EF-67 : « ★ 8 » à côté de la note TMDB dans l'en-tête de la fiche, dès qu'une note est donnée.
+struct BadgeTaNote: View {
+    @Query private var suivis: [Suivi]
+
+    init(reference: ReferenceTitre) {
+        let id = reference.tmdbID
+        let type = reference.type.rawValue
+        _suivis = Query(filter: #Predicate<Suivi> { $0.tmdbID == id && $0.typeBrut == type })
+    }
+
+    var body: some View {
+        if let note = suivis.first?.note {
+            VStack(alignment: .leading, spacing: 0) {
+                HStack(alignment: .firstTextBaseline, spacing: 3) {
+                    Image(systemName: "star.fill").font(.caption.weight(.bold))
+                    Text("\(note)").font(.title3.weight(.heavy))
+                    Text("/10").font(.caption2.weight(.semibold)).foregroundStyle(.secondary)
+                }
+                .foregroundStyle(Theme.accentClair)
+                Text("Ta note").font(.caption2).foregroundStyle(.secondary)
+            }
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("Ta note : \(note) sur 10")
+        }
+    }
+}
+
 /// Ta note du film ou de la série, dès qu'il est vu : le signal le plus sûr pour les goûts (EF-61).
 /// Au-dessus de 6, Séance propose davantage de titres des mêmes genres et avec les mêmes acteurs ; en dessous, moins.
 struct NoteTitre: View {

@@ -10,13 +10,18 @@ struct ReferencePersonne: Hashable {
 }
 
 /// Fiche acteur (EF-30 à EF-33) : portrait, biographie, « 12 films vus sur 38 », filmographie filtrable
-/// avec vu / pas vu, et réalisations.
+/// avec vu / pas vu, et réalisations. Ouverte depuis les statistiques, elle montre d'abord les titres comptés.
+/// La cloche suit l'acteur : un nouveau film où il joue déclenche une alerte.
 struct PersonneView: View {
     let personne: ReferencePersonne
+    let comptes: TitresAvecActeur?
 
     @Environment(EtatApp.self) private var etat
     @Environment(\.modelContext) private var contexte
     @Query private var visionnages: [Visionnage]
+    /// Titres notés au premier lancement ou marqués terminés : vus aussi, sans visionnage daté.
+    @Query(filter: #Predicate<Suivi> { $0.statutBrut == "termine" }) private var termines: [Suivi]
+    @Query private var suiviActeur: [ActeurSuivi]
     @Query(filter: #Predicate<FichierNAS> { $0.tmdbID != nil }) private var fichiersNAS: [FichierNAS]
     @Query(filter: #Predicate<Abonnement> { $0.actif }) private var abonnements: [Abonnement]
 
@@ -27,6 +32,13 @@ struct PersonneView: View {
     @State private var biographieComplete = false
     @State private var surMesPlateformes: Set<ReferenceTitre> = []
     @State private var plateformesChargees = false
+
+    init(personne: ReferencePersonne, comptes: TitresAvecActeur? = nil) {
+        self.personne = personne
+        self.comptes = comptes
+        let id = personne.id
+        _suiviActeur = Query(filter: #Predicate<ActeurSuivi> { $0.personneID == id })
+    }
 
     var body: some View {
         Group {
@@ -48,6 +60,14 @@ struct PersonneView: View {
         .navigationTitle(personne.nom)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                let suivi = !suiviActeur.isEmpty
+                Button { basculerSuivi() } label: {
+                    Label(suivi ? "Ne plus suivre" : "Suivre", systemImage: suivi ? "bell.fill" : "bell")
+                }
+                .help(suivi ? "Tu es prévenu quand un nouveau film avec \(personne.nom) est annoncé. Touche pour arrêter."
+                            : "Être prévenu quand un nouveau film avec \(personne.nom) est annoncé")
+            }
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
                     etat.filtreExplorerDemande = PersonneFiltre(id: personne.id, nom: personne.nom, cheminPortrait: fiche?.cheminPortrait,
@@ -77,6 +97,10 @@ struct PersonneView: View {
                     compteur(AnalyseFilmographie.compte(filmographie.roles, type: .serie, vus: vus, aujourdhui: aujourdhui), singulier: "série vue", pluriel: "séries vues")
                 }
                 .padding(.horizontal, 20)
+
+                if let comptes {
+                    sectionComptes(comptes, filmographie: filmographie)
+                }
 
                 VStack(alignment: .leading, spacing: 12) {
                     Picker("Type", selection: $filtres.type) {
@@ -168,6 +192,51 @@ struct PersonneView: View {
         }
     }
 
+    /// Les titres que les statistiques ont comptés pour cet acteur, dans le même ordre : le chiffre et la liste
+    /// ne peuvent pas diverger. Un titre absent de sa filmographie TMDB est signalé plutôt que caché.
+    private func sectionComptes(_ comptes: TitresAvecActeur, filmographie: Filmographie) -> some View {
+        let credits = Dictionary((filmographie.roles + filmographie.realisations).map { ($0.reference, $0) }, uniquingKeysWith: { premier, _ in premier })
+        return VStack(alignment: .leading, spacing: 12) {
+            TitreSection(titre: "Dans tes statistiques") {
+                Text("\(Format.pluriel(comptes.titres.count, "titre")) \(comptes.periode)")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            LazyVStack(spacing: 10) {
+                ForEach(comptes.titres, id: \.self) { reference in
+                    if let credit = credits[reference] {
+                        ligne(credit)
+                    } else {
+                        ligneHorsFilmographie(reference)
+                    }
+                }
+            }
+            .padding(.horizontal, 20)
+        }
+    }
+
+    private func ligneHorsFilmographie(_ reference: ReferenceTitre) -> some View {
+        let id = reference.tmdbID
+        let type = reference.type.rawValue
+        let suivi = try? contexte.fetch(FetchDescriptor<Suivi>(predicate: #Predicate { $0.tmdbID == id && $0.typeBrut == type })).first
+        return NavigationLink(value: reference) {
+            HStack(spacing: 12) {
+                ImageDistante(url: ImageTMDB.url(suivi?.cheminAffiche, .affiche), coins: 8)
+                    .frame(width: 50, height: 75)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(suivi?.titre ?? "Titre \(id)").font(.headline).lineLimit(2)
+                    Label("Absent de sa filmographie TMDB", systemImage: "exclamationmark.triangle")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.orange)
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(10)
+            .background(Theme.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        }
+        .buttonStyle(.plain)
+    }
+
     private func compteur(_ compte: AnalyseFilmographie.Compte, singulier: String, pluriel: String) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .firstTextBaseline, spacing: 4) {
@@ -229,9 +298,24 @@ struct PersonneView: View {
 
     // MARK: Données
 
-    /// Films vus, et séries dont au moins un épisode a été vu.
+    /// Films vus, séries dont au moins un épisode a été vu, et titres notés comme déjà vus :
+    /// la même règle que les suggestions.
     private var vus: Set<ReferenceTitre> {
-        Set(visionnages.map { ReferenceTitre(type: $0.type, tmdbID: $0.tmdbID) })
+        Set(visionnages.map { ReferenceTitre(type: $0.type, tmdbID: $0.tmdbID) }).union(termines.map(\.reference))
+    }
+
+    private func basculerSuivi() {
+        let service = ServiceActeurs(contexte: contexte)
+        if suiviActeur.isEmpty {
+            try? service.suivre(personneID: personne.id, nom: fiche?.nom ?? personne.nom, cheminPortrait: fiche?.cheminPortrait)
+            // La première lecture mémorise sa filmographie : seuls les films annoncés ensuite déclencheront une alerte.
+            Task {
+                await etat.alertes.demanderAutorisation()
+                await etat.alertes.planifier(contexte: contexte, tmdb: etat.tmdb)
+            }
+        } else {
+            try? service.nePlusSuivre(personne.id)
+        }
     }
 
     private var referencesNAS: Set<ReferenceTitre> {

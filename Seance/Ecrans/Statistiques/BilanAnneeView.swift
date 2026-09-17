@@ -78,14 +78,8 @@ struct BilanAnneeView: View {
         contenu = resultat
     }
 
-    private func portraitActeur(_ nom: String?) async -> UIImage? {
-        guard let nom, let tmdb = etat.tmdb else { return nil }
-        let suivis = (try? contexte.fetch(FetchDescriptor<Suivi>())) ?? []
-        let id = suivis.lazy.compactMap { suivi -> Int? in
-            guard let rang = suivi.acteursPrincipaux.firstIndex(of: nom), rang < suivi.acteursPrincipauxIDs.count else { return nil }
-            return suivi.acteursPrincipauxIDs[rang]
-        }.first
-        guard let id, let fiche = try? await tmdb.personne(id) else { return nil }
+    private func portraitActeur(_ acteur: ActeurStat?) async -> UIImage? {
+        guard let id = acteur?.id, let tmdb = etat.tmdb, let fiche = try? await tmdb.personne(id) else { return nil }
         return await Self.telecharger(ImageTMDB.url(fiche.cheminPortrait, .affiche))
     }
 
@@ -238,14 +232,14 @@ struct CarteBilanVue: View {
                 VStack(spacing: 14) {
                     Text("Ton acteur de l'année").font(.system(size: 20, weight: .semibold))
                     portrait
-                    Text(premier.cle)
+                    Text(premier.cle.nom)
                         .font(.system(size: 34, weight: .heavy))
                         .multilineTextAlignment(.center)
                         .minimumScaleFactor(0.6)
                         .lineLimit(2)
                     Text("dans \(Format.pluriel(premier.nombreTitres, "de tes titres", "de tes titres"))")
                         .font(.system(size: 17)).foregroundStyle(.white.opacity(0.75))
-                    let suivants = bilan.acteurs.dropFirst().prefix(2).map(\.cle)
+                    let suivants = bilan.acteurs.dropFirst().prefix(2).map(\.cle.nom)
                     if !suivants.isEmpty {
                         Text("Puis " + suivants.joined(separator: " et "))
                             .font(.system(size: 15)).foregroundStyle(.white.opacity(0.55))
@@ -307,7 +301,7 @@ struct CarteBilanVue: View {
                     case2("Épisodes", "\(bilan.nombreEpisodes)")
                     case2("Séries", "\(contenu.nombreSeries)")
                 }
-                if let acteur = bilan.acteurs.first { ligne("Acteur", acteur.cle) }
+                if let acteur = bilan.acteurs.first { ligne("Acteur", acteur.cle.nom) }
                 if let genre = bilan.genres.first { ligne("Genre", contenu.nomsGenres[genre.cle] ?? "—") }
                 if let meilleur = contenu.meilleur { ligne("Film préféré", "\(meilleur.titre) · \(meilleur.note)/10") }
             }

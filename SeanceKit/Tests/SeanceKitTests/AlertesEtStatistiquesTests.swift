@@ -155,7 +155,7 @@ struct StatistiquesTests {
     @Test func genresDeSeriesRegroupes() {
         let bilan = Statistiques.calculer(visionnages)
         // Heat, La Chute de la Maison Blanche et Reacher (Action & Adventure) : trois titres d'action.
-        #expect(bilan.genres.first == Classement(cle: 28, nombreTitres: 3))
+        #expect(bilan.genres.first?.cle == 28 && bilan.genres.first?.nombreTitres == 3)
         #expect(!bilan.genres.contains { $0.cle == 10759 })
     }
 
@@ -171,10 +171,42 @@ struct StatistiquesTests {
     @Test func classementsParTitresDifferents() {
         let bilan = Statistiques.calculer(visionnages, nombreActeurs: 2, nombreGenres: 2)
         // Une série vue en quatre épisodes compte pour un titre.
-        #expect(bilan.acteurs.map(\.cle) == ["Al Pacino", "Alan Ritchson"])
+        #expect(bilan.acteurs.map(\.cle.nom) == ["Al Pacino", "Alan Ritchson"])
         #expect(bilan.acteurs.map(\.nombreTitres) == [1, 1])
         // Les quatre épisodes de Reacher (Action & Adventure) ajoutent un seul titre d'action.
-        #expect(bilan.genres.first == Classement(cle: 28, nombreTitres: 3))
+        #expect(bilan.genres.first?.cle == 28 && bilan.genres.first?.titres == [reacher, chute, heat])
+    }
+
+    /// La fiche acteur ouverte depuis les statistiques liste les titres comptés : ils doivent être
+    /// exactement ceux où joue cet acteur-là, identifié par TMDB et non par son nom.
+    @Test func acteursParIdentifiantAvecLeursTitres() {
+        let wick = ReferenceTitre(type: .film, tmdbID: 245_891)
+        let speed = ReferenceTitre(type: .film, tmdbID: 1637)
+        let homonyme = ReferenceTitre(type: .film, tmdbID: 42)
+        let vus = [
+            VisionnageStat(reference: wick, dureeMinutes: 101, vuLe: Date.suisse("2026-05-01 21:00"),
+                           acteurs: ["Keanu Reeves", "Michael Nyqvist"], acteursIDs: [6384, 6283]),
+            VisionnageStat(reference: speed, dureeMinutes: 116, vuLe: Date.suisse("2026-06-01 21:00"),
+                           acteurs: ["Keanu Reeves", "Sandra Bullock"], acteursIDs: [6384, 18277]),
+            // Un autre Michael Nyqvist, et un titre suivi avant que les identifiants soient gardés.
+            VisionnageStat(reference: homonyme, dureeMinutes: 90, vuLe: Date.suisse("2026-07-01 21:00"),
+                           acteurs: ["Michael Nyqvist"], acteursIDs: [999_999]),
+            VisionnageStat(reference: heat, dureeMinutes: 170, vuLe: Date.suisse("2026-08-01 21:00"), acteurs: ["Al Pacino"]),
+        ]
+        let bilan = Statistiques.calculer(vus)
+        let keanu = bilan.acteurs.first
+        #expect(keanu?.cle == ActeurStat(id: 6384, nom: "Keanu Reeves"))
+        #expect(keanu?.titres == [speed, wick])
+        #expect(keanu?.nombreTitres == 2)
+        #expect(bilan.acteurs.filter { $0.cle.nom == "Michael Nyqvist" }.map(\.titres) == [[wick], [homonyme]])
+        #expect(bilan.acteurs.contains { $0.cle == ActeurStat(id: nil, nom: "Al Pacino") && $0.titres == [heat] })
+        // Chaque titre compté a bien l'acteur dans son casting.
+        for classement in bilan.acteurs {
+            for titre in classement.titres {
+                let v = vus.first { $0.reference == titre }!
+                #expect(classement.cle.id.map { v.acteursIDs.contains($0) } ?? v.acteurs.contains(classement.cle.nom))
+            }
+        }
     }
 
     @Test func surUnePeriode() {

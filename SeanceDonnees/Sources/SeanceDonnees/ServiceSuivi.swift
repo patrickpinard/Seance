@@ -75,6 +75,19 @@ public struct ServiceSuivi {
         try contexte.save()
     }
 
+    /// Annule « Vu » ou « Déjà vu avant » touché par erreur : les visionnages et la note s'effacent, et le film
+    /// reste dans Mes listes, « à voir ».
+    public func marquerNonVu(film reference: ReferenceTitre) throws {
+        for visionnage in try visionnages(reference) {
+            contexte.delete(visionnage)
+        }
+        if let suivi = try suivi(reference) {
+            suivi.note = nil
+            if suivi.statut == .termine { suivi.statut = .aVoir }
+        }
+        try contexte.save()
+    }
+
     /// EF-11 : coche les épisodes donnés, sans doublon ; renvoie le nombre d'épisodes ajoutés.
     /// `anterieur` : des épisodes déjà vus avant, hors statistiques.
     @discardableResult

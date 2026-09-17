@@ -13,6 +13,17 @@ private actor SourceSimulee: SourceAlertes {
         plateformes = ids
     }
 
+    /// Keanu Reeves : John Wick, puis Ballerina 2 annoncé.
+    var filmsKeanu = [#"{"id": 245891, "media_type": "movie", "title": "John Wick", "character": "John", "release_date": "2014-10-24"}"#]
+
+    func annoncerBallerina2() {
+        filmsKeanu.append(#"{"id": 1, "media_type": "movie", "title": "Ballerina 2", "character": "John", "release_date": "2027-06-04"}"#)
+    }
+
+    func filmographie(personne id: Int) async throws -> Filmographie {
+        try decoder(#"{"cast": [\#(filmsKeanu.joined(separator: ","))], "crew": []}"#)
+    }
+
     func annoncerSaison4() {
         prochainEpisode = #"{"id": 20, "name": "Épisode 1", "overview": "", "episode_number": 1, "season_number": 4, "air_date": "2027-03-12"}"#
     }
@@ -119,6 +130,29 @@ struct ServiceAlertesTests {
         // Après l'envoi, elle ne revient plus.
         let soir = corps(try await service.calculer(source: source, reglages: ReglagesAlertes(), maintenant: lendemain.addingTimeInterval(6 * 3600)))
         #expect(!soir.contains("La saison 4 arrive le 12 mars 2027"))
+    }
+
+    @Test func nouveauFilmDUnActeurSuivi() async throws {
+        let conteneur = try preparer()
+        let contexte = conteneur.mainContext
+        try ServiceActeurs(contexte: contexte).suivre(personneID: 6384, nom: "Keanu Reeves", cheminPortrait: nil)
+        try ServiceActeurs(contexte: contexte).suivre(personneID: 6384, nom: "Keanu Reeves", cheminPortrait: "/k.jpg")
+        #expect(try contexte.fetchCount(FetchDescriptor<ActeurSuivi>()) == 1)
+
+        let source = SourceSimulee()
+        let service = ServiceAlertes(contexte: contexte)
+        // Première lecture de la filmographie : rien à signaler.
+        #expect(!corps(try await service.calculer(source: source, reglages: ReglagesAlertes(), maintenant: midi)).contains { $0.contains("Keanu") })
+
+        await source.annoncerBallerina2()
+        let suivantes = try await service.calculer(source: source, reglages: ReglagesAlertes(), maintenant: midi.addingTimeInterval(3600))
+        let annonce = try #require(suivantes.first { $0.corps == "Nouveau film avec Keanu Reeves, sortie prévue le 4 juin 2027" })
+        #expect(annonce.titre == "Ballerina 2")
+        #expect(annonce.reference == ReferenceTitre(type: .film, tmdbID: 1))
+
+        // Ne plus le suivre : plus de nouvelle alerte.
+        try ServiceActeurs(contexte: contexte).nePlusSuivre(6384)
+        #expect(try ServiceActeurs(contexte: contexte).suivi(6384) == nil)
     }
 
     @Test func clocheDesactiveeEtModeSaisons() async throws {

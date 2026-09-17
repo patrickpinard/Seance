@@ -20,6 +20,25 @@ struct NoteVersion: Identifiable {
 
     static let historique: [NoteVersion] = [
         NoteVersion(
+            numero: "1.3",
+            date: "17 septembre 2026",
+            resume: "Acteurs : recherche, suivi, statistiques justes ; titres similaires et note dans l'en-tête.",
+            fonctionnalites: [
+                Fonctionnalite(symbole: "magnifyingglass", titre: "Recherche par acteur",
+                               detail: "Dans Explorer, la portée « Acteurs », et « Avec Jason Statham » dès qu'un nom est tapé : ses titres les plus connus et un bouton Filtrer."),
+                Fonctionnalite(symbole: "bell.badge", titre: "Suivre un acteur",
+                               detail: "La cloche de sa fiche : Séance te prévient quand un nouveau film avec lui est annoncé. La liste est dans Profil."),
+                Fonctionnalite(symbole: "person.2.fill", titre: "Acteurs dans les statistiques",
+                               detail: "Les dix acteurs les plus regardés ; sa fiche montre en tête exactement les titres comptés."),
+                Fonctionnalite(symbole: "sparkles", titre: "Parce que tu as aimé…",
+                               detail: "Sur l'accueil, les titres que TMDB rapproche de ceux que tu as notés 8 ou plus."),
+                Fonctionnalite(symbole: "star.fill", titre: "Ta note dans l'en-tête",
+                               detail: "À côté de la note TMDB, sur chaque fiche notée."),
+                Fonctionnalite(symbole: "eye.slash", titre: "Marquer comme non vu",
+                               detail: "Un « Vu » ou « Déjà vu avant » touché par erreur s'annule depuis l'œil de la fiche."),
+            ]
+        ),
+        NoteVersion(
             numero: "1.2",
             date: "17 septembre 2026",
             resume: "Statistiques et bilan de l'année, widgets, Siri, fiche acteur, premier lancement guidé et vraie mise en page Mac.",

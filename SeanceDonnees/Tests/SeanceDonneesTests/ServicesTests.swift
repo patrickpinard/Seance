@@ -146,6 +146,36 @@ struct ServicesTests {
         #expect(try gouts.profil().affinite(genre: 53) > 0)
     }
 
+    @Test func marquerCommeNonVuUnFilm() throws {
+        let conteneur = try EntrepotSeance.conteneur(.memoire)
+        let service = ServiceSuivi(contexte: conteneur.mainContext)
+        let film = try TMDB.film()
+        try service.marquerVu(film: film, note: 9, anterieur: true)
+        #expect(try service.estVu(film.reference))
+
+        try service.marquerNonVu(film: film.reference)
+        #expect(try !service.estVu(film.reference))
+        let suivi = try #require(try service.suivi(film.reference))
+        #expect(suivi.statut == .aVoir && suivi.note == nil)
+        #expect(try !ServiceGouts(contexte: conteneur.mainContext).contexteCandidats().dejaVus.contains(film.reference))
+    }
+
+    @Test func titresAimesPourLesSimilaires() throws {
+        let conteneur = try EntrepotSeance.conteneur(.memoire)
+        let contexte = conteneur.mainContext
+        let service = ServiceSuivi(contexte: contexte)
+        try service.noter(film: try TMDB.film(), note: 8)
+        try service.noter(serie: try TMDB.serie(), note: 10)
+        let moyen = Suivi(reference: ReferenceTitre(type: .film, tmdbID: 1), titre: "Moyen", statut: .termine)
+        moyen.note = 6
+        contexte.insert(moyen)
+        try contexte.save()
+
+        let aimes = try ServiceGouts(contexte: contexte).titresAimes()
+        #expect(aimes.map(\.titre) == ["Reacher", "La Chute de Londres"])
+        #expect(aimes.map(\.note) == [10, 8])
+    }
+
     @Test func sauvegardeAllerRetourSansDoublon() throws {
         let source = try EntrepotSeance.conteneur(.memoire)
         let suivi = ServiceSuivi(contexte: source.mainContext)
@@ -157,6 +187,7 @@ struct ServicesTests {
         source.mainContext.insert(Abonnement(providerID: 8, nom: "Netflix"))
         source.mainContext.insert(Chaine(identifiantGuide: "M6.fr", nom: "M6", source: .xmltvfr))
         try source.mainContext.save()
+        try ServiceActeurs(contexte: source.mainContext).suivre(personneID: 6384, nom: "Keanu Reeves", cheminPortrait: nil)
 
         let fichier = try ServiceSauvegarde(contexte: source.mainContext).exporter().encoder()
 
@@ -168,6 +199,7 @@ struct ServicesTests {
         #expect(try cible.mainContext.fetch(FetchDescriptor<Visionnage>()).filter(\.anterieur).count == 3)
         #expect(try cible.mainContext.fetch(FetchDescriptor<ListePerso>()).first?.titres.count == 1)
         #expect(try cible.mainContext.fetchCount(FetchDescriptor<Chaine>()) == 1)
+        #expect(try cible.mainContext.fetch(FetchDescriptor<ActeurSuivi>()).map(\.nom) == ["Keanu Reeves"])
 
         // Réimporter le même fichier n'ajoute rien.
         #expect(try importeur.importer(try Sauvegarde.decoder(fichier)).estVide)
@@ -295,6 +327,7 @@ struct ServiceStatistiquesTests {
         let suiviWick = Suivi(reference: wick, titre: "John Wick", statut: .termine)
         suiviWick.genres = [28]
         suiviWick.acteursPrincipaux = ["Keanu Reeves"]
+        suiviWick.acteursPrincipauxIDs = [6384]
         contexte.insert(suiviWick)
         let suiviReacher = Suivi(reference: reacher, titre: "Reacher", statut: .enCours)
         suiviReacher.genres = [10759]
@@ -318,6 +351,9 @@ struct ServiceStatistiquesTests {
         #expect(annee.minutesTotales == 170 + 101 + 150)
         #expect(annee.nombreFilms == 2 && annee.nombreEpisodes == 3)
         #expect(annee.genres.first?.cle == 28)
+        // Les acteurs du classement portent leur identifiant TMDB et les titres comptés.
+        #expect(annee.acteurs.first { $0.cle.nom == "Keanu Reeves" }?.titres == [wick])
+        #expect(annee.acteurs.first { $0.cle.nom == "Keanu Reeves" }?.cle.id == 6384)
         #expect(annee.recordEpisodes?.nombreEpisodes == 3)
         #expect(try service.bilan(annee: nil).minutesTotales == 591)
         #expect(try service.annees() == [2026, 2025])

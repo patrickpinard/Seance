@@ -117,6 +117,21 @@ public struct Sauvegarde: Codable, Sendable, Equatable {
         }
     }
 
+    /// « Suivre un acteur » ; absent des sauvegardes antérieures à la version 1.3.
+    public struct ActeurSuivi: Codable, Sendable, Equatable {
+        public var personneID: Int
+        public var nom: String
+        public var cheminPortrait: String?
+        public var suiviLe: Date
+
+        public init(personneID: Int, nom: String, cheminPortrait: String?, suiviLe: Date) {
+            self.personneID = personneID
+            self.nom = nom
+            self.cheminPortrait = cheminPortrait
+            self.suiviLe = suiviLe
+        }
+    }
+
     public struct Chaine: Codable, Sendable, Equatable {
         public var identifiantGuide: String
         public var nom: String
@@ -140,6 +155,8 @@ public struct Sauvegarde: Codable, Sendable, Equatable {
     public var interets: [Interet] = []
     public var abonnements: [Abonnement] = []
     public var chaines: [Chaine] = []
+    /// Optionnel : un fichier d'une version précédente n'a pas cette clé.
+    public var acteursSuivis: [ActeurSuivi]?
 
     public init(creeeLe: Date) {
         self.creeeLe = creeeLe
@@ -181,6 +198,7 @@ public struct PlanImport: Sendable, Equatable {
     public var interets: [Sauvegarde.Interet] = []
     public var abonnements: [Sauvegarde.Abonnement] = []
     public var chaines: [Sauvegarde.Chaine] = []
+    public var acteursSuivis: [Sauvegarde.ActeurSuivi] = []
 
     public var estVide: Bool { self == PlanImport() }
 
@@ -196,6 +214,7 @@ public struct PlanImport: Sendable, Equatable {
         interets = nouveaux(importee.interets, existante.interets, cle: \.cle)
         abonnements = nouveaux(importee.abonnements, existante.abonnements, cle: \.providerID)
         chaines = nouveaux(importee.chaines, existante.chaines, cle: \.identifiantGuide)
+        acteursSuivis = nouveaux(importee.acteursSuivis ?? [], existante.acteursSuivis ?? [], cle: \.personneID)
 
         let listesExistantes = Dictionary(existante.listes.map { ($0.nom, $0) }, uniquingKeysWith: { premiere, _ in premiere })
         for liste in importee.listes {

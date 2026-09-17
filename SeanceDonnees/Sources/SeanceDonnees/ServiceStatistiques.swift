@@ -26,7 +26,8 @@ public struct ServiceStatistiques {
             let reference = ReferenceTitre(type: v.type, tmdbID: v.tmdbID)
             let suivi = suivis[reference]
             return VisionnageStat(reference: reference, dureeMinutes: v.dureeMinutes, vuLe: v.vuLe,
-                                  genres: suivi?.genres ?? [], acteurs: suivi?.acteursPrincipaux ?? [])
+                                  genres: suivi?.genres ?? [], acteurs: suivi?.acteursPrincipaux ?? [],
+                                  acteursIDs: suivi?.acteursPrincipauxIDs ?? [])
         }
     }
 

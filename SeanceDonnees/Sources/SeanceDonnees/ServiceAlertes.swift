@@ -100,6 +100,8 @@ public struct ServiceAlertes {
             etat.verifieLe = maintenant
         }
 
+        alertes += await nouveauxFilmsDesActeursSuivis(source: source, reglages: reglages, maintenant: maintenant)
+
         // Alertes datées : recalculées à chaque passage. Alertes ponctuelles : gardées jusqu'à leur envoi.
         let passees = try contexte.fetch(FetchDescriptor<AlertePlanifiee>(predicate: #Predicate { $0.date <= maintenant }))
         let enAttente = try contexte.fetch(FetchDescriptor<AlertePlanifiee>(predicate: #Predicate { $0.date > maintenant && $0.ponctuelle }))
@@ -133,6 +135,35 @@ public struct ServiceAlertes {
         }
         try contexte.save()
         return notifications
+    }
+
+    /// « Suivre un acteur » : sa filmographie est relue, et chaque film apparu depuis la dernière fois est signalé.
+    /// Un acteur dont TMDB ne répond pas est simplement revu au passage suivant.
+    private func nouveauxFilmsDesActeursSuivis(source: any SourceAlertes, reglages: ReglagesAlertes, maintenant: Date) async -> [AlertePrevue] {
+        guard let acteurs = try? contexte.fetch(FetchDescriptor<ActeurSuivi>()), !acteurs.isEmpty else { return [] }
+        let ids = acteurs.map(\.personneID)
+        let filmographies = await withTaskGroup(of: (Int, Filmographie?).self) { groupe in
+            for id in ids {
+                groupe.addTask { (id, try? await source.filmographie(personne: id)) }
+            }
+            var resultat: [Int: Filmographie] = [:]
+            for await (id, filmographie) in groupe {
+                if let filmographie { resultat[id] = filmographie }
+            }
+            return resultat
+        }
+        var alertes: [AlertePrevue] = []
+        for acteur in acteurs {
+            guard let filmographie = filmographies[acteur.personneID] else { continue }
+            let (nouvelles, connus) = PlanificateurAlertes.nouveauxFilms(
+                acteur: acteur.nom, connus: acteur.verifieLe == nil ? nil : Set(acteur.filmsConnus),
+                filmographie: filmographie, maintenant: maintenant, reglages: reglages
+            )
+            alertes += nouvelles
+            acteur.filmsConnus = connus.sorted()
+            acteur.verifieLe = maintenant
+        }
+        return alertes
     }
 
     /// Ce que Séance savait déjà du titre ; créé vide à la première vérification.

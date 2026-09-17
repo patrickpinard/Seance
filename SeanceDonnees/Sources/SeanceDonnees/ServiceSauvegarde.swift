@@ -40,6 +40,9 @@ public struct ServiceSauvegarde {
         s.chaines = try contexte.fetch(FetchDescriptor<Chaine>()).map {
             Sauvegarde.Chaine(identifiantGuide: $0.identifiantGuide, nom: $0.nom, source: $0.sourceBrut, active: $0.active)
         }
+        s.acteursSuivis = try contexte.fetch(FetchDescriptor<ActeurSuivi>(sortBy: [SortDescriptor(\.suiviLe)])).map {
+            Sauvegarde.ActeurSuivi(personneID: $0.personneID, nom: $0.nom, cheminPortrait: $0.cheminPortrait, suiviLe: $0.suiviLe)
+        }
         return s
     }
 
@@ -94,6 +97,11 @@ public struct ServiceSauvegarde {
             let chaine = Chaine(identifiantGuide: c.identifiantGuide, nom: c.nom, source: SourceGuide(rawValue: c.source) ?? .xmltvfr)
             chaine.active = c.active
             contexte.insert(chaine)
+        }
+        for a in plan.acteursSuivis {
+            let acteur = ActeurSuivi(personneID: a.personneID, nom: a.nom, cheminPortrait: a.cheminPortrait)
+            acteur.suiviLe = a.suiviLe
+            contexte.insert(acteur)
         }
         try contexte.save()
         return plan

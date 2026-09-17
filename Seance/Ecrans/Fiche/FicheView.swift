@@ -118,6 +118,8 @@ private struct ContenuFiche: View {
     @State private var etatDisponibilite: EtatDisponibilite = .introuvable
     @State private var suivi: Suivi?
     @State private var vu = false
+    /// « Vu le 17 septembre 2026 » ou « Déjà vu avant » : le titre du menu de l'œil.
+    @State private var detailVu = "Vu"
     @State private var videoChoisie: Video?
     @State private var dansSoiree = false
 
@@ -211,7 +213,7 @@ private struct ContenuFiche: View {
         if !fiche.casting.isEmpty {
             VStack(alignment: .leading, spacing: 12) {
                 TitreSection("Casting")
-                ScrollView(.horizontal, showsIndicators: false) {
+                DefilementHorizontal {
                     LazyHStack(alignment: .top, spacing: 14) {
                         ForEach(fiche.casting) { personne in
                             NavigationLink(value: ReferencePersonne(id: personne.id, nom: personne.nom)) {
@@ -255,7 +257,11 @@ private struct ContenuFiche: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .lineLimit(2)
-                    AnneauNote(pourcentage: fiche.pourcentage, diametre: 44)
+                    // EF-67 : ta note à côté de celle de TMDB.
+                    HStack(spacing: 10) {
+                        AnneauNote(pourcentage: fiche.pourcentage, diametre: 44)
+                        BadgeTaNote(reference: fiche.reference)
+                    }
                 }
             }
             .padding(.horizontal, 20)
@@ -281,8 +287,7 @@ private struct ContenuFiche: View {
 
             if let film = fiche.film {
                 if vu {
-                    BoutonIcone(symbole: "eye.fill", libelle: "Vu", actif: true,
-                                explication: "Tu as vu ce film : il compte dans tes goûts et ne revient plus dans les suggestions.") {}
+                    boutonDejaVu(film)
                 } else {
                     boutonMarquerVu(film)
                 }
@@ -319,6 +324,24 @@ private struct ContenuFiche: View {
         }
         .help("Marquer vu : aujourd'hui compte dans tes statistiques ; « déjà vu avant » sort le film des suggestions sans fausser tes heures")
         .accessibilityLabel("Marquer vu")
+    }
+
+    /// 👁 Déjà marqué : le menu dit quand, et permet d'annuler une erreur.
+    private func boutonDejaVu(_ film: FicheFilm) -> some View {
+        Menu {
+            Section(detailVu) {
+                Button(role: .destructive) {
+                    try? ServiceSuivi(contexte: contexte).marquerNonVu(film: film.reference)
+                    rafraichir()
+                } label: {
+                    Label("Marquer comme non vu", systemImage: "eye.slash")
+                }
+            }
+        } label: {
+            RondIcone(symbole: "eye.fill", actif: true)
+        }
+        .help("Tu as vu ce film : il compte dans tes goûts et ne revient plus dans les suggestions. Touche pour annuler.")
+        .accessibilityLabel(detailVu)
     }
 
     /// 🔔 Surveillance du titre : un film se bascule d'un geste ; une série propose ses deux rythmes.
@@ -415,7 +438,13 @@ private struct ContenuFiche: View {
     private func rafraichir() {
         let suiviService = ServiceSuivi(contexte: contexte)
         suivi = try? suiviService.suivi(fiche.reference)
-        vu = (try? suiviService.estVu(fiche.reference)) ?? false
+        let visionnages = (try? suiviService.visionnages(fiche.reference)) ?? []
+        vu = !visionnages.isEmpty
+        if let dernier = visionnages.last(where: { !$0.anterieur }) {
+            detailVu = "Vu le \(dernier.vuLe.formatted(.dateTime.day().month(.wide).year().locale(Locale(identifier: "fr_CH"))))"
+        } else {
+            detailVu = "Déjà vu avant"
+        }
         dansSoiree = (try? ServiceSoiree(contexte: contexte).estRetenu(fiche.reference)) ?? false
         etatDisponibilite = (try? ServiceDisponibilite(contexte: contexte).etat(fiche.reference, offres: fiche.offres)) ?? .introuvable
     }
