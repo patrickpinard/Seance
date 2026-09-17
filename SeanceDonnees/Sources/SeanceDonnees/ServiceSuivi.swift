@@ -122,6 +122,11 @@ public struct ServiceSuivi {
             contexte.delete(visionnage)
         }
         try contexte.save()
+        // Plus aucun épisode vu : la série redevient « à voir », comme avant le premier épisode coché.
+        if try visionnages(serie).isEmpty, let suivi = try suivi(serie), suivi.statut == .enCours {
+            suivi.statut = .aVoir
+            try contexte.save()
+        }
     }
 
     /// EF-66 : note d'un épisode déjà vu.

@@ -38,7 +38,7 @@ struct LectureEnvieTests {
         let demande = DemandeCeSoir(envie: "film de guerre")
         let classes = ClassementLocal.classer([comedie, guerre], profil: ProfilGouts(), demande: demande, nomsGenres: [10752: "Guerre"])
         #expect(classes.map(\.reference.tmdbID) == [1])
-        #expect(classes.first?.phrase.hasPrefix("Guerre, comme demandé") == true)
+        #expect(classes.first?.phrase.hasPrefix("Guerre, comme tu l'as demandé") == true)
     }
 
     @Test func laCollecteInterrogeLeGenreDemande() async throws {

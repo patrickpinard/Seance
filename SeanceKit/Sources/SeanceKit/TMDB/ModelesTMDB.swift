@@ -338,6 +338,8 @@ public struct SerieDetail: Decodable, Sendable, Identifiable {
     public let fournisseurs: FournisseursParPays?
     public let videos: ListeVideos?
     public let motsCles: MotsCles?
+    /// Chaînes ou plateformes qui diffusent la série (« TF1 », « Netflix ») ; absent des réponses partielles.
+    public let reseaux: [Reseau]?
     let premiereDiffusionBrute: String?
 
     public var reference: ReferenceTitre { ReferenceTitre(type: .serie, tmdbID: id) }
@@ -367,6 +369,19 @@ public struct SerieDetail: Decodable, Sendable, Identifiable {
         case videos
         case motsCles = "keywords"
         case premiereDiffusionBrute = "first_air_date"
+        case reseaux = "networks"
+    }
+}
+
+public struct Reseau: Decodable, Sendable, Hashable {
+    public let id: Int
+    public let nom: String
+    public let cheminLogo: String?
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case nom = "name"
+        case cheminLogo = "logo_path"
     }
 }
 

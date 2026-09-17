@@ -79,6 +79,8 @@ struct MesListesView: View {
             .destinationsTitres()
             .refreshable { await etat.alertes.planifier(contexte: contexte, tmdb: etat.tmdb) }
             .task(id: cleInfos) { await chargerInfos(cleInfos.references) }
+            // Le filtre ne survit pas à un changement d'écran : en revenant, toute la liste est là.
+            .onDisappear { ceSoirSeulement = false }
             .onChange(of: abonnements.map(\.providerID)) { infos = [:] }
             .onChange(of: etat.listeDemandee, initial: true) { _, demande in
                 guard let demande else { return }
@@ -170,12 +172,25 @@ struct MesListesView: View {
             if statut != .termine {
                 PuceFiltre(libelle: "Regardable ce soir", active: ceSoirSeulement) { ceSoirSeulement.toggle() }
                     .help("Sur le NAS, dans tes abonnements ou à la télé ce soir")
-            } else if !titresAffiches(.termine).isEmpty {
-                Button(role: .destructive) { confirmerToutSupprimer = true } label: {
-                    Label("Tout supprimer", systemImage: "trash")
-                        .font(.subheadline.weight(.semibold))
+                // Le filtre cache des titres : c'est dit, pour ne pas les croire disparus.
+                let masques = suivis.filter { $0.statut == statut && !$0.masque }.count - titresAffiches(statut).count
+                if ceSoirSeulement, !chargementInfos, masques > 0 {
+                    Text(Format.pluriel(masques, "masqué", "masqués"))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
-                .tint(.red)
+            } else if !titresAffiches(.termine).isEmpty {
+                // Action destructive rangée dans un menu : rouge seulement dans la confirmation.
+                Menu {
+                    Button(role: .destructive) { confirmerToutSupprimer = true } label: {
+                        Label("Tout supprimer", systemImage: "trash")
+                    }
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                        .font(.title3)
+                        .foregroundStyle(Theme.accentClair)
+                }
+                .help("Supprimer tous les titres terminés de la liste")
                 .confirmationDialog("Supprimer les \(titresAffiches(.termine).count) titres terminés ?",
                                     isPresented: $confirmerToutSupprimer, titleVisibility: .visible) {
                     Button("Tout supprimer", role: .destructive) {
@@ -195,9 +210,13 @@ struct MesListesView: View {
             }
             Spacer()
             Menu {
-                Picker("Trier", selection: $triBrut) {
-                    ForEach(TriListe.allCases, id: \.self) { tri in
-                        Text(tri.rawValue).tag(tri.rawValue)
+                ForEach(TriListe.allCases, id: \.self) { choix in
+                    Button { triBrut = choix.rawValue } label: {
+                        if choix == tri {
+                            Label(choix.rawValue, systemImage: "checkmark")
+                        } else {
+                            Text(choix.rawValue)
+                        }
                     }
                 }
             } label: {
@@ -318,6 +337,9 @@ struct MesListesView: View {
                     Button { changer(suivi, en: .termine) } label: { Label("Terminé", systemImage: "checkmark") }
                 } else {
                     Button { changer(suivi, en: .aVoir) } label: { Label("À revoir", systemImage: "arrow.uturn.backward") }
+                }
+                if statut == .enCours {
+                    Button { changer(suivi, en: .aVoir) } label: { Label("Remettre à voir", systemImage: "bookmark") }
                 }
                 Button { basculerAlertes(suivi) } label: {
                     Label(suivi.alertesActives ? "Sans alertes" : "Alertes", systemImage: suivi.alertesActives ? "bell.slash" : "bell")

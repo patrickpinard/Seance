@@ -136,8 +136,7 @@ struct FeuilleFiltres: View {
             }
             .scrollDismissesKeyboard(.immediately)
             .background(Theme.fond)
-            .navigationTitle("Filtres")
-            .navigationBarTitleDisplayMode(.inline)
+            .titreDeFeuille("Filtres")
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button("Réinitialiser") { brouillon = FiltresExplorer(type: brouillon.type) }

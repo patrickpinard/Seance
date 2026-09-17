@@ -330,8 +330,7 @@ private struct ReglageSourcesAccueil: View {
             }
             .scrollContentBackground(.hidden)
             .background(Theme.fond)
-            .navigationTitle("Personnaliser l'accueil")
-            .navigationBarTitleDisplayMode(.inline)
+            .titreDeFeuille("Personnaliser l'accueil")
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("OK") { dismiss() }

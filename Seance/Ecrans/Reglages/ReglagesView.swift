@@ -443,7 +443,7 @@ struct AProposView: View {
     private var application: some View {
         Section("L'application") {
             Text("Séance est ton guide personnel des films et séries d'action. Elle te dit où regarder chaque titre en Suisse : sur tes plateformes, à la télévision ou sur ton NAS, ou comment l'obtenir légalement.")
-            Text("Elle suit tes séries épisode par épisode, garde la trace de ce que tu as vu et te prévient des nouvelles saisons, des sorties et des passages à la télé. « Pour toi », sur l'accueil, propose des titres selon tes goûts, et « Ma soirée » réunit ce que tu gardes pour ce soir.")
+            Text("Elle suit tes séries épisode par épisode, garde la trace de ce que tu as vu et te prévient des nouvelles saisons, des sorties et des passages à la télé. « Idées pour ce soir » propose des titres regardables sur tes plateformes, choisis selon tes goûts, et « Ma soirée » réunit ce que tu gardes pour ce soir.")
             Text("Tes données restent sur ton appareil. Une sauvegarde dans un fichier, depuis Réglages › Sauvegarde, les protège et permet de les reprendre sur un autre appareil.")
         }
 

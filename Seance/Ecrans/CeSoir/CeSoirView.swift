@@ -32,7 +32,7 @@ struct CeSoirView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 22) {
                 SectionsSoiree(modele: soiree)
-                SectionIdees(modele: idees, dejaMontres: dejaMontres)
+                SectionIdees(modele: idees, dejaMontres: dejaMontres) { reference, ou in soiree.noterOu(reference, ou) }
                 autreChose
             }
             .padding(20)

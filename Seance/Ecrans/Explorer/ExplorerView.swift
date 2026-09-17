@@ -69,11 +69,6 @@ struct ExplorerView: View {
             .navigationTitle("Explorer")
             .boutonBarreLaterale()
             .searchable(text: $texte, prompt: "Films, séries, acteurs")
-            .searchScopes($portee, activation: .onSearchPresentation) {
-                ForEach(PorteeRecherche.allCases, id: \.self) { portee in
-                    Text(portee.rawValue).tag(portee)
-                }
-            }
             .searchFocused($rechercheActive)
             .searchSuggestions {
                 if texte.isEmpty, !recentes.isEmpty {
@@ -143,6 +138,16 @@ struct ExplorerView: View {
     private var resultatsTexte: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 22) {
+                // Les portées ne s'affichent que pendant une recherche : sur le Mac, celles de la barre de recherche
+                // restaient visibles au-dessus de Films / Séries, et manquaient au premier affichage.
+                Picker("Portée", selection: $portee) {
+                    ForEach(PorteeRecherche.allCases, id: \.self) { portee in
+                        Text(portee.rawValue).tag(portee)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .padding(.horizontal, 20)
+
                 if portee != .acteurs, !personnes.isEmpty {
                     pastillesPersonnes
                 }
@@ -152,6 +157,9 @@ struct ExplorerView: View {
                 if portee == .acteurs {
                     listePersonnes
                 } else {
+                    if vedette != nil, !titres.isEmpty {
+                        TitreSection("Titres")
+                    }
                     LazyVGrid(columns: colonnes, spacing: 18) {
                         ForEach(titres) { titre in
                             NavigationLink(value: titre.reference) {
@@ -248,7 +256,7 @@ struct ExplorerView: View {
                                 .frame(width: 56, height: 56)
                             VStack(alignment: .leading, spacing: 3) {
                                 Text(personne.nom).font(.headline)
-                                Text(personne.domaine == "Directing" ? "Réalisation" : personne.domaine == "Acting" ? "Interprétation" : "Cinéma")
+                                Text(personne.domaine == "Directing" ? "Réalisation" : personne.domaine == "Acting" ? "Interprétation" : "Autre")
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                             }
@@ -302,12 +310,14 @@ struct ExplorerView: View {
             let resultats = (try? await client.rechercherPersonnes(texte)) ?? []
             guard !Task.isCancelled else { return }
             titres = []
-            personnes = resultats
-            trouvee = resultats.first
+            // Les homonymes sans photo ni carrière connue passent après.
+            personnes = resultats.filter { $0.cheminPortrait != nil } + resultats.filter { $0.cheminPortrait == nil }
+            trouvee = personnes.first
         } else {
             let resultats = (try? await client.rechercherTout(texte)) ?? []
             guard !Task.isCancelled else { return }
-            titres = resultats.compactMap(\.titre).filter { portee.retient($0.reference.type) }
+            let retenus = resultats.compactMap(\.titre).filter { portee.retient($0.reference.type) }
+            titres = retenus.filter { $0.cheminAffiche != nil } + retenus.filter { $0.cheminAffiche == nil }
             personnes = portee == .tout ? resultats.compactMap(\.personne) : []
             // Un nom d'acteur tapé : TMDB le classe en tête, devant les titres qui le contiennent.
             trouvee = portee == .tout ? resultats.first?.personne : nil

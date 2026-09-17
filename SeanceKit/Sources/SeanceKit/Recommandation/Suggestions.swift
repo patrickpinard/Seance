@@ -201,29 +201,53 @@ public enum Phrases {
         _ raisons: [RaisonAffinite], profil: ProfilGouts,
         candidat: CandidatSuggestion, nomsGenres: [Int: String] = [:]
     ) -> String {
-        let morceaux = raisons.compactMap { raison -> String? in
+        // Les genres sont regroupés : « action et aventure, des genres que tu aimes » plutôt que deux fois « comme tu aimes ».
+        var demandes: [String] = []
+        var aimes: [String] = []
+        var acteurs: [String] = []
+        var autres: [String] = []
+        for raison in raisons {
             switch raison {
             case .demande(let genre):
-                nomsGenres[genre].map { "\($0.lowercased()), comme demandé" }
+                if let nom = nomsGenres[genre] { demandes.append(nom.lowercased()) }
             case .genreAime(let genre):
-                nomsGenres[genre].map { "\($0.lowercased()), comme tu aimes" }
+                if let nom = nomsGenres[genre] { aimes.append(nom.lowercased()) }
             case .acteurAime(let acteur):
-                "avec \(candidat.nomsActeurs[acteur] ?? profil.nom(acteur: acteur))"
+                acteurs.append(candidat.nomsActeurs[acteur] ?? profil.nom(acteur: acteur))
             case .dureeQuiVaBien(let minutes):
-                "\(minutes) min, la longueur de tes soirées"
+                autres.append("\(minutes) min, la longueur de tes soirées")
             case .bienNote(let pourcentage):
-                "\(pourcentage) % sur TMDB"
+                autres.append("\(pourcentage) % sur TMDB")
             case .regardableMaintenant:
-                "déjà accessible chez toi"
+                autres.append("déjà chez toi")
             case .genreEvite:
-                nil
+                break
             }
         }
+        var morceaux: [String] = []
+        if !demandes.isEmpty {
+            morceaux.append("\(liste(demandes)), comme tu l'as demandé")
+        }
+        if !aimes.isEmpty {
+            morceaux.append(aimes.count == 1 ? "\(aimes[0]), un genre que tu aimes" : "\(liste(aimes)), des genres que tu aimes")
+        }
+        if !acteurs.isEmpty {
+            morceaux.append("avec \(liste(acteurs))")
+        }
+        morceaux += autres
         guard let premier = morceaux.first else {
             return "Proposé sur sa popularité : tes goûts ne disent encore rien de ce titre."
         }
         let majuscule = premier.prefix(1).uppercased() + String(premier.dropFirst())
-        let phrase = ([majuscule] + morceaux.dropFirst()).joined(separator: ", ")
-        return phrase + "."
+        return ([majuscule] + morceaux.dropFirst()).joined(separator: " · ") + "."
+    }
+
+    /// « action », « action et aventure », « action, aventure et thriller ».
+    static func liste(_ elements: [String]) -> String {
+        switch elements.count {
+        case 0: ""
+        case 1: elements[0]
+        default: elements.dropLast().joined(separator: ", ") + " et " + elements[elements.count - 1]
+        }
     }
 }

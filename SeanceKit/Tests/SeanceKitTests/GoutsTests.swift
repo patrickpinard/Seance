@@ -169,10 +169,10 @@ struct ClassementLocalTests {
                                       disponibilite: .surNAS(qualite: .hd1080))
         let phrase = ClassementLocal.classer([candidat], profil: profil, nomsGenres: Goûts.noms)[0].phrase
 
-        #expect(phrase.contains("Action, comme tu aimes"))
+        #expect(phrase.contains("Action, un genre que tu aimes"))
         #expect(phrase.contains("avec Keanu Reeves"))
         #expect(phrase.contains("82 % sur TMDB"))
-        #expect(phrase.contains("déjà accessible chez toi"))
+        #expect(phrase.contains("déjà chez toi"))
         #expect(phrase.hasSuffix("."))
     }
 

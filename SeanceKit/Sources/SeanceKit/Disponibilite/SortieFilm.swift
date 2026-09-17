@@ -37,3 +37,38 @@ extension DateTMDB {
         DateTMDB(instant(heure: 12).addingTimeInterval(Double(jours) * 86_400))
     }
 }
+
+/// Ce qu'on peut dire d'une série absente des plateformes suisses, plutôt que « introuvable » : elle passe
+/// peut-être à la télé ce soir, ou revient bientôt.
+public enum EtatDiffusionSerie: Sendable, Equatable {
+    /// Un épisode diffusé aujourd'hui.
+    case episodeAujourdhui(NumeroEpisode, reseau: String?)
+    case prochainEpisode(NumeroEpisode, le: DateTMDB, reseau: String?)
+    /// La série n'a pas encore commencé.
+    case commence(le: DateTMDB, reseau: String?)
+    /// En cours, sans prochain épisode daté.
+    case enCours(reseau: String?)
+    case terminee(reseau: String?)
+
+    public static func etat(serie: SerieDetail, aujourdhui: DateTMDB) -> EtatDiffusionSerie {
+        let reseau = serie.reseaux?.first?.nom
+        if let prochain = serie.prochainEpisode, let date = prochain.dateDiffusion {
+            if date == aujourdhui { return .episodeAujourdhui(prochain.numeroEpisode, reseau: reseau) }
+            if date > aujourdhui { return .prochainEpisode(prochain.numeroEpisode, le: date, reseau: reseau) }
+        }
+        if let dernier = serie.dernierEpisode, dernier.dateDiffusion == aujourdhui {
+            return .episodeAujourdhui(dernier.numeroEpisode, reseau: reseau)
+        }
+        if let premiere = serie.premiereDiffusion, premiere > aujourdhui {
+            return .commence(le: premiere, reseau: reseau)
+        }
+        if ["Ended", "Canceled"].contains(serie.statut) { return .terminee(reseau: reseau) }
+        return .enCours(reseau: reseau)
+    }
+
+    public var reseau: String? {
+        switch self {
+        case .episodeAujourdhui(_, let r), .prochainEpisode(_, _, let r), .commence(_, let r), .enCours(let r), .terminee(let r): r
+        }
+    }
+}

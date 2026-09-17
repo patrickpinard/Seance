@@ -10,6 +10,10 @@ import SwiftUI
 final class IdeesModele {
     var demande = DemandeCeSoir()
     private(set) var resultat: ResultatSuggestions?
+    /// Idées traitées (« je regarde », « pas ce soir », « jamais ») : la liste affiche les suivantes à leur place.
+    private(set) var retirees: [ReferenceTitre] = []
+    /// Où regarder chaque idée, lu sur TMDB après le classement.
+    private(set) var ou: [ReferenceTitre: EtatDisponibilite] = [:]
     private(set) var enCours = false
     private(set) var erreur: String?
     private(set) var nombreCandidats = 0
@@ -33,8 +37,12 @@ final class IdeesModele {
             let candidats = try await CollecteurCandidats(client: tmdb).candidats(pour: demande, profil: profil, contexte: exclusions)
             nombreCandidats = candidats.count
             let claude = precise && !demande.envieNettoyee.isEmpty ? etat.claude : nil
-            resultat = await ServiceRecommandation(claude: claude, nombre: 5)
+            // Douze idées classées, cinq affichées : chaque idée traitée laisse sa place à la suivante.
+            let nouveau = await ServiceRecommandation(claude: claude, nombre: 12)
                 .suggerer(demande, candidats: candidats, profil: profil, nomsGenres: etat.nomsGenres)
+            resultat = nouveau
+            retirees = []
+            ou = await Self.disponibilites(nouveau.suggestions.map(\.reference), tmdb: tmdb, contexte: contexte)
             if let resultat, claude != nil, resultat.origine == .local, let avertissement = resultat.avertissement {
                 etat.journal.noter(.claude, avertissement, conseil: "Les idées viennent du classement local. Vérifie la clé Claude dans Réglages › Claude si cela se répète.")
             }
@@ -49,7 +57,48 @@ final class IdeesModele {
 
     /// Une idée traitée quitte la liste ; les autres restent (EF-25).
     func retirer(_ reference: ReferenceTitre) {
-        resultat?.suggestions.removeAll { $0.reference == reference }
+        if !retirees.contains(reference) { retirees.append(reference) }
+    }
+
+    /// « Annuler » : l'idée reprend sa place.
+    func restaurer(_ reference: ReferenceTitre) {
+        retirees.removeAll { $0 == reference }
+    }
+
+    /// « Sur Netflix », « Sur ton NAS · 4K », « Ce soir sur M6 » : le libellé d'une idée, ou `nil` si rien n'est su.
+    func libelleOu(_ reference: ReferenceTitre) -> String? {
+        guard let etat = ou[reference], let libelle = RegardableCeSoir.libelle(etat) else { return nil }
+        switch etat {
+        case .dansAbonnements: return "Sur \(libelle)"
+        case .aLaTeleBientot: return "Ce soir sur \(libelle)"
+        default: return libelle
+        }
+    }
+
+    /// Les plateformes de chaque idée, six appels à la fois ; une idée sans réponse reste sans libellé.
+    private static func disponibilites(_ references: [ReferenceTitre], tmdb: TMDBClient, contexte: ModelContext) async -> [ReferenceTitre: EtatDisponibilite] {
+        let offres = await withTaskGroup(of: (ReferenceTitre, OffresRegion?).self) { groupe in
+            var reste = references[...]
+            func lancer(_ reference: ReferenceTitre) {
+                groupe.addTask { (reference, try? await tmdb.fournisseurs(reference.type, id: reference.tmdbID).offres()) }
+            }
+            for _ in 0..<6 {
+                guard let reference = reste.popFirst() else { break }
+                lancer(reference)
+            }
+            var resultat: [ReferenceTitre: OffresRegion] = [:]
+            while let (reference, offre) = await groupe.next() {
+                if let offre { resultat[reference] = offre }
+                if let suivante = reste.popFirst() { lancer(suivante) }
+            }
+            return resultat
+        }
+        let disponibilite = ServiceDisponibilite(contexte: contexte)
+        var etats: [ReferenceTitre: EtatDisponibilite] = [:]
+        for reference in references {
+            if let etat = try? disponibilite.etat(reference, offres: offres[reference]) { etats[reference] = etat }
+        }
+        return etats
     }
 }
 
@@ -57,13 +106,18 @@ struct SectionIdees: View {
     let modele: IdeesModele
     /// Titres déjà montrés plus haut dans « Ce soir » : une idée ne les répète pas.
     let dejaMontres: Set<ReferenceTitre>
+    /// « Je regarde » : la soirée apprend où regarder le titre, pour l'afficher sous son nom.
+    let jeRegarde: (ReferenceTitre, String?) -> Void
 
     @Environment(EtatApp.self) private var etat
     @Environment(\.modelContext) private var contexte
     @State private var precisionOuverte = false
 
+    /// Cinq idées à la fois, parmi celles ni traitées ni déjà montrées plus haut.
     private var idees: [SuggestionClassee] {
-        (modele.resultat?.suggestions ?? []).filter { !dejaMontres.contains($0.reference) }
+        Array((modele.resultat?.suggestions ?? [])
+            .filter { !modele.retirees.contains($0.reference) && !dejaMontres.contains($0.reference) }
+            .prefix(5))
     }
 
     var body: some View {
@@ -103,7 +157,7 @@ struct SectionIdees: View {
             }
 
             ForEach(idees) { suggestion in
-                CarteIdee(suggestion: suggestion) { action in traiter(action, suggestion) }
+                CarteIdee(suggestion: suggestion, ou: modele.libelleOu(suggestion.reference)) { action in traiter(action, suggestion) }
             }
 
             DisclosureGroup(isExpanded: $precisionOuverte) {
@@ -142,25 +196,31 @@ struct SectionIdees: View {
         case .jeRegarde:
             _ = try? gouts.jeRegarde(suggestion.candidat)
             try? ServiceSoiree(contexte: contexte).retenir(reference, titre: titre.titre, cheminAffiche: titre.cheminAffiche)
+            jeRegarde(reference, modele.libelleOu(reference))
             etat.confirmer("Ajouté à ma soirée", symbole: "moon.stars.fill")
         case .pasCeSoir:
             try? gouts.reporter(reference)
-            etat.confirmer("Écarté pour ce soir", symbole: "clock.arrow.circlepath")
+            etat.confirmer("Écarté pour ce soir", symbole: "clock.arrow.circlepath") { [modele, contexte] in
+                try? ServiceGouts(contexte: contexte).annulerReport(reference)
+                modele.restaurer(reference)
+            }
         case .jamais:
             try? gouts.jamais(reference, titre: titre.titre)
-            etat.confirmer("Ne te sera plus proposé", symbole: "hand.thumbsdown.fill") { [contexte] in
+            etat.confirmer("Ne te sera plus proposé", symbole: "hand.thumbsdown.fill") { [modele, contexte] in
                 AnnulationTitre.restaurer(reference, existait: avant != nil, statut: statutAvant, contexte: contexte)
+                modele.restaurer(reference)
             }
         }
         modele.retirer(reference)
     }
 }
 
-/// Une idée : affiche, titre, raison en une phrase, et les trois gestes du soir.
+/// Une idée : affiche, titre, où la regarder, raison en une phrase, et les trois gestes du soir.
 private struct CarteIdee: View {
     enum Action { case jeRegarde, pasCeSoir, jamais }
 
     let suggestion: SuggestionClassee
+    let ou: String?
     let action: (Action) -> Void
 
     var body: some View {
@@ -184,6 +244,11 @@ private struct CarteIdee: View {
                         }
                         .font(.caption)
                         .foregroundStyle(.secondary)
+                        if let ou {
+                            Label(ou, systemImage: ou.hasPrefix("Ce soir") ? "tv" : ou.hasPrefix("Sur ton NAS") ? "externaldrive.fill" : "play.tv")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(.green)
+                        }
                         Text(suggestion.phrase)
                             .font(.subheadline)
                             .foregroundStyle(.primary.opacity(0.9))

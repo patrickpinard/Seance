@@ -146,6 +146,17 @@ struct ServicesTests {
         #expect(try gouts.profil().affinite(genre: 53) > 0)
     }
 
+    @Test func serieSansEpisodeRedevientAVoir() throws {
+        let conteneur = try EntrepotSeance.conteneur(.memoire)
+        let service = ServiceSuivi(contexte: conteneur.mainContext)
+        let serie = try TMDB.serie()
+        try service.suivre(serie: serie)
+        try service.cocher(Array(try TMDB.episodes(saison: 1, nombre: 2).prefix(1)), serie: serie)
+        #expect(try service.suivi(serie.reference)?.statut == .enCours)
+        try service.decocher(NumeroEpisode(saison: 1, episode: 1), serie: serie.reference)
+        #expect(try service.suivi(serie.reference)?.statut == .aVoir)
+    }
+
     @Test func marquerCommeNonVuUnFilm() throws {
         let conteneur = try EntrepotSeance.conteneur(.memoire)
         let service = ServiceSuivi(contexte: conteneur.mainContext)

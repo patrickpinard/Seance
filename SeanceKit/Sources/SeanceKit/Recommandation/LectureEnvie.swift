@@ -105,7 +105,8 @@ public enum LectureEnvie {
         if let m = phrase.firstMatch(of: #/\b(\d{2,3})\s*min/#), let minutes = Int(m.1) {
             return minutes
         }
-        if phrase.contains(" court ") || phrase.contains(" courte ") || phrase.contains(" rapide ") {
+        if phrase.contains(" court ") || phrase.contains(" courte ") || phrase.contains(" rapide ")
+            || phrase.contains(" pas trop long") || phrase.contains(" pas long") {
             return 100
         }
         return nil

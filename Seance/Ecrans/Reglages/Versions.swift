@@ -20,6 +20,25 @@ struct NoteVersion: Identifiable {
 
     static let historique: [NoteVersion] = [
         NoteVersion(
+            numero: "2.1",
+            date: "17 septembre 2026",
+            resume: "Le parcours d'un utilisateur, corrigé point par point : idées qui se renouvellent, fiches de séries justes, écrans plus nets.",
+            fonctionnalites: [
+                Fonctionnalite(symbole: "sparkles", titre: "Idées qui se renouvellent",
+                               detail: "Cinq idées restent affichées, chaque idée traitée laisse sa place à la suivante ; « Annuler » la remet. Chacune dit où la regarder, et une envie « pas trop longue » est comprise."),
+                Fonctionnalite(symbole: "tv", titre: "Séries : où en est la diffusion",
+                               detail: "Épisode du jour, prochain épisode, chaîne qui la diffuse : plus de « introuvable » pour une série en cours, et « Me prévenir » des épisodes."),
+                Fonctionnalite(symbole: "magnifyingglass", titre: "Explorer plus net",
+                               detail: "Portées Tout / Films / Séries / Acteurs seulement pendant la recherche, en-tête « Titres », personnes avec photo d'abord."),
+                Fonctionnalite(symbole: "list.bullet", titre: "Mes listes",
+                               detail: "Tris directement dans le menu, « Tout supprimer » rangé sous « … », filtre « Regardable ce soir » remis à zéro en quittant et titres masqués comptés, « Remettre à voir » pour une série en cours."),
+                Fonctionnalite(symbole: "person.2", titre: "Acteurs favoris honnêtes",
+                               detail: "Un acteur vu dans un seul titre n'est pas un favori : le classement attend d'avoir de quoi classer."),
+                Fonctionnalite(symbole: "macwindow", titre: "Mac",
+                               detail: "Titre de fenêtre rétabli après une feuille, barre de retour visible quand la fiche défile."),
+            ]
+        ),
+        NoteVersion(
             numero: "2.0",
             date: "17 septembre 2026",
             resume: "Des idées pour ce soir selon tes goûts, une app plus claire et qui prévient quand quelque chose cloche.",

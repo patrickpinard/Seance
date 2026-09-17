@@ -195,6 +195,14 @@ public struct ServiceGouts {
         try contexte.save()
     }
 
+    /// Annule un « Pas ce soir » : le titre peut revenir dès maintenant.
+    public func annulerReport(_ reference: ReferenceTitre) throws {
+        if let existant = try report(reference) {
+            contexte.delete(existant)
+            try contexte.save()
+        }
+    }
+
     /// « Jamais » : le titre sort des suggestions pour de bon, et le profil l'apprend.
     public func jamais(_ reference: ReferenceTitre, titre: String) throws {
         let suivi = try ServiceSuivi(contexte: contexte).suivi(reference) ?? {

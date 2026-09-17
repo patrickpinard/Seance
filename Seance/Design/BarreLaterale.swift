@@ -44,7 +44,30 @@ enum BarreLaterale {
     #endif
 }
 
+/// Sur le Mac, le titre d'une feuille (« Personnaliser l'accueil ») devenait celui de la fenêtre et y restait.
+/// Les feuilles portent leur titre dans leur barre, et la fenêtre reprend « Séance » à leur fermeture.
+enum TitreFenetre {
+    @MainActor
+    static func retablir() {
+        #if targetEnvironment(macCatalyst)
+        for scene in UIApplication.shared.connectedScenes.compactMap({ $0 as? UIWindowScene }) {
+            scene.title = "Séance"
+        }
+        #endif
+    }
+}
+
 extension View {
+    /// Titre d'une feuille, dans sa barre et pas dans celle de la fenêtre.
+    func titreDeFeuille(_ titre: String) -> some View {
+        toolbar {
+            ToolbarItem(placement: .principal) {
+                Text(titre).font(.headline)
+            }
+        }
+        .onDisappear { TitreFenetre.retablir() }
+    }
+
     /// Le bouton qui masque ou affiche le menu de gauche, en tête de la barre d'un onglet ; rien sur l'iPhone.
     func boutonBarreLaterale() -> some View {
         #if targetEnvironment(macCatalyst)

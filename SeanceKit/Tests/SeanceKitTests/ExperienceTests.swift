@@ -26,6 +26,37 @@ struct ExperienceTests {
         #expect(EtatSortie.etat(dates: nil, dateMondiale: DateTMDB(annee: 1995, mois: 12, jour: 15), aujourdhui: aujourdhui) == nil)
     }
 
+    @Test func etatDeDiffusionDUneSerie() throws {
+        func serie(_ json: String, statut: String = "Returning Series") throws -> SerieDetail {
+            try JSONDecoder().decode(SerieDetail.self, from: Data(#"""
+            {"id": 1, "name": "Antigang", "original_name": "Antigang", "original_language": "fr", "overview": "", "status": "\#(statut)",
+             "in_production": true, "number_of_seasons": 2, "number_of_episodes": 128, "episode_run_time": [22], "seasons": [],
+             "vote_average": 7.8, "vote_count": 30, "genres": [], "first_air_date": "2025-09-08", "networks": [{"id": 49, "name": "TF1", "logo_path": null}],
+             \#(json)}
+            """#.utf8))
+        }
+        let episode = #""next_episode_to_air": {"id": 2, "name": "Épisode 8", "overview": "", "episode_number": 8, "season_number": 2, "air_date": "2026-09-17"}"#
+        #expect(EtatDiffusionSerie.etat(serie: try serie(episode), aujourdhui: aujourdhui) == .episodeAujourdhui(NumeroEpisode(saison: 2, episode: 8), reseau: "TF1"))
+        let demain = #""next_episode_to_air": {"id": 2, "name": "Épisode 9", "overview": "", "episode_number": 9, "season_number": 2, "air_date": "2026-09-18"}"#
+        #expect(EtatDiffusionSerie.etat(serie: try serie(demain), aujourdhui: aujourdhui)
+            == .prochainEpisode(NumeroEpisode(saison: 2, episode: 9), le: DateTMDB(annee: 2026, mois: 9, jour: 18), reseau: "TF1"))
+        let hier = #""last_episode_to_air": {"id": 1, "name": "Épisode 7", "overview": "", "episode_number": 7, "season_number": 2, "air_date": "2026-09-16"}"#
+        #expect(EtatDiffusionSerie.etat(serie: try serie(hier), aujourdhui: aujourdhui) == .enCours(reseau: "TF1"))
+        #expect(EtatDiffusionSerie.etat(serie: try serie(#""vote_count": 31"#, statut: "Ended"), aujourdhui: aujourdhui) == .terminee(reseau: "TF1"))
+    }
+
+    @Test func envieEtPhrases() {
+        #expect(LectureEnvie.lire("un truc drôle pas trop long").dureeMaxMinutes == 100)
+        #expect(LectureEnvie.lire("une comédie pas longue").dureeMaxMinutes == 100)
+        let candidat = CandidatSuggestion(titre: TitreResume(reference: ReferenceTitre(type: .film, tmdbID: 1), titre: "X", titreOriginal: "X",
+                                                             langueOriginale: "en", synopsis: "", genres: [35, 12], cheminAffiche: nil, cheminFond: nil,
+                                                             noteMoyenne: 7.4, nombreVotes: 100, date: nil),
+                                          acteurs: [6384], nomsActeurs: [6384: "Keanu Reeves"])
+        let phrase = Phrases.explication([.demande(35), .genreAime(12), .genreAime(28), .acteurAime(6384), .bienNote(74)],
+                                         profil: ProfilGouts(), candidat: candidat, nomsGenres: [35: "Comédie", 12: "Aventure", 28: "Action"])
+        #expect(phrase == "Comédie, comme tu l'as demandé · aventure et action, des genres que tu aimes · avec Keanu Reeves · 74 % sur TMDB.")
+    }
+
     @Test func explorerAOuverture() {
         let filtres = FiltresExplorer.parDefaut(avecPlateformes: true)
         #expect(filtres.langue == "fr|en" && filtres.mesPlateformes)

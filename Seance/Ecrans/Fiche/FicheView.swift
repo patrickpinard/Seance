@@ -127,11 +127,18 @@ private struct ContenuFiche: View {
     /// Largeur réelle : une fenêtre de Mac étroite reste « regular » mais n'a pas la place pour deux colonnes.
     @State private var largeurDisponible: CGFloat = 1200
     @State private var synopsisComplet = false
+    /// L'image de fond passée : la barre de navigation prend un fond, sinon le bouton retour flotte sur le contenu.
+    @State private var defile = false
 
     /// Le point de vue « où regarder » d'un film absent des plateformes : au cinéma, bientôt, ou pas encore en streaming.
     private var sortie: EtatSortie? {
         guard let film = fiche.film else { return nil }
         return EtatSortie.etat(dates: film.datesDeSortie, dateMondiale: film.dateSortie, aujourdhui: DateTMDB(.now))
+    }
+
+    /// Et pour une série : épisode du jour, prochain épisode, chaîne qui la diffuse.
+    private var diffusion: EtatDiffusionSerie? {
+        fiche.serie.map { EtatDiffusionSerie.etat(serie: $0, aujourdhui: DateTMDB(.now)) }
     }
 
     var body: some View {
@@ -146,6 +153,8 @@ private struct ContenuFiche: View {
             .padding(.bottom, 40)
         }
         .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { largeurDisponible = $0 }
+        .onScrollGeometryChange(for: Bool.self) { $0.contentOffset.y > 180 } action: { _, nouveau in defile = nouveau }
+        .toolbarBackground(defile ? .visible : .hidden, for: .navigationBar)
         .ignoresSafeArea(edges: .top)
         .task { rafraichir() }
         .sheet(item: $videoChoisie) { video in
@@ -299,7 +308,8 @@ private struct ContenuFiche: View {
     }
 
     private var blocOuRegarder: some View {
-        BlocOuRegarder(etat: etatDisponibilite, sortie: sortie, alertesActives: suivi?.alertesActives == true && suivi?.masque != true) {
+        BlocOuRegarder(etat: etatDisponibilite, sortie: sortie, diffusion: diffusion,
+                       alertesActives: suivi?.alertesActives == true && suivi?.masque != true) {
             reglerAlertes(.episodes)
         }
     }
@@ -547,6 +557,8 @@ private struct BlocOuRegarder: View {
     let etat: EtatDisponibilite
     /// Pour un film introuvable : au cinéma, bientôt, ou pas encore en streaming.
     let sortie: EtatSortie?
+    /// Pour une série introuvable : épisode du jour, prochain épisode, chaîne.
+    let diffusion: EtatDiffusionSerie?
     let alertesActives: Bool
     let prevenir: () -> Void
 
@@ -562,15 +574,17 @@ private struct BlocOuRegarder: View {
                     }
                     Spacer()
                 }
-                // Pas encore regardable chez soi : se faire prévenir de l'arrivée en streaming.
-                if case .introuvable = etat, sortie != nil {
+                // Pas encore regardable chez soi : se faire prévenir de l'arrivée en streaming ou des épisodes.
+                if case .introuvable = etat, sortie != nil || diffusion != nil {
                     if alertesActives {
-                        Label("Tu seras prévenu de sa sortie", systemImage: "bell.fill")
+                        Label(diffusion == nil ? "Tu seras prévenu de sa sortie" : "Tu seras prévenu des épisodes et de l'arrivée sur tes plateformes",
+                              systemImage: "bell.fill")
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(Theme.accentClair)
                     } else {
                         Button(action: prevenir) {
-                            Label("Me prévenir de sa sortie", systemImage: "bell.badge")
+                            Label(diffusion == nil ? "Me prévenir de sa sortie" : "Me prévenir des épisodes et de l'arrivée sur tes plateformes",
+                                  systemImage: "bell.badge")
                                 .font(.subheadline.weight(.semibold))
                         }
                         .tint(Theme.accent)
@@ -589,53 +603,79 @@ private struct BlocOuRegarder: View {
 
     private var icone: String {
         switch etat {
-        case .surNAS: "externaldrive.fill"
-        case .dansAbonnements: "play.tv.fill"
-        case .aLaTeleBientot: "tv"
-        case .aLouerOuAcheter: "cart"
+        case .surNAS: return "externaldrive.fill"
+        case .dansAbonnements: return "play.tv.fill"
+        case .aLaTeleBientot: return "tv"
+        case .aLouerOuAcheter: return "cart"
         case .introuvable:
+            switch diffusion {
+            case .episodeAujourdhui, .prochainEpisode: return "tv"
+            case .commence: return "calendar"
+            case .enCours: return "play.tv"
+            case .terminee: return "checkmark.circle"
+            case nil: break
+            }
             switch sortie {
-            case .auCinema, .bientotAuCinema: "film"
-            case .sortieNumerique, .aVenir: "calendar"
-            case .pasEncoreEnStreaming: "hourglass"
-            case nil: "questionmark.circle"
+            case .auCinema, .bientotAuCinema: return "film"
+            case .sortieNumerique, .aVenir: return "calendar"
+            case .pasEncoreEnStreaming: return "hourglass"
+            case nil: return "questionmark.circle"
             }
         }
     }
 
     private var titre: String {
         switch etat {
-        case .surNAS: "Sur le NAS"
-        case .dansAbonnements: "Dans tes abonnements"
-        case .aLaTeleBientot: "À la télé bientôt"
-        case .aLouerOuAcheter: "À louer ou acheter"
+        case .surNAS: return "Sur le NAS"
+        case .dansAbonnements: return "Dans tes abonnements"
+        case .aLaTeleBientot: return "À la télé bientôt"
+        case .aLouerOuAcheter: return "À louer ou acheter"
         case .introuvable:
+            switch diffusion {
+            case .episodeAujourdhui(let numero, _): return "Épisode \(numero) diffusé aujourd'hui"
+            case .prochainEpisode(let numero, let le, _): return "Prochain épisode \(numero) le \(Self.jour(le))"
+            case .commence(let le, _): return "Commence le \(Self.jour(le))"
+            case .enCours(let reseau): return reseau.map { "Diffusée sur \($0)" } ?? "Série en cours de diffusion"
+            case .terminee: return "Série terminée"
+            case nil: break
+            }
             switch sortie {
-            case .auCinema(let depuis, _): "Au cinéma depuis le \(Self.jour(depuis))"
-            case .bientotAuCinema(let le): "Au cinéma le \(Self.jour(le))"
-            case .sortieNumerique(let le): "En streaming le \(Self.jour(le))"
-            case .aVenir(let le): "Sortie prévue le \(Self.jour(le))"
-            case .pasEncoreEnStreaming: "Pas encore disponible en Suisse"
-            case nil: "Introuvable légalement en Suisse"
+            case .auCinema(let depuis, _): return "Au cinéma depuis le \(Self.jour(depuis))"
+            case .bientotAuCinema(let le): return "Au cinéma le \(Self.jour(le))"
+            case .sortieNumerique(let le): return "En streaming le \(Self.jour(le))"
+            case .aVenir(let le): return "Sortie prévue le \(Self.jour(le))"
+            case .pasEncoreEnStreaming: return "Pas encore disponible en Suisse"
+            case nil: return "Introuvable légalement en Suisse"
             }
         }
     }
 
     private var detail: String? {
         switch etat {
-        case .surNAS(let qualite): qualite.map { "Qualité \($0)" }
-        case .dansAbonnements(let fournisseurs): fournisseurs.map(\.nom).joined(separator: ", ")
+        case .surNAS(let qualite): return qualite.map { "Qualité \($0)" }
+        case .dansAbonnements(let fournisseurs): return fournisseurs.map(\.nom).joined(separator: ", ")
         case .aLaTeleBientot(let diffusion):
-            "\(diffusion.chaine), \(diffusion.debut.formatted(.dateTime.weekday(.wide).hour().minute()))"
+            return "\(diffusion.chaine), \(diffusion.debut.formatted(.dateTime.weekday(.wide).hour().minute()))"
         case .aLouerOuAcheter(let location, let achat):
-            Array(Set((location + achat).map(\.nom))).sorted().joined(separator: ", ")
+            return Array(Set((location + achat).map(\.nom))).sorted().joined(separator: ", ")
         case .introuvable:
+            if let diffusion {
+                let reseau = diffusion.reseau
+                switch diffusion {
+                case .episodeAujourdhui, .prochainEpisode, .commence:
+                    return reseau.map { "Sur \($0) · pas sur tes plateformes suisses" } ?? "Pas sur tes plateformes suisses"
+                case .enCours:
+                    return "Pas encore sur tes plateformes suisses"
+                case .terminee:
+                    return reseau.map { "Diffusée sur \($0) · pas sur les plateformes suisses" } ?? "Pas sur les plateformes suisses"
+                }
+            }
             switch sortie {
-            case .auCinema(_, let numerique?): "En streaming le \(Self.jour(numerique))"
-            case .auCinema(_, nil), .bientotAuCinema: "Sortie en streaming pas encore annoncée"
-            case .sortieNumerique, .aVenir: "Pas encore sur les plateformes suisses"
-            case .pasEncoreEnStreaming: "Ni sur les plateformes, ni en location pour l'instant"
-            case nil: nil
+            case .auCinema(_, let numerique?): return "En streaming le \(Self.jour(numerique))"
+            case .auCinema(_, nil), .bientotAuCinema: return "Sortie en streaming pas encore annoncée"
+            case .sortieNumerique, .aVenir: return "Pas encore sur les plateformes suisses"
+            case .pasEncoreEnStreaming: return "Ni sur les plateformes, ni en location pour l'instant"
+            case nil: return nil
             }
         }
     }

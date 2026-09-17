@@ -38,9 +38,15 @@ struct StatistiquesView: View {
                         GraphiqueMois(bilan: bilan, annee: annee)
                     }
                     if !bilan.acteurs.isEmpty {
-                        // EF-35 : les dix acteurs les plus regardés.
+                        // EF-35 : les dix acteurs les plus regardés. Tous à un seul titre : rien à classer encore.
                         carte("Acteurs favoris", symbole: "person.2.fill") {
-                            ClassementActeurs(classement: bilan.acteurs, periode: libellePeriode)
+                            if bilan.acteurs.contains(where: { $0.nombreTitres >= 2 }) {
+                                ClassementActeurs(classement: bilan.acteurs, periode: libellePeriode)
+                            } else {
+                                Text("Pas encore de favori : aucun acteur ne revient dans deux de tes titres \(libellePeriode).")
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                            }
                         }
                     }
                     if !bilan.genres.isEmpty {
@@ -318,7 +324,8 @@ private struct ClassementActeurs: View {
                     Text("\(rang + 1)")
                         .font(.headline.monospacedDigit())
                         .foregroundStyle(rang == 0 ? Theme.accent : .secondary)
-                        .frame(width: 22)
+                        .frame(width: 30, alignment: .trailing)
+                        .lineLimit(1)
                     Text(acteur.cle.nom).font(.body.weight(rang == 0 ? .semibold : .regular)).lineLimit(1)
                     Spacer()
                     Text(Format.pluriel(acteur.nombreTitres, "titre")).font(.subheadline).foregroundStyle(.secondary)

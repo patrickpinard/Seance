@@ -154,10 +154,11 @@ struct ProfilView: View {
         .accessibilityElement(children: .combine)
     }
 
-    /// Les trois acteurs les plus regardés depuis le début, comptés comme dans les statistiques.
+    /// Les trois acteurs les plus regardés depuis le début, comptés comme dans les statistiques ;
+    /// un acteur vu dans un seul titre n'est pas encore un favori.
     private var acteursFavoris: [Classement<ActeurStat>] {
         let _ = visionnages.count
-        return Array(((try? ServiceStatistiques(contexte: contexte).bilan(annee: nil).acteurs) ?? []).prefix(3))
+        return Array(((try? ServiceStatistiques(contexte: contexte).bilan(annee: nil).acteurs) ?? []).filter { $0.nombreTitres >= 2 }.prefix(3))
     }
 
     private var genres: Set<String> {

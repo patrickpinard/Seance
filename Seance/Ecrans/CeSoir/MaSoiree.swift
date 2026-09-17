@@ -23,7 +23,14 @@ final class SoireeModele {
 
     private(set) var episodes: [Episode] = []
     private(set) var disponibles: [Disponible] = []
+    /// « Sur Netflix », « Sur ton NAS » : pour les titres à voir et ceux gardés pour la soirée.
+    private(set) var ou: [ReferenceTitre: String] = [:]
     private(set) var enCours = false
+
+    /// Un titre qui arrive dans la soirée depuis les idées : son libellé est déjà connu.
+    func noterOu(_ reference: ReferenceTitre, _ libelle: String?) {
+        if let libelle { ou[reference] = libelle }
+    }
 
     /// Séries en cours et titres « à voir » : quelques appels TMDB, six à la fois.
     func charger(etat: EtatApp, contexte: ModelContext) async {
@@ -38,9 +45,11 @@ final class SoireeModele {
         let suivi = ServiceSuivi(contexte: contexte)
 
         let idsSeries = series.map(\.tmdbID)
-        let referencesAVoir = aVoir.filter { !nas.contains($0.reference) }.map(\.reference)
+        let jour = ServiceSoiree.soiree()
+        let gardes = ((try? contexte.fetch(FetchDescriptor<SelectionSoir>())) ?? []).filter { $0.soiree == jour }.map(\.reference)
+        let referencesOu = Array(Set(aVoir.map(\.reference) + gardes)).filter { !nas.contains($0) }
         async let fiches = Self.series(idsSeries, client: tmdb)
-        async let offres = Self.offres(referencesAVoir, client: tmdb)
+        async let offres = Self.offres(referencesOu, client: tmdb)
 
         episodes = await fiches.compactMap { serie in
             let vus = (try? suivi.episodesVus(serie.reference)) ?? []
@@ -54,16 +63,23 @@ final class SoireeModele {
         let lesOffres = await offres
         let disponibilite = ServiceDisponibilite(contexte: contexte)
         let maintenant = Date.now
-        disponibles = aVoir.compactMap { titre in
-            guard let etatTitre = try? disponibilite.etat(titre.reference, offres: lesOffres[titre.reference]),
-                  RegardableCeSoir.retient(etatTitre, maintenant: maintenant),
-                  let ou = RegardableCeSoir.libelle(etatTitre) else { return nil }
-            let libelle: String
+        var etats: [ReferenceTitre: EtatDisponibilite] = [:]
+        for reference in Set(aVoir.map(\.reference) + gardes) {
+            if let etatTitre = try? disponibilite.etat(reference, offres: lesOffres[reference]) { etats[reference] = etatTitre }
+        }
+        var libelles = ou
+        for (reference, etatTitre) in etats {
+            guard let libelle = RegardableCeSoir.libelle(etatTitre) else { continue }
             switch etatTitre {
-            case .dansAbonnements: libelle = "Sur \(ou)"
-            case .aLaTeleBientot: libelle = "Ce soir sur \(ou)"
-            default: libelle = ou
+            case .dansAbonnements: libelles[reference] = "Sur \(libelle)"
+            case .aLaTeleBientot: libelles[reference] = "Ce soir sur \(libelle)"
+            default: libelles[reference] = libelle
             }
+        }
+        ou = libelles
+        disponibles = aVoir.compactMap { titre in
+            guard let etatTitre = etats[titre.reference], RegardableCeSoir.retient(etatTitre, maintenant: maintenant),
+                  let libelle = libelles[titre.reference] else { return nil }
             return Disponible(id: titre.reference, titre: titre.titre, cheminAffiche: titre.cheminAffiche, ou: libelle)
         }
     }
@@ -230,6 +246,7 @@ struct SectionsSoiree: View {
         if let echeance = echeances.first(where: { $0.reference == reference && calendrier.isDateInToday($0.date) }) { return echeance.libelle }
         if let episode = modele.episodes.first(where: { $0.id == reference }) { return "Épisode \(episode.numero) à regarder" }
         if let disponible = modele.disponibles.first(where: { $0.id == reference }) { return disponible.ou }
+        if let ou = modele.ou[reference] { return ou }
         return reference.type == .film ? "Film" : "Série"
     }
 
