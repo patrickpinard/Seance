@@ -333,7 +333,7 @@ private struct ReglageSourcesAccueil: View {
 
                     if sources.plateformes != nil {
                         if abonnements.isEmpty {
-                            Text("Coche d'abord tes abonnements dans Moi › Plateformes.").foregroundStyle(.secondary)
+                            Text("Coche d'abord tes abonnements dans Réglages › Plateformes.").foregroundStyle(.secondary)
                         }
                         ForEach(abonnements) { abonnement in
                             Toggle(abonnement.nom, isOn: Binding {
@@ -568,7 +568,7 @@ private struct SectionTele: View {
                 if lectureEnCours {
                     MessageEtat(texte: "Lecture des programmes de tes chaînes…", ton: .attente)
                 } else {
-                    MessageEtat(texte: "Aucun film reconnu sur tes chaînes pour l'instant. Choisis-les dans Moi › Télévision.", symbole: "tv")
+                    MessageEtat(texte: "Aucun film reconnu sur tes chaînes pour l'instant. Choisis-les dans Réglages › Télévision.", symbole: "tv")
                 }
             } else {
                 ScrollView(.horizontal, showsIndicators: false) {

@@ -10,6 +10,8 @@ public struct ServiceBibliotheque {
         public var videosLues = 0
         public var videosRetenues = 0
         public var doublons = 0
+        /// Chaque film ou épisode présent en plusieurs copies : la copie gardée et les autres.
+        public var copiesEnDouble: [DoublonNAS] = []
         public var reconnues = 0
         public var recherchesEnEchec = 0
         /// Chemins des vidéos gardées sans titre TMDB, ou dont le nom n'a pas pu être lu.
@@ -38,7 +40,7 @@ public struct ServiceBibliotheque {
         let rattachees = try await rattachement.rattacher(index.entrees)
 
         var rapport = Rapport(
-            videosLues: fichiers.count, videosRetenues: index.entrees.count, doublons: index.doublons,
+            videosLues: fichiers.count, videosRetenues: index.entrees.count, doublons: index.doublons, copiesEnDouble: index.copiesEnDouble,
             recherchesEnEchec: await rattachement.recherchesEnEchec
         )
         for fichier in fichiers {

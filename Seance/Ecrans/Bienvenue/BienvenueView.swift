@@ -37,7 +37,7 @@ struct GoutPropose: Identifiable, Hashable {
 }
 
 /// Premier lancement (EF-60 à EF-62) : clé TMDB, plateformes, goûts sur une grille illustrée et
-/// notation rapide de films connus. Rejouable depuis Moi › Mes goûts, sans les premières étapes.
+/// notation rapide de films connus. Rejouable depuis Profil › Mes goûts, sans les premières étapes.
 struct BienvenueView: View {
     enum Mode { case premierLancement, gouts }
     enum Etape: Int, CaseIterable { case bienvenue, cle, plateformes, gouts, notation, fin }
@@ -108,7 +108,7 @@ struct BienvenueView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 Text("Qu'aimes-tu regarder ?").font(.title.weight(.heavy))
-                Text("Choisis autant de genres que tu veux. Tu pourras changer d'avis dans Moi › Mes goûts.")
+                Text("Choisis autant de genres que tu veux. Tu pourras changer d'avis dans Profil › Mes goûts.")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 12)], spacing: 12) {

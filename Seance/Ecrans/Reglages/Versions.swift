@@ -22,7 +22,7 @@ struct NoteVersion: Identifiable {
         NoteVersion(
             numero: "1.2",
             date: "17 septembre 2026",
-            resume: "Statistiques et bilan de l'année, widgets, Siri, fiche acteur et premier lancement guidé.",
+            resume: "Statistiques et bilan de l'année, widgets, Siri, fiche acteur, premier lancement guidé et vraie mise en page Mac.",
             fonctionnalites: [
                 Fonctionnalite(symbole: "chart.bar.fill", titre: "Statistiques",
                                detail: "Heures regardées, mois par mois, acteurs et genres favoris, plus grosse soirée ; le bilan de l'année en cartes à partager."),
@@ -38,6 +38,20 @@ struct NoteVersion: Identifiable {
                                detail: "De retour d'Infuse ou de VLC, Séance propose de marquer le film ou l'épisode comme vu."),
                 Fonctionnalite(symbole: "moon.stars", titre: "Ce soir allégé",
                                detail: "La page se concentre sur ta soirée, tes épisodes et ta liste ; la recherche d'un titre se fait dans Explorer."),
+                Fonctionnalite(symbole: "play.circle.fill", titre: "Lecture directe dans Infuse",
+                               detail: "Le film ou l'épisode s'ouvre dans la bibliothèque d'Infuse et démarre aussitôt ; VLC lit toujours le fichier du NAS."),
+                Fonctionnalite(symbole: "photo.stack", titre: "Affiches fiables",
+                               detail: "Les images interrompues se rechargent et restent en cache : plus d'affiches grises."),
+                Fonctionnalite(symbole: "internaldrive", titre: "Espace utilisé",
+                               detail: "Dans À propos : la place de l'app, de tes données et des caches, avec les affiches à vider. Les copies en double du NAS sont nommées dans Réglages › NAS."),
+                Fonctionnalite(symbole: "macwindow", titre: "Mise en page Mac",
+                               detail: "Barre latérale, fiche en deux colonnes avec où regarder à droite, grandes affiches dans Explorer."),
+                Fonctionnalite(symbole: "person.crop.circle", titre: "Profil et Réglages",
+                               detail: "Tes goûts, tes statistiques et ton bilan dans Profil ; la configuration de l'app dans Réglages, ouverts par l'engrenage sur l'iPhone et par ⌘, sur le Mac."),
+                Fonctionnalite(symbole: "clock.arrow.circlepath", titre: "Déjà vu avant",
+                               detail: "Un film, une saison ou toute une série vus il y a longtemps : ils sortent des suggestions sans fausser tes statistiques."),
+                Fonctionnalite(symbole: "star.fill", titre: "Ta note",
+                               detail: "De 1 à 10 sur la fiche d'un film ou d'une série vus : Séance en déduit tes genres et tes acteurs préférés, et te propose des titres du même type."),
             ]
         ),
         NoteVersion(

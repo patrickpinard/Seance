@@ -68,7 +68,7 @@ final class Journal {
     private static let maximum = 150
 
     private var fichier: URL {
-        URL.applicationSupportDirectory.appending(path: "journal.json")
+        DossiersSeance.reglages.appending(path: "journal.json")
     }
 
     init() {
@@ -110,7 +110,7 @@ final class Journal {
     }
 
     private func enregistrer() {
-        try? FileManager.default.createDirectory(at: URL.applicationSupportDirectory, withIntermediateDirectories: true)
+        try? FileManager.default.createDirectory(at: DossiersSeance.reglages, withIntermediateDirectories: true)
         try? JSONEncoder().encode(entrees).write(to: fichier, options: .atomic)
     }
 
@@ -118,7 +118,7 @@ final class Journal {
     static func conseil(_ erreur: any Error) -> String? {
         if let tmdb = erreur as? ErreurTMDB {
             switch tmdb {
-            case .identifiantsRefuses: return "Vérifie la clé TMDB dans Moi › TMDB."
+            case .identifiantsRefuses: return "Vérifie la clé TMDB dans Réglages › TMDB."
             case .limiteDepassee: return "TMDB limite le nombre de demandes : patiente une minute."
             case .http, .decodage: return "TMDB a répondu de façon inattendue : réessaie plus tard."
             }

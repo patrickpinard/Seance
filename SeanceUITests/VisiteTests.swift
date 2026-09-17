@@ -13,6 +13,12 @@ final class VisiteTests: XCTestCase {
         add(piece)
     }
 
+    /// Sur l'iPhone, Réglages s'ouvre depuis l'engrenage de Profil.
+    private func ouvrirReglages() {
+        app.tabBars.buttons["Profil"].firstMatch.tap()
+        app.navigationBars.buttons["Réglages"].firstMatch.tap()
+    }
+
     func testPremierLancement() throws {
         continueAfterFailure = true
         if let cle = ProcessInfo.processInfo.environment["SEANCE_CLE_TMDB"] {
@@ -52,8 +58,8 @@ final class VisiteTests: XCTestCase {
         }
         app.launchEnvironment["SEANCE_DEMO"] = "1"
         app.launch()
-        app.tabBars.buttons["Moi"].firstMatch.tap()
-        capture("80-moi")
+        app.tabBars.buttons["Profil"].firstMatch.tap()
+        capture("80-profil")
         app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Statistiques'")).firstMatch.tap()
         XCTAssertTrue(app.staticTexts["Mois par mois"].waitForExistence(timeout: 5))
         capture("81-statistiques")
@@ -80,7 +86,7 @@ final class VisiteTests: XCTestCase {
         app.launchEnvironment["SEANCE_DEMO"] = "1"
         app.launchEnvironment["SEANCE_APERCU_WIDGETS"] = "1"
         app.launch()
-        app.tabBars.buttons["Moi"].firstMatch.tap()
+        ouvrirReglages()
         app.swipeUp()
         app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Aperçu des widgets'")).firstMatch.tap()
         capture("91-widgets-accueil", attente: 5)
@@ -114,7 +120,7 @@ final class VisiteTests: XCTestCase {
         // Dans Explorer, la barre d'onglets se replie autour du champ de recherche.
         app.terminate()
         app.launch()
-        app.tabBars.buttons["Moi"].firstMatch.tap()
+        ouvrirReglages()
         app.swipeUp()
         app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'À propos'")).firstMatch.tap()
         app.buttons["Versions"].firstMatch.tap()
@@ -122,5 +128,55 @@ final class VisiteTests: XCTestCase {
         app.swipeUp()
         app.descendants(matching: .any).matching(NSPredicate(format: "label BEGINSWITH 'Version 1.1'")).firstMatch.tap()
         capture("99-versions-1-1", attente: 1.5)
+    }
+
+    /// Grand écran (iPad, même mise en page que le Mac) : barre latérale, fiche en deux colonnes, grilles.
+    func testGrandEcran() throws {
+        continueAfterFailure = true
+        if let cle = ProcessInfo.processInfo.environment["SEANCE_CLE_TMDB"] {
+            app.launchEnvironment["SEANCE_CLE_TMDB"] = cle
+        }
+        app.launchEnvironment["SEANCE_DEMO"] = "1"
+        XCUIDevice.shared.orientation = .portrait
+        app.launch()
+        // Les onglets de la barre latérale sont des lignes de liste.
+        func onglet(_ nom: String) {
+            let ligne = app.cells.matching(NSPredicate(format: "label == %@", nom)).firstMatch
+            if ligne.waitForExistence(timeout: 3) { ligne.tap() } else { app.buttons[nom].firstMatch.tap() }
+        }
+        capture("A1-accueil", attente: 6)
+        onglet("Ce soir")
+        capture("A2-ce-soir", attente: 3)
+        app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Reacher'")).firstMatch.tap()
+        capture("A3-fiche-serie", attente: 6)
+        app.swipeUp()
+        capture("A4-fiche-serie-bas", attente: 2)
+        onglet("Profil")
+        app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Statistiques'")).firstMatch.tap()
+        capture("A5-statistiques", attente: 3)
+        onglet("Explorer")
+        capture("A6-explorer", attente: 6)
+    }
+
+    /// Affiches après un défilement rapide, puis l'espace utilisé dans À propos.
+    func testAffichesEtEspaceUtilise() throws {
+        continueAfterFailure = true
+        if let cle = ProcessInfo.processInfo.environment["SEANCE_CLE_TMDB"] {
+            app.launchEnvironment["SEANCE_CLE_TMDB"] = cle
+        }
+        app.launchEnvironment["SEANCE_DEMO"] = "1"
+        XCUIDevice.shared.orientation = .portrait
+        app.launch()
+        Thread.sleep(forTimeInterval: 4)
+        // Défilement rapide : les affiches interrompues doivent se recharger en revenant.
+        for _ in 0..<4 { app.swipeUp(velocity: .fast) }
+        capture("B1-accueil-bas", attente: 3)
+        for _ in 0..<4 { app.swipeDown(velocity: .fast) }
+        capture("B2-accueil-retour", attente: 3)
+        ouvrirReglages()
+        app.swipeUp()
+        app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'À propos'")).firstMatch.tap()
+        app.swipeUp()
+        capture("B3-espace-utilise", attente: 3)
     }
 }

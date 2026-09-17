@@ -30,7 +30,23 @@ public enum LecteurVideo: String, Sendable, Codable, CaseIterable, Identifiable 
         }
     }
 
+    /// Infuse n'accepte pas d'adresse SMB dans `x-callback-url/play` (seulement http) : Séance ouvre
+    /// directement le titre dans la bibliothèque d'Infuse, par son identifiant TMDB, et `?play` lance
+    /// la lecture. Il faut que le partage du NAS soit ajouté dans Infuse. `nil` pour VLC, ou pour un
+    /// épisode dont le numéro n'a pas été lu.
+    public func lienBibliotheque(_ reference: ReferenceTitre, episode: NumeroEpisode?) -> URL? {
+        guard self == .infuse else { return nil }
+        switch reference.type {
+        case .film:
+            return URL(string: "infuse://movie/\(reference.tmdbID)?play")
+        case .serie:
+            guard let episode else { return nil }
+            return URL(string: "infuse://series/\(reference.tmdbID)-\(episode.saison)-\(episode.episode)?play")
+        }
+    }
+
     /// Lien x-callback-url : l'adresse de la vidéo, identifiants compris, voyage encodée dans `url=`.
+    /// VLC lit ainsi le SMB ; Infuse, non (voir `lienBibliotheque`).
     public func lien(pour video: URL) -> URL? {
         var nonReserves = CharacterSet.alphanumerics
         nonReserves.insert(charactersIn: "-._~")

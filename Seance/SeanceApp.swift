@@ -23,6 +23,13 @@ struct SeanceApp: App {
                 )
             }
         }
+        // Mac : Séance › Réglages… (⌘,) ouvre l'onglet Réglages.
+        .commands {
+            CommandGroup(replacing: .appSettings) {
+                Button("Réglages…") { etat.ongletDemande = .reglages }
+                    .keyboardShortcut(",")
+            }
+        }
         // Réveil accordé par iOS de temps en temps : les alertes restent à jour sans ouvrir l'app.
         .backgroundTask(.appRefresh(EtatAlertes.tacheFond)) {
             guard case .success(let conteneur) = conteneur else { return }

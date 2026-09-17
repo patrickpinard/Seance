@@ -8,6 +8,7 @@ struct RacineView: View {
     @Environment(EtatApp.self) private var etat
     @Environment(\.modelContext) private var contexte
     @Environment(\.scenePhase) private var phase
+    @Environment(\.horizontalSizeClass) private var classeTaille
     @AppStorage("bienvenue.terminee") private var bienvenueTerminee = false
     @State private var bienvenue = false
     @State private var onglet = OngletRacine.accueil
@@ -23,15 +24,34 @@ struct RacineView: View {
             Tab("Mes listes", systemImage: "bookmark", value: .listes) {
                 MesListesView()
             }
-            Tab("Moi", systemImage: "person", value: .moi) {
-                MoiView()
+            Tab("Profil", systemImage: "person.crop.circle", value: .profil) {
+                ProfilView()
+            }
+            // Sur l'iPhone, un 6e onglet cacherait Explorer derrière « Autre » : Réglages s'ouvre depuis Profil.
+            if classeTaille != .compact {
+                Tab("Réglages", systemImage: "gearshape", value: .reglages) {
+                    NavigationStack {
+                        ReglagesView()
+                            .destinationsTitres()
+                    }
+                }
             }
             Tab("Explorer", systemImage: "magnifyingglass", value: .explorer, role: .search) {
                 ExplorerView()
             }
         }
+        // iPhone : barre d'onglets ; Mac et grandes fenêtres : barre latérale.
+        .tabViewStyle(.sidebarAdaptable)
         .tint(Theme.accent)
         .task { await etat.chargerGenres() }
+        #if targetEnvironment(macCatalyst)
+        // Sous cette taille, la barre latérale et la fiche en deux colonnes se serrent.
+        .task {
+            for scene in UIApplication.shared.connectedScenes.compactMap({ $0 as? UIWindowScene }) {
+                scene.sizeRestrictions?.minimumSize = CGSize(width: 960, height: 680)
+            }
+        }
+        #endif
         // Premier lancement : le parcours de bienvenue, sauf si Séance connaît déjà des goûts.
         .task {
             #if DEBUG
@@ -88,8 +108,12 @@ struct RacineView: View {
         }
         .onChange(of: etat.ongletDemande) { _, demande in
             guard let demande else { return }
-            onglet = demande
+            onglet = demande == .reglages && classeTaille == .compact ? .profil : demande
             etat.ongletDemande = nil
+        }
+        // Fenêtre rétrécie (iPad) : l'onglet Réglages disparaît, Profil le remplace.
+        .onChange(of: classeTaille) { _, classe in
+            if classe == .compact, onglet == .reglages { onglet = .profil }
         }
         // « Dans Explorer » depuis une fiche acteur.
         .onChange(of: etat.filtreExplorerDemande) { _, demande in
@@ -119,7 +143,7 @@ struct RacineView: View {
 }
 
 enum OngletRacine: Hashable {
-    case accueil, ceSoir, listes, moi, explorer
+    case accueil, ceSoir, listes, profil, reglages, explorer
 }
 
 /// Destination commune : toucher une affiche ouvre sa fiche (UX-10).

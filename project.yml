@@ -16,9 +16,9 @@ settings:
     CODE_SIGN_STYLE: Automatic
     # Équipe personnelle de Patrick (compte Apple gratuit).
     DEVELOPMENT_TEAM: GATK475J3P
-    # Version affichée dans À propos › Versions ; à changer avec Seance/Ecrans/Moi/Versions.swift.
+    # Version affichée dans À propos › Versions ; à changer avec Seance/Ecrans/Reglages/Versions.swift.
     MARKETING_VERSION: "1.2"
-    CURRENT_PROJECT_VERSION: "4"
+    CURRENT_PROJECT_VERSION: "5"
 
 packages:
   SeanceKit:

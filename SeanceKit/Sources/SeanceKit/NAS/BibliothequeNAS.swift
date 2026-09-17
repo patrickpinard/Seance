@@ -92,13 +92,29 @@ public struct EntreeNAS: Sendable, Hashable {
     }
 }
 
+/// Plusieurs fichiers pour le même film ou le même épisode : celui que Séance garde et les autres.
+public struct DoublonNAS: Sendable, Hashable {
+    public var gardee: FichierDistant
+    public var ecartees: [FichierDistant]
+
+    public init(gardee: FichierDistant, ecartees: [FichierDistant]) {
+        self.gardee = gardee
+        self.ecartees = ecartees
+    }
+}
+
 public enum IndexNAS {
     public struct Resultat: Sendable {
         public var entrees: [EntreeNAS]
         /// Vidéos dont le nom n'a pas pu être lu.
         public var illisibles: [FichierDistant]
-        /// Copies en double d'un même film ou épisode (par exemple `.mkv` et `.mp4`).
-        public var doublons: Int
+        /// Copies en double d'un même film ou épisode (par exemple `.mkv` et `.mp4`), triées par chemin.
+        public var copiesEnDouble: [DoublonNAS]
+
+        /// Nombre de fichiers écartés parce qu'une meilleure copie existe.
+        public var doublons: Int {
+            copiesEnDouble.reduce(0) { $0 + $1.ecartees.count }
+        }
     }
 
     /// Analyse les noms et ne garde qu'une copie par film ou par épisode : la meilleure qualité connue,
@@ -107,7 +123,7 @@ public enum IndexNAS {
         var meilleures: [String: EntreeNAS] = [:]
         var ordre: [String] = []
         var illisibles: [FichierDistant] = []
-        var doublons = 0
+        var copies: [String: [FichierDistant]] = [:]
 
         for fichier in fichiers {
             guard let analyse = AnalyseNomFichier.analyser(chemin: "/" + fichier.chemin) else {
@@ -117,15 +133,20 @@ public enum IndexNAS {
             let dossier = fichier.chemin.split(separator: "/").first.map(String.init) ?? ""
             let entree = EntreeNAS(fichier: fichier, analyse: analyse, dossier: dossier)
             let cle = entree.cleOeuvre + "|" + (analyse.episode?.description ?? String(analyse.annee ?? 0))
+            copies[cle, default: []].append(fichier)
             if let existante = meilleures[cle] {
-                doublons += 1
                 if estMeilleure(entree, que: existante) { meilleures[cle] = entree }
             } else {
                 meilleures[cle] = entree
                 ordre.append(cle)
             }
         }
-        return Resultat(entrees: ordre.compactMap { meilleures[$0] }, illisibles: illisibles, doublons: doublons)
+        let enDouble = ordre.compactMap { cle -> DoublonNAS? in
+            guard let gardee = meilleures[cle]?.fichier, let toutes = copies[cle], toutes.count > 1 else { return nil }
+            return DoublonNAS(gardee: gardee, ecartees: toutes.filter { $0 != gardee }.sorted { $0.chemin < $1.chemin })
+        }
+        .sorted { $0.gardee.chemin < $1.gardee.chemin }
+        return Resultat(entrees: ordre.compactMap { meilleures[$0] }, illisibles: illisibles, copiesEnDouble: enDouble)
     }
 
     private static func estMeilleure(_ a: EntreeNAS, que b: EntreeNAS) -> Bool {

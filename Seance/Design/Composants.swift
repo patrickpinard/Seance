@@ -1,29 +1,102 @@
 import SeanceKit
 import SwiftUI
+import UIKit
 
 /// Image distante avec silhouette pendant le chargement (UX-12, UX-13).
+///
+/// `AsyncImage` abandonnait une image interrompue (défilement rapide, carrousels paresseux, Wi-Fi
+/// chargé) et ne réessayait jamais : certaines affiches restaient grises. Ici, le chargement est
+/// relancé à chaque apparition, réessayé trois fois, et les images déjà vues viennent du cache.
 struct ImageDistante: View {
     let url: URL?
     var coins: CGFloat = 12
+
+    @State private var image: UIImage?
+    @State private var echec = false
+
+    init(url: URL?, coins: CGFloat = 12) {
+        self.url = url
+        self.coins = coins
+        _image = State(initialValue: url.flatMap { CacheImages.partage.enMemoire($0) })
+    }
 
     /// L'image remplit la place proposée sans jamais imposer sa propre taille : une image de fond
     /// large ne doit pas élargir l'écran.
     var body: some View {
         Rectangle().fill(Theme.surface)
             .overlay {
-                AsyncImage(url: url, transaction: Transaction(animation: .easeOut(duration: 0.25))) { phase in
-                    switch phase {
-                    case .success(let image):
-                        image.resizable().scaledToFill()
-                    default:
-                        if url == nil {
-                            Image(systemName: "film").foregroundStyle(.tertiary)
-                        }
-                    }
+                if let image {
+                    Image(uiImage: image).resizable().scaledToFill().transition(.opacity)
+                } else if url == nil || echec {
+                    Image(systemName: "film").foregroundStyle(.tertiary)
                 }
             }
             .clipped()
             .clipShape(RoundedRectangle(cornerRadius: coins, style: .continuous))
+            .task(id: url) { await charger() }
+    }
+
+    private func charger() async {
+        guard let url else {
+            image = nil
+            return
+        }
+        if let connue = CacheImages.partage.enMemoire(url) {
+            image = connue
+            return
+        }
+        image = nil
+        echec = false
+        for tentative in 0..<3 {
+            if let chargee = await CacheImages.partage.charger(url) {
+                withAnimation(.easeOut(duration: 0.2)) { image = chargee }
+                return
+            }
+            // Vue sortie de l'écran : on reprendra à sa prochaine apparition.
+            guard !Task.isCancelled else { return }
+            try? await Task.sleep(for: .milliseconds(800 * (tentative + 1)))
+        }
+        echec = true
+    }
+}
+
+/// Affiches et fonds TMDB : décodés une fois, gardés en mémoire, et sur disque par `URLCache`.
+final class CacheImages: @unchecked Sendable {
+    static let partage = CacheImages()
+
+    private let memoire = NSCache<NSURL, UIImage>()
+    private let cacheDisque: URLCache
+    private let session: URLSession
+
+    private init() {
+        memoire.countLimit = 400
+        let configuration = URLSessionConfiguration.default
+        cacheDisque = URLCache(memoryCapacity: 30 * 1024 * 1024, diskCapacity: 300 * 1024 * 1024, directory: DossiersSeance.images)
+        configuration.urlCache = cacheDisque
+        configuration.requestCachePolicy = .returnCacheDataElseLoad
+        configuration.timeoutIntervalForRequest = 20
+        configuration.httpMaximumConnectionsPerHost = 6
+        session = URLSession(configuration: configuration)
+    }
+
+    /// « Vider » dans À propos : les affiches se rechargeront à l'affichage.
+    func vider() {
+        memoire.removeAllObjects()
+        cacheDisque.removeAllCachedResponses()
+    }
+
+    func enMemoire(_ url: URL) -> UIImage? {
+        memoire.object(forKey: url as NSURL)
+    }
+
+    /// `nil` en cas d'échec ou d'annulation : l'appelant décide de réessayer.
+    func charger(_ url: URL) async -> UIImage? {
+        guard let (donnees, reponse) = try? await session.data(from: url),
+              (reponse as? HTTPURLResponse)?.statusCode ?? 200 < 400,
+              let image = await UIImage(data: donnees)?.byPreparingForDisplay()
+        else { return nil }
+        memoire.setObject(image, forKey: url as NSURL)
+        return image
     }
 }
 

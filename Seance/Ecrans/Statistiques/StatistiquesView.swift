@@ -64,6 +64,9 @@ struct StatistiquesView: View {
             }
             .padding(.horizontal, 20)
             .padding(.vertical, 12)
+            // Sur le Mac, une colonne lisible plutôt que des cartes étirées sur toute la fenêtre.
+            .frame(maxWidth: 760)
+            .frame(maxWidth: .infinity)
         }
         .background(Theme.fond)
         .navigationTitle("Statistiques")

@@ -19,6 +19,11 @@ struct BibliothequeNASTests {
     @Test func indexSansDoublonAvecLaCopieLaPlusLourde() {
         let index = IndexNAS.construire(fichiers)
         #expect(index.doublons == 1)
+        // Le fichier gardé et celui écarté sont nommés, pour que Patrick puisse faire le ménage.
+        #expect(index.copiesEnDouble == [DoublonNAS(
+            gardee: FichierDistant(chemin: "Séries/Reacher/Saison 04/Reacher.S04E07.mkv", taille: 900_000_000),
+            ecartees: [FichierDistant(chemin: "Séries/Reacher/Saison 04/Reacher.S04E07.mp4", taille: 700_000_000)]
+        )])
         #expect(index.entrees.count == 7)
         let s04e07 = index.entrees.first { $0.analyse.episode == NumeroEpisode(saison: 4, episode: 7) }
         #expect(s04e07?.fichier.chemin.hasSuffix(".mkv") == true)
@@ -83,6 +88,12 @@ struct NASReelTests {
         for r in resultats where r.titre == nil {
             print("  non reconnu : \(r.entree.fichier.chemin) → « \(r.entree.analyse.titre) » \(r.entree.analyse.annee.map(String.init) ?? "")")
         }
+        for doublon in index.copiesEnDouble {
+            print("  en double : garde \(doublon.gardee.chemin), écarte \(doublon.ecartees.map(\.chemin).joined(separator: ", "))")
+        }
+        for r in reconnus where r.titre?.cheminAffiche == nil {
+            print("  sans affiche : \(r.entree.fichier.chemin) → \(r.titre?.reference.tmdbID ?? 0) « \(r.titre?.titre ?? "") »")
+        }
         // Détail des séries : une ligne par dossier, avec le type lu et le titre TMDB retenu.
         var parDossier: [String: (type: TypeTitre, episodes: Int, titre: String?, affiche: String?)] = [:]
         for r in resultats where r.entree.dossier.precomposedStringWithCanonicalMapping == "Séries" {
@@ -101,6 +112,17 @@ struct NASReelTests {
 
 @Suite("Lecture depuis le NAS")
 struct LecteurVideoTests {
+    @Test func infuseOuvreLeTitreDeSaBibliotheque() {
+        let gourou = ReferenceTitre(type: .film, tmdbID: 1_259_983)
+        let reacher = ReferenceTitre(type: .serie, tmdbID: 108_978)
+        #expect(LecteurVideo.infuse.lienBibliotheque(gourou, episode: nil)?.absoluteString == "infuse://movie/1259983?play")
+        #expect(LecteurVideo.infuse.lienBibliotheque(reacher, episode: NumeroEpisode(saison: 2, episode: 6))?.absoluteString
+            == "infuse://series/108978-2-6?play")
+        // Sans numéro d'épisode, rien à lancer ; VLC passe par l'adresse SMB.
+        #expect(LecteurVideo.infuse.lienBibliotheque(reacher, episode: nil) == nil)
+        #expect(LecteurVideo.vlc.lienBibliotheque(gourou, episode: nil) == nil)
+    }
+
     @Test func lienInfuseEtVLCAvecIdentifiantsEncodes() throws {
         let reglages = ReglagesNAS()
         let video = try #require(reglages.url(chemin: "Séries/Reacher/Saison 01/Reacher.S01E03.mkv", motDePasse: "p@ss:w/rd"))

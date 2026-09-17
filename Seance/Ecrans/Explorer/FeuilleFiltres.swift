@@ -371,7 +371,7 @@ struct FeuilleFiltres: View {
                 .tint(Theme.accent)
                 .disabled(abonnements.isEmpty)
             if abonnements.isEmpty {
-                Text("Coche tes abonnements dans Moi › Plateformes.").font(.caption).foregroundStyle(.secondary)
+                Text("Coche tes abonnements dans Réglages › Plateformes.").font(.caption).foregroundStyle(.secondary)
             }
             Flux {
                 ForEach([CriteresDecouverte.Monetisation.abonnement, .gratuit, .location, .achat], id: \.self) { monetisation in

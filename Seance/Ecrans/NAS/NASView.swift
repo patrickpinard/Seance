@@ -58,7 +58,11 @@ struct NASView: View {
     @State private var recherche = ""
     @State private var fichierChoisi: FichierNAS?
 
-    private let colonnes = [GridItem(.adaptive(minimum: 105), spacing: 12, alignment: .top)]
+    @Environment(\.horizontalSizeClass) private var largeurGrille
+    /// Affiches plus grandes sur le Mac : 105 points y feraient des timbres-poste.
+    private var colonnes: [GridItem] {
+        [GridItem(.adaptive(minimum: largeurGrille == .regular ? 150 : 105), spacing: 12, alignment: .top)]
+    }
 
     var body: some View {
         Group {

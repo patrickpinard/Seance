@@ -22,7 +22,7 @@ public struct ServiceSauvegarde {
         s.visionnages = try contexte.fetch(FetchDescriptor<Visionnage>(sortBy: [SortDescriptor(\.vuLe)])).map { v in
             let episode = v.saison.flatMap { saison in v.episode.map { NumeroEpisode(saison: saison, episode: $0) } }
             return Sauvegarde.Visionnage(reference: ReferenceTitre(type: v.type, tmdbID: v.tmdbID), episode: episode,
-                                         dureeMinutes: v.dureeMinutes, note: v.note, vuLe: v.vuLe)
+                                         dureeMinutes: v.dureeMinutes, note: v.note, vuLe: v.vuLe, anterieur: v.anterieur ? true : nil)
         }
         s.listes = try contexte.fetch(FetchDescriptor<ListePerso>(sortBy: [SortDescriptor(\.creeeLe)])).map {
             Sauvegarde.Liste(nom: $0.nom, creeeLe: $0.creeeLe, titres: $0.titres)
@@ -61,7 +61,7 @@ public struct ServiceSauvegarde {
         }
         for v in plan.visionnages {
             let visionnage = Visionnage(reference: v.reference, saison: v.episode?.saison, episode: v.episode?.episode,
-                                        dureeMinutes: v.dureeMinutes, vuLe: v.vuLe)
+                                        dureeMinutes: v.dureeMinutes, vuLe: v.vuLe, anterieur: v.anterieur ?? false)
             visionnage.note = v.note
             contexte.insert(visionnage)
         }

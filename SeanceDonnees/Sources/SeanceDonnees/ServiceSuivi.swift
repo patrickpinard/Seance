@@ -65,10 +65,10 @@ public struct ServiceSuivi {
 
     // MARK: - Visionnages
 
-    /// EF-14 : un film vu, avec sa note facultative.
-    public func marquerVu(film: FicheFilm, note: Int? = nil, le date: Date = .now) throws {
+    /// EF-14 : un film vu, avec sa note facultative. `anterieur` : déjà vu avant, hors statistiques.
+    public func marquerVu(film: FicheFilm, note: Int? = nil, le date: Date = .now, anterieur: Bool = false) throws {
         let suivi = try suivre(film: film, statut: .termine)
-        let visionnage = Visionnage(reference: film.reference, dureeMinutes: film.dureeMinutes ?? 0, vuLe: date)
+        let visionnage = Visionnage(reference: film.reference, dureeMinutes: film.dureeMinutes ?? 0, vuLe: date, anterieur: anterieur)
         visionnage.note = note
         contexte.insert(visionnage)
         if let note { suivi.note = note }
@@ -76,14 +76,16 @@ public struct ServiceSuivi {
     }
 
     /// EF-11 : coche les épisodes donnés, sans doublon ; renvoie le nombre d'épisodes ajoutés.
+    /// `anterieur` : des épisodes déjà vus avant, hors statistiques.
     @discardableResult
-    public func cocher(_ episodes: [EpisodeTMDB], serie: SerieDetail, le date: Date = .now) throws -> Int {
+    public func cocher(_ episodes: [EpisodeTMDB], serie: SerieDetail, le date: Date = .now, anterieur: Bool = false) throws -> Int {
         let dejaVus = try episodesVus(serie.reference)
         let suivi = try suivre(serie: serie, statut: .enCours)
         var ajoutes = 0
         for episode in episodes where episode.saison > 0 && !dejaVus.contains(episode.numeroEpisode) {
             let duree = episode.dureeMinutes ?? serie.dureesEpisode.first ?? 0
-            contexte.insert(Visionnage(reference: serie.reference, saison: episode.saison, episode: episode.numero, dureeMinutes: duree, vuLe: date))
+            contexte.insert(Visionnage(reference: serie.reference, saison: episode.saison, episode: episode.numero, dureeMinutes: duree,
+                                       vuLe: date, anterieur: anterieur))
             ajoutes += 1
         }
         if suivi.statut == .aVoir { suivi.statut = .enCours }
@@ -114,6 +116,23 @@ public struct ServiceSuivi {
         for visionnage in try visionnages(serie) where visionnage.saison == numero.saison && visionnage.episode == numero.episode {
             visionnage.note = note
         }
+        try contexte.save()
+    }
+
+    /// Ta note du film, de 1 à 10, ou `nil` pour l'effacer : le signal le plus sûr pour les goûts.
+    public func noter(film: FicheFilm, note: Int?) throws {
+        let suivi = try suivre(film: film, statut: .termine)
+        suivi.note = note.map { min(10, max(1, $0)) }
+        for visionnage in try visionnages(film.reference) {
+            visionnage.note = suivi.note
+        }
+        try contexte.save()
+    }
+
+    /// Ta note de la série dans son ensemble ; elle l'emporte sur la moyenne des épisodes notés.
+    public func noter(serie: SerieDetail, note: Int?) throws {
+        let suivi = try suivre(serie: serie, statut: try self.suivi(serie.reference)?.statut ?? .enCours)
+        suivi.note = note.map { min(10, max(1, $0)) }
         try contexte.save()
     }
 

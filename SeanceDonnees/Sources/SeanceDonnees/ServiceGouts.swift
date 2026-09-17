@@ -36,7 +36,7 @@ public struct ServiceGouts {
             let reference = ReferenceTitre(type: .film, tmdbID: visionnage.tmdbID)
             titresCouverts.insert(reference)
             observations.append(observation(
-                origine: visionnage.note.map(ObservationGout.Origine.note) ?? .visionnage,
+                origine: (visionnage.note ?? parReference[reference]?.note).map(ObservationGout.Origine.note) ?? .visionnage,
                 suivi: parReference[reference], reference: reference,
                 duree: visionnage.dureeMinutes, date: visionnage.vuLe
             ))
@@ -49,8 +49,9 @@ public struct ServiceGouts {
             titresCouverts.insert(reference)
             let notes = episodes.compactMap(\.note)
             let moyenne = notes.isEmpty ? nil : Int((Double(notes.reduce(0, +)) / Double(notes.count)).rounded())
+            // La note de la série entière dit plus que la moyenne de quelques épisodes notés.
             observations.append(observation(
-                origine: moyenne.map(ObservationGout.Origine.note) ?? .visionnage,
+                origine: (parReference[reference]?.note ?? moyenne).map(ObservationGout.Origine.note) ?? .visionnage,
                 suivi: parReference[reference], reference: reference,
                 duree: nil, date: episodes.map(\.vuLe).max(),
                 poids: min(2, max(1, Double(episodes.count) / 6))

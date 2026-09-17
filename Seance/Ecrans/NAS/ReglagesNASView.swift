@@ -14,6 +14,7 @@ struct ReglagesNASView: View {
     @State private var motDePasse = ""
     @State private var enTest = false
     @State private var resultatTest: String?
+    @State private var doublonsVisibles = false
     @State private var nonReconnuesVisibles = false
 
     var body: some View {
@@ -92,8 +93,16 @@ struct ReglagesNASView: View {
                     LabeledContent("Films reconnus", value: "\(rapport.filmsReconnus)")
                     LabeledContent("Séries reconnues", value: "\(rapport.seriesReconnues)")
                     LabeledContent("Vidéos reconnues", value: "\(rapport.reconnues) sur \(rapport.videosRetenues)")
-                    if rapport.doublons > 0 {
-                        LabeledContent("Copies en double", value: "\(rapport.doublons)")
+                    if !rapport.copiesEnDouble.isEmpty {
+                        DisclosureGroup("Copies en double (\(rapport.doublons))", isExpanded: $doublonsVisibles) {
+                            ForEach(rapport.copiesEnDouble, id: \.gardee.chemin) { doublon in
+                                CopiesEnDouble(doublon: doublon)
+                            }
+                            let recuperable = rapport.copiesEnDouble.flatMap(\.ecartees).reduce(Int64(0)) { $0 + $1.taille }
+                            Text("Séance garde la meilleure qualité, puis le fichier le plus lourd. Supprimer les autres copies libérerait \(ByteCountFormatter.string(fromByteCount: recuperable, countStyle: .file)) sur le NAS.")
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+                        }
                     }
                     if !rapport.nonReconnues.isEmpty {
                         DisclosureGroup("Non reconnues (\(rapport.nonReconnues.count))", isExpanded: $nonReconnuesVisibles) {
@@ -128,7 +137,7 @@ struct ReglagesNASView: View {
             } header: {
                 Text("Lecture")
             } footer: {
-                Text("Infuse ou VLC lisent la vidéo directement sur le NAS, sans la copier sur l'iPhone.")
+                Text("Infuse ou VLC lisent la vidéo directement sur le NAS, sans la copier sur l'iPhone. Infuse : ajoute d'abord le partage « \(etat.nas.reglages.partage) » dans Infuse (Ajouter des fichiers › SMB) ; Séance y ouvre alors le film ou l'épisode et lance la lecture.")
             }
             #endif
         }
@@ -185,5 +194,34 @@ struct ReglagesNASView: View {
             etat.journal.noter(.nas, EtatNAS.injoignable(error) ? "Le NAS n'est pas joignable." : "Le test de connexion au NAS a échoué.",
                                erreur: error, conseil: ErreurNAS.message(error))
         }
+    }
+}
+
+/// Un film ou un épisode en plusieurs copies : celle que Séance lit, puis celles qu'elle ignore.
+private struct CopiesEnDouble: View {
+    let doublon: DoublonNAS
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            ligne(doublon.gardee, gardee: true)
+            ForEach(doublon.ecartees, id: \.chemin) { copie in
+                ligne(copie, gardee: false)
+            }
+        }
+        .padding(.vertical, 2)
+    }
+
+    private func ligne(_ fichier: FichierDistant, gardee: Bool) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
+            Image(systemName: gardee ? "checkmark.circle.fill" : "doc.on.doc")
+                .foregroundStyle(gardee ? Theme.accent : .secondary)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(fichier.chemin).font(.footnote.weight(gardee ? .semibold : .regular))
+                Text("\(gardee ? "Lue par Séance" : "Ignorée") · \(ByteCountFormatter.string(fromByteCount: fichier.taille, countStyle: .file))")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .accessibilityElement(children: .combine)
     }
 }

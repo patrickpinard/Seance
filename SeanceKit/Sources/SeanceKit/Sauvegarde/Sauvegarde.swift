@@ -42,13 +42,16 @@ public struct Sauvegarde: Codable, Sendable, Equatable {
         public var dureeMinutes: Int
         public var note: Int?
         public var vuLe: Date
+        /// « Déjà vu avant » ; absent des sauvegardes plus anciennes.
+        public var anterieur: Bool?
 
-        public init(reference: ReferenceTitre, episode: NumeroEpisode?, dureeMinutes: Int, note: Int?, vuLe: Date) {
+        public init(reference: ReferenceTitre, episode: NumeroEpisode?, dureeMinutes: Int, note: Int?, vuLe: Date, anterieur: Bool? = nil) {
             self.reference = reference
             self.episode = episode
             self.dureeMinutes = dureeMinutes
             self.note = note
             self.vuLe = vuLe
+            self.anterieur = anterieur
         }
 
         /// Deux visionnages du même épisode à la même minute sont un doublon.

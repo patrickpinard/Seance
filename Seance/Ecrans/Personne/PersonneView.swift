@@ -249,7 +249,7 @@ struct PersonneView: View {
 
     private func charger() async {
         guard let client = etat.tmdb else {
-            erreur = "Enregistre d'abord ta clé TMDB dans Moi › TMDB."
+            erreur = "Enregistre d'abord ta clé TMDB dans Réglages › TMDB."
             return
         }
         erreur = nil

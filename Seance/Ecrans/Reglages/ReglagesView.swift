@@ -3,99 +3,70 @@ import SeanceKit
 import SwiftData
 import SwiftUI
 
-/// Réglages classés par thème, comme l'app Réglages d'iOS : une ligne par catégorie, avec son état
-/// en un coup d'œil, et une page par catégorie.
-struct MoiView: View {
+/// Réglages de l'app classés par thème, comme l'app Réglages d'iOS : une ligne par catégorie, avec son état
+/// en un coup d'œil, et une page par catégorie. Tes goûts et tes statistiques sont dans Profil.
+/// Sans pile de navigation : onglet à part sur le Mac, page ouverte depuis Profil sur l'iPhone.
+struct ReglagesView: View {
     @Environment(EtatApp.self) private var etat
     @Query(filter: #Predicate<Abonnement> { $0.actif }) private var abonnements: [Abonnement]
     @Query(filter: #Predicate<Chaine> { $0.active }) private var chaines: [Chaine]
-    @Query private var interets: [Interet]
-    @Query private var visionnages: [Visionnage]
-    @State private var gouts = false
 
     var body: some View {
-        NavigationStack {
-            List {
-                Section("Toi") {
-                    Button { gouts = true } label: {
-                        LigneReglage(titre: "Mes goûts", symbole: "heart.fill", couleur: .pink,
-                                     valeur: Set(interets.map(\.libelle)).isEmpty ? "À choisir" : "\(Set(interets.map(\.libelle)).count) genres")
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityHint("Choisir tes genres et noter des films connus")
-                    NavigationLink { StatistiquesView() } label: {
-                        LigneReglage(titre: "Statistiques", symbole: "chart.bar.fill", couleur: .purple, valeur: libelleStatistiques)
-                    }
+        List {
+            Section("Comptes") {
+                NavigationLink { ReglagesTMDBView() } label: {
+                    LigneReglage(titre: "TMDB", symbole: "film.stack", couleur: .teal,
+                                 valeur: etat.tmdb == nil ? "À saisir" : "Connecté")
                 }
-
-                Section("Comptes") {
-                    NavigationLink { ReglagesTMDBView() } label: {
-                        LigneReglage(titre: "TMDB", symbole: "film.stack", couleur: .teal,
-                                     valeur: etat.tmdb == nil ? "À saisir" : "Connecté")
-                    }
-                }
-
-                Section("Où regarder") {
-                    NavigationLink { ReglagesPlateformesView() } label: {
-                        LigneReglage(titre: "Plateformes", symbole: "play.rectangle.on.rectangle.fill", couleur: .red,
-                                     valeur: abonnements.isEmpty ? "Aucune" : "\(abonnements.count)")
-                    }
-                    NavigationLink { ReglagesTeleView() } label: {
-                        LigneReglage(titre: "Télévision", symbole: "tv.fill", couleur: .blue,
-                                     valeur: chaines.isEmpty ? "Aucune chaîne" : "\(chaines.count) chaînes")
-                    }
-                    NavigationLink { ReglagesNASView() } label: {
-                        LigneReglage(titre: "NAS", symbole: "externaldrive.fill", couleur: .green,
-                                     valeur: etat.nas.estConfigure ? "Configuré" : "À configurer")
-                    }
-                }
-
-                Section("Me prévenir") {
-                    NavigationLink { ReglagesAlertesView() } label: {
-                        LigneReglage(titre: "Alertes", symbole: "bell.badge.fill", couleur: .red, valeur: libelleAlertes)
-                    }
-                }
-
-                Section("Mes données") {
-                    NavigationLink { ReglagesSauvegardeView() } label: {
-                        LigneReglage(titre: "Sauvegarde", symbole: "externaldrive.badge.icloud", couleur: .indigo, valeur: nil)
-                    }
-                }
-
-                Section {
-                    NavigationLink { AProposView() } label: {
-                        LigneReglage(titre: "À propos", symbole: "info", couleur: .gray, valeur: nil)
-                    }
-                }
-
-                #if DEBUG
-                if ApercuWidgetsView.actif {
-                    Section("Développement") {
-                        NavigationLink { ApercuWidgetsView() } label: {
-                            LigneReglage(titre: "Aperçu des widgets", symbole: "square.grid.2x2.fill", couleur: .gray, valeur: nil)
-                        }
-                    }
-                }
-                #endif
             }
-            .scrollContentBackground(.hidden)
-            .background(Theme.fond)
-            .navigationTitle("Moi")
-            .destinationsTitres()
-            .task { await etat.alertes.actualiserAutorisation() }
-            .sheet(isPresented: $gouts) {
-                BienvenueView(mode: .gouts) { gouts = false }
+
+            Section("Où regarder") {
+                NavigationLink { ReglagesPlateformesView() } label: {
+                    LigneReglage(titre: "Plateformes", symbole: "play.rectangle.on.rectangle.fill", couleur: .red,
+                                 valeur: abonnements.isEmpty ? "Aucune" : "\(abonnements.count)")
+                }
+                NavigationLink { ReglagesTeleView() } label: {
+                    LigneReglage(titre: "Télévision", symbole: "tv.fill", couleur: .blue,
+                                 valeur: chaines.isEmpty ? "Aucune chaîne" : "\(chaines.count) chaînes")
+                }
+                NavigationLink { ReglagesNASView() } label: {
+                    LigneReglage(titre: "NAS", symbole: "externaldrive.fill", couleur: .green,
+                                 valeur: etat.nas.estConfigure ? "Configuré" : "À configurer")
+                }
             }
+
+            Section("Me prévenir") {
+                NavigationLink { ReglagesAlertesView() } label: {
+                    LigneReglage(titre: "Alertes", symbole: "bell.badge.fill", couleur: .red, valeur: libelleAlertes)
+                }
+            }
+
+            Section("Mes données") {
+                NavigationLink { ReglagesSauvegardeView() } label: {
+                    LigneReglage(titre: "Sauvegarde", symbole: "externaldrive.badge.icloud", couleur: .indigo, valeur: nil)
+                }
+            }
+
+            Section {
+                NavigationLink { AProposView() } label: {
+                    LigneReglage(titre: "À propos", symbole: "info", couleur: .gray, valeur: nil)
+                }
+            }
+
+            #if DEBUG
+            if ApercuWidgetsView.actif {
+                Section("Développement") {
+                    NavigationLink { ApercuWidgetsView() } label: {
+                        LigneReglage(titre: "Aperçu des widgets", symbole: "square.grid.2x2.fill", couleur: .gray, valeur: nil)
+                    }
+                }
+            }
+            #endif
         }
-    }
-
-    /// Les heures de l'année, ou l'annonce du bilan en décembre.
-    private var libelleStatistiques: String? {
-        let annee = Calendar.current.component(.year, from: .now)
-        if ServiceStatistiques.bilanOuvert(), !visionnages.isEmpty { return "Bilan \(String(annee)) prêt" }
-        let debut = ServiceStatistiques.bornesAnnee(annee).lowerBound
-        let minutes = visionnages.filter { $0.vuLe >= debut }.reduce(0) { $0 + $1.dureeMinutes }
-        return minutes == 0 ? nil : "\(Format.duree(minutes)) en \(String(annee))"
+        .scrollContentBackground(.hidden)
+        .background(Theme.fond)
+        .navigationTitle("Réglages")
+        .task { await etat.alertes.actualiserAutorisation() }
     }
 
     private var libelleAlertes: String {
@@ -107,8 +78,8 @@ struct MoiView: View {
     }
 }
 
-/// Ligne de catégorie : pastille colorée, titre et état courant à droite.
-private struct LigneReglage: View {
+/// Ligne de catégorie, dans Réglages et Profil : pastille colorée, titre et état courant à droite.
+struct LigneReglage: View {
     let titre: String
     let symbole: String
     let couleur: Color
@@ -403,9 +374,11 @@ struct AProposView: View {
     private var application: some View {
         Section("L'application") {
             Text("Séance est ton guide personnel des films et séries d'action. Elle te dit où regarder chaque titre en Suisse : sur tes plateformes, à la télévision ou sur ton NAS, ou comment l'obtenir légalement.")
-            Text("Elle suit tes séries épisode par épisode, garde la trace de ce que tu as vu et te prévient des nouvelles saisons, des sorties et des passages à la télé. Chaque soir, elle te propose des idées choisies selon tes goûts, toutes vérifiées dans TMDB.")
-            Text("Tes données restent sur ton appareil. Une sauvegarde dans un fichier, depuis Moi › Sauvegarde, les protège et permet de les reprendre sur un autre appareil.")
+            Text("Elle suit tes séries épisode par épisode, garde la trace de ce que tu as vu et te prévient des nouvelles saisons, des sorties et des passages à la télé. « Pour toi », sur l'accueil, propose des titres selon tes goûts, et « Ma soirée » réunit ce que tu gardes pour ce soir.")
+            Text("Tes données restent sur ton appareil. Une sauvegarde dans un fichier, depuis Réglages › Sauvegarde, les protège et permet de les reprendre sur un autre appareil.")
         }
+
+        EspaceUtilise()
 
         Section("Sources des données") {
             Text("Cette application utilise TMDB et les API de TMDB, mais n'est ni approuvée, ni certifiée, ni validée par TMDB.")
@@ -413,5 +386,54 @@ struct AProposView: View {
             Text("Programmes TV de la RTS et des chaînes françaises : XML TV Fr, projet bénévole.")
             Text("Accès au NAS : AMSMB2 et libsmb2, sous licence LGPL.")
         }
+    }
+}
+
+/// Espace occupé par Séance, par nature de données, et vidage des images en cache.
+private struct EspaceUtilise: View {
+    @State private var volumetrie: Volumetrie?
+    @State private var enVidage = false
+
+    var body: some View {
+        Section {
+            if let volumetrie {
+                LabeledContent("Application", value: Self.format(volumetrie.application))
+                LabeledContent("Tes données", value: Self.format(volumetrie.donnees))
+                LabeledContent("Fiches, télé et NAS en cache", value: Self.format(volumetrie.cache))
+                LabeledContent("Affiches en cache", value: Self.format(volumetrie.images))
+                if volumetrie.divers > 0 {
+                    LabeledContent("Widgets et journal", value: Self.format(volumetrie.divers))
+                }
+                LabeledContent {
+                    Text(Self.format(volumetrie.total)).fontWeight(.semibold)
+                } label: {
+                    Text("Total").fontWeight(.semibold)
+                }
+                Button("Vider les affiches en cache", role: .destructive) {
+                    enVidage = true
+                    CacheImages.partage.vider()
+                    Task {
+                        self.volumetrie = await Volumetrie.mesurer()
+                        enVidage = false
+                    }
+                }
+                .disabled(enVidage || volumetrie.images == 0)
+            } else {
+                HStack {
+                    Text("Mesure en cours…").foregroundStyle(.secondary)
+                    Spacer()
+                    ProgressView()
+                }
+            }
+        } header: {
+            Text("Espace utilisé")
+        } footer: {
+            Text("Tes données sont ce que la sauvegarde protège. Le reste se reconstruit tout seul : les affiches se rechargent quand elles s'affichent.")
+        }
+        .task { volumetrie = await Volumetrie.mesurer() }
+    }
+
+    private static func format(_ octets: Int64) -> String {
+        ByteCountFormatter.string(fromByteCount: octets, countStyle: .file)
     }
 }

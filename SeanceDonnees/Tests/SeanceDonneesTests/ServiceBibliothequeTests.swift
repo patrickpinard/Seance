@@ -56,6 +56,7 @@ struct ServiceBibliothequeTests {
 
         #expect(rapport.videosLues == 5)
         #expect(rapport.doublons == 1)
+        #expect(rapport.copiesEnDouble.count == 1 && rapport.copiesEnDouble.first?.ecartees.count == 1)
         #expect(rapport.reconnues == 3)
         #expect(rapport.nonReconnues == ["NEW/Film.Inconnu.2025.mkv"])
         #expect(rapport.videosParDossier == ["Films": 2, "NEW": 1, "Séries": 2])

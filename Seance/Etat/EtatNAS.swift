@@ -161,19 +161,35 @@ final class EtatNAS {
         }
     }
 
-    /// Lien qui ouvre la vidéo dans l'app de lecture ; `nil` sans mot de passe.
-    func lien(pour fichier: FichierNAS, avec lecteur: LecteurVideo) -> URL? {
+    enum Lien {
+        case pret(URL)
+        case motDePasseManquant
+        /// Infuse ne s'ouvre directement que sur un titre reconnu (et un épisode numéroté).
+        case titreInconnu
+    }
+
+    /// Lien qui lance la vidéo dans l'app de lecture.
+    func lien(pour fichier: FichierNAS, avec lecteur: LecteurVideo) -> Lien {
         #if targetEnvironment(macCatalyst)
         // Sur Mac, le partage est souvent déjà monté : le fichier s'ouvre dans le lecteur par défaut.
         // Sinon, le Finder monte le partage (identifiants demandés ou repris du trousseau de macOS).
         let monte = URL(filePath: "/Volumes").appending(path: reglages.partage).appending(path: fichier.chemin)
-        if FileManager.default.fileExists(atPath: monte.path(percentEncoded: false)) { return monte }
-        return reglages.url(chemin: fichier.chemin)
+        if FileManager.default.fileExists(atPath: monte.path(percentEncoded: false)) { return .pret(monte) }
+        return reglages.url(chemin: fichier.chemin).map { .pret($0) } ?? .titreInconnu
         #else
-        guard let motDePasse = try? coffre.lire(.nas),
-              let video = reglages.url(chemin: fichier.chemin, motDePasse: motDePasse)
-        else { return nil }
-        return lecteur.lien(pour: video)
+        switch lecteur {
+        case .infuse:
+            // Le titre s'ouvre dans la bibliothèque d'Infuse et démarre aussitôt.
+            let episode = fichier.saison.flatMap { saison in fichier.episode.map { NumeroEpisode(saison: saison, episode: $0) } }
+            guard let reference = fichier.reference, let lien = lecteur.lienBibliotheque(reference, episode: episode) else { return .titreInconnu }
+            return .pret(lien)
+        case .vlc:
+            guard let motDePasse = try? coffre.lire(.nas),
+                  let video = reglages.url(chemin: fichier.chemin, motDePasse: motDePasse),
+                  let lien = lecteur.lien(pour: video)
+            else { return .motDePasseManquant }
+            return .pret(lien)
+        }
         #endif
     }
 

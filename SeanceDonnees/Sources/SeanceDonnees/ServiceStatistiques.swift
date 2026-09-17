@@ -18,10 +18,11 @@ public struct ServiceStatistiques {
         public let note: Int
     }
 
-    /// Chaque visionnage, avec les genres et acteurs copiés sur le titre suivi.
+    /// Chaque visionnage daté, avec les genres et acteurs copiés sur le titre suivi. Un titre « déjà vu avant »
+    /// n'a pas de date : il reste hors des statistiques.
     public func visionnages() throws -> [VisionnageStat] {
         let suivis = Dictionary(try contexte.fetch(FetchDescriptor<Suivi>()).map { ($0.reference, $0) }, uniquingKeysWith: { premier, _ in premier })
-        return try contexte.fetch(FetchDescriptor<Visionnage>()).map { v in
+        return try contexte.fetch(FetchDescriptor<Visionnage>(predicate: #Predicate { $0.anterieur == false })).map { v in
             let reference = ReferenceTitre(type: v.type, tmdbID: v.tmdbID)
             let suivi = suivis[reference]
             return VisionnageStat(reference: reference, dureeMinutes: v.dureeMinutes, vuLe: v.vuLe,
@@ -38,7 +39,8 @@ public struct ServiceStatistiques {
     public func annees(fuseau: TimeZone = .suisse) throws -> [Int] {
         var calendrier = Calendar(identifier: .gregorian)
         calendrier.timeZone = fuseau
-        return Set(try contexte.fetch(FetchDescriptor<Visionnage>()).map { calendrier.component(.year, from: $0.vuLe) }).sorted(by: >)
+        return Set(try contexte.fetch(FetchDescriptor<Visionnage>(predicate: #Predicate { $0.anterieur == false }))
+            .map { calendrier.component(.year, from: $0.vuLe) }).sorted(by: >)
     }
 
     /// Le film vu dans l'année avec la meilleure note ; à note égale, le plus récent.
@@ -47,7 +49,7 @@ public struct ServiceStatistiques {
         let debut = bornes.lowerBound
         let fin = bornes.upperBound
         let film = TypeTitre.film.rawValue
-        let vus = try contexte.fetch(FetchDescriptor<Visionnage>(predicate: #Predicate { $0.typeBrut == film && $0.vuLe >= debut && $0.vuLe <= fin }))
+        let vus = try contexte.fetch(FetchDescriptor<Visionnage>(predicate: #Predicate { $0.typeBrut == film && $0.anterieur == false && $0.vuLe >= debut && $0.vuLe <= fin }))
         let suivis = Dictionary(try contexte.fetch(FetchDescriptor<Suivi>()).map { ($0.reference, $0) }, uniquingKeysWith: { premier, _ in premier })
         return vus.compactMap { v -> (MeilleurTitre, Date)? in
             let reference = ReferenceTitre(type: .film, tmdbID: v.tmdbID)

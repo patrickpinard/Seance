@@ -4,7 +4,8 @@ import SwiftData
 import SwiftUI
 
 /// Suivi d'une série épisode par épisode (EF-11 à EF-13, EF-66) : prochain épisode à regarder,
-/// progression, saisons avec cases à cocher, « vu jusqu'ici » et notes.
+/// progression, saisons avec cases à cocher, « vu jusqu'ici » et notes. « Déjà vu avant » coche une saison
+/// ou toute la série sans la compter dans les statistiques.
 struct SectionEpisodes: View {
     let serie: SerieDetail
 
@@ -166,10 +167,41 @@ struct SectionEpisodes: View {
                     .tint(Theme.accent)
                     .padding(.top, 4)
                 }
+                boutonsDejaVu(saison: toutVu ? [] : diffuses)
             }
             .padding(.horizontal, 20)
         } else {
             ProgressView().frame(maxWidth: .infinity).padding()
+        }
+    }
+
+    /// Vu il y a longtemps : la saison affichée, ou toute la série jusqu'au dernier épisode diffusé.
+    @ViewBuilder
+    private func boutonsDejaVu(saison diffuses: [EpisodeTMDB]) -> some View {
+        let resteSerie = prochain?.disponible == true
+        if !diffuses.isEmpty || resteSerie {
+            VStack(spacing: 6) {
+                HStack(spacing: 16) {
+                    if !diffuses.isEmpty {
+                        Button("Saison déjà vue avant") {
+                            _ = try? ServiceSuivi(contexte: contexte).cocher(diffuses, serie: serie, anterieur: true)
+                            replanifierAlertes()
+                        }
+                    }
+                    if resteSerie {
+                        Button("Toute la série déjà vue avant") {
+                            Task { await marquerToutDejaVu() }
+                        }
+                    }
+                }
+                .font(.subheadline)
+                .tint(Theme.accentClair)
+                Text("Déjà vu avant : la série sort des suggestions sans compter dans tes statistiques.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+            }
+            .padding(.top, 2)
         }
     }
 
@@ -220,6 +252,9 @@ struct SectionEpisodes: View {
                 Button("Vu jusqu'ici", systemImage: "checkmark.circle") {
                     Task { await marquer(jusqua: episode.numeroEpisode, seulement: false) }
                 }
+                Button("Déjà vu avant, jusqu'ici", systemImage: "clock.arrow.circlepath") {
+                    Task { await marquer(jusqua: episode.numeroEpisode, seulement: false, anterieur: true) }
+                }
             }
             if vu {
                 Menu("Noter l'épisode", systemImage: "star") {
@@ -256,8 +291,14 @@ struct SectionEpisodes: View {
         }
     }
 
+    /// Toute la série déjà vue avant : chaque saison est chargée, puis cochée jusqu'au dernier épisode diffusé.
+    private func marquerToutDejaVu() async {
+        guard let derniere = saisons.last else { return }
+        await marquer(jusqua: NumeroEpisode(saison: derniere.numero, episode: derniere.nombreEpisodes), seulement: false, anterieur: true)
+    }
+
     /// Coche un épisode, ou tous les épisodes diffusés jusqu'à lui en chargeant les saisons précédentes (EF-11).
-    private func marquer(jusqua cible: NumeroEpisode, seulement: Bool) async {
+    private func marquer(jusqua cible: NumeroEpisode, seulement: Bool, anterieur: Bool = false) async {
         let aCharger = seulement ? [cible.saison] : saisons.map(\.numero).filter { $0 <= cible.saison }
         for numero in aCharger { await charger(numero) }
         let connus = aCharger.compactMap { saisonsChargees[$0] }.flatMap(\.episodes)
@@ -265,7 +306,7 @@ struct SectionEpisodes: View {
             ? connus.filter { $0.numeroEpisode == cible }
             : ProgressionSerie.episodes(jusqua: cible, parmi: connus).filter(estDiffuse)
         guard !episodes.isEmpty else { return }
-        _ = try? ServiceSuivi(contexte: contexte).cocher(episodes, serie: serie)
+        _ = try? ServiceSuivi(contexte: contexte).cocher(episodes, serie: serie, anterieur: anterieur)
         replanifierAlertes()
     }
 

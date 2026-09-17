@@ -92,7 +92,7 @@ struct FicheView: View {
 
     private func charger() async {
         guard let client = etat.tmdb else {
-            erreur = "Enregistre d'abord ta clé TMDB dans Moi › TMDB."
+            erreur = "Enregistre d'abord ta clé TMDB dans Réglages › TMDB."
             return
         }
         do {
@@ -121,52 +121,16 @@ private struct ContenuFiche: View {
     @State private var videoChoisie: Video?
     @State private var dansSoiree = false
 
+    @Environment(\.horizontalSizeClass) private var largeur
+
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 24) {
-                enTete
-                actions
-                BlocOuRegarder(etat: etatDisponibilite)
-                SectionNASFiche(reference: fiche.reference)
-                if !fiche.synopsis.isEmpty || !(fiche.accroche ?? "").isEmpty {
-                    VStack(alignment: .leading, spacing: 8) {
-                        TitreSection("Synopsis")
-                        VStack(alignment: .leading, spacing: 8) {
-                            if let accroche = fiche.accroche, !accroche.isEmpty {
-                                Text(accroche).italic()
-                            }
-                            if !fiche.synopsis.isEmpty {
-                                Text(fiche.synopsis).foregroundStyle(.secondary)
-                            }
-                        }
-                        .padding(.horizontal, 20)
-                    }
+            Group {
+                if largeur == .regular {
+                    deuxColonnes
+                } else {
+                    uneColonne
                 }
-                if let serie = fiche.serie {
-                    SectionEpisodes(serie: serie)
-                }
-                SectionBandesAnnonces(videos: fiche.videos) { videoChoisie = $0 }
-                if !fiche.casting.isEmpty {
-                    VStack(alignment: .leading, spacing: 12) {
-                        TitreSection("Casting")
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            LazyHStack(alignment: .top, spacing: 14) {
-                                ForEach(fiche.casting) { personne in
-                                    NavigationLink(value: ReferencePersonne(id: personne.id, nom: personne.nom)) {
-                                        CartePersonne(personne: personne)
-                                    }
-                                    .buttonStyle(.plain)
-                                    .help("Voir la fiche de \(personne.nom) : filmographie, vus et pas vus")
-                                }
-                            }
-                            .padding(.horizontal, 20)
-                        }
-                    }
-                }
-                Text("Disponibilités : JustWatch")
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
-                    .padding(.horizontal, 20)
             }
             .padding(.bottom, 40)
         }
@@ -177,14 +141,107 @@ private struct ContenuFiche: View {
         }
     }
 
+    /// iPhone : tout à la suite, les actions et où regarder en premier.
+    private var uneColonne: some View {
+        VStack(alignment: .leading, spacing: 24) {
+            enTete
+            actions
+            NoteTitre(fiche: fiche)
+            BlocOuRegarder(etat: etatDisponibilite)
+            SectionNASFiche(reference: fiche.reference)
+            synopsis
+            if let serie = fiche.serie {
+                SectionEpisodes(serie: serie)
+            }
+            SectionBandesAnnonces(videos: fiche.videos) { videoChoisie = $0 }
+            casting
+            source
+        }
+    }
+
+    /// Mac et grandes fenêtres : le contenu à gauche, où regarder et le NAS dans une colonne à droite.
+    private var deuxColonnes: some View {
+        VStack(alignment: .leading, spacing: 24) {
+            enTete
+            HStack(alignment: .top, spacing: 8) {
+                VStack(alignment: .leading, spacing: 24) {
+                    actions
+                    NoteTitre(fiche: fiche)
+                    synopsis
+                    if let serie = fiche.serie {
+                        SectionEpisodes(serie: serie)
+                    }
+                    SectionBandesAnnonces(videos: fiche.videos) { videoChoisie = $0 }
+                    casting
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                VStack(alignment: .leading, spacing: 24) {
+                    BlocOuRegarder(etat: etatDisponibilite)
+                    SectionNASFiche(reference: fiche.reference)
+                    source
+                }
+                .frame(width: 360, alignment: .leading)
+                .padding(.vertical, 16)
+                .background(Theme.surface.opacity(0.5), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+                .padding(.trailing, 20)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var synopsis: some View {
+        if !fiche.synopsis.isEmpty || !(fiche.accroche ?? "").isEmpty {
+            VStack(alignment: .leading, spacing: 8) {
+                TitreSection("Synopsis")
+                VStack(alignment: .leading, spacing: 8) {
+                    if let accroche = fiche.accroche, !accroche.isEmpty {
+                        Text(accroche).italic()
+                    }
+                    if !fiche.synopsis.isEmpty {
+                        Text(fiche.synopsis).foregroundStyle(.secondary)
+                    }
+                }
+                .padding(.horizontal, 20)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var casting: some View {
+        if !fiche.casting.isEmpty {
+            VStack(alignment: .leading, spacing: 12) {
+                TitreSection("Casting")
+                ScrollView(.horizontal, showsIndicators: false) {
+                    LazyHStack(alignment: .top, spacing: 14) {
+                        ForEach(fiche.casting) { personne in
+                            NavigationLink(value: ReferencePersonne(id: personne.id, nom: personne.nom)) {
+                                CartePersonne(personne: personne)
+                            }
+                            .buttonStyle(.plain)
+                            .help("Voir la fiche de \(personne.nom) : filmographie, vus et pas vus")
+                        }
+                    }
+                    .padding(.horizontal, 20)
+                }
+            }
+        }
+    }
+
+    private var source: some View {
+        Text("Disponibilités : JustWatch")
+            .font(.caption2)
+            .foregroundStyle(.tertiary)
+            .padding(.horizontal, 20)
+    }
+
     /// UX-06 : image de fond, affiche, titre, année, genres, durée et anneau de note.
     private var enTete: some View {
         ZStack(alignment: .bottomLeading) {
             ImageDistante(url: ImageTMDB.url(fiche.cheminFond, .fondGrand), coins: 0)
-                .frame(height: 300)
+                .frame(height: largeur == .regular ? 420 : 300)
                 .clipped()
             LinearGradient(colors: [.clear, Theme.fond.opacity(0.7), Theme.fond], startPoint: .top, endPoint: .bottom)
-                .frame(height: 300)
+                .frame(height: largeur == .regular ? 420 : 300)
             HStack(alignment: .bottom, spacing: 16) {
                 ImageDistante(url: ImageTMDB.url(fiche.cheminAffiche, .affiche))
                     .frame(width: 110, height: 165)
@@ -207,7 +264,7 @@ private struct ContenuFiche: View {
         .padding(.bottom, 60)
     }
 
-    /// Actions en icônes : « + » ajoute à « À voir », « − » retire ; l'œil marque vu ; ▶︎ la bande-annonce.
+    /// Actions en icônes : « + » ajoute à « À voir », « − » retire ; l'œil marque vu, aujourd'hui ou avant ; ▶︎ la bande-annonce.
     private var actions: some View {
         HStack(spacing: 14) {
             BoutonIcone(
@@ -223,10 +280,11 @@ private struct ContenuFiche: View {
             }
 
             if let film = fiche.film {
-                BoutonIcone(symbole: vu ? "eye.fill" : "eye", libelle: vu ? "Vu" : "Marquer vu", actif: vu,
-                            explication: vu ? "Tu as vu ce film : il compte dans tes goûts et ne revient plus dans les suggestions."
-                                            : "Marquer ce film comme vu : Séance affine tes goûts et ne te le propose plus.") {
-                    marquerVu(film)
+                if vu {
+                    BoutonIcone(symbole: "eye.fill", libelle: "Vu", actif: true,
+                                explication: "Tu as vu ce film : il compte dans tes goûts et ne revient plus dans les suggestions.") {}
+                } else {
+                    boutonMarquerVu(film)
                 }
             }
 
@@ -242,6 +300,25 @@ private struct ContenuFiche: View {
             menuAutres
         }
         .padding(.horizontal, 20)
+    }
+
+    /// 👁 Vu ce soir, ou vu il y a longtemps : les deux sortent le film des suggestions,
+    /// seul le premier entre dans les statistiques.
+    private func boutonMarquerVu(_ film: FicheFilm) -> some View {
+        Menu {
+            Section("Ne plus me le proposer") {
+                Button { marquerVu(film, anterieur: false) } label: {
+                    Label("Vu aujourd'hui", systemImage: "eye")
+                }
+                Button { marquerVu(film, anterieur: true) } label: {
+                    Label("Déjà vu avant", systemImage: "clock.arrow.circlepath")
+                }
+            }
+        } label: {
+            RondIcone(symbole: "eye")
+        }
+        .help("Marquer vu : aujourd'hui compte dans tes statistiques ; « déjà vu avant » sort le film des suggestions sans fausser tes heures")
+        .accessibilityLabel("Marquer vu")
     }
 
     /// 🔔 Surveillance du titre : un film se bascule d'un geste ; une série propose ses deux rythmes.
@@ -361,9 +438,9 @@ private struct ContenuFiche: View {
         }
     }
 
-    private func marquerVu(_ film: FicheFilm) {
+    private func marquerVu(_ film: FicheFilm, anterieur: Bool) {
         guard !vu else { return }
-        try? ServiceSuivi(contexte: contexte).marquerVu(film: film)
+        try? ServiceSuivi(contexte: contexte).marquerVu(film: film, anterieur: anterieur)
         rafraichir()
     }
 }

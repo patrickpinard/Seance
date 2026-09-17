@@ -14,6 +14,7 @@ struct BoutonLectureNAS: View {
     @Environment(\.openURL) private var openURL
     @State private var absent: LecteurVideo?
     @State private var sansMotDePasse = false
+    @State private var inconnuDInfuse = false
 
     var body: some View {
         #if targetEnvironment(macCatalyst)
@@ -57,19 +58,32 @@ struct BoutonLectureNAS: View {
             }
             Button("OK", role: .cancel) {}
         } message: {
-            Text("Installe-la depuis l'App Store, ou choisis l'autre app dans Moi › NAS.")
+            Text("Installe-la depuis l'App Store, ou choisis l'autre app dans Réglages › NAS.")
         }
         .alert("Mot de passe du NAS manquant", isPresented: $sansMotDePasse) {
             Button("OK", role: .cancel) {}
         } message: {
-            Text("Enregistre-le dans Moi › NAS.")
+            Text("VLC en a besoin pour lire sur le NAS. Enregistre-le dans Réglages › NAS.")
+        }
+        .alert("Infuse ne connaît pas ce fichier", isPresented: $inconnuDInfuse) {
+            Button("Lire avec VLC") { lire(avec: .vlc) }
+            Button("Annuler", role: .cancel) {}
+        } message: {
+            Text("Infuse ne s'ouvre directement que sur un film ou un épisode reconnu. VLC peut lire le fichier tel quel.")
         }
     }
 
     private func lire(avec lecteur: LecteurVideo) {
-        guard let lien = etat.nas.lien(pour: fichier, avec: lecteur) else {
+        let lien: URL
+        switch etat.nas.lien(pour: fichier, avec: lecteur) {
+        case .pret(let pret):
+            lien = pret
+        case .motDePasseManquant:
             sansMotDePasse = true
-            etat.journal.noter(.lecture, "La lecture n'a pas pu démarrer : mot de passe du NAS manquant.", conseil: "Enregistre-le dans Moi › NAS.")
+            etat.journal.noter(.lecture, "La lecture n'a pas pu démarrer : mot de passe du NAS manquant.", conseil: "Enregistre-le dans Réglages › NAS.")
+            return
+        case .titreInconnu:
+            inconnuDInfuse = true
             return
         }
         openURL(lien) { acceptee in
@@ -78,7 +92,7 @@ struct BoutonLectureNAS: View {
             } else {
                 absent = lecteur
                 etat.journal.noter(.lecture, "\(lecteur.nom) n'a pas pu ouvrir la vidéo.",
-                                   conseil: "Vérifie que \(lecteur.nom) est installée, ou choisis l'autre app dans Moi › NAS.")
+                                   conseil: "Vérifie que \(lecteur.nom) est installée, ou choisis l'autre app dans Réglages › NAS.")
             }
         }
     }

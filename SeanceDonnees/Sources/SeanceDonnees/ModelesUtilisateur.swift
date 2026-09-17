@@ -75,18 +75,24 @@ public final class Visionnage {
     public var dureeMinutes: Int = 0
     public var note: Int?
     public var vuLe: Date = Date.now
+    /// « Déjà vu avant », à une date oubliée : le titre sort des suggestions et nourrit les goûts,
+    /// mais n'entre pas dans les statistiques. `vuLe` est alors le moment où il a été marqué.
+    public var anterieur: Bool = false
 
     public var type: TypeTitre {
         TypeTitre(rawValue: typeBrut) ?? .film
     }
 
-    public init(reference: ReferenceTitre, saison: Int? = nil, episode: Int? = nil, dureeMinutes: Int, vuLe: Date = .now) {
+    public init(
+        reference: ReferenceTitre, saison: Int? = nil, episode: Int? = nil, dureeMinutes: Int, vuLe: Date = .now, anterieur: Bool = false
+    ) {
         tmdbID = reference.tmdbID
         typeBrut = reference.type.rawValue
         self.saison = saison
         self.episode = episode
         self.dureeMinutes = dureeMinutes
         self.vuLe = vuLe
+        self.anterieur = anterieur
     }
 }
 

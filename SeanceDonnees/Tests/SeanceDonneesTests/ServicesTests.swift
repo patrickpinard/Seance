@@ -109,11 +109,48 @@ struct ServicesTests {
         #expect(try service.suivi(reference)?.exclusionLangue == true)
     }
 
+    @Test func dejaVuAvantHorsStatistiquesMaisDansLesGouts() throws {
+        let conteneur = try EntrepotSeance.conteneur(.memoire)
+        let contexte = conteneur.mainContext
+        let service = ServiceSuivi(contexte: contexte)
+        let film = try TMDB.film()
+        let serie = try TMDB.serie()
+
+        try service.marquerVu(film: film, anterieur: true)
+        #expect(try service.cocher(try TMDB.episodes(saison: 1, nombre: 3), serie: serie, anterieur: true) == 3)
+        #expect(try service.estVu(film.reference))
+        #expect(try service.suivi(film.reference)?.statut == .termine)
+
+        // Ni heures ni années : la date du visionnage est inconnue.
+        let statistiques = ServiceStatistiques(contexte: contexte)
+        #expect(try statistiques.bilan(annee: nil).minutesTotales == 0)
+        #expect(try statistiques.annees().isEmpty)
+
+        // Mais les deux titres sortent des suggestions.
+        let gouts = ServiceGouts(contexte: contexte)
+        let dejaVus = try gouts.contexteCandidats().dejaVus
+        #expect(dejaVus.contains(film.reference) && dejaVus.contains(serie.reference))
+
+        // La note du titre oriente les goûts : la série adorée, le film détesté.
+        try service.noter(serie: serie, note: 10)
+        try service.noter(film: film, note: 2)
+        #expect(try service.suivi(serie.reference)?.note == 10)
+        #expect(try service.visionnages(film.reference).map(\.note) == [2])
+        let profil = try gouts.profil()
+        #expect(profil.affinite(genre: 10759) > 0.2)
+        #expect(profil.affinite(genre: 53) < 0)
+
+        // Une note effacée ne laisse qu'un visionnage, faiblement positif.
+        try service.noter(film: film, note: nil)
+        #expect(try service.suivi(film.reference)?.note == nil)
+        #expect(try gouts.profil().affinite(genre: 53) > 0)
+    }
+
     @Test func sauvegardeAllerRetourSansDoublon() throws {
         let source = try EntrepotSeance.conteneur(.memoire)
         let suivi = ServiceSuivi(contexte: source.mainContext)
         try suivi.marquerVu(film: try TMDB.film(), note: 8)
-        try suivi.cocher(try TMDB.episodes(saison: 1, nombre: 3), serie: try TMDB.serie())
+        try suivi.cocher(try TMDB.episodes(saison: 1, nombre: 3), serie: try TMDB.serie(), anterieur: true)
         let liste = ListePerso(nom: "Soirées Statham")
         liste.titres = [ReferenceTitre(type: .film, tmdbID: 267_860)]
         source.mainContext.insert(liste)
@@ -128,6 +165,7 @@ struct ServicesTests {
         let plan = try importeur.importer(try Sauvegarde.decoder(fichier))
         #expect(plan.suivis.count == 2)
         #expect(plan.visionnages.count == 4)
+        #expect(try cible.mainContext.fetch(FetchDescriptor<Visionnage>()).filter(\.anterieur).count == 3)
         #expect(try cible.mainContext.fetch(FetchDescriptor<ListePerso>()).first?.titres.count == 1)
         #expect(try cible.mainContext.fetchCount(FetchDescriptor<Chaine>()) == 1)
 
