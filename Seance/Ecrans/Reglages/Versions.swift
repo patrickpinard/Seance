@@ -20,6 +20,35 @@ struct NoteVersion: Identifiable {
 
     static let historique: [NoteVersion] = [
         NoteVersion(
+            numero: "2.0",
+            date: "17 septembre 2026",
+            resume: "Des idées pour ce soir selon tes goûts, une app plus claire et qui prévient quand quelque chose cloche.",
+            fonctionnalites: [
+                Fonctionnalite(symbole: "sparkles", titre: "Idées pour ce soir",
+                               detail: "Dans Ce soir, cinq titres regardables sur tes plateformes, choisis selon tes goûts et tes notes ; « Je regarde », « Pas ce soir » ou « Jamais ». Précise ton envie, avec Claude en option."),
+                Fonctionnalite(symbole: "bell.slash", titre: "Notifications coupées ? C'est dit",
+                               detail: "Sur une fiche avec cloche, dans À venir et pour les acteurs suivis, avec de quoi les rallumer."),
+                Fonctionnalite(symbole: "film", titre: "Où regarder, même au cinéma",
+                               detail: "Au cinéma depuis le…, bientôt en salle, date de streaming : plus de « introuvable » pour un film récent, et « Me prévenir de sa sortie »."),
+                Fonctionnalite(symbole: "arrow.uturn.backward", titre: "Annuler",
+                               detail: "Pas intéressé, retirer, terminé, supprimer des terminés : le message propose d'annuler pendant cinq secondes."),
+                Fonctionnalite(symbole: "textformat", titre: "Boutons nommés",
+                               detail: "Chaque action d'une fiche porte son nom : À voir, Vu, Alertes, Bande-annonce, Plus."),
+                Fonctionnalite(symbole: "square.stack", titre: "Ce soir sans doublon",
+                               detail: "Un titre n'apparaît qu'une fois, et « regardable ce soir » suit la même règle que Mes listes."),
+                Fonctionnalite(symbole: "magnifyingglass", titre: "Explorer utile d'emblée",
+                               detail: "En français ou en anglais, sur tes plateformes, en puces à retirer ; un seul bouton Filtres."),
+                Fonctionnalite(symbole: "slider.horizontal.3", titre: "Accueil personnalisable",
+                               detail: "Plateformes et sections (Top 10, télé, Du moment, NAS) à afficher, et un rappel quand l'accueil est limité."),
+                Fonctionnalite(symbole: "person.crop.circle", titre: "Profil plus parlant",
+                               detail: "Ta collection en chiffres, tes dernières notes et tes acteurs favoris."),
+                Fonctionnalite(symbole: "keyboard", titre: "Clavier et Mac",
+                               detail: "⌘1 à ⌘6 pour les onglets, ⌘F pour chercher ; fiche sur une colonne dans une fenêtre étroite, « Lire la suite »."),
+                Fonctionnalite(symbole: "clock.badge.exclamationmark", titre: "Rappel d'expiration",
+                               detail: "À propos indique jusqu'à quand l'installation est valable, et une notification prévient la veille."),
+            ]
+        ),
+        NoteVersion(
             numero: "1.5",
             date: "17 septembre 2026",
             resume: "« Du moment » sur l'accueil, et les terminés se suppriment de Mes listes.",

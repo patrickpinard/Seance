@@ -137,3 +137,47 @@ private extension TimeZone {
         return calendrier.date(bySettingHour: heure, minute: minute, second: 0, of: .now) ?? .now
     }
 }
+
+/// Là où une alerte est attendue (cloche d'une fiche, acteurs suivis, À venir) : si les notifications de Séance
+/// sont coupées, c'est dit tout de suite, avec de quoi les rallumer. Rien ne s'affiche quand elles marchent.
+struct BandeauAlertesCoupees: View {
+    @Environment(EtatApp.self) private var etat
+    @Environment(\.modelContext) private var contexte
+    @Environment(\.openURL) private var openURL
+
+    var body: some View {
+        let autorisation = etat.alertes.autorisation
+        if !etat.alertes.autorisees {
+            HStack(alignment: .top, spacing: 12) {
+                Image(systemName: "bell.slash.fill")
+                    .foregroundStyle(.orange)
+                    .font(.headline)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Les notifications de Séance sont coupées")
+                        .font(.subheadline.weight(.semibold))
+                    Text("Aucune alerte ne partira : sorties, épisodes, passages à la télé et nouveaux films des acteurs suivis.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Button(autorisation == .denied ? "Ouvrir les réglages des notifications" : "Activer les notifications") {
+                        if autorisation == .denied {
+                            if let url = URL(string: UIApplication.openNotificationSettingsURLString) { openURL(url) }
+                        } else {
+                            Task {
+                                await etat.alertes.demanderAutorisation()
+                                await etat.alertes.planifier(contexte: contexte, tmdb: etat.tmdb)
+                            }
+                        }
+                    }
+                    .font(.subheadline.weight(.semibold))
+                    .tint(Theme.accentClair)
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(14)
+            .background(Color.orange.opacity(0.12), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(Color.orange.opacity(0.35), lineWidth: 1))
+            .task { await etat.alertes.actualiserAutorisation() }
+        }
+    }
+}

@@ -9,6 +9,12 @@ import UserNotifications
 @Observable
 final class EtatApp {
     private(set) var tmdb: TMDBClient?
+    /// Facultatif : sans clé, « Idées pour ce soir » classe les titres sur l'appareil (EF-27).
+    private(set) var claude: ClientClaude?
+    /// ⌘F ou une demande d'un autre écran : Explorer s'ouvre, le champ de recherche actif.
+    var rechercheDemandee = false
+    /// Date d'expiration de l'installation (compte Apple gratuit : 7 jours), lue dans le profil de l'app.
+    let expirationInstallation = ProfilInstallation.dateExpirationDeLApp()
     /// Noms des genres : ceux livrés avec l'app, remplacés par ceux de TMDB une fois chargés. Ils servent aux
     /// filtres, aux phrases et aux statistiques, qui n'affichent ainsi jamais « Genre 28 ».
     private(set) var nomsGenres: [Int: String] = GenresParDefaut.noms
@@ -67,6 +73,7 @@ final class EtatApp {
         UNUserNotificationCenter.current().delegate = delegue
         delegueNotifications = delegue
         tmdb = try? depot.client()
+        claude = try? depot.clientClaude()
     }
 
     /// Les deux référentiels de genres, films et séries, en un seul dictionnaire.
@@ -92,15 +99,53 @@ final class EtatApp {
         let id = UUID()
         let texte: String
         let symbole: String
+        /// Présent pour une action qu'on peut regretter : le message propose alors « Annuler ».
+        let annuler: (@MainActor () -> Void)?
+
+        static func == (a: Confirmation, b: Confirmation) -> Bool { a.id == b.id }
     }
 
-    /// Affiche la confirmation deux secondes.
-    func confirmer(_ texte: String, symbole: String) {
-        let message = Confirmation(texte: texte, symbole: symbole)
+    /// Affiche la confirmation deux secondes, ou cinq quand elle propose d'annuler.
+    func confirmer(_ texte: String, symbole: String, annuler: (@MainActor () -> Void)? = nil) {
+        let message = Confirmation(texte: texte, symbole: symbole, annuler: annuler)
         confirmation = message
         Task {
-            try? await Task.sleep(for: .seconds(2))
+            try? await Task.sleep(for: .seconds(annuler == nil ? 2 : 5))
             if confirmation == message { confirmation = nil }
+        }
+    }
+
+    /// Annule l'action du message affiché, puis le retire.
+    func annulerDerniereAction() {
+        guard let annuler = confirmation?.annuler else { return }
+        annuler()
+        confirmation = Confirmation(texte: "Annulé", symbole: "arrow.uturn.backward", annuler: nil)
+        let message = confirmation
+        Task {
+            try? await Task.sleep(for: .seconds(1.5))
+            if confirmation == message { confirmation = nil }
+        }
+    }
+
+    /// La clé Claude n'est pas testée contre l'API : un appel d'essai coûterait une vraie demande.
+    /// Seule sa forme est vérifiée.
+    func enregistrerCleClaude(_ cle: String) throws {
+        let propre = cle.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard propre.hasPrefix("sk-ant-"), propre.count > 20 else { throw ErreurCle.formatInattendu }
+        try depot.coffre.enregistrer(propre, pour: .claude)
+        claude = ClientClaude(cle: propre)
+    }
+
+    func supprimerCleClaude() throws {
+        try depot.coffre.supprimer(.claude)
+        claude = nil
+    }
+
+    enum ErreurCle: Error, LocalizedError {
+        case formatInattendu
+
+        var errorDescription: String? {
+            "Une clé Claude commence par « sk-ant- »."
         }
     }
 

@@ -93,6 +93,11 @@ struct MesListesView: View {
     @ViewBuilder
     private var aVenir: some View {
         let futures = echeances.filter { $0.date >= Calendar.current.startOfDay(for: .now) }
+        if suivis.contains(where: \.alertesActives) {
+            BandeauAlertesCoupees()
+                .listRowBackground(Color.clear)
+                .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
+        }
         if futures.isEmpty {
             vide(etat.alertes.enCours
                  ? "Recherche des prochains épisodes et sorties…"
@@ -174,7 +179,12 @@ struct MesListesView: View {
                 .confirmationDialog("Supprimer les \(titresAffiches(.termine).count) titres terminés ?",
                                     isPresented: $confirmerToutSupprimer, titleVisibility: .visible) {
                     Button("Tout supprimer", role: .destructive) {
-                        try? ServiceSuivi(contexte: contexte).supprimerDesTermines(titresAffiches(.termine))
+                        let supprimes = titresAffiches(.termine)
+                        try? ServiceSuivi(contexte: contexte).supprimerDesTermines(supprimes)
+                        etat.confirmer("\(Format.pluriel(supprimes.count, "titre supprimé", "titres supprimés")) des terminés", symbole: "trash") { [contexte] in
+                            supprimes.forEach { $0.masque = false }
+                            try? contexte.save()
+                        }
                     }
                 } message: {
                     Text("Ils quittent la liste. Ce que tu as vu, tes notes et tes statistiques restent, et ils ne te seront pas reproposés.")
@@ -380,19 +390,34 @@ struct MesListesView: View {
     }
 
     private func changer(_ suivi: Suivi, en statut: StatutSuivi) {
+        let avant = suivi.statut
         suivi.statut = statut
         try? contexte.save()
+        etat.confirmer(statut == .termine ? "« \(suivi.titre) » dans Terminés" : "« \(suivi.titre) » de nouveau à voir",
+                       symbole: statut == .termine ? "checkmark" : "arrow.uturn.backward") { [contexte] in
+            suivi.statut = avant
+            try? contexte.save()
+        }
     }
 
     private func retirer(_ suivi: Suivi) {
+        let copie = InstantaneSuivi(suivi)
         contexte.delete(suivi)
         try? contexte.save()
         Task { await etat.alertes.planifier(contexte: contexte, tmdb: etat.tmdb) }
+        etat.confirmer("« \(copie.titre) » retiré de Mes listes", symbole: "trash") { [contexte, etat] in
+            copie.restaurer(dans: contexte)
+            Task { await etat.alertes.planifier(contexte: contexte, tmdb: etat.tmdb) }
+        }
     }
 
     /// Le titre quitte « Terminés » mais reste vu, noté et compté.
     private func supprimerDesTermines(_ suivi: Suivi) {
         try? ServiceSuivi(contexte: contexte).supprimerDesTermines([suivi])
+        etat.confirmer("« \(suivi.titre) » supprimé des terminés", symbole: "trash") { [contexte] in
+            suivi.masque = false
+            try? contexte.save()
+        }
     }
 
     private func basculerAlertes(_ suivi: Suivi) {

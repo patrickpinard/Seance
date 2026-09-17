@@ -8,7 +8,8 @@ import SwiftUI
 @MainActor
 @Observable
 final class ExplorerModele {
-    var filtres = FiltresExplorer()
+    /// À l'ouverture : en français ou en anglais, sur les plateformes cochées (puces retirables).
+    var filtres = FiltresExplorer.parDefaut(avecPlateformes: true)
     private(set) var resultats: [TitreResume] = []
     /// Nombre annoncé par TMDB, avant les filtres de l'app.
     private(set) var total: Int?

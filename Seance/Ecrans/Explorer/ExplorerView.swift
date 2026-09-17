@@ -68,14 +68,6 @@ struct ExplorerView: View {
             .background(Theme.fond)
             .navigationTitle("Explorer")
             .boutonBarreLaterale()
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button { feuilleOuverte = true } label: {
-                        Label("Filtres", systemImage: "slider.horizontal.3")
-                    }
-                    .disabled(etat.tmdb == nil)
-                }
-            }
             .searchable(text: $texte, prompt: "Films, séries, acteurs")
             .searchScopes($portee, activation: .onSearchPresentation) {
                 ForEach(PorteeRecherche.allCases, id: \.self) { portee in
@@ -101,6 +93,17 @@ struct ExplorerView: View {
             .task(id: CleChargement(filtres: modele.filtres, abonnements: abonnements.map(\.providerID), cle: etat.tmdb != nil)) {
                 guard let client = etat.tmdb else { return }
                 await modele.recharger(client: client, contexte: contexte, abonnements: abonnements.map(\.providerID))
+            }
+            // ⌘F : le champ de recherche prend la main.
+            .onChange(of: etat.rechercheDemandee, initial: true) { _, demandee in
+                guard demandee else { return }
+                chemin = NavigationPath()
+                rechercheActive = true
+                etat.rechercheDemandee = false
+            }
+            // Sans plateforme cochée, la puce « Mes plateformes » ne filtrerait rien : elle est retirée.
+            .task {
+                if abonnements.isEmpty, modele.filtres.mesPlateformes { modele.filtres.mesPlateformes = false }
             }
             // « Dans Explorer » depuis une fiche acteur : Explorer revient à la racine, filtré sur la personne.
             .onChange(of: etat.filtreExplorerDemande, initial: true) { _, demande in

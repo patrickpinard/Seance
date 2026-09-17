@@ -3,11 +3,14 @@ import SeanceKit
 import SwiftData
 import SwiftUI
 
-/// Ce qui te concerne, à part des réglages de l'app : tes goûts, tes acteurs suivis, tes statistiques et ton bilan de l'année.
+/// Ce qui te concerne, à part des réglages de l'app : ta collection, tes dernières notes, tes acteurs favoris et suivis,
+/// tes goûts, tes statistiques et ton bilan de l'année.
 /// Sur l'iPhone, l'engrenage ouvre Réglages, qui n'a pas d'onglet à lui.
 struct ProfilView: View {
     @Environment(\.horizontalSizeClass) private var classeTaille
+    @Environment(\.modelContext) private var contexte
     @Query private var interets: [Interet]
+    @Query(sort: \Suivi.ajouteLe, order: .reverse) private var suivis: [Suivi]
     @Query private var visionnages: [Visionnage]
     @Query private var acteursSuivis: [ActeurSuivi]
     @State private var gouts = false
@@ -18,6 +21,43 @@ struct ProfilView: View {
     var body: some View {
         NavigationStack {
             List {
+                collection
+
+                let notes = suivis.filter { $0.note != nil }.prefix(3)
+                if !notes.isEmpty {
+                    Section("Tes dernières notes") {
+                        ForEach(Array(notes)) { suivi in
+                            NavigationLink(value: suivi.reference) {
+                                HStack(spacing: 12) {
+                                    ImageDistante(url: ImageTMDB.url(suivi.cheminAffiche, .affiche), coins: 6)
+                                        .frame(width: 30, height: 45)
+                                    Text(suivi.titre).lineLimit(1)
+                                    Spacer()
+                                    Label("\(suivi.note ?? 0)/10", systemImage: "star.fill")
+                                        .font(.subheadline.weight(.semibold))
+                                        .foregroundStyle(Theme.accentClair)
+                                }
+                            }
+                        }
+                    }
+                }
+
+                let favoris = acteursFavoris
+                if !favoris.isEmpty {
+                    Section("Tes acteurs favoris") {
+                        ForEach(favoris, id: \.cle) { acteur in
+                            if let id = acteur.cle.id {
+                                NavigationLink(value: TitresAvecActeur(personne: ReferencePersonne(id: id, nom: acteur.cle.nom),
+                                                                       periode: "depuis le début", titres: acteur.titres)) {
+                                    LabeledContent(acteur.cle.nom, value: Format.pluriel(acteur.nombreTitres, "titre"))
+                                }
+                            } else {
+                                LabeledContent(acteur.cle.nom, value: Format.pluriel(acteur.nombreTitres, "titre"))
+                            }
+                        }
+                    }
+                }
+
                 Section("Tes goûts") {
                     Button { gouts = true } label: {
                         LigneReglage(titre: "Mes goûts", symbole: "heart.fill", couleur: .pink,
@@ -71,6 +111,9 @@ struct ProfilView: View {
                 }
             }
             .destinationsTitres()
+            .navigationDestination(for: TitresAvecActeur.self) { comptes in
+                PersonneView(personne: comptes.personne, comptes: comptes)
+            }
             .sheet(isPresented: $gouts) {
                 BienvenueView(mode: .gouts) { gouts = false }
             }
@@ -78,6 +121,43 @@ struct ProfilView: View {
                 BilanAnneeView(annee: Self.annee)
             }
         }
+    }
+
+    /// En un coup d'œil : ce qui est vu (y compris « déjà vu avant » et les titres notés au premier lancement) et noté.
+    @ViewBuilder
+    private var collection: some View {
+        let vus = Set(visionnages.map { ReferenceTitre(type: $0.type, tmdbID: $0.tmdbID) })
+            .union(suivis.filter { $0.statut == .termine }.map(\.reference))
+        let films = vus.filter { $0.type == .film }.count
+        let notes = suivis.filter { $0.note != nil }.count
+        if !vus.isEmpty {
+            Section {
+                HStack(spacing: 0) {
+                    chiffre(vus.count, "vus")
+                    chiffre(films, films > 1 ? "films" : "film")
+                    chiffre(vus.count - films, vus.count - films > 1 ? "séries" : "série")
+                    chiffre(notes, notes > 1 ? "notés" : "noté")
+                }
+                .padding(.vertical, 6)
+            } header: {
+                Text("Ta collection")
+            }
+        }
+    }
+
+    private func chiffre(_ nombre: Int, _ libelle: String) -> some View {
+        VStack(spacing: 2) {
+            Text("\(nombre)").font(.title2.weight(.heavy)).monospacedDigit()
+            Text(libelle).font(.caption).foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity)
+        .accessibilityElement(children: .combine)
+    }
+
+    /// Les trois acteurs les plus regardés depuis le début, comptés comme dans les statistiques.
+    private var acteursFavoris: [Classement<ActeurStat>] {
+        let _ = visionnages.count
+        return Array(((try? ServiceStatistiques(contexte: contexte).bilan(annee: nil).acteurs) ?? []).prefix(3))
     }
 
     private var genres: Set<String> {
@@ -99,6 +179,11 @@ struct ActeursSuivisView: View {
 
     var body: some View {
         List {
+            if !acteurs.isEmpty {
+                BandeauAlertesCoupees()
+                    .listRowBackground(Color.clear)
+                    .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 4, trailing: 0))
+            }
             if acteurs.isEmpty {
                 ContentUnavailableView("Aucun acteur suivi", systemImage: "person.2",
                                        description: Text("Sur la fiche d'un acteur, touche la cloche pour être prévenu de ses nouveaux films."))

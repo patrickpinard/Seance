@@ -104,7 +104,7 @@ final class ControleLecture {
     func arreter() {
         guard let vue else { return }
         vue.pauseAllMediaPlayback()
-        vue.closeAllMediaPresentations()
+        vue.closeAllMediaPresentations {}
         vue.setAllMediaPlaybackSuspended(true)
         vue.stopLoading()
         vue.loadHTMLString("", baseURL: nil)
@@ -139,7 +139,7 @@ private struct LecteurYouTube: UIViewRepresentable {
     static func dismantleUIView(_ vue: WKWebView, coordinator: ()) {
         // Dernier filet si la feuille disparaît sans passer par `onDisappear`.
         vue.pauseAllMediaPlayback()
-        vue.closeAllMediaPresentations()
+        vue.closeAllMediaPresentations {}
         vue.loadHTMLString("", baseURL: nil)
     }
 

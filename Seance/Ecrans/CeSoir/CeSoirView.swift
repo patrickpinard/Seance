@@ -3,12 +3,13 @@ import SeanceKit
 import SwiftData
 import SwiftUI
 
-/// « Ce soir » : ta soirée, ce qu'il ne faut pas manquer, tes épisodes et les titres de ta liste
-/// disponibles. Pour chercher autre chose, Explorer.
+/// « Ce soir » : ta soirée, ce qu'il ne faut pas manquer, tes épisodes, les titres de ta liste regardables,
+/// puis des idées choisies selon tes goûts. Pour chercher autre chose, Explorer.
 struct CeSoirView: View {
     @Environment(EtatApp.self) private var etat
     @Environment(\.modelContext) private var contexte
     @State private var soiree = SoireeModele()
+    @State private var idees = IdeesModele()
 
     var body: some View {
         NavigationStack {
@@ -31,11 +32,22 @@ struct CeSoirView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 22) {
                 SectionsSoiree(modele: soiree)
+                SectionIdees(modele: idees, dejaMontres: dejaMontres)
                 autreChose
             }
             .padding(20)
         }
         .refreshable { await soiree.charger(etat: etat, contexte: contexte) }
+    }
+
+    @Query(sort: \SelectionSoir.ajouteLe) private var selections: [SelectionSoir]
+
+    /// Ma soirée et ta liste regardable : les idées ne les répètent pas.
+    private var dejaMontres: Set<ReferenceTitre> {
+        let jour = ServiceSoiree.soiree()
+        return Set(selections.filter { $0.soiree == jour }.map(\.reference))
+            .union(soiree.disponibles.map(\.id))
+            .union(soiree.episodes.map(\.id))
     }
 
     private var autreChose: some View {

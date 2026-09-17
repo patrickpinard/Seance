@@ -6,6 +6,7 @@ import SwiftUI
 /// Libellés des critères actifs, pour les puces au-dessus des résultats (EF-54).
 enum LibellesFiltres {
     static let langues: [(code: String, nom: String)] = [
+        (FiltresExplorer.francaisOuAnglais, "Français ou anglais"),
         ("fr", "Français"), ("en", "Anglais"), ("ko", "Coréen"), ("ja", "Japonais"), ("es", "Espagnol"), ("it", "Italien"),
     ]
 

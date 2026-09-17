@@ -87,6 +87,26 @@ final class EtatAlertes {
         await planifier(contexte: contexte, tmdb: tmdb)
     }
 
+    /// La veille de l'expiration de l'installation (compte Apple gratuit), à l'heure des alertes : penser à réinstaller.
+    /// Identifiant hors du préfixe des alertes, pour que leur recalcul ne l'efface pas.
+    func programmerRappelExpiration(_ expiration: Date?) async {
+        centre.removePendingNotificationRequests(withIdentifiers: ["seance.expiration"])
+        guard let expiration, autorisees else { return }
+        var calendrier = Calendar(identifier: .gregorian)
+        calendrier.timeZone = reglages.fuseau
+        guard let veille = calendrier.date(byAdding: .day, value: -1, to: expiration) else { return }
+        var composants = calendrier.dateComponents([.year, .month, .day], from: veille)
+        composants.hour = reglages.heure
+        composants.minute = reglages.minute
+        guard let date = calendrier.date(from: composants), date > .now else { return }
+        let contenu = UNMutableNotificationContent()
+        contenu.title = "Séance expire demain"
+        contenu.body = "Relance outils/installer.sh sur le Mac pour la prolonger de 7 jours. Tes données restent sur l'appareil."
+        contenu.sound = .default
+        let declencheur = UNCalendarNotificationTrigger(dateMatching: calendrier.dateComponents(in: reglages.fuseau, from: date), repeats: false)
+        try? await centre.add(UNNotificationRequest(identifier: "seance.expiration", content: contenu, trigger: declencheur))
+    }
+
     /// EF-84 : une alerte d'essai dans 5 secondes, pour vérifier l'affichage.
     func envoyerEssai() async {
         if autorisation == .notDetermined { await demanderAutorisation() }

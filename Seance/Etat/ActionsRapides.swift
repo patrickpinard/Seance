@@ -16,8 +16,9 @@ struct ActionsRapides {
 
     func executer(_ action: Action, sur titre: TitreResume) async {
         do {
-            let (texte, symbole) = try await effectuer(action, sur: titre)
-            etat.confirmer(texte, symbole: symbole)
+            var annulation: (@MainActor () -> Void)?
+            let (texte, symbole) = try await effectuer(action, sur: titre, annulation: &annulation)
+            etat.confirmer(texte, symbole: symbole, annuler: annulation)
             AccessibilityNotification.Announcement(texte).post()
         } catch {
             etat.confirmer("TMDB ne répond pas : réessaie dans un instant", symbole: "exclamationmark.triangle")
@@ -25,7 +26,9 @@ struct ActionsRapides {
         }
     }
 
-    private func effectuer(_ action: Action, sur titre: TitreResume) async throws -> (String, String) {
+    private func effectuer(
+        _ action: Action, sur titre: TitreResume, annulation: inout (@MainActor () -> Void)?
+    ) async throws -> (String, String) {
         let suivi = ServiceSuivi(contexte: contexte)
         let reference = titre.reference
         switch action {
@@ -75,7 +78,12 @@ struct ActionsRapides {
             return ("Ajouté à ma soirée", "moon.stars.fill")
 
         case .pasInteresse:
+            let avant = try suivi.suivi(reference)
+            let statutAvant = avant?.statut
             try ServiceGouts(contexte: contexte).jamais(reference, titre: titre.titre)
+            annulation = { [contexte] in
+                AnnulationTitre.restaurer(reference, existait: avant != nil, statut: statutAvant, contexte: contexte)
+            }
             return ("Ne te sera plus proposé", "hand.thumbsdown.fill")
         }
     }
@@ -120,19 +128,97 @@ extension View {
     }
 }
 
-/// Le message bref d'une action rapide, en bas de l'écran.
+/// Le message bref d'une action, en bas de l'écran, avec « Annuler » quand l'action se regrette.
 struct BandeauConfirmation: View {
     let confirmation: EtatApp.Confirmation
+    @Binding var survol: Bool
+
+    @Environment(EtatApp.self) private var etat
 
     var body: some View {
-        Label(confirmation.texte, systemImage: confirmation.symbole)
-            .font(.subheadline.weight(.semibold))
-            .padding(.horizontal, 16)
-            .padding(.vertical, 10)
-            .background(.regularMaterial, in: Capsule())
-            .overlay(Capsule().strokeBorder(.white.opacity(0.12), lineWidth: 1))
-            .shadow(color: .black.opacity(0.35), radius: 10, y: 4)
-            .foregroundStyle(.primary)
-            .accessibilityHidden(true)
+        HStack(spacing: 14) {
+            Label(confirmation.texte, systemImage: confirmation.symbole)
+                .font(.subheadline.weight(.semibold))
+                .accessibilityHidden(true)
+            if confirmation.annuler != nil {
+                Button("Annuler") { etat.annulerDerniereAction() }
+                    .font(.subheadline.weight(.bold))
+                    .tint(Theme.accentClair)
+                    .buttonStyle(.plain)
+                    .foregroundStyle(Theme.accentClair)
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .background(.regularMaterial, in: Capsule())
+        .overlay(Capsule().strokeBorder(.white.opacity(0.12), lineWidth: 1))
+        .shadow(color: .black.opacity(0.35), radius: 10, y: 4)
+        .foregroundStyle(.primary)
+        // Sur le Mac, un clic sur le bandeau traverserait jusqu'à l'affiche du dessous.
+        .onHover { survol = $0 }
+        .onDisappear { survol = false }
+    }
+}
+
+/// Défaire « Pas intéressé » ou « Jamais » : le titre retrouve son état d'avant, ou disparaît s'il n'était suivi nulle part.
+enum AnnulationTitre {
+    @MainActor
+    static func restaurer(_ reference: ReferenceTitre, existait: Bool, statut: StatutSuivi?, contexte: ModelContext) {
+        guard let suivi = try? ServiceSuivi(contexte: contexte).suivi(reference) else { return }
+        if existait, let statut {
+            suivi.statut = statut
+        } else {
+            contexte.delete(suivi)
+        }
+        try? contexte.save()
+    }
+}
+
+/// Tout ce qu'un suivi porte, pour le remettre à l'identique après « Retirer » annulé.
+@MainActor
+struct InstantaneSuivi {
+    let reference: ReferenceTitre
+    let titre: String
+    let statut: StatutSuivi
+    let note: Int?
+    let exclusionLangue: Bool
+    let ajouteLe: Date
+    let cheminAffiche: String?
+    let acteurs: [String]
+    let acteursIDs: [Int]
+    let genres: [Int]
+    let alertesActives: Bool
+    let modeAlertes: String
+    let masque: Bool
+
+    init(_ suivi: Suivi) {
+        reference = suivi.reference
+        titre = suivi.titre
+        statut = suivi.statut
+        note = suivi.note
+        exclusionLangue = suivi.exclusionLangue
+        ajouteLe = suivi.ajouteLe
+        cheminAffiche = suivi.cheminAffiche
+        acteurs = suivi.acteursPrincipaux
+        acteursIDs = suivi.acteursPrincipauxIDs
+        genres = suivi.genres
+        alertesActives = suivi.alertesActives
+        modeAlertes = suivi.modeAlertesBrut
+        masque = suivi.masque
+    }
+
+    func restaurer(dans contexte: ModelContext) {
+        let suivi = Suivi(reference: reference, titre: titre, statut: statut, cheminAffiche: cheminAffiche)
+        suivi.note = note
+        suivi.exclusionLangue = exclusionLangue
+        suivi.ajouteLe = ajouteLe
+        suivi.acteursPrincipaux = acteurs
+        suivi.acteursPrincipauxIDs = acteursIDs
+        suivi.genres = genres
+        suivi.alertesActives = alertesActives
+        suivi.modeAlertesBrut = modeAlertes
+        suivi.masque = masque
+        contexte.insert(suivi)
+        try? contexte.save()
     }
 }

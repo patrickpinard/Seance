@@ -70,6 +70,18 @@ public struct FiltresExplorer: Sendable, Hashable, Codable {
         locaux.regleLangue = false
     }
 
+    /// Langue originale « français ou anglais », comprise telle quelle par TMDB.
+    public static let francaisOuAnglais = "fr|en"
+
+    /// Explorer à l'ouverture : ce qui est regardable, en français ou en anglais, sur les plateformes cochées.
+    /// Chaque critère est une puce qu'une croix retire ; « Réinitialiser » enlève tout.
+    public static func parDefaut(type: TypeTitre = .film, avecPlateformes: Bool) -> FiltresExplorer {
+        var filtres = FiltresExplorer(type: type)
+        filtres.langue = francaisOuAnglais
+        filtres.mesPlateformes = avecPlateformes
+        return filtres
+    }
+
     /// Identifiant d'un critère actif, pour sa puce et sa croix (EF-54).
     public enum Critere: Hashable, Sendable {
         case genre(Int)

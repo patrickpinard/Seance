@@ -124,11 +124,20 @@ private struct ContenuFiche: View {
     @State private var dansSoiree = false
 
     @Environment(\.horizontalSizeClass) private var largeur
+    /// Largeur réelle : une fenêtre de Mac étroite reste « regular » mais n'a pas la place pour deux colonnes.
+    @State private var largeurDisponible: CGFloat = 1200
+    @State private var synopsisComplet = false
+
+    /// Le point de vue « où regarder » d'un film absent des plateformes : au cinéma, bientôt, ou pas encore en streaming.
+    private var sortie: EtatSortie? {
+        guard let film = fiche.film else { return nil }
+        return EtatSortie.etat(dates: film.datesDeSortie, dateMondiale: film.dateSortie, aujourdhui: DateTMDB(.now))
+    }
 
     var body: some View {
         ScrollView {
             Group {
-                if largeur == .regular {
+                if largeur == .regular, largeurDisponible >= 900 {
                     deuxColonnes
                 } else {
                     uneColonne
@@ -136,6 +145,7 @@ private struct ContenuFiche: View {
             }
             .padding(.bottom, 40)
         }
+        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { largeurDisponible = $0 }
         .ignoresSafeArea(edges: .top)
         .task { rafraichir() }
         .sheet(item: $videoChoisie) { video in
@@ -148,8 +158,9 @@ private struct ContenuFiche: View {
         VStack(alignment: .leading, spacing: 24) {
             enTete
             actions
+            bandeauAlertes
             NoteTitre(fiche: fiche)
-            BlocOuRegarder(etat: etatDisponibilite)
+            blocOuRegarder
             SectionNASFiche(reference: fiche.reference)
             synopsis
             if let serie = fiche.serie {
@@ -168,6 +179,7 @@ private struct ContenuFiche: View {
             HStack(alignment: .top, spacing: 8) {
                 VStack(alignment: .leading, spacing: 24) {
                     actions
+                    bandeauAlertes
                     NoteTitre(fiche: fiche)
                     synopsis
                     if let serie = fiche.serie {
@@ -178,7 +190,7 @@ private struct ContenuFiche: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 VStack(alignment: .leading, spacing: 24) {
-                    BlocOuRegarder(etat: etatDisponibilite)
+                    blocOuRegarder
                     SectionNASFiche(reference: fiche.reference)
                     source
                 }
@@ -200,7 +212,14 @@ private struct ContenuFiche: View {
                         Text(accroche).italic()
                     }
                     if !fiche.synopsis.isEmpty {
-                        Text(fiche.synopsis).foregroundStyle(.secondary)
+                        Text(fiche.synopsis)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(synopsisComplet ? nil : 6)
+                        if fiche.synopsis.count > 320 {
+                            Button(synopsisComplet ? "Réduire" : "Lire la suite") { synopsisComplet.toggle() }
+                                .font(.subheadline.weight(.semibold))
+                                .tint(Theme.accent)
+                        }
                     }
                 }
                 .padding(.horizontal, 20)
@@ -270,44 +289,82 @@ private struct ContenuFiche: View {
         .padding(.bottom, 60)
     }
 
+    /// Cloche allumée mais notifications coupées : aucune alerte ne partirait.
+    @ViewBuilder
+    private var bandeauAlertes: some View {
+        if suivi?.alertesActives == true {
+            BandeauAlertesCoupees()
+                .padding(.horizontal, 20)
+        }
+    }
+
+    private var blocOuRegarder: some View {
+        BlocOuRegarder(etat: etatDisponibilite, sortie: sortie, alertesActives: suivi?.alertesActives == true && suivi?.masque != true) {
+            reglerAlertes(.episodes)
+        }
+    }
+
+    /// Un bouton d'action et son nom en dessous : les icônes seules ne se comprenaient qu'au survol.
+    private func legende<Contenu: View>(_ texte: String, @ViewBuilder _ contenu: () -> Contenu) -> some View {
+        VStack(spacing: 5) {
+            contenu()
+            Text(texte)
+                .font(.caption2.weight(.medium))
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .fixedSize()
+                .accessibilityHidden(true)
+        }
+    }
+
     /// Actions en icônes : « + » ajoute à « À voir », « − » retire ; l'œil marque vu, aujourd'hui ou avant ; ▶︎ la bande-annonce.
     private var actions: some View {
         // Un titre supprimé des terminés n'est plus dans Mes listes, même s'il reste vu et noté.
         let dansMesListes = suivi.map { !$0.masque } ?? false
         let masque = suivi?.masque == true
-        return HStack(spacing: 14) {
-            BoutonIcone(
-                symbole: dansMesListes ? "minus" : "plus",
-                libelle: dansMesListes ? "Retirer de mes listes" : masque ? "Remettre dans Terminés" : "Ajouter à voir",
-                principal: !dansMesListes,
-                actif: dansMesListes,
-                explication: dansMesListes
-                    ? "Retirer ce titre de Mes listes, avec ses alertes."
-                    : masque
-                    ? "Remettre ce titre dans la liste « Terminés »."
-                    : "Ajouter à « À voir » dans Mes listes. La cloche 🔔 s'active pour te prévenir des sorties et des nouveaux épisodes."
-            ) {
-                basculerAVoir()
+        return HStack(alignment: .top, spacing: 14) {
+            legende(dansMesListes ? "Retirer" : masque ? "Remettre" : "À voir") {
+                BoutonIcone(
+                    symbole: dansMesListes ? "minus" : "plus",
+                    libelle: dansMesListes ? "Retirer de mes listes" : masque ? "Remettre dans Terminés" : "Ajouter à voir",
+                    principal: !dansMesListes,
+                    actif: dansMesListes,
+                    explication: dansMesListes
+                        ? "Retirer ce titre de Mes listes, avec ses alertes."
+                        : masque
+                        ? "Remettre ce titre dans la liste « Terminés »."
+                        : "Ajouter à « À voir » dans Mes listes. La cloche 🔔 s'active pour te prévenir des sorties et des nouveaux épisodes."
+                ) {
+                    basculerAVoir()
+                }
             }
 
             if let film = fiche.film {
-                if vu {
-                    boutonDejaVu(film)
-                } else {
-                    boutonMarquerVu(film)
+                legende(vu ? "Vu" : "Marquer vu") {
+                    if vu {
+                        boutonDejaVu(film)
+                    } else {
+                        boutonMarquerVu(film)
+                    }
                 }
             }
 
-            boutonAlertes
+            legende(suivi?.alertesActives == true ? "Alertes" : "Me prévenir") {
+                boutonAlertes
+            }
 
             if let video = fiche.videos.first {
-                BoutonIcone(symbole: "play.rectangle.fill", libelle: "Bande-annonce",
-                            explication: "Voir la bande-annonce, lue en streaming : rien n'est enregistré sur l'appareil.") {
-                    videoChoisie = video
+                legende("Bande-annonce") {
+                    BoutonIcone(symbole: "play.rectangle.fill", libelle: "Bande-annonce",
+                                explication: "Voir la bande-annonce, lue en streaming : rien n'est enregistré sur l'appareil.") {
+                        videoChoisie = video
+                    }
                 }
             }
             Spacer()
-            menuAutres
+            legende("Plus") {
+                menuAutres
+            }
         }
         .padding(.horizontal, 20)
     }
@@ -488,22 +545,46 @@ private struct ContenuFiche: View {
 /// EF-73 : l'état de disponibilité en tête du bloc « Où regarder ».
 private struct BlocOuRegarder: View {
     let etat: EtatDisponibilite
+    /// Pour un film introuvable : au cinéma, bientôt, ou pas encore en streaming.
+    let sortie: EtatSortie?
+    let alertesActives: Bool
+    let prevenir: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("Où regarder").font(.title3.weight(.bold))
-            HStack(spacing: 12) {
-                Image(systemName: icone).font(.title3).foregroundStyle(Theme.accent).frame(width: 28)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(titre).font(.subheadline.weight(.semibold))
-                    if let detail { Text(detail).font(.caption).foregroundStyle(.secondary) }
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(spacing: 12) {
+                    Image(systemName: icone).font(.title3).foregroundStyle(Theme.accent).frame(width: 28)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(titre).font(.subheadline.weight(.semibold))
+                        if let detail { Text(detail).font(.caption).foregroundStyle(.secondary) }
+                    }
+                    Spacer()
                 }
-                Spacer()
+                // Pas encore regardable chez soi : se faire prévenir de l'arrivée en streaming.
+                if case .introuvable = etat, sortie != nil {
+                    if alertesActives {
+                        Label("Tu seras prévenu de sa sortie", systemImage: "bell.fill")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(Theme.accentClair)
+                    } else {
+                        Button(action: prevenir) {
+                            Label("Me prévenir de sa sortie", systemImage: "bell.badge")
+                                .font(.subheadline.weight(.semibold))
+                        }
+                        .tint(Theme.accent)
+                    }
+                }
             }
             .padding(14)
             .background(Theme.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
         }
         .padding(.horizontal, 20)
+    }
+
+    private static func jour(_ date: DateTMDB) -> String {
+        date.instant(heure: 12).formatted(.dateTime.day().month(.wide).year().locale(Locale(identifier: "fr_CH")))
     }
 
     private var icone: String {
@@ -512,7 +593,13 @@ private struct BlocOuRegarder: View {
         case .dansAbonnements: "play.tv.fill"
         case .aLaTeleBientot: "tv"
         case .aLouerOuAcheter: "cart"
-        case .introuvable: "questionmark.circle"
+        case .introuvable:
+            switch sortie {
+            case .auCinema, .bientotAuCinema: "film"
+            case .sortieNumerique, .aVenir: "calendar"
+            case .pasEncoreEnStreaming: "hourglass"
+            case nil: "questionmark.circle"
+            }
         }
     }
 
@@ -522,7 +609,15 @@ private struct BlocOuRegarder: View {
         case .dansAbonnements: "Dans tes abonnements"
         case .aLaTeleBientot: "À la télé bientôt"
         case .aLouerOuAcheter: "À louer ou acheter"
-        case .introuvable: "Introuvable légalement en Suisse"
+        case .introuvable:
+            switch sortie {
+            case .auCinema(let depuis, _): "Au cinéma depuis le \(Self.jour(depuis))"
+            case .bientotAuCinema(let le): "Au cinéma le \(Self.jour(le))"
+            case .sortieNumerique(let le): "En streaming le \(Self.jour(le))"
+            case .aVenir(let le): "Sortie prévue le \(Self.jour(le))"
+            case .pasEncoreEnStreaming: "Pas encore disponible en Suisse"
+            case nil: "Introuvable légalement en Suisse"
+            }
         }
     }
 
@@ -534,7 +629,14 @@ private struct BlocOuRegarder: View {
             "\(diffusion.chaine), \(diffusion.debut.formatted(.dateTime.weekday(.wide).hour().minute()))"
         case .aLouerOuAcheter(let location, let achat):
             Array(Set((location + achat).map(\.nom))).sorted().joined(separator: ", ")
-        case .introuvable: nil
+        case .introuvable:
+            switch sortie {
+            case .auCinema(_, let numerique?): "En streaming le \(Self.jour(numerique))"
+            case .auCinema(_, nil), .bientotAuCinema: "Sortie en streaming pas encore annoncée"
+            case .sortieNumerique, .aVenir: "Pas encore sur les plateformes suisses"
+            case .pasEncoreEnStreaming: "Ni sur les plateformes, ni en location pour l'instant"
+            case nil: nil
+            }
         }
     }
 }

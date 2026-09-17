@@ -7,8 +7,12 @@ import SwiftUI
 struct SourcesAccueil: Codable, Hashable {
     /// `nil` : tout le catalogue TMDB ; sinon, les plateformes choisies.
     var plateformes: [Int]?
+    var top10 = true
     var tele = true
+    var duMoment = true
     var nas = true
+
+    init() {}
 
     var filtrees: [Int]? {
         guard let plateformes, !plateformes.isEmpty else { return nil }
@@ -16,7 +20,21 @@ struct SourcesAccueil: Codable, Hashable {
     }
 
     var modifiees: Bool {
-        filtrees != nil || !tele || !nas
+        filtrees != nil || !top10 || !tele || !duMoment || !nas
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case plateformes, top10, tele, duMoment, nas
+    }
+
+    /// Les réglages d'une version précédente restent valables : les sections ajoutées depuis sont affichées.
+    init(from decoder: any Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        plateformes = try c.decodeIfPresent([Int].self, forKey: .plateformes)
+        top10 = try c.decodeIfPresent(Bool.self, forKey: .top10) ?? true
+        tele = try c.decodeIfPresent(Bool.self, forKey: .tele) ?? true
+        duMoment = try c.decodeIfPresent(Bool.self, forKey: .duMoment) ?? true
+        nas = try c.decodeIfPresent(Bool.self, forKey: .nas) ?? true
     }
 }
 
@@ -153,9 +171,10 @@ struct AccueilView: View {
             .toolbar {
                 ToolbarItemGroup(placement: .topBarTrailing) {
                     Button { reglageSources = true } label: {
-                        Label("Sources", systemImage: sources.modifiees ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle")
+                        Label("Personnaliser", systemImage: "slider.horizontal.3")
+                            .labelStyle(.titleAndIcon)
                     }
-                    .help("Choisir les sources affichées : plateformes, télévision, NAS")
+                    .help("Choisir les plateformes et les sections de l'accueil")
                     .accessibilityIdentifier("boutonSources")
                     if sources.nas {
                         Button { chemin.append(DestinationAccueil.nas) } label: {
@@ -197,7 +216,21 @@ struct AccueilView: View {
                     }
                 }
 
-                if !modele.topFilms.isEmpty || !modele.topSeries.isEmpty {
+                // Accueil limité à certaines plateformes : c'est dit, et modifiable d'un geste.
+                if let plateformes {
+                    Button { reglageSources = true } label: {
+                        Label("Sur \(nomsPlateformes(plateformes)) seulement · Modifier", systemImage: "play.tv")
+                            .font(.subheadline.weight(.semibold))
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 8)
+                            .background(Theme.surface, in: Capsule())
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(Theme.accentClair)
+                    .padding(.horizontal, 20)
+                }
+
+                if sources.top10, !modele.topFilms.isEmpty || !modele.topSeries.isEmpty {
                     SectionTop10(films: modele.topFilms, series: modele.topSeries,
                                  plateformes: plateformes.map(nomsPlateformes))
                 }
@@ -208,7 +241,7 @@ struct AccueilView: View {
                     }
                 }
 
-                if !modele.duMoment.isEmpty {
+                if sources.duMoment, !modele.duMoment.isEmpty {
                     VStack(alignment: .leading, spacing: 12) {
                         TitreSection(titre: "Du moment") {
                             BoutonToutVoir { chemin.append(DestinationAccueil.duMoment(plateformes: plateformes)) }
@@ -279,21 +312,25 @@ private struct ReglageSourcesAccueil: View {
                         }
                     }
                 } header: {
-                    Text("Films et séries")
+                    Text("Plateformes")
                 } footer: {
-                    Text("Nouveautés, tendances et suggestions « Pour toi » ne montrent que ce qui est disponible sur les plateformes choisies.")
+                    Text("Le bandeau, le Top 10 de l'année et « Du moment » ne montrent que ce qui est disponible sur les plateformes choisies.")
                 }
 
                 Section {
+                    Toggle("Top 10 de l'année", isOn: $sources.top10).tint(Theme.accent)
                     Toggle("Ce soir à la télé", isOn: $sources.tele).tint(Theme.accent)
+                    Toggle("Du moment", isOn: $sources.duMoment).tint(Theme.accent)
                     Toggle("Sur ton NAS", isOn: $sources.nas).tint(Theme.accent)
                 } header: {
-                    Text("Aussi sur l'accueil")
+                    Text("Sections de l'accueil")
+                } footer: {
+                    Text("Le bandeau en haut reprend les cinq premiers titres du moment.")
                 }
             }
             .scrollContentBackground(.hidden)
             .background(Theme.fond)
-            .navigationTitle("Sources")
+            .navigationTitle("Personnaliser l'accueil")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {

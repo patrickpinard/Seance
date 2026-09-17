@@ -12,6 +12,7 @@ struct RacineView: View {
     @AppStorage("bienvenue.terminee") private var bienvenueTerminee = false
     @State private var bienvenue = false
     @State private var onglet = OngletRacine.accueil
+    @State private var survolConfirmation = false
 
     var body: some View {
         TabView(selection: $onglet) {
@@ -43,13 +44,16 @@ struct RacineView: View {
         }
         // iPhone : barre d'onglets ; Mac et grandes fenêtres : barre latérale.
         .tabViewStyle(.sidebarAdaptable)
-        // Confirmation d'une action rapide sur une affiche, au-dessus de la barre d'onglets.
+        // Confirmation d'une action, au-dessus de la barre d'onglets.
+        #if targetEnvironment(macCatalyst)
+        .allowsHitTesting(!survolConfirmation)
+        #endif
         .overlay(alignment: .bottom) {
             if let confirmation = etat.confirmation {
-                BandeauConfirmation(confirmation: confirmation)
+                BandeauConfirmation(confirmation: confirmation, survol: $survolConfirmation)
                     .padding(.bottom, 96)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
-                    .allowsHitTesting(false)
+                    .allowsHitTesting(confirmation.annuler != nil)
             }
         }
         .animation(.snappy, value: etat.confirmation)
@@ -85,6 +89,7 @@ struct RacineView: View {
         // Relancé quand la clé TMDB arrive : sans elle, rien ne peut être rattaché.
         .task(id: etat.tmdb == nil) {
             await etat.demarrer(contexte: contexte)
+            await etat.alertes.programmerRappelExpiration(etat.expirationInstallation)
             await PublicationWidgets.actualiser(contexte: contexte, tmdb: etat.tmdb, force: true)
             // Siri apprend les titres de tes listes pour « Ajoute … à ma soirée ».
             RaccourcisSeance.updateAppShortcutParameters()
@@ -117,6 +122,9 @@ struct RacineView: View {
             Text(lecture.episode == nil
                  ? "Séance le marquera comme vu : il sortira des suggestions et comptera dans tes statistiques."
                  : "Séance cochera cet épisode et passera au suivant.")
+        }
+        .onChange(of: etat.rechercheDemandee) { _, demandee in
+            if demandee { onglet = .explorer }
         }
         .onChange(of: etat.ongletDemande) { _, demande in
             guard let demande else { return }

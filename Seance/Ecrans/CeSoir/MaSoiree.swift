@@ -34,7 +34,6 @@ final class SoireeModele {
         let suivis = (try? contexte.fetch(FetchDescriptor<Suivi>())) ?? []
         let series = suivis.filter { $0.type == .serie && $0.statut == .enCours }
         let aVoir = Array(suivis.filter { $0.statut == .aVoir }.prefix(24))
-        let abonnements = Set(((try? contexte.fetch(FetchDescriptor<Abonnement>(predicate: #Predicate { $0.actif }))) ?? []).map(\.providerID))
         let nas = Set(((try? contexte.fetch(FetchDescriptor<FichierNAS>(predicate: #Predicate { $0.tmdbID != nil }))) ?? []).compactMap(\.reference))
         let suivi = ServiceSuivi(contexte: contexte)
 
@@ -51,15 +50,21 @@ final class SoireeModele {
                            numero: prochain.numero)
         }
 
+        // La même règle que « Regardable ce soir » dans Mes listes : NAS, abonnements, ou télé ce soir.
         let lesOffres = await offres
+        let disponibilite = ServiceDisponibilite(contexte: contexte)
+        let maintenant = Date.now
         disponibles = aVoir.compactMap { titre in
-            if nas.contains(titre.reference) {
-                return Disponible(id: titre.reference, titre: titre.titre, cheminAffiche: titre.cheminAffiche, ou: "Sur ton NAS")
+            guard let etatTitre = try? disponibilite.etat(titre.reference, offres: lesOffres[titre.reference]),
+                  RegardableCeSoir.retient(etatTitre, maintenant: maintenant),
+                  let ou = RegardableCeSoir.libelle(etatTitre) else { return nil }
+            let libelle: String
+            switch etatTitre {
+            case .dansAbonnements: libelle = "Sur \(ou)"
+            case .aLaTeleBientot: libelle = "Ce soir sur \(ou)"
+            default: libelle = ou
             }
-            guard let offre = lesOffres[titre.reference] else { return nil }
-            let inclus = (offre.abonnement + offre.gratuit + offre.avecPublicite).filter { abonnements.contains($0.id) }
-            guard let premiere = inclus.sorted(by: { $0.priorite < $1.priorite }).first else { return nil }
-            return Disponible(id: titre.reference, titre: titre.titre, cheminAffiche: titre.cheminAffiche, ou: "Sur \(premiere.nom)")
+            return Disponible(id: titre.reference, titre: titre.titre, cheminAffiche: titre.cheminAffiche, ou: libelle)
         }
     }
 
@@ -119,13 +124,28 @@ struct SectionsSoiree: View {
     }
 
     /// Les rendez-vous de tes titres surveillés aujourd'hui : télé pas encore finie, épisodes et sorties du jour.
+    /// Un titre déjà gardé pour la soirée n'y réapparaît pas.
     private var aNePasManquer: [Echeance] {
         let calendrier = Calendar.current
         let maintenant = Date.now
+        let retenus = retenus
+        var vus = Set<ReferenceTitre>()
         return echeances.filter { echeance in
-            guard calendrier.isDateInToday(echeance.date) else { return false }
-            return echeance.nature != .tele || echeance.date > maintenant.addingTimeInterval(-2 * 3600)
+            guard calendrier.isDateInToday(echeance.date), !retenus.contains(echeance.reference) else { return false }
+            guard echeance.nature != .tele || echeance.date > maintenant.addingTimeInterval(-2 * 3600) else { return false }
+            return vus.insert(echeance.reference).inserted
         }
+    }
+
+    /// Chaque titre n'apparaît qu'une fois dans « Ce soir » : ma soirée, puis à ne pas manquer, puis épisodes, puis ta liste.
+    private var episodes: [SoireeModele.Episode] {
+        let dejaMontres = retenus.union(aNePasManquer.map(\.reference))
+        return modele.episodes.filter { !dejaMontres.contains($0.id) }
+    }
+
+    private var disponibles: [SoireeModele.Disponible] {
+        let dejaMontres = retenus.union(aNePasManquer.map(\.reference)).union(episodes.map(\.id))
+        return modele.disponibles.filter { !dejaMontres.contains($0.id) }
     }
 
     var body: some View {
@@ -159,10 +179,10 @@ struct SectionsSoiree: View {
                 }
             }
 
-            if !modele.episodes.isEmpty {
+            if !episodes.isEmpty {
                 VStack(alignment: .leading, spacing: 10) {
                     entete("Épisodes à regarder", symbole: "play.tv.fill")
-                    ForEach(modele.episodes) { episode in
+                    ForEach(episodes) { episode in
                         ligne(reference: episode.serie.reference, titre: episode.serie.nom, affiche: episode.cheminAffiche,
                               detail: "Épisode \(episode.numero)") {
                             HStack(spacing: 8) {
@@ -177,10 +197,10 @@ struct SectionsSoiree: View {
                 }
             }
 
-            if !modele.disponibles.isEmpty {
+            if !disponibles.isEmpty {
                 VStack(alignment: .leading, spacing: 10) {
-                    entete("Dans ta liste, disponible maintenant", symbole: "bookmark.fill")
-                    ForEach(modele.disponibles) { titre in
+                    entete("Dans ta liste, regardable ce soir", symbole: "bookmark.fill")
+                    ForEach(disponibles) { titre in
                         ligne(reference: titre.id, titre: titre.titre, affiche: titre.cheminAffiche, detail: titre.ou) {
                             boutonSoiree(titre.id, titre: titre.titre, affiche: titre.cheminAffiche)
                         }
@@ -204,8 +224,10 @@ struct SectionsSoiree: View {
     }
 
     /// Ce que la soirée sait déjà d'un titre retenu : un rendez-vous du jour, un épisode, une plateforme.
+    /// Les rendez-vous sont lus avant le retrait des doublons, qui écarte justement les titres de la soirée.
     private func detail(_ reference: ReferenceTitre) -> String {
-        if let echeance = aNePasManquer.first(where: { $0.reference == reference }) { return echeance.libelle }
+        let calendrier = Calendar.current
+        if let echeance = echeances.first(where: { $0.reference == reference && calendrier.isDateInToday($0.date) }) { return echeance.libelle }
         if let episode = modele.episodes.first(where: { $0.id == reference }) { return "Épisode \(episode.numero) à regarder" }
         if let disponible = modele.disponibles.first(where: { $0.id == reference }) { return disponible.ou }
         return reference.type == .film ? "Film" : "Série"

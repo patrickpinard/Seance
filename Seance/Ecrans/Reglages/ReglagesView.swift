@@ -18,6 +18,10 @@ struct ReglagesView: View {
                     LigneReglage(titre: "TMDB", symbole: "film.stack", couleur: .teal,
                                  valeur: etat.tmdb == nil ? "À saisir" : "Connecté")
                 }
+                NavigationLink { ReglagesClaudeView() } label: {
+                    LigneReglage(titre: "Claude", symbole: "sparkles", couleur: .orange,
+                                 valeur: etat.claude == nil ? "Facultatif" : "Connecté")
+                }
             }
 
             Section("Où regarder") {
@@ -49,7 +53,7 @@ struct ReglagesView: View {
 
             Section {
                 NavigationLink { AProposView() } label: {
-                    LigneReglage(titre: "À propos", symbole: "info", couleur: .gray, valeur: nil)
+                    LigneReglage(titre: "À propos", symbole: "info", couleur: .gray, valeur: expirationProche)
                 }
             }
 
@@ -67,6 +71,12 @@ struct ReglagesView: View {
         .background(Theme.fond)
         .navigationTitle("Réglages")
         .task { await etat.alertes.actualiserAutorisation() }
+    }
+
+    /// Dans les deux derniers jours avant l'expiration de l'installation, la ligne À propos le signale.
+    private var expirationProche: String? {
+        guard let expiration = etat.expirationInstallation, expiration.timeIntervalSinceNow < 2 * 86_400 else { return nil }
+        return "Installation : \(ProfilInstallation.libelle(expiration: expiration))"
     }
 
     private var libelleAlertes: String {
@@ -165,6 +175,48 @@ struct ReglagesTMDBView: View {
             message = Journal.conseil(error) ?? "Le test n'a pas abouti : vérifie la connexion Internet, puis réessaie."
             etat.journal.noter(.tmdb, "La clé TMDB n'a pas pu être testée.", erreur: error)
         }
+    }
+}
+
+/// EF-27 : clé Claude facultative, pour que « Idées pour ce soir » lise une envie précisée.
+struct ReglagesClaudeView: View {
+    @Environment(EtatApp.self) private var etat
+    @State private var cleClaude = ""
+    @State private var message: String?
+
+    var body: some View {
+        Form {
+            Section {
+                if etat.claude != nil {
+                    LabeledContent("Clé Claude", value: "enregistrée")
+                    Button("Supprimer la clé", role: .destructive) {
+                        try? etat.supprimerCleClaude()
+                        message = nil
+                    }
+                } else {
+                    SecureField("Clé d'API (sk-ant-…)", text: $cleClaude)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                    Button("Enregistrer la clé") {
+                        do {
+                            try etat.enregistrerCleClaude(cleClaude)
+                            cleClaude = ""
+                            message = "Clé enregistrée dans le trousseau."
+                        } catch {
+                            message = error.localizedDescription
+                        }
+                    }
+                    .disabled(cleClaude.isEmpty)
+                    Link("Créer une clé sur console.anthropic.com", destination: URL(string: "https://console.anthropic.com/settings/keys")!)
+                }
+                if let message {
+                    Text(message).font(.footnote).foregroundStyle(.secondary)
+                }
+            } footer: {
+                Text("Sans clé, « Idées pour ce soir » classe les titres sur l'appareil, selon tes goûts. Avec une clé, Claude lit l'envie que tu précises et choisit parmi les titres disponibles : environ 0,07 $ par demande.")
+            }
+        }
+        .pageReglages("Claude")
     }
 }
 
@@ -304,6 +356,8 @@ struct ReglagesTeleView: View {
 
 /// À propos (EF-44) : l'application, ses sources et les droits d'auteur, et l'historique des versions.
 struct AProposView: View {
+    @Environment(EtatApp.self) private var etat
+
     enum Onglet: String, CaseIterable, Identifiable {
         case application = "Séance"
         case versions = "Versions"
@@ -335,6 +389,21 @@ struct AProposView: View {
                         .accessibilityHidden(true)
                     Text("Séance").font(.title.weight(.heavy))
                     Text(version).font(.footnote).foregroundStyle(.secondary)
+                    // Compte Apple gratuit : l'installation expire au bout de 7 jours.
+                    if let expiration = etat.expirationInstallation {
+                        let bientot = expiration.timeIntervalSinceNow < 2 * 86_400
+                        Label("Installation valable jusqu'au \(expiration.formatted(.dateTime.weekday(.wide).day().month(.wide).hour().minute().locale(Locale(identifier: "fr_CH")))) · \(ProfilInstallation.libelle(expiration: expiration))",
+                              systemImage: bientot ? "exclamationmark.triangle.fill" : "clock")
+                            .font(.footnote.weight(bientot ? .semibold : .regular))
+                            .foregroundStyle(bientot ? AnyShapeStyle(Color.orange) : AnyShapeStyle(.secondary))
+                            .multilineTextAlignment(.center)
+                        if bientot {
+                            Text("Relance outils/installer.sh sur le Mac pour prolonger de 7 jours : tes données restent.")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .multilineTextAlignment(.center)
+                        }
+                    }
                     Picker("Onglet", selection: $onglet) {
                         ForEach(Onglet.allCases) { onglet in
                             Text(onglet.rawValue).tag(onglet)

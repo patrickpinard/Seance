@@ -70,6 +70,7 @@
 		F783EE50ED242E87C26070E9 /* ModelesWidgets.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED0B44CF550A1F10AF3049BA /* ModelesWidgets.swift */; };
 		FE7576C913266B279565E431 /* Composants.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1E76531BEB952957EAAEE65 /* Composants.swift */; };
 		FEE6A8F2F23E1E3C87548D00 /* ModelesWidgets.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED0B44CF550A1F10AF3049BA /* ModelesWidgets.swift */; };
+		FFCD2E7F759C8F02A5857C49 /* IdeesCeSoir.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F0A5CECA4CE808ED4DF352C /* IdeesCeSoir.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -107,6 +108,7 @@
 		003B43F4A3CFECED924F22EE /* FicheView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FicheView.swift; sourceTree = "<group>"; };
 		0638E7609742B2A07A76BE89 /* Seance.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Seance.entitlements; sourceTree = "<group>"; };
 		0661326CD01844A8F4B22D2B /* LienProfond.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LienProfond.swift; sourceTree = "<group>"; };
+		0F0A5CECA4CE808ED4DF352C /* IdeesCeSoir.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IdeesCeSoir.swift; sourceTree = "<group>"; };
 		0FF991D92C556A3C1303E019 /* EpisodesSerie.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EpisodesSerie.swift; sourceTree = "<group>"; };
 		12C540EB67C8BD5BA63EA997 /* VuesWidgets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VuesWidgets.swift; sourceTree = "<group>"; };
 		1A183D5A1A3FBB515C991256 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
@@ -299,6 +301,7 @@
 			isa = PBXGroup;
 			children = (
 				B22994E3C0A8EC34BB582A70 /* CeSoirView.swift */,
+				0F0A5CECA4CE808ED4DF352C /* IdeesCeSoir.swift */,
 				A33739359CBDF876AD2F1B6E /* MaSoiree.swift */,
 			);
 			path = CeSoir;
@@ -587,6 +590,7 @@
 				889E1057E692259368F006C8 /* FeuilleFiltres.swift in Sources */,
 				9465DF498AFBE22D12E9EC5E /* FicheView.swift in Sources */,
 				591CF02849D1BB825A3BD08B /* Filtres.swift in Sources */,
+				FFCD2E7F759C8F02A5857C49 /* IdeesCeSoir.swift in Sources */,
 				39CC7B582D020F02F55F50E2 /* Journal.swift in Sources */,
 				5201A683F4BAF8E078552DF1 /* JournalView.swift in Sources */,
 				31EF6B7567FA50350F574204 /* LectureNAS.swift in Sources */,
@@ -732,7 +736,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 8;
+				CURRENT_PROJECT_VERSION = 9;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = GATK475J3P;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -752,7 +756,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 1.5;
+				MARKETING_VERSION = 2.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -836,7 +840,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 8;
+				CURRENT_PROJECT_VERSION = 9;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = GATK475J3P;
 				ENABLE_NS_ASSERTIONS = NO;
@@ -850,7 +854,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 1.5;
+				MARKETING_VERSION = 2.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
