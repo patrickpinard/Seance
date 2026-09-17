@@ -371,21 +371,24 @@ private struct ReglageSourcesAccueil: View {
 private struct BandeauVedette: View {
     let titres: [TitreResume]
     @State private var page = 0
+    @State private var survolFleche = false
 
     var body: some View {
         pages
             .tabViewStyle(.page(indexDisplayMode: .automatic))
-            // Sur le Mac, les pages ne se glissent pas à la souris : une flèche de chaque côté, en boucle.
+            // Sur le Mac, les pages ne se glissent pas à la souris : une flèche de chaque côté, en boucle. Pendant
+            // le survol d'une flèche, la page du dessous ignore les clics, sinon elle ouvrirait sa fiche.
             #if targetEnvironment(macCatalyst)
+            .allowsHitTesting(!survolFleche)
             .overlay(alignment: .leading) {
                 if titres.count > 1 {
-                    FlecheDefilement(sens: .gauche) { tourner(-1) }
+                    FlecheDefilement(sens: .gauche, survol: $survolFleche) { tourner(-1) }
                         .padding(.leading, 12)
                 }
             }
             .overlay(alignment: .trailing) {
                 if titres.count > 1 {
-                    FlecheDefilement(sens: .droite) { tourner(1) }
+                    FlecheDefilement(sens: .droite, survol: $survolFleche) { tourner(1) }
                         .padding(.trailing, 12)
                 }
             }

@@ -129,11 +129,14 @@ struct AnneauNote: View {
 
 /// Carrousel horizontal d'images. Sur le Mac, la molette d'une souris défile à la verticale et un clic ne fait pas
 /// glisser : des flèches ‹ › apparaissent sur les bords, tant qu'il reste quelque chose à voir de ce côté.
+/// Posé sur une rangée, un bouton laissait passer le clic à l'affiche du dessous, qui ouvrait sa fiche : tant que le
+/// pointeur survole une flèche, la rangée ignore les clics.
 struct DefilementHorizontal<Contenu: View>: View {
     @ViewBuilder var contenu: Contenu
 
     @State private var position = ScrollPosition(edge: .leading)
     @State private var geometrie = Geometrie()
+    @State private var survolFleche = false
 
     private struct Geometrie: Equatable {
         var decalage: CGFloat = 0
@@ -155,15 +158,16 @@ struct DefilementHorizontal<Contenu: View>: View {
             geometrie = nouvelle
         }
         #if targetEnvironment(macCatalyst)
+        .allowsHitTesting(!survolFleche)
         .overlay(alignment: .leading) {
             if !geometrie.auDebut {
-                FlecheDefilement(sens: .gauche) { defiler(-1) }
+                FlecheDefilement(sens: .gauche, survol: $survolFleche) { defiler(-1) }
                     .padding(.leading, 8)
             }
         }
         .overlay(alignment: .trailing) {
             if !geometrie.aLaFin {
-                FlecheDefilement(sens: .droite) { defiler(1) }
+                FlecheDefilement(sens: .droite, survol: $survolFleche) { defiler(1) }
                     .padding(.trailing, 8)
             }
         }
@@ -178,65 +182,33 @@ struct DefilementHorizontal<Contenu: View>: View {
     }
 }
 
-/// Flèche ‹ › des carrousels et du bandeau, pour le Mac.
+/// Flèche ‹ › des carrousels et du bandeau, pour le Mac. `survol` dit au contenu du dessous d'ignorer les clics.
 struct FlecheDefilement: View {
     enum Sens { case gauche, droite }
 
     let sens: Sens
+    @Binding var survol: Bool
     let action: () -> Void
 
     var body: some View {
-        #if targetEnvironment(macCatalyst)
-        BoutonFlecheUIKit(sens: sens, action: action)
-            .frame(width: 38, height: 38)
-            .shadow(color: .black.opacity(0.45), radius: 6)
-        #else
         Button(action: action) {
             Image(systemName: sens == .gauche ? "chevron.left" : "chevron.right")
                 .font(.system(size: 14, weight: .bold))
+                .foregroundStyle(.white)
                 .frame(width: 38, height: 38)
-                .background(.regularMaterial, in: Circle())
+                .background(.black.opacity(0.7), in: Circle())
+                .overlay(Circle().strokeBorder(.white.opacity(0.15), lineWidth: 1))
+                .shadow(color: .black.opacity(0.45), radius: 6)
+                .contentShape(Circle())
         }
         .buttonStyle(.plain)
-        #endif
+        .onHover { survol = $0 }
+        // Une flèche qui disparaît sous le pointeur (bout de la rangée) ne doit pas laisser la rangée inerte.
+        .onDisappear { survol = false }
+        .help(sens == .gauche ? "Précédents" : "Suivants")
+        .accessibilityLabel(sens == .gauche ? "Faire défiler vers la gauche" : "Faire défiler vers la droite")
     }
 }
-
-#if targetEnvironment(macCatalyst)
-/// Un vrai bouton UIKit. Posé sur un défilement, un bouton SwiftUI laissait passer le clic à l'affiche du dessous,
-/// qui ouvrait sa fiche ; une vue UIKit placée au-dessus reçoit le clic elle-même.
-private struct BoutonFlecheUIKit: UIViewRepresentable {
-    let sens: FlecheDefilement.Sens
-    let action: () -> Void
-
-    final class Coordinateur {
-        var action: () -> Void
-        init(action: @escaping () -> Void) { self.action = action }
-    }
-
-    func makeCoordinator() -> Coordinateur {
-        Coordinateur(action: action)
-    }
-
-    func makeUIView(context: Context) -> UIButton {
-        var configuration = UIButton.Configuration.filled()
-        configuration.image = UIImage(systemName: sens == .gauche ? "chevron.left" : "chevron.right",
-                                      withConfiguration: UIImage.SymbolConfiguration(pointSize: 14, weight: .bold))
-        configuration.cornerStyle = .capsule
-        configuration.baseBackgroundColor = UIColor.black.withAlphaComponent(0.7)
-        configuration.baseForegroundColor = .white
-        let coordinateur = context.coordinator
-        let bouton = UIButton(configuration: configuration, primaryAction: UIAction { _ in coordinateur.action() })
-        bouton.toolTip = sens == .gauche ? "Précédents" : "Suivants"
-        bouton.accessibilityLabel = sens == .gauche ? "Faire défiler vers la gauche" : "Faire défiler vers la droite"
-        return bouton
-    }
-
-    func updateUIView(_ bouton: UIButton, context: Context) {
-        context.coordinator.action = action
-    }
-}
-#endif
 
 /// Carte d'un titre dans un carrousel ou une grille (UX-03).
 struct CarteAffiche: View {
