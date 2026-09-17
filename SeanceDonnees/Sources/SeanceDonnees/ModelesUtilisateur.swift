@@ -20,6 +20,9 @@ public final class Suivi {
     public var tmdbID: Int = 0
     public var typeBrut: String = TypeTitre.film.rawValue
     public var statutBrut: String = StatutSuivi.aVoir.rawValue
+    /// Supprimé de la liste « Terminés » : le titre n'y apparaît plus, mais reste vu, noté et compté
+    /// (statistiques, goûts, suggestions). Il réapparaît s'il change de statut.
+    public var masque: Bool = false
     /// De 1 à 10.
     public var note: Int?
     /// « Ni VF ni sous-titres FR » (EF-29).
@@ -48,7 +51,10 @@ public final class Suivi {
 
     public var statut: StatutSuivi {
         get { StatutSuivi(rawValue: statutBrut) ?? .aVoir }
-        set { statutBrut = newValue.rawValue }
+        set {
+            statutBrut = newValue.rawValue
+            if newValue != .termine { masque = false }
+        }
     }
 
     public var reference: ReferenceTitre {

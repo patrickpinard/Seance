@@ -3,7 +3,7 @@ import SeanceKit
 import SwiftData
 import SwiftUI
 
-// Pages « Tout voir » de l'accueil : programme télé, nouveautés et tendances.
+// Pages « Tout voir » de l'accueil : programme télé et « Du moment ».
 
 /// Tout le programme à venir des chaînes cochées (EF-46 à EF-49), jour par jour.
 struct ProgrammeTeleView: View {
@@ -109,33 +109,28 @@ struct ProgrammeTeleView: View {
     }
 }
 
-/// Toutes les nouveautés du jour ou de la semaine, films ou séries, avec leurs dates.
-struct NouveautesView: View {
-    @State var periode: PeriodeTendance
+/// « Du moment » en entier : sorties et nouveaux épisodes du mois, les plus populaires d'abord.
+struct DuMomentView: View {
     var plateformes: [Int]?
-    @State private var type = TypeTitre.film
+    @State private var type: TypeTitre?
     @State private var liste = ListePaginee()
 
     @Environment(EtatApp.self) private var etat
 
     var body: some View {
         GrillePaginee(liste: liste, sousTitre: sousTitre) {
-            Picker("Période", selection: $periode) {
-                Text("Aujourd'hui").tag(PeriodeTendance.jour)
-                Text("Cette semaine").tag(PeriodeTendance.semaine)
-            }
-            .pickerStyle(.segmented)
             Picker("Type", selection: $type) {
-                Text("Films").tag(TypeTitre.film)
-                Text("Séries et épisodes").tag(TypeTitre.serie)
+                Text("Tout").tag(TypeTitre?.none)
+                Text("Films").tag(TypeTitre?.some(.film))
+                Text("Séries et épisodes").tag(TypeTitre?.some(.serie))
             }
             .pickerStyle(.segmented)
         } chargerSuite: {
             await chargerSuite()
         }
-        .navigationTitle(plateformes == nil ? "Nouveautés" : "Nouveautés sur tes plateformes")
+        .navigationTitle(plateformes == nil ? "Du moment" : "Du moment sur tes plateformes")
         .navigationBarTitleDisplayMode(.inline)
-        .task(id: [periode.rawValue, type.rawValue]) {
+        .task(id: type) {
             liste = ListePaginee()
             await chargerSuite()
         }
@@ -147,64 +142,20 @@ struct NouveautesView: View {
 
     private func chargerSuite() async {
         guard let client = etat.tmdb else { return }
-        let periodeDemandee = periode
+        let typeDemande = type
+        let pourFilms = AccueilModele.surPlateformes(CriteresDecouverte.duMoment(.film), plateformes)
+        let pourSeries = AccueilModele.surPlateformes(CriteresDecouverte.duMoment(.serie), plateformes)
         await liste.charger { page in
-            var criteres = AccueilModele.surPlateformes(CriteresDecouverte.nouveautes(type, periode: periodeDemandee), plateformes)
-            criteres.page = page
-            let titres: [TitreResume]
-            switch type {
-            case .film: titres = try await client.decouvrirFilms(criteres).resultats.map(\.titreResume)
-            case .serie: titres = try await client.decouvrirSeries(criteres).resultats.map(\.titreResume)
-            }
-            return titres.filter { $0.cheminAffiche != nil && RegleLangue.accepte(langueOriginale: $0.langueOriginale, exclu: false) }
+            var criteresFilms = pourFilms
+            criteresFilms.page = page
+            var criteresSeries = pourSeries
+            criteresSeries.page = page
+            let films = typeDemande == .serie ? [] : try await client.decouvrirFilms(criteresFilms).resultats.map(\.titreResume)
+            let series = typeDemande == .film ? [] : try await client.decouvrirSeries(criteresSeries).resultats.map(\.titreResume)
+            return AccueilModele.affichables(AccueilModele.entrelacer(films, series))
         } dates: { titres in
-            type == .serie ? await DatesNouveautes.episodes(titres, periode: periodeDemandee, client: client) : [:]
+            await DatesNouveautes.episodes(titres.filter { $0.reference.type == .serie }, client: client)
         }
-    }
-}
-
-/// Toutes les tendances du jour ou de la semaine (UX-02).
-struct TendancesView: View {
-    @State var periode: PeriodeTendance
-    var plateformes: [Int]?
-    @State private var liste = ListePaginee()
-
-    @Environment(EtatApp.self) private var etat
-
-    var body: some View {
-        GrillePaginee(liste: liste, sousTitre: { titre in
-            [titre.reference.type == .film ? "Film" : "Série", titre.date.map { String($0.annee) }].compactMap { $0 }.joined(separator: " · ")
-        }) {
-            if plateformes == nil {
-                Picker("Période", selection: $periode) {
-                    Text("Aujourd'hui").tag(PeriodeTendance.jour)
-                    Text("Cette semaine").tag(PeriodeTendance.semaine)
-                }
-                .pickerStyle(.segmented)
-            }
-        } chargerSuite: {
-            await chargerSuite()
-        }
-        .navigationTitle(plateformes == nil ? "Tendances" : "Populaires sur tes plateformes")
-        .navigationBarTitleDisplayMode(.inline)
-        .task(id: periode) {
-            liste = ListePaginee()
-            await chargerSuite()
-        }
-    }
-
-    private func chargerSuite() async {
-        guard let client = etat.tmdb else { return }
-        let periodeDemandee = periode
-        let plateformesDemandees = plateformes
-        await liste.charger { page in
-            guard let plateformesDemandees else { return try await client.tendances(periodeDemandee, page: page) }
-            var criteres = AccueilModele.populaires(plateformesDemandees)
-            criteres.page = page
-            async let films = client.decouvrirFilms(criteres)
-            async let series = client.decouvrirSeries(criteres)
-            return AccueilModele.entrelacer(try await films.resultats.map(\.titreResume), try await series.resultats.map(\.titreResume))
-        } dates: { _ in [:] }
     }
 }
 

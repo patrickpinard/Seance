@@ -18,10 +18,13 @@ public struct Sauvegarde: Codable, Sendable, Equatable {
         /// Cloche de la fiche ; absente des sauvegardes antérieures à la version 1.1.
         public var alertesActives: Bool?
         public var modeAlertes: String?
+        /// Supprimé de « Terminés » ; absent des sauvegardes antérieures à la version 1.5.
+        public var masque: Bool?
 
         public init(reference: ReferenceTitre, statut: String, note: Int?, exclusionLangue: Bool, ajouteLe: Date,
                     titre: String, cheminAffiche: String?, acteursPrincipaux: [String], genres: [Int],
-                    alertesActives: Bool? = nil, modeAlertes: String? = nil) {
+                    alertesActives: Bool? = nil, modeAlertes: String? = nil, masque: Bool? = nil) {
+            self.masque = masque
             self.alertesActives = alertesActives
             self.modeAlertes = modeAlertes
             self.reference = reference

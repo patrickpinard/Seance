@@ -37,6 +37,7 @@ struct MesListesView: View {
     /// Disponibilité et durée lues sur TMDB, par titre ; vidées quand les abonnements changent.
     @State private var infos: [ReferenceTitre: InfoTitre] = [:]
     @State private var chargementInfos = false
+    @State private var confirmerToutSupprimer = false
 
     private struct InfoTitre {
         let etat: EtatDisponibilite
@@ -158,12 +159,26 @@ struct MesListesView: View {
 
     // MARK: À voir, en cours, terminés
 
-    /// Filtre « Regardable ce soir » (pas pour les titres terminés) et ordre de la liste.
+    /// Filtre « Regardable ce soir » (pas pour les titres terminés) ou « Tout supprimer » (terminés), et ordre de la liste.
     private func barreListe(_ statut: StatutSuivi) -> some View {
         HStack(spacing: 10) {
             if statut != .termine {
                 PuceFiltre(libelle: "Regardable ce soir", active: ceSoirSeulement) { ceSoirSeulement.toggle() }
                     .help("Sur le NAS, dans tes abonnements ou à la télé ce soir")
+            } else if !titresAffiches(.termine).isEmpty {
+                Button(role: .destructive) { confirmerToutSupprimer = true } label: {
+                    Label("Tout supprimer", systemImage: "trash")
+                        .font(.subheadline.weight(.semibold))
+                }
+                .tint(.red)
+                .confirmationDialog("Supprimer les \(titresAffiches(.termine).count) titres terminés ?",
+                                    isPresented: $confirmerToutSupprimer, titleVisibility: .visible) {
+                    Button("Tout supprimer", role: .destructive) {
+                        try? ServiceSuivi(contexte: contexte).supprimerDesTermines(titresAffiches(.termine))
+                    }
+                } message: {
+                    Text("Ils quittent la liste. Ce que tu as vu, tes notes et tes statistiques restent, et ils ne te seront pas reproposés.")
+                }
             }
             if chargementInfos {
                 ProgressView().controlSize(.small)
@@ -187,7 +202,7 @@ struct MesListesView: View {
 
     /// Le filtre ne s'applique pas aux terminés ; tant que la disponibilité d'un titre n'est pas connue, il est caché.
     private func titresAffiches(_ statut: StatutSuivi) -> [Suivi] {
-        let tous = suivis.filter { $0.statut == statut }
+        let tous = suivis.filter { $0.statut == statut && !$0.masque }
         let parReference = Dictionary(tous.map { ($0.reference, $0) }, uniquingKeysWith: { premier, _ in premier })
         let ordonnes = tri.trier(tous.map {
             TriListe.Element(reference: $0.reference, titre: $0.titre, ajouteLe: $0.ajouteLe, dureeMinutes: infos[$0.reference]?.dureeMinutes)
@@ -274,11 +289,35 @@ struct MesListesView: View {
                 }
             }
             .swipeActions(edge: .trailing) {
-                Button(role: .destructive) { retirer(suivi) } label: { Label("Retirer", systemImage: "trash") }
+                if statut == .termine {
+                    Button(role: .destructive) { supprimerDesTermines(suivi) } label: { Label("Supprimer", systemImage: "trash") }
+                } else {
+                    Button(role: .destructive) { retirer(suivi) } label: { Label("Retirer", systemImage: "trash") }
+                }
                 Button { basculerAlertes(suivi) } label: {
                     Label(suivi.alertesActives ? "Sans alertes" : "Alertes", systemImage: suivi.alertesActives ? "bell.slash" : "bell")
                 }
                 .tint(.orange)
+            }
+            // Clic droit sur le Mac, appui long sur l'iPhone : les mêmes actions que le glissement.
+            .contextMenu {
+                Button {
+                    try? ServiceSoiree(contexte: contexte).retenir(suivi.reference, titre: suivi.titre, cheminAffiche: suivi.cheminAffiche)
+                } label: { Label("Ajouter à ma soirée", systemImage: "moon.stars") }
+                if statut != .termine {
+                    Button { changer(suivi, en: .termine) } label: { Label("Terminé", systemImage: "checkmark") }
+                } else {
+                    Button { changer(suivi, en: .aVoir) } label: { Label("À revoir", systemImage: "arrow.uturn.backward") }
+                }
+                Button { basculerAlertes(suivi) } label: {
+                    Label(suivi.alertesActives ? "Sans alertes" : "Alertes", systemImage: suivi.alertesActives ? "bell.slash" : "bell")
+                }
+                Divider()
+                if statut == .termine {
+                    Button(role: .destructive) { supprimerDesTermines(suivi) } label: { Label("Supprimer des terminés", systemImage: "trash") }
+                } else {
+                    Button(role: .destructive) { retirer(suivi) } label: { Label("Retirer de mes listes", systemImage: "trash") }
+                }
             }
         }
     }
@@ -349,6 +388,11 @@ struct MesListesView: View {
         contexte.delete(suivi)
         try? contexte.save()
         Task { await etat.alertes.planifier(contexte: contexte, tmdb: etat.tmdb) }
+    }
+
+    /// Le titre quitte « Terminés » mais reste vu, noté et compté.
+    private func supprimerDesTermines(_ suivi: Suivi) {
+        try? ServiceSuivi(contexte: contexte).supprimerDesTermines([suivi])
     }
 
     private func basculerAlertes(_ suivi: Suivi) {

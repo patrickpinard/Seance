@@ -51,14 +51,16 @@ struct CriteresDecouverteTests {
         #expect(p["sort_by"] == "name.asc")
     }
 
-    @Test func nouveautesDuJourEtDeLaSemaine() {
+    @Test func duMomentSurTrenteJours() {
         let mercredi = Date.suisse("2026-09-16 22:30")
-        let films = dictionnaire(CriteresDecouverte.nouveautes(.film, periode: .semaine, maintenant: mercredi).parametres(pour: .film))
-        #expect(films["primary_release_date.gte"] == "2026-09-10")
+        let films = dictionnaire(CriteresDecouverte.duMoment(.film, maintenant: mercredi).parametres(pour: .film))
+        #expect(films["primary_release_date.gte"] == "2026-08-18")
         #expect(films["primary_release_date.lte"] == "2026-09-16")
+        #expect(films["sort_by"] == "popularity.desc")
+        #expect(films["vote_count.gte"] == "10")
 
-        let series = dictionnaire(CriteresDecouverte.nouveautes(.serie, periode: .jour, maintenant: mercredi).parametres(pour: .serie))
-        #expect(series["air_date.gte"] == "2026-09-16")
+        let series = dictionnaire(CriteresDecouverte.duMoment(.serie, maintenant: mercredi).parametres(pour: .serie))
+        #expect(series["air_date.gte"] == "2026-08-18")
         #expect(series["air_date.lte"] == "2026-09-16")
         #expect(series["first_air_date.gte"] == nil)
         #expect(series["without_genres"] == "10763|10764|10766|10767")
@@ -89,12 +91,12 @@ struct CriteresDecouverteTests {
          "next_episode_to_air": {"id": 11, "name": "Épisode 6", "overview": "", "episode_number": 6, "season_number": 3, "air_date": "2026-09-21"}}
         """#
         let serie = try JSONDecoder().decode(SerieDetail.self, from: Data(json.utf8))
-        let semaine = PeriodeTendance.semaine.bornes(maintenant: Date.suisse("2026-09-16 22:30"))
-        #expect(semaine.debut == DateTMDB(annee: 2026, mois: 9, jour: 10))
-        #expect(serie.episodeNouveau(depuis: semaine.debut, jusqua: semaine.fin)?.numero == 5)
-        #expect(!serie.commence(depuis: semaine.debut, jusqua: semaine.fin))
-        let jour = PeriodeTendance.jour.bornes(maintenant: Date.suisse("2026-09-16 22:30"))
-        #expect(serie.episodeNouveau(depuis: jour.debut, jusqua: jour.fin) == nil)
+        let mois = CriteresDecouverte.bornesDuMoment(maintenant: Date.suisse("2026-09-16 22:30"))
+        #expect(mois.debut == DateTMDB(annee: 2026, mois: 8, jour: 18))
+        #expect(serie.episodeNouveau(depuis: mois.debut, jusqua: mois.fin)?.numero == 5)
+        #expect(!serie.commence(depuis: mois.debut, jusqua: mois.fin))
+        let jour = DateTMDB(annee: 2026, mois: 9, jour: 16)
+        #expect(serie.episodeNouveau(depuis: jour, jusqua: jour) == nil)
     }
 
     @Test func personnesToutesOuAuMoinsUne() {

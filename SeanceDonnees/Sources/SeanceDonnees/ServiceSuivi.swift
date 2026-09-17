@@ -149,6 +149,23 @@ public struct ServiceSuivi {
         try contexte.save()
     }
 
+    // MARK: - Terminés
+
+    /// Supprime des titres de la liste « Terminés » sans effacer leur historique : visionnages, note et goûts restent,
+    /// et ils ne reviennent pas dans les suggestions.
+    public func supprimerDesTermines(_ suivis: [Suivi]) throws {
+        for suivi in suivis where suivi.statut == .termine {
+            suivi.masque = true
+        }
+        try contexte.save()
+    }
+
+    /// Les titres que la liste « Terminés » affiche encore.
+    public func termines() throws -> [Suivi] {
+        let termine = StatutSuivi.termine.rawValue
+        return try contexte.fetch(FetchDescriptor<Suivi>(predicate: #Predicate { $0.statutBrut == termine && !$0.masque }))
+    }
+
     // MARK: - Interne
 
     private func enregistrer(

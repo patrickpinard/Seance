@@ -272,15 +272,20 @@ private struct ContenuFiche: View {
 
     /// Actions en icônes : « + » ajoute à « À voir », « − » retire ; l'œil marque vu, aujourd'hui ou avant ; ▶︎ la bande-annonce.
     private var actions: some View {
-        HStack(spacing: 14) {
+        // Un titre supprimé des terminés n'est plus dans Mes listes, même s'il reste vu et noté.
+        let dansMesListes = suivi.map { !$0.masque } ?? false
+        let masque = suivi?.masque == true
+        return HStack(spacing: 14) {
             BoutonIcone(
-                symbole: suivi == nil ? "plus" : "minus",
-                libelle: suivi == nil ? "Ajouter à voir" : "Retirer de mes listes",
-                principal: suivi == nil,
-                actif: suivi != nil,
-                explication: suivi == nil
-                    ? "Ajouter à « À voir » dans Mes listes. La cloche 🔔 s'active pour te prévenir des sorties et des nouveaux épisodes."
-                    : "Retirer ce titre de Mes listes, avec ses alertes."
+                symbole: dansMesListes ? "minus" : "plus",
+                libelle: dansMesListes ? "Retirer de mes listes" : masque ? "Remettre dans Terminés" : "Ajouter à voir",
+                principal: !dansMesListes,
+                actif: dansMesListes,
+                explication: dansMesListes
+                    ? "Retirer ce titre de Mes listes, avec ses alertes."
+                    : masque
+                    ? "Remettre ce titre dans la liste « Terminés »."
+                    : "Ajouter à « À voir » dans Mes listes. La cloche 🔔 s'active pour te prévenir des sorties et des nouveaux épisodes."
             ) {
                 basculerAVoir()
             }
@@ -451,6 +456,12 @@ private struct ContenuFiche: View {
 
     private func basculerAVoir() {
         let service = ServiceSuivi(contexte: contexte)
+        if let suivi, suivi.masque {
+            suivi.masque = false
+            try? contexte.save()
+            rafraichir()
+            return
+        }
         if let suivi {
             contexte.delete(suivi)
             try? contexte.save()

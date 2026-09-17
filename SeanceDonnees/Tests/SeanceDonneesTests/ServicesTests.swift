@@ -160,6 +160,35 @@ struct ServicesTests {
         #expect(try !ServiceGouts(contexte: conteneur.mainContext).contexteCandidats().dejaVus.contains(film.reference))
     }
 
+    @Test func supprimerDesTerminesGardeLHistorique() throws {
+        let conteneur = try EntrepotSeance.conteneur(.memoire)
+        let contexte = conteneur.mainContext
+        let service = ServiceSuivi(contexte: contexte)
+        let film = try TMDB.film()
+        try service.marquerVu(film: film, note: 9)
+        let suivi = try #require(try service.suivi(film.reference))
+        #expect(try service.termines().count == 1)
+
+        try service.supprimerDesTermines([suivi])
+        #expect(try service.termines().isEmpty)
+        // Toujours vu, noté, compté et hors des suggestions.
+        #expect(try service.estVu(film.reference) && suivi.note == 9)
+        #expect(try ServiceGouts(contexte: contexte).contexteCandidats().dejaVus.contains(film.reference))
+        #expect(try ServiceStatistiques(contexte: contexte).bilan(annee: nil).nombreFilms == 1)
+
+        // Sauvegardé tel quel.
+        let fichier = try ServiceSauvegarde(contexte: contexte).exporter().encoder()
+        let cible = try EntrepotSeance.conteneur(.memoire)
+        try ServiceSauvegarde(contexte: cible.mainContext).importer(try Sauvegarde.decoder(fichier))
+        #expect(try ServiceSuivi(contexte: cible.mainContext).termines().isEmpty)
+
+        // Un changement de statut le fait réapparaître.
+        suivi.statut = .aVoir
+        #expect(!suivi.masque)
+        suivi.statut = .termine
+        #expect(try service.termines().count == 1)
+    }
+
     @Test func sauvegardeAllerRetourSansDoublon() throws {
         let source = try EntrepotSeance.conteneur(.memoire)
         let suivi = ServiceSuivi(contexte: source.mainContext)

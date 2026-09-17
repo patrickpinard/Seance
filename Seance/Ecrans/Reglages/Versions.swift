@@ -20,6 +20,17 @@ struct NoteVersion: Identifiable {
 
     static let historique: [NoteVersion] = [
         NoteVersion(
+            numero: "1.5",
+            date: "17 septembre 2026",
+            resume: "« Du moment » sur l'accueil, et les terminés se suppriment de Mes listes.",
+            fonctionnalites: [
+                Fonctionnalite(symbole: "flame.fill", titre: "Du moment",
+                               detail: "Une seule section à la place des tendances et des nouveautés : sorties et nouveaux épisodes du mois, les plus populaires d'abord."),
+                Fonctionnalite(symbole: "trash", titre: "Supprimer des terminés",
+                               detail: "Un titre ou tous d'un coup : ils quittent la liste, mais restent vus, notés et comptés, et ne te sont pas reproposés."),
+            ]
+        ),
+        NoteVersion(
             numero: "1.4",
             date: "17 septembre 2026",
             resume: "Top 10 de l'année, Regardable ce soir dans Mes listes, actions rapides sur les affiches, menu masquable sur le Mac.",

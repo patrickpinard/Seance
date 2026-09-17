@@ -30,7 +30,12 @@ struct ActionsRapides {
         let reference = titre.reference
         switch action {
         case .aVoir:
-            if try suivi.suivi(reference) != nil { return ("Déjà dans Mes listes", "bookmark.fill") }
+            if let existant = try suivi.suivi(reference) {
+                guard existant.masque else { return ("Déjà dans Mes listes", "bookmark.fill") }
+                existant.masque = false
+                try contexte.save()
+                return ("Remis dans Terminés", "bookmark.fill")
+            }
             switch reference.type {
             case .film: try suivi.suivre(film: try await client().film(reference.tmdbID, complements: [.casting]))
             case .serie: try suivi.suivre(serie: try await client().serie(reference.tmdbID, complements: [.casting]))

@@ -23,14 +23,10 @@ struct SourcesAccueil: Codable, Hashable {
 @MainActor
 @Observable
 final class AccueilModele {
-    var tendancesJour: [TitreResume] = []
-    var tendancesSemaine: [TitreResume] = []
-    /// Nouveaux films et séries avec un épisode récent, du jour ou de la semaine.
-    var nouveauxFilms: [TitreResume] = []
-    var nouvellesSeries: [TitreResume] = []
-    /// Pour chaque série : l'épisode diffusé dans la période, ou sa première diffusion.
+    /// « Du moment » : sorties et nouveaux épisodes des trente derniers jours, les plus populaires d'abord.
+    var duMoment: [TitreResume] = []
+    /// Pour chaque série du moment : l'épisode diffusé dans le mois, ou sa première diffusion.
     var datesSeries: [ReferenceTitre: String] = [:]
-    var nouveautesChargees = false
     /// Top 10 : cinq films et cinq séries parmi les mieux notés de l'année.
     var topFilms: [TitreResume] = []
     var topSeries: [TitreResume] = []
@@ -48,30 +44,14 @@ final class AccueilModele {
         return c
     }
 
-    /// TMDB n'a pas de tendances par plateforme : ce sont alors les titres les plus populaires qu'elles proposent.
-    static func populaires(_ plateformes: [Int]) -> CriteresDecouverte {
-        var c = surPlateformes(CriteresDecouverte(), plateformes)
-        c.votesMin = 50
-        return c
-    }
-
     /// Films et séries alternés, pour qu'aucun des deux ne masque l'autre.
     static func entrelacer(_ a: [TitreResume], _ b: [TitreResume]) -> [TitreResume] {
         (0..<max(a.count, b.count)).flatMap { i in [i < a.count ? a[i] : nil, i < b.count ? b[i] : nil].compactMap { $0 } }
     }
 
-    func chargerNouveautes(client: TMDBClient, periode: PeriodeTendance, plateformes: [Int]?) async {
-        async let films = client.decouvrirFilms(Self.surPlateformes(CriteresDecouverte.nouveautes(.film, periode: periode), plateformes))
-        async let series = client.decouvrirSeries(Self.surPlateformes(CriteresDecouverte.nouveautes(.serie, periode: periode), plateformes))
-        // Sans affiche, une carte ne dit rien ; hors français et anglais, pas de version regardable (EF-28).
-        func retenir(_ titres: [TitreResume]) -> [TitreResume] {
-            titres.filter { $0.cheminAffiche != nil && RegleLangue.accepte(langueOriginale: $0.langueOriginale, exclu: false) }
-        }
-        nouveauxFilms = retenir((try? await films.resultats.map(\.titreResume)) ?? [])
-        let seriesRetenues = retenir((try? await series.resultats.map(\.titreResume)) ?? [])
-        datesSeries = await DatesNouveautes.episodes(seriesRetenues, periode: periode, client: client)
-        nouvellesSeries = seriesRetenues
-        nouveautesChargees = true
+    /// Sans affiche, une carte ne dit rien ; hors français et anglais, pas de version regardable (EF-28).
+    static func affichables(_ titres: [TitreResume]) -> [TitreResume] {
+        titres.filter { $0.cheminAffiche != nil && RegleLangue.accepte(langueOriginale: $0.langueOriginale, exclu: false) }
     }
 
     /// Les cinq premiers de chaque type, avec affiche et en version regardable (EF-28), sur les plateformes choisies.
@@ -79,28 +59,23 @@ final class AccueilModele {
         async let films = client.decouvrirFilms(Self.surPlateformes(CriteresDecouverte.top(.film), plateformes))
         async let series = client.decouvrirSeries(Self.surPlateformes(CriteresDecouverte.top(.serie), plateformes))
         func cinq(_ titres: [TitreResume]) -> [TitreResume] {
-            Array(titres.filter { $0.cheminAffiche != nil && RegleLangue.accepte(langueOriginale: $0.langueOriginale, exclu: false) }.prefix(5))
+            Array(Self.affichables(titres).prefix(5))
         }
         topFilms = cinq((try? await films.resultats.map(\.titreResume)) ?? [])
         topSeries = cinq((try? await series.resultats.map(\.titreResume)) ?? [])
     }
 
-    /// Tendances (EF-01) : celles de TMDB pour tout le catalogue, sinon les titres populaires des plateformes choisies.
+    /// « Du moment » (EF-01) : films et séries entrelacés, sur les plateformes choisies ; les vingt premiers.
     func charger(client: TMDBClient, plateformes: [Int]?) async {
         erreur = nil
         do {
-            if let plateformes {
-                async let films = client.decouvrirFilms(Self.populaires(plateformes))
-                async let series = client.decouvrirSeries(Self.populaires(plateformes))
-                let melange = Self.entrelacer(try await films.resultats.map(\.titreResume), try await series.resultats.map(\.titreResume))
-                tendancesJour = melange
-                tendancesSemaine = melange
-            } else {
-                async let jour = client.tendances(.jour)
-                async let semaine = client.tendances(.semaine)
-                tendancesJour = try await jour
-                tendancesSemaine = try await semaine
-            }
+            async let films = client.decouvrirFilms(Self.surPlateformes(CriteresDecouverte.duMoment(.film), plateformes))
+            async let series = client.decouvrirSeries(Self.surPlateformes(CriteresDecouverte.duMoment(.serie), plateformes))
+            let listeFilms = Self.affichables(try await films.resultats.map(\.titreResume))
+            let listeSeries = Self.affichables(try await series.resultats.map(\.titreResume))
+            let titres = Array(Self.entrelacer(listeFilms, listeSeries).prefix(20))
+            datesSeries = await DatesNouveautes.episodes(titres.filter { $0.reference.type == .serie }, client: client)
+            duMoment = titres
         } catch is CancellationError {
             return
         } catch {
@@ -109,14 +84,18 @@ final class AccueilModele {
         }
         charge = true
     }
+
+    /// Sous l'affiche : la date de sortie d'un film, le dernier épisode d'une série.
+    func sousTitre(_ titre: TitreResume) -> String? {
+        titre.reference.type == .film ? titre.date.map { "Sortie \(LibelleDate.jour($0))" } : datesSeries[titre.reference]
+    }
 }
 
 /// Écrans ouverts depuis l'accueil, en plus des fiches.
 enum DestinationAccueil: Hashable {
     case nas
     case tele
-    case nouveautes(PeriodeTendance, plateformes: [Int]?)
-    case tendances(PeriodeTendance, plateformes: [Int]?)
+    case duMoment(plateformes: [Int]?)
 }
 
 struct AccueilView: View {
@@ -126,8 +105,6 @@ struct AccueilView: View {
     @Query(sort: \Diffusion.debut) private var diffusions: [Diffusion]
     @AppStorage("accueil.sources") private var sourcesBrutes = Data()
     @State private var modele = AccueilModele()
-    @State private var periodeTendances = PeriodeTendance.jour
-    @State private var periodeNouveautes = PeriodeTendance.jour
     @State private var reglageSources = false
     @State private var chemin = NavigationPath()
 
@@ -146,17 +123,14 @@ struct AccueilView: View {
                 if let client = etat.tmdb {
                     contenu
                         .task(id: plateformes) {
-                            async let tendances: Void = modele.charger(client: client, plateformes: plateformes)
+                            async let moment: Void = modele.charger(client: client, plateformes: plateformes)
                             async let top: Void = modele.chargerTop(client: client, plateformes: plateformes)
-                            _ = await (tendances, top)
-                        }
-                        .task(id: CleNouveautes(periode: periodeNouveautes, plateformes: plateformes)) {
-                            await modele.chargerNouveautes(client: client, periode: periodeNouveautes, plateformes: plateformes)
+                            _ = await (moment, top)
                         }
                         .refreshable {
-                            await modele.charger(client: client, plateformes: plateformes)
-                            await modele.chargerTop(client: client, plateformes: plateformes)
-                            await modele.chargerNouveautes(client: client, periode: periodeNouveautes, plateformes: plateformes)
+                            async let moment: Void = modele.charger(client: client, plateformes: plateformes)
+                            async let top: Void = modele.chargerTop(client: client, plateformes: plateformes)
+                            _ = await (moment, top)
                         }
                         .onChange(of: modele.erreur) { _, erreur in
                             guard erreur != nil else { return }
@@ -173,8 +147,7 @@ struct AccueilView: View {
                 switch destination {
                 case .nas: NASView()
                 case .tele: ProgrammeTeleView()
-                case .nouveautes(let periode, let plateformes): NouveautesView(periode: periode, plateformes: plateformes)
-                case .tendances(let periode, let plateformes): TendancesView(periode: periode, plateformes: plateformes)
+                case .duMoment(let plateformes): DuMomentView(plateformes: plateformes)
                 }
             }
             .toolbar {
@@ -211,7 +184,8 @@ struct AccueilView: View {
     private var contenu: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 28) {
-                BandeauVedette(titres: Array(modele.tendancesSemaine.prefix(5)))
+                // Les cinq premiers du moment qui ont une image de fond.
+                BandeauVedette(titres: Array(modele.duMoment.filter { $0.cheminFond != nil }.prefix(5)))
 
                 if let erreur = modele.erreur {
                     MessageEtat(texte: erreur, ton: .probleme, libelleAction: "Réessayer") {
@@ -234,29 +208,24 @@ struct AccueilView: View {
                     }
                 }
 
-                SectionNouveautes(modele: modele, periode: $periodeNouveautes) {
-                    chemin.append(DestinationAccueil.nouveautes(periodeNouveautes, plateformes: plateformes))
+                if !modele.duMoment.isEmpty {
+                    VStack(alignment: .leading, spacing: 12) {
+                        TitreSection(titre: "Du moment") {
+                            BoutonToutVoir { chemin.append(DestinationAccueil.duMoment(plateformes: plateformes)) }
+                        }
+                        Text(plateformes.map { "Sorties et nouveaux épisodes du mois, les plus populaires d'abord · sur \(nomsPlateformes($0))" }
+                             ?? "Sorties et nouveaux épisodes du mois, les plus populaires d'abord")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .padding(.horizontal, 20)
+                        Carrousel(titres: modele.duMoment) { modele.sousTitre($0) }
+                    }
                 }
 
                 if sources.nas {
                     SectionNAS { chemin.append(DestinationAccueil.nas) }
                 }
 
-                VStack(alignment: .leading, spacing: 12) {
-                    TitreSection(titre: plateformes == nil ? "Tendances" : "Populaires") {
-                        if plateformes == nil {
-                            ChoixPeriode(periode: $periodeTendances)
-                        }
-                        BoutonToutVoir { chemin.append(DestinationAccueil.tendances(periodeTendances, plateformes: plateformes)) }
-                    }
-                    if let plateformes {
-                        Text("Sur \(nomsPlateformes(plateformes))")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .padding(.horizontal, 20)
-                    }
-                    Carrousel(titres: periodeTendances == .semaine ? modele.tendancesSemaine : modele.tendancesJour)
-                }
             }
             .padding(.bottom, 40)
         }
@@ -266,41 +235,11 @@ struct AccueilView: View {
         }
     }
 
-    private struct CleNouveautes: Hashable {
-        let periode: PeriodeTendance
-        let plateformes: [Int]?
-    }
-
     private func nomsPlateformes(_ ids: [Int]) -> String {
         let noms = abonnements.filter { ids.contains($0.providerID) }.map(\.nom)
         return noms.count > 2 ? "\(noms.count) plateformes" : noms.joined(separator: " et ")
     }
 
-}
-
-/// Période d'une section, en menu compact : « Aujourd'hui ⌄ ».
-struct ChoixPeriode: View {
-    @Binding var periode: PeriodeTendance
-
-    var body: some View {
-        Menu {
-            Picker("Période", selection: $periode) {
-                Text("Aujourd'hui").tag(PeriodeTendance.jour)
-                Text("Cette semaine").tag(PeriodeTendance.semaine)
-            }
-        } label: {
-            HStack(spacing: 4) {
-                Text(periode == .jour ? "Aujourd'hui" : "Semaine")
-                Image(systemName: "chevron.down").font(.caption2.weight(.bold))
-            }
-            .font(.subheadline.weight(.semibold))
-            .foregroundStyle(.primary)
-            .padding(.horizontal, 10)
-            .frame(height: 30)
-            .background(Theme.surface, in: Capsule())
-        }
-        .fixedSize()
-    }
 }
 
 /// Feuille « Sources » de l'accueil : plateformes affichées, télévision et NAS.
@@ -534,49 +473,6 @@ private struct SectionNAS: View {
     }
 }
 
-/// Les nouveautés du jour ou de la semaine : films sortis, puis séries avec un épisode diffusé.
-private struct SectionNouveautes: View {
-    let modele: AccueilModele
-    @Binding var periode: PeriodeTendance
-    let toutVoir: () -> Void
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            TitreSection(titre: "Nouveautés") {
-                ChoixPeriode(periode: $periode)
-                BoutonToutVoir(action: toutVoir)
-            }
-            if modele.nouveautesChargees && modele.nouveauxFilms.isEmpty && modele.nouvellesSeries.isEmpty {
-                if periode == .jour {
-                    MessageEtat(texte: "Rien de neuf aujourd'hui.", symbole: "calendar", libelleAction: "Voir la semaine") { periode = .semaine }
-                } else {
-                    MessageEtat(texte: "Aucune nouveauté cette semaine.", symbole: "calendar")
-                }
-            }
-            if !modele.nouveauxFilms.isEmpty {
-                sousTitre("Films")
-                Carrousel(titres: modele.nouveauxFilms) { titre in
-                    titre.date.map { "Sortie \(LibelleDate.jour($0))" }
-                }
-            }
-            if !modele.nouvellesSeries.isEmpty {
-                sousTitre("Séries et nouveaux épisodes")
-                Carrousel(titres: modele.nouvellesSeries) { titre in
-                    modele.datesSeries[titre.reference]
-                }
-            }
-        }
-        .animation(.easeOut(duration: 0.2), value: periode)
-    }
-
-    private func sousTitre(_ texte: String) -> some View {
-        Text(texte.uppercased())
-            .font(.caption.weight(.bold))
-            .foregroundStyle(.secondary)
-            .padding(.horizontal, 20)
-    }
-}
-
 /// UX-19 : cartes larges des diffusions de ce soir ; quand la soirée est vide ou passée,
 /// les prochains films de la semaine.
 private struct SectionTele: View {
@@ -717,8 +613,8 @@ enum LibelleDate {
 /// Dates affichées sous les nouveautés : l'épisode diffusé dans la période, ou la première diffusion.
 enum DatesNouveautes {
     /// `discover` ne dit pas quel épisode est sorti : la fiche de chaque série le donne.
-    static func episodes(_ series: [TitreResume], periode: PeriodeTendance, client: TMDBClient) async -> [ReferenceTitre: String] {
-        let (debut, fin) = periode.bornes()
+    static func episodes(_ series: [TitreResume], client: TMDBClient) async -> [ReferenceTitre: String] {
+        let (debut, fin) = CriteresDecouverte.bornesDuMoment()
         return await withTaskGroup(of: (ReferenceTitre, String?).self) { groupe in
             for titre in series {
                 groupe.addTask {

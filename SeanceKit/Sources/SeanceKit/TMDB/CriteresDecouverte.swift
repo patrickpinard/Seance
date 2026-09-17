@@ -166,11 +166,13 @@ extension CriteresDecouverte {
         return criteres
     }
 
-    /// Nouveautés de l'accueil : films sortis et séries avec un épisode diffusé aujourd'hui ou dans
-    /// les sept derniers jours, les plus populaires d'abord.
-    public static func nouveautes(_ type: TypeTitre, periode: PeriodeTendance, maintenant: Date = .now) -> CriteresDecouverte {
+    /// « Du moment » sur l'accueil (EF-01) : films sortis et séries avec un épisode diffusé depuis trente jours,
+    /// les plus populaires d'abord, c'est-à-dire ceux dont on parle. Remplace tendances et nouveautés.
+    public static func duMoment(_ type: TypeTitre, maintenant: Date = .now) -> CriteresDecouverte {
         var criteres = CriteresDecouverte()
-        let (debut, aujourdhui) = periode.bornes(maintenant: maintenant)
+        let (debut, aujourdhui) = bornesDuMoment(maintenant: maintenant)
+        criteres.tri = .popularite
+        criteres.votesMin = 10
         switch type {
         case .film:
             criteres.sortieDepuis = debut
@@ -181,6 +183,11 @@ extension CriteresDecouverte {
             criteres.genresExclus = genresTeleEcartes
         }
         return criteres
+    }
+
+    /// Les trente derniers jours, aujourd'hui compris, à l'heure suisse.
+    public static func bornesDuMoment(maintenant: Date = .now) -> (debut: DateTMDB, fin: DateTMDB) {
+        (DateTMDB(maintenant.addingTimeInterval(-29 * 86_400)), DateTMDB(maintenant))
     }
 }
 
@@ -200,13 +207,5 @@ extension SerieDetail {
     public func commence(depuis debut: DateTMDB, jusqua fin: DateTMDB) -> Bool {
         guard let premiereDiffusion else { return false }
         return premiereDiffusion >= debut && premiereDiffusion <= fin
-    }
-}
-
-extension PeriodeTendance {
-    /// Premier et dernier jour de la période, à l'heure suisse.
-    public func bornes(maintenant: Date = .now) -> (debut: DateTMDB, fin: DateTMDB) {
-        let fin = DateTMDB(maintenant)
-        return (self == .jour ? fin : DateTMDB(maintenant.addingTimeInterval(-6 * 86_400)), fin)
     }
 }

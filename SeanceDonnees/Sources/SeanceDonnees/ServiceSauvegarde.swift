@@ -17,7 +17,7 @@ public struct ServiceSauvegarde {
             Sauvegarde.Suivi(reference: $0.reference, statut: $0.statutBrut, note: $0.note, exclusionLangue: $0.exclusionLangue,
                              ajouteLe: $0.ajouteLe, titre: $0.titre, cheminAffiche: $0.cheminAffiche,
                              acteursPrincipaux: $0.acteursPrincipaux, genres: $0.genres,
-                             alertesActives: $0.alertesActives, modeAlertes: $0.modeAlertesBrut)
+                             alertesActives: $0.alertesActives, modeAlertes: $0.modeAlertesBrut, masque: $0.masque ? true : nil)
         }
         s.visionnages = try contexte.fetch(FetchDescriptor<Visionnage>(sortBy: [SortDescriptor(\.vuLe)])).map { v in
             let episode = v.saison.flatMap { saison in v.episode.map { NumeroEpisode(saison: saison, episode: $0) } }
@@ -60,6 +60,7 @@ public struct ServiceSauvegarde {
             suivi.genres = s.genres
             suivi.alertesActives = s.alertesActives ?? true
             if let mode = s.modeAlertes { suivi.modeAlertesBrut = mode }
+            suivi.masque = s.masque ?? false
             contexte.insert(suivi)
         }
         for v in plan.visionnages {
