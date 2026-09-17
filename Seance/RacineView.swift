@@ -33,6 +33,7 @@ struct RacineView: View {
                     NavigationStack {
                         ReglagesView()
                             .destinationsTitres()
+                            .boutonBarreLaterale()
                     }
                 }
             }
@@ -42,9 +43,20 @@ struct RacineView: View {
         }
         // iPhone : barre d'onglets ; Mac et grandes fenêtres : barre latérale.
         .tabViewStyle(.sidebarAdaptable)
+        // Confirmation d'une action rapide sur une affiche, au-dessus de la barre d'onglets.
+        .overlay(alignment: .bottom) {
+            if let confirmation = etat.confirmation {
+                BandeauConfirmation(confirmation: confirmation)
+                    .padding(.bottom, 96)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    .allowsHitTesting(false)
+            }
+        }
+        .animation(.snappy, value: etat.confirmation)
         .tint(Theme.accent)
         .task { await etat.chargerGenres() }
         #if targetEnvironment(macCatalyst)
+        .task { BarreLaterale.restaurer() }
         // Sous cette taille, la barre latérale et la fiche en deux colonnes se serrent.
         .task {
             for scene in UIApplication.shared.connectedScenes.compactMap({ $0 as? UIWindowScene }) {

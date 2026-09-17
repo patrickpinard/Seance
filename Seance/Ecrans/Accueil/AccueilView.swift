@@ -31,6 +31,9 @@ final class AccueilModele {
     /// Pour chaque série : l'épisode diffusé dans la période, ou sa première diffusion.
     var datesSeries: [ReferenceTitre: String] = [:]
     var nouveautesChargees = false
+    /// Top 10 : cinq films et cinq séries parmi les mieux notés de l'année.
+    var topFilms: [TitreResume] = []
+    var topSeries: [TitreResume] = []
     var erreur: String?
     /// Dernière erreur, pour le journal ; `erreur` garde la phrase affichée.
     var erreurDetaillee: (any Error)?
@@ -69,6 +72,17 @@ final class AccueilModele {
         datesSeries = await DatesNouveautes.episodes(seriesRetenues, periode: periode, client: client)
         nouvellesSeries = seriesRetenues
         nouveautesChargees = true
+    }
+
+    /// Les cinq premiers de chaque type, avec affiche et en version regardable (EF-28), sur les plateformes choisies.
+    func chargerTop(client: TMDBClient, plateformes: [Int]?) async {
+        async let films = client.decouvrirFilms(Self.surPlateformes(CriteresDecouverte.top(.film), plateformes))
+        async let series = client.decouvrirSeries(Self.surPlateformes(CriteresDecouverte.top(.serie), plateformes))
+        func cinq(_ titres: [TitreResume]) -> [TitreResume] {
+            Array(titres.filter { $0.cheminAffiche != nil && RegleLangue.accepte(langueOriginale: $0.langueOriginale, exclu: false) }.prefix(5))
+        }
+        topFilms = cinq((try? await films.resultats.map(\.titreResume)) ?? [])
+        topSeries = cinq((try? await series.resultats.map(\.titreResume)) ?? [])
     }
 
     /// Tendances (EF-01) : celles de TMDB pour tout le catalogue, sinon les titres populaires des plateformes choisies.
@@ -115,11 +129,6 @@ struct AccueilView: View {
     @State private var periodeTendances = PeriodeTendance.jour
     @State private var periodeNouveautes = PeriodeTendance.jour
     @State private var reglageSources = false
-    /// EF-62 : les tendances et les nouveautés reclassées selon les goûts, sans réseau ni Claude.
-    @State private var pourToi: [SuggestionClassee] = []
-    /// « Parce que tu as aimé… » : ce que TMDB rapproche des titres notés 8 ou plus.
-    @State private var similaires: [TitreSimilaire] = []
-    @Query(sort: \Suivi.ajouteLe, order: .reverse) private var suivis: [Suivi]
     @State private var chemin = NavigationPath()
 
     private var sources: SourcesAccueil {
@@ -137,18 +146,17 @@ struct AccueilView: View {
                 if let client = etat.tmdb {
                     contenu
                         .task(id: plateformes) {
-                            await modele.charger(client: client, plateformes: plateformes)
-                            rafraichirPourToi()
+                            async let tendances: Void = modele.charger(client: client, plateformes: plateformes)
+                            async let top: Void = modele.chargerTop(client: client, plateformes: plateformes)
+                            _ = await (tendances, top)
                         }
                         .task(id: CleNouveautes(periode: periodeNouveautes, plateformes: plateformes)) {
                             await modele.chargerNouveautes(client: client, periode: periodeNouveautes, plateformes: plateformes)
-                            rafraichirPourToi()
                         }
-                        .task(id: titresAimes) { await chargerSimilaires(client: client) }
                         .refreshable {
                             await modele.charger(client: client, plateformes: plateformes)
+                            await modele.chargerTop(client: client, plateformes: plateformes)
                             await modele.chargerNouveautes(client: client, periode: periodeNouveautes, plateformes: plateformes)
-                            rafraichirPourToi()
                         }
                         .onChange(of: modele.erreur) { _, erreur in
                             guard erreur != nil else { return }
@@ -159,6 +167,7 @@ struct AccueilView: View {
                 }
             }
             .background(Theme.fond)
+            .boutonBarreLaterale()
             .destinationsTitres()
             .navigationDestination(for: DestinationAccueil.self) { destination in
                 switch destination {
@@ -209,23 +218,14 @@ struct AccueilView: View {
                         guard let client = etat.tmdb else { return }
                         Task {
                             await modele.charger(client: client, plateformes: plateformes)
-                            rafraichirPourToi()
+                            await modele.chargerTop(client: client, plateformes: plateformes)
                         }
                     }
                 }
 
-                if !pourToi.isEmpty {
-                    VStack(alignment: .leading, spacing: 12) {
-                        TitreSection("Pour toi")
-                        CarrouselExplique(suggestions: pourToi)
-                    }
-                }
-
-                if !similaires.isEmpty {
-                    VStack(alignment: .leading, spacing: 12) {
-                        TitreSection(titresAimes.count == 1 ? "Parce que tu as aimé \(similaires[0].parceQue.titre)" : "Parce que tu as aimé…")
-                        CarrouselSimilaires(similaires: similaires, avecPhrase: titresAimes.count > 1)
-                    }
+                if !modele.topFilms.isEmpty || !modele.topSeries.isEmpty {
+                    SectionTop10(films: modele.topFilms, series: modele.topSeries,
+                                 plateformes: plateformes.map(nomsPlateformes))
                 }
 
                 if sources.tele {
@@ -276,52 +276,6 @@ struct AccueilView: View {
         return noms.count > 2 ? "\(noms.count) plateformes" : noms.joined(separator: " et ")
     }
 
-    /// Les titres notés 8 ou plus : leur liste change quand une note change, et relance les recommandations.
-    private var titresAimes: [ReferenceTitre] {
-        suivis.filter { ($0.note ?? 0) >= TitresSimilaires.noteMinimale && $0.statut != .exclu }.map(\.reference)
-    }
-
-    /// Recommandations TMDB des six titres les mieux notés, lues en parallèle ; un titre sans réponse est ignoré.
-    private func chargerSimilaires(client: TMDBClient) async {
-        let gouts = ServiceGouts(contexte: contexte)
-        guard let aimes = try? gouts.titresAimes(), !aimes.isEmpty else {
-            similaires = []
-            return
-        }
-        let recommandations = await withTaskGroup(of: (ReferenceTitre, [TitreResume]).self) { groupe in
-            for aime in aimes {
-                groupe.addTask { (aime.reference, (try? await client.recommandations(aime.reference)) ?? []) }
-            }
-            var resultat: [ReferenceTitre: [TitreResume]] = [:]
-            for await (reference, titres) in groupe { resultat[reference] = titres }
-            return resultat
-        }
-        guard !Task.isCancelled else { return }
-        let exclusions = try? gouts.contexteCandidats()
-        similaires = TitresSimilaires.selectionner(
-            aimes: aimes, recommandations: recommandations,
-            exclus: (exclusions?.dejaVus ?? []).union(exclusions?.exclus ?? [])
-        )
-    }
-
-    /// Le même classement que « Ce soir », appliqué à ce qui est déjà affiché : aucun appel
-    /// supplémentaire à TMDB, et rien qui sorte de l'appareil.
-    private func rafraichirPourToi() {
-        let gouts = ServiceGouts(contexte: contexte)
-        guard let profil = try? gouts.profil(), !profil.estVide,
-              let exclusions = try? gouts.contexteCandidats()
-        else {
-            pourToi = []
-            return
-        }
-        var vues = Set<ReferenceTitre>()
-        let candidats = (modele.nouveauxFilms + modele.nouvellesSeries + modele.tendancesSemaine + modele.tendancesJour)
-            .filter { vues.insert($0.reference).inserted }
-            .filter { !exclusions.dejaVus.contains($0.reference) && !exclusions.exclus.contains($0.reference) }
-            .filter { RegleLangue.accepte(langueOriginale: $0.langueOriginale, exclu: false) }
-            .map { CandidatSuggestion(titre: $0) }
-        pourToi = Array(ClassementLocal.classer(candidats, profil: profil, nomsGenres: etat.nomsGenres).prefix(12))
-    }
 }
 
 /// Période d'une section, en menu compact : « Aujourd'hui ⌄ ».
@@ -419,6 +373,27 @@ private struct BandeauVedette: View {
     @State private var page = 0
 
     var body: some View {
+        pages
+            .tabViewStyle(.page(indexDisplayMode: .automatic))
+            // Sur le Mac, les pages ne se glissent pas à la souris : une flèche de chaque côté, en boucle.
+            #if targetEnvironment(macCatalyst)
+            .overlay(alignment: .leading) {
+                if titres.count > 1 {
+                    FlecheDefilement(sens: .gauche) { tourner(-1) }
+                        .padding(.leading, 12)
+                }
+            }
+            .overlay(alignment: .trailing) {
+                if titres.count > 1 {
+                    FlecheDefilement(sens: .droite) { tourner(1) }
+                        .padding(.trailing, 12)
+                }
+            }
+            #endif
+            .frame(height: 440)
+    }
+
+    private var pages: some View {
         TabView(selection: $page) {
             ForEach(Array(titres.enumerated()), id: \.element.id) { rang, titre in
                 NavigationLink(value: titre.reference) {
@@ -446,21 +421,6 @@ private struct BandeauVedette: View {
                 .tag(rang)
             }
         }
-        .tabViewStyle(.page(indexDisplayMode: .automatic))
-        // Sur le Mac, les pages ne se glissent pas à la souris : flèches, en boucle.
-        #if targetEnvironment(macCatalyst)
-        .overlay(alignment: .leading) {
-            if titres.count > 1 {
-                FlecheDefilement(sens: .gauche) { tourner(-1) }
-            }
-        }
-        .overlay(alignment: .trailing) {
-            if titres.count > 1 {
-                FlecheDefilement(sens: .droite) { tourner(1) }
-            }
-        }
-        #endif
-        .frame(height: 440)
     }
 
     private func tourner(_ sens: Int) {
@@ -482,6 +442,7 @@ private struct Carrousel: View {
                         CarteAffiche(titre: titre, sousTitre: sousTitre(titre))
                     }
                     .buttonStyle(.plain)
+                    .actionsRapides(titre)
                 }
             }
             .scrollTargetLayout()
@@ -491,58 +452,55 @@ private struct Carrousel: View {
     }
 }
 
-/// Comme le carrousel, mais chaque affiche dit en une ligne pourquoi elle est là.
-private struct CarrouselExplique: View {
-    let suggestions: [SuggestionClassee]
+/// Top 10 de l'année : cinq films puis cinq séries, chacun avec son rang en grand.
+private struct SectionTop10: View {
+    let films: [TitreResume]
+    let series: [TitreResume]
+    /// « Sur Netflix et Prime Video » quand l'accueil est limité à certaines plateformes.
+    let plateformes: String?
 
     var body: some View {
-        DefilementHorizontal {
-            LazyHStack(alignment: .top, spacing: 12) {
-                ForEach(suggestions) { suggestion in
-                    NavigationLink(value: suggestion.reference) {
-                        VStack(alignment: .leading, spacing: 6) {
-                            CarteAffiche(titre: suggestion.candidat.titre, largeur: 140)
-                            Text(suggestion.phrase)
-                                .font(.caption2)
-                                .foregroundStyle(.secondary)
-                                .lineLimit(3, reservesSpace: true)
-                                .frame(width: 140, alignment: .leading)
-                        }
+        VStack(alignment: .leading, spacing: 12) {
+            TitreSection("Top 10 de l'année")
+            Text(plateformes.map { "Les mieux notés sur TMDB depuis un an · sur \($0)" } ?? "Les mieux notés sur TMDB depuis un an")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 20)
+            DefilementHorizontal {
+                LazyHStack(alignment: .top, spacing: 14) {
+                    ForEach(Array(films.enumerated()), id: \.element.id) { rang, titre in
+                        carte(titre, rang: rang + 1)
                     }
-                    .buttonStyle(.plain)
+                    if !films.isEmpty, !series.isEmpty {
+                        Rectangle()
+                            .fill(.white.opacity(0.12))
+                            .frame(width: 1, height: 170)
+                            .padding(.horizontal, 6)
+                    }
+                    ForEach(Array(series.enumerated()), id: \.element.id) { rang, titre in
+                        carte(titre, rang: rang + 1)
+                    }
                 }
+                .padding(.horizontal, 20)
             }
-            .padding(.horizontal, 20)
         }
     }
-}
 
-/// « Parce que tu as aimé… » : sous chaque affiche, le titre aimé qui l'amène quand il y en a plusieurs.
-private struct CarrouselSimilaires: View {
-    let similaires: [TitreSimilaire]
-    let avecPhrase: Bool
-
-    var body: some View {
-        DefilementHorizontal {
-            LazyHStack(alignment: .top, spacing: 12) {
-                ForEach(similaires) { similaire in
-                    NavigationLink(value: similaire.titre.reference) {
-                        VStack(alignment: .leading, spacing: 6) {
-                            CarteAffiche(titre: similaire.titre)
-                            if avecPhrase {
-                                Text(similaire.phrase)
-                                    .font(.caption2)
-                                    .foregroundStyle(.secondary)
-                                    .lineLimit(2, reservesSpace: true)
-                                    .frame(width: 118, alignment: .leading)
-                            }
-                        }
-                    }
-                    .buttonStyle(.plain)
-                }
+    private func carte(_ titre: TitreResume, rang: Int) -> some View {
+        NavigationLink(value: titre.reference) {
+            HStack(alignment: .bottom, spacing: -14) {
+                Text("\(rang)")
+                    .font(.system(size: 88, weight: .black, design: .rounded))
+                    .foregroundStyle(Theme.degradeAccent)
+                    .shadow(color: .black.opacity(0.6), radius: 4)
+                    .padding(.bottom, 44)
+                    .accessibilityHidden(true)
+                CarteAffiche(titre: titre, sousTitre: titre.reference.type == .film ? "Film" : "Série")
             }
-            .padding(.horizontal, 20)
         }
+        .buttonStyle(.plain)
+        .actionsRapides(titre)
+        .accessibilityLabel("Numéro \(rang) des \(titre.reference.type == .film ? "films" : "séries") : \(titre.titre)")
     }
 }
 

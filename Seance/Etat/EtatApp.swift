@@ -9,10 +9,16 @@ import UserNotifications
 @Observable
 final class EtatApp {
     private(set) var tmdb: TMDBClient?
-    /// Noms des genres TMDB, chargés une fois : ils servent aux filtres, aux phrases et aux statistiques.
-    private(set) var nomsGenres: [Int: String] = [:]
-    /// Genres TMDB par type, dans l'ordre alphabétique, pour les filtres d'Explorer.
-    private(set) var genres: [TypeTitre: [Genre]] = [:]
+    /// Noms des genres : ceux livrés avec l'app, remplacés par ceux de TMDB une fois chargés. Ils servent aux
+    /// filtres, aux phrases et aux statistiques, qui n'affichent ainsi jamais « Genre 28 ».
+    private(set) var nomsGenres: [Int: String] = GenresParDefaut.noms
+    /// Genres par type, dans l'ordre alphabétique, pour les filtres d'Explorer.
+    private(set) var genres: [TypeTitre: [Genre]] = [.film: EtatApp.alphabetique(GenresParDefaut.films),
+                                                     .serie: EtatApp.alphabetique(GenresParDefaut.series)]
+    private var genresTMDBCharges = false
+    /// Message bref après une action rapide sur une affiche (« Ajouté à À voir »), effacé tout seul.
+    private(set) var confirmation: Confirmation?
+
     /// Fiche demandée par un lien profond ; l'accueil l'ouvre puis remet la demande à zéro.
     var ficheDemandee: ReferenceTitre?
     /// Demandé depuis une fiche acteur : Explorer s'ouvre filtré sur cette personne.
@@ -65,15 +71,37 @@ final class EtatApp {
 
     /// Les deux référentiels de genres, films et séries, en un seul dictionnaire.
     func chargerGenres() async {
-        guard nomsGenres.isEmpty, let tmdb else { return }
+        guard !genresTMDBCharges, let tmdb else { return }
         async let films = tmdb.genres(.film)
         async let series = tmdb.genres(.serie)
         let listeFilms = (try? await films) ?? []
         let listeSeries = (try? await series) ?? []
-        let tous = listeFilms + listeSeries
-        let ordre: (Genre, Genre) -> Bool = { $0.nom.localizedStandardCompare($1.nom) == .orderedAscending }
-        genres = [.film: listeFilms.sorted(by: ordre), .serie: listeSeries.sorted(by: ordre)]
-        nomsGenres = Dictionary(tous.map { ($0.id, $0.nom) }, uniquingKeysWith: { premier, _ in premier })
+        // Sans réponse, les noms livrés avec l'app restent, et TMDB sera réinterrogé au prochain appel.
+        guard !listeFilms.isEmpty || !listeSeries.isEmpty else { return }
+        genresTMDBCharges = true
+        genres = [.film: Self.alphabetique(GenresParDefaut.fusionner(listeFilms, defaut: GenresParDefaut.films)),
+                  .serie: Self.alphabetique(GenresParDefaut.fusionner(listeSeries, defaut: GenresParDefaut.series))]
+        nomsGenres = GenresParDefaut.noms.merging((listeFilms + listeSeries).map { ($0.id, $0.nom) }) { _, tmdb in tmdb }
+    }
+
+    private static func alphabetique(_ genres: [Genre]) -> [Genre] {
+        genres.sorted { $0.nom.localizedStandardCompare($1.nom) == .orderedAscending }
+    }
+
+    struct Confirmation: Equatable, Identifiable {
+        let id = UUID()
+        let texte: String
+        let symbole: String
+    }
+
+    /// Affiche la confirmation deux secondes.
+    func confirmer(_ texte: String, symbole: String) {
+        let message = Confirmation(texte: texte, symbole: symbole)
+        confirmation = message
+        Task {
+            try? await Task.sleep(for: .seconds(2))
+            if confirmation == message { confirmation = nil }
+        }
     }
 
     /// Au lancement : chaînes par défaut au premier démarrage, puis programmes TV s'ils datent.

@@ -64,6 +64,22 @@ struct CriteresDecouverteTests {
         #expect(series["without_genres"] == "10763|10764|10766|10767")
     }
 
+    @Test func top10DeLAnnee() {
+        let mercredi = Date.suisse("2026-09-16 22:30")
+        let films = dictionnaire(CriteresDecouverte.top(.film, maintenant: mercredi).parametres(pour: .film))
+        #expect(films["sort_by"] == "vote_average.desc")
+        #expect(films["vote_count.gte"] == "300")
+        #expect(films["primary_release_date.gte"] == "2025-09-16")
+        #expect(films["primary_release_date.lte"] == "2026-09-16")
+        #expect(films["without_genres"] == "99|10770")
+
+        let series = dictionnaire(CriteresDecouverte.top(.serie, maintenant: mercredi).parametres(pour: .serie))
+        #expect(series["sort_by"] == "vote_average.desc")
+        #expect(series["vote_count.gte"] == "150")
+        #expect(series["air_date.gte"] == "2025-09-16")
+        #expect(series["without_genres"] == "99|10763|10764|10766|10767")
+    }
+
     @Test func episodeQuiFaitLaNouveaute() throws {
         let json = #"""
         {"id": 1, "name": "Reacher", "original_name": "Reacher", "original_language": "en", "overview": "", "status": "Returning Series",

@@ -67,6 +67,7 @@ struct ExplorerView: View {
             }
             .background(Theme.fond)
             .navigationTitle("Explorer")
+            .boutonBarreLaterale()
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button { feuilleOuverte = true } label: {
@@ -155,6 +156,7 @@ struct ExplorerView: View {
                                     .overlay(alignment: .topTrailing) { badges(titre.reference) }
                             }
                             .buttonStyle(.plain)
+                            .actionsRapides(titre)
                             .simultaneousGesture(TapGesture().onEnded { memoriser(texte) })
                         }
                     }
@@ -216,6 +218,7 @@ struct ExplorerView: View {
                                 .overlay(alignment: .topTrailing) { badgeVu(titre.reference) }
                         }
                         .buttonStyle(.plain)
+                        .actionsRapides(titre)
                         .simultaneousGesture(TapGesture().onEnded { memoriser(texte) })
                     }
                 }
@@ -491,6 +494,7 @@ struct ExplorerView: View {
                 ForEach(modele.resultats) { titre in
                     NavigationLink(value: titre.reference) { ligne(titre) }
                         .buttonStyle(.plain)
+                        .actionsRapides(titre)
                         .onAppear { suite(apres: titre) }
                 }
             }
@@ -503,6 +507,7 @@ struct ExplorerView: View {
                             .overlay(alignment: .topTrailing) { badges(titre.reference) }
                     }
                     .buttonStyle(.plain)
+                    .actionsRapides(titre)
                     .onAppear { suite(apres: titre) }
                 }
             }

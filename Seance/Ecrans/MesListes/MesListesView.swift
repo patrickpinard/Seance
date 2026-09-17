@@ -4,6 +4,8 @@ import SwiftData
 import SwiftUI
 
 /// Mes listes (EF-16) : ce qui arrive pour les titres surveillés, puis à voir, en cours et terminés.
+/// « Regardable ce soir » ne garde que ce qui est sur le NAS, dans les abonnements ou à la télé ce soir ;
+/// la disponibilité et la durée sont lues sur TMDB seulement quand ce filtre ou le tri par durée le demande.
 struct MesListesView: View {
     enum Onglet: String, CaseIterable, Identifiable {
         case aVenir = "À venir"
@@ -28,7 +30,27 @@ struct MesListesView: View {
     @Query(sort: \Suivi.ajouteLe, order: .reverse) private var suivis: [Suivi]
     @Query(sort: \Echeance.date) private var echeances: [Echeance]
     @Query private var visionnages: [Visionnage]
+    @Query(filter: #Predicate<Abonnement> { $0.actif }) private var abonnements: [Abonnement]
     @State private var onglet = Onglet.aVoir
+    @AppStorage("listes.tri") private var triBrut = TriListe.ajout.rawValue
+    @State private var ceSoirSeulement = false
+    /// Disponibilité et durée lues sur TMDB, par titre ; vidées quand les abonnements changent.
+    @State private var infos: [ReferenceTitre: InfoTitre] = [:]
+    @State private var chargementInfos = false
+
+    private struct InfoTitre {
+        let etat: EtatDisponibilite
+        let dureeMinutes: Int?
+    }
+
+    private struct CleInfos: Hashable {
+        let references: [ReferenceTitre]
+        let abonnements: [Int]
+    }
+
+    private var tri: TriListe {
+        TriListe(rawValue: triBrut) ?? .ajout
+    }
 
     var body: some View {
         NavigationStack {
@@ -45,14 +67,18 @@ struct MesListesView: View {
                 if onglet == .aVenir {
                     aVenir
                 } else if let statut = onglet.statut {
+                    barreListe(statut)
                     liste(statut)
                 }
             }
             .scrollContentBackground(.hidden)
             .background(Theme.fond)
             .navigationTitle("Mes listes")
+            .boutonBarreLaterale()
             .destinationsTitres()
             .refreshable { await etat.alertes.planifier(contexte: contexte, tmdb: etat.tmdb) }
+            .task(id: cleInfos) { await chargerInfos(cleInfos.references) }
+            .onChange(of: abonnements.map(\.providerID)) { infos = [:] }
             .onChange(of: etat.listeDemandee, initial: true) { _, demande in
                 guard let demande else { return }
                 onglet = demande
@@ -132,10 +158,98 @@ struct MesListesView: View {
 
     // MARK: À voir, en cours, terminés
 
+    /// Filtre « Regardable ce soir » (pas pour les titres terminés) et ordre de la liste.
+    private func barreListe(_ statut: StatutSuivi) -> some View {
+        HStack(spacing: 10) {
+            if statut != .termine {
+                PuceFiltre(libelle: "Regardable ce soir", active: ceSoirSeulement) { ceSoirSeulement.toggle() }
+                    .help("Sur le NAS, dans tes abonnements ou à la télé ce soir")
+            }
+            if chargementInfos {
+                ProgressView().controlSize(.small)
+            }
+            Spacer()
+            Menu {
+                Picker("Trier", selection: $triBrut) {
+                    ForEach(TriListe.allCases, id: \.self) { tri in
+                        Text(tri.rawValue).tag(tri.rawValue)
+                    }
+                }
+            } label: {
+                Label(tri.rawValue, systemImage: "arrow.up.arrow.down")
+                    .font(.subheadline.weight(.semibold))
+            }
+            .tint(Theme.accentClair)
+        }
+        .listRowBackground(Color.clear)
+        .listRowInsets(EdgeInsets(top: 2, leading: 16, bottom: 2, trailing: 16))
+    }
+
+    /// Le filtre ne s'applique pas aux terminés ; tant que la disponibilité d'un titre n'est pas connue, il est caché.
+    private func titresAffiches(_ statut: StatutSuivi) -> [Suivi] {
+        let tous = suivis.filter { $0.statut == statut }
+        let parReference = Dictionary(tous.map { ($0.reference, $0) }, uniquingKeysWith: { premier, _ in premier })
+        let ordonnes = tri.trier(tous.map {
+            TriListe.Element(reference: $0.reference, titre: $0.titre, ajouteLe: $0.ajouteLe, dureeMinutes: infos[$0.reference]?.dureeMinutes)
+        }).compactMap { parReference[$0.reference] }
+        guard ceSoirSeulement, statut != .termine else { return ordonnes }
+        let maintenant = Date.now
+        return ordonnes.filter { infos[$0.reference].map { RegardableCeSoir.retient($0.etat, maintenant: maintenant) } ?? false }
+    }
+
+    /// Les titres dont il faut la disponibilité ou la durée : seulement si le filtre ou le tri par durée le demande.
+    private var cleInfos: CleInfos {
+        guard let statut = onglet.statut, (ceSoirSeulement && statut != .termine) || tri == .plusCourt else {
+            return CleInfos(references: [], abonnements: [])
+        }
+        return CleInfos(references: suivis.filter { $0.statut == statut }.map(\.reference),
+                        abonnements: abonnements.map(\.providerID).sorted())
+    }
+
+    /// Une fiche TMDB par titre, six à la fois : plateformes et durée arrivent dans le même appel.
+    private func chargerInfos(_ references: [ReferenceTitre]) async {
+        let manquantes = references.filter { infos[$0] == nil }
+        guard !manquantes.isEmpty, let client = etat.tmdb else { return }
+        chargementInfos = true
+        defer { chargementInfos = false }
+        typealias Lu = (reference: ReferenceTitre, offres: OffresRegion?, duree: Int?)?
+        await withTaskGroup(of: Lu.self) { groupe in
+            var reste = manquantes[...]
+            func lancer(_ reference: ReferenceTitre) {
+                groupe.addTask {
+                    switch reference.type {
+                    case .film:
+                        guard let film = try? await client.film(reference.tmdbID, complements: [.fournisseurs]) else { return nil }
+                        return (reference, film.fournisseurs?.offres(), film.dureeMinutes)
+                    case .serie:
+                        guard let serie = try? await client.serie(reference.tmdbID, complements: [.fournisseurs]) else { return nil }
+                        return (reference, serie.fournisseurs?.offres(), serie.dureesEpisode.first)
+                    }
+                }
+            }
+            for _ in 0..<6 {
+                guard let reference = reste.popFirst() else { break }
+                lancer(reference)
+            }
+            let disponibilite = ServiceDisponibilite(contexte: contexte)
+            while let lu = await groupe.next() {
+                if let lu, let etatTitre = try? disponibilite.etat(lu.reference, offres: lu.offres) {
+                    infos[lu.reference] = InfoTitre(etat: etatTitre, dureeMinutes: lu.duree)
+                }
+                if Task.isCancelled { groupe.cancelAll(); return }
+                if let suivante = reste.popFirst() { lancer(suivante) }
+            }
+        }
+    }
+
     @ViewBuilder
     private func liste(_ statut: StatutSuivi) -> some View {
-        let titres = suivis.filter { $0.statut == statut }
-        if titres.isEmpty {
+        let titres = titresAffiches(statut)
+        if titres.isEmpty, ceSoirSeulement, statut != .termine, suivis.contains(where: { $0.statut == statut }) {
+            vide(chargementInfos
+                 ? "Recherche sur tes plateformes, ton NAS et la télé…"
+                 : "Rien de regardable ce soir dans cette liste : ni sur tes plateformes, ni sur le NAS, ni à la télé.")
+        } else if titres.isEmpty {
             switch statut {
             case .aVoir: vide("Rien à voir pour l'instant. Touche « + » sur une fiche pour l'ajouter ici.")
             case .enCours: vide("Aucune série en cours. Coche un épisode sur la fiche d'une série pour la suivre ici.")
@@ -187,6 +301,12 @@ struct MesListesView: View {
                 }
                 .font(.caption)
                 .foregroundStyle(.secondary)
+                if let info = infos[suivi.reference], let disponible = RegardableCeSoir.libelle(info.etat) {
+                    Label([disponible, info.dureeMinutes.map { suivi.type == .film ? Format.duree($0) : "\(Format.duree($0)) l'épisode" }]
+                        .compactMap { $0 }.joined(separator: " · "), systemImage: symboleDisponibilite(info.etat))
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(RegardableCeSoir.retient(info.etat, maintenant: .now) ? Color.green : Color.secondary)
+                }
                 if let prochaine = echeances.first(where: { $0.tmdbID == suivi.tmdbID && $0.typeBrut == suivi.typeBrut && $0.date >= Calendar.current.startOfDay(for: .now) }) {
                     Label("\(prochaine.libelle) · \(compteARebours(prochaine.date).lowercased())", systemImage: "calendar")
                         .font(.caption.weight(.semibold))
@@ -200,6 +320,16 @@ struct MesListesView: View {
                     .foregroundStyle(Theme.accent)
                     .accessibilityLabel("Alertes activées")
             }
+        }
+    }
+
+    private func symboleDisponibilite(_ etat: EtatDisponibilite) -> String {
+        switch etat {
+        case .surNAS: "externaldrive.fill"
+        case .dansAbonnements: "play.tv"
+        case .aLaTeleBientot: "tv"
+        case .aLouerOuAcheter: "cart"
+        case .introuvable: "questionmark.circle"
         }
     }
 

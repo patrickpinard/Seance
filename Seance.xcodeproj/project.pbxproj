@@ -11,6 +11,8 @@
 		030A7DD55F9553A369D2C6EB /* EtatApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51B21A23E9E47516765D2FE0 /* EtatApp.swift */; };
 		07DCF7A5BF7DE657CD13FAE2 /* VuesWidgets.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12C540EB67C8BD5BA63EA997 /* VuesWidgets.swift */; };
 		07DE75AEB94EC0ECF1D894BB /* PersonneView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E8607047668E8E7A1C0B521 /* PersonneView.swift */; };
+		08E424B8B03AEEABE89D953B /* BarreLaterale.swift in Sources */ = {isa = PBXBuildFile; fileRef = 296C605DA0D2EB94945E9572 /* BarreLaterale.swift */; };
+		0AB023B9C5D319279B4BD7C1 /* ActionsRapides.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FFB9E32172B78024002EFD3 /* ActionsRapides.swift */; };
 		0AFCD996B554004B80322E4F /* ReglagesNASView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B14FFD401FB239D2AB586936 /* ReglagesNASView.swift */; };
 		100E4A05F21EC14B7F5E40F3 /* SeanceWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70E5C0C6A6037BEC6D806F5F /* SeanceWidget.swift */; };
 		102AC84C06A1F18ABC52AF40 /* MaSoiree.swift in Sources */ = {isa = PBXBuildFile; fileRef = A33739359CBDF876AD2F1B6E /* MaSoiree.swift */; };
@@ -108,6 +110,7 @@
 		0FF991D92C556A3C1303E019 /* EpisodesSerie.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EpisodesSerie.swift; sourceTree = "<group>"; };
 		12C540EB67C8BD5BA63EA997 /* VuesWidgets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VuesWidgets.swift; sourceTree = "<group>"; };
 		1A183D5A1A3FBB515C991256 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		296C605DA0D2EB94945E9572 /* BarreLaterale.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BarreLaterale.swift; sourceTree = "<group>"; };
 		297F7F074F246563F3CA483B /* EtatAlertes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EtatAlertes.swift; sourceTree = "<group>"; };
 		29DE681EF5C1EAA1687286C4 /* MesListesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MesListesView.swift; sourceTree = "<group>"; };
 		3279F3CE4F19B222D6A87054 /* ExplorerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExplorerView.swift; sourceTree = "<group>"; };
@@ -138,6 +141,7 @@
 		701BB30E177402C310C6B51C /* ProfilView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfilView.swift; sourceTree = "<group>"; };
 		70E5C0C6A6037BEC6D806F5F /* SeanceWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeanceWidget.swift; sourceTree = "<group>"; };
 		7788E5AF973E89FC76F574C6 /* SeanceUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = SeanceUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		7FFB9E32172B78024002EFD3 /* ActionsRapides.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActionsRapides.swift; sourceTree = "<group>"; };
 		832BDD6EB7D6F3C924990D39 /* Versions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Versions.swift; sourceTree = "<group>"; };
 		8B744A230DB10B098ACBAA1A /* SeanceWidget.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = SeanceWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		8C27D46355FD45FE0B6BCD9F /* FicheDefilementTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FicheDefilementTests.swift; sourceTree = "<group>"; };
@@ -224,6 +228,7 @@
 		1BF3F48A42F266AB39056386 /* Etat */ = {
 			isa = PBXGroup;
 			children = (
+				7FFB9E32172B78024002EFD3 /* ActionsRapides.swift */,
 				B45A4AC641661F7B7945EAF9 /* ConteneurApp.swift */,
 				59D423F4DD1DA03825519F89 /* Demonstration.swift */,
 				297F7F074F246563F3CA483B /* EtatAlertes.swift */,
@@ -320,6 +325,7 @@
 		78C0D0D2C840975DCEA9701B /* Design */ = {
 			isa = PBXGroup;
 			children = (
+				296C605DA0D2EB94945E9572 /* BarreLaterale.swift */,
 				D1E76531BEB952957EAAEE65 /* Composants.swift */,
 				FBCCC2C7EB557DC82B0A231D /* Filtres.swift */,
 				B6507C62249A2769DB1E60E0 /* Theme.swift */,
@@ -561,8 +567,10 @@
 			buildActionMask = 2147483647;
 			files = (
 				B771B1D712E377A57538D7D8 /* AccueilView.swift in Sources */,
+				0AB023B9C5D319279B4BD7C1 /* ActionsRapides.swift in Sources */,
 				3DC619D9658209E9AFF5A423 /* ApercuWidgets.swift in Sources */,
 				E88382E40DBA182DAA361F71 /* BandesAnnonces.swift in Sources */,
+				08E424B8B03AEEABE89D953B /* BarreLaterale.swift in Sources */,
 				A052334119F82E47D0C04940 /* BienvenueView.swift in Sources */,
 				AAA30D3585243499220B7576 /* BilanAnneeView.swift in Sources */,
 				4B9275D4D5E71A9F65F5DDAF /* CeSoirView.swift in Sources */,
@@ -724,7 +732,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 6;
+				CURRENT_PROJECT_VERSION = 7;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = GATK475J3P;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -744,7 +752,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 1.3;
+				MARKETING_VERSION = 1.4;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -828,7 +836,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 6;
+				CURRENT_PROJECT_VERSION = 7;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = GATK475J3P;
 				ENABLE_NS_ASSERTIONS = NO;
@@ -842,7 +850,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 1.3;
+				MARKETING_VERSION = 1.4;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";

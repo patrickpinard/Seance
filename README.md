@@ -15,7 +15,7 @@ https://claude.ai/code/artifact/2dddc5b3-a9c7-4408-afd3-263d00b99e49
 | `Seance/` | App iPhone (écran provisoire du jalon 1) | Xcode |
 | `SeanceWidget/` | Widget (vide au jalon 1) | Xcode |
 | `project.yml` | Description du projet Xcode pour XcodeGen | — |
-| `outils/` | `tester.sh`, `generer-projet.sh` | — |
+| `outils/` | `tester.sh`, `generer-projet.sh`, `installer.sh` | — |
 
 ## Avant la première compilation dans Xcode
 
@@ -26,13 +26,15 @@ https://claude.ai/code/artifact/2dddc5b3-a9c7-4408-afd3-263d00b99e49
    ainsi que le groupe `group.ch.patrick.seance`, puis relancer `outils/generer-projet.sh`.
 
 Avec un compte gratuit, l'app installée sur l'iPhone cesse de s'ouvrir au bout de 7 jours :
-la réinstaller depuis Xcode, les données restent sur l'iPhone.
+la réinstaller avec `outils/installer.sh`, les données restent sur chaque appareil.
 
 ## Commandes
 
 ```sh
 outils/tester.sh            # tests de SeanceKit, sans Xcode
 outils/generer-projet.sh    # régénère Seance.xcodeproj après modification de project.yml
+outils/installer.sh         # compile en Release et installe sur l'iPhone branché et dans /Applications du Mac
+outils/installer.sh --mac   # ou --iphone : un seul appareil
 ```
 
 Les tests de `SeanceDonnees` se lancent dans Xcode (schéma du paquet `SeanceDonnees`).

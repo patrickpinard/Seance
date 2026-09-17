@@ -56,6 +56,7 @@ struct ProfilView: View {
             .scrollContentBackground(.hidden)
             .background(Theme.fond)
             .navigationTitle("Profil")
+            .boutonBarreLaterale()
             .toolbar {
                 if classeTaille == .compact {
                     ToolbarItem(placement: .topBarTrailing) {

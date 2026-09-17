@@ -20,6 +20,27 @@ struct NoteVersion: Identifiable {
 
     static let historique: [NoteVersion] = [
         NoteVersion(
+            numero: "1.4",
+            date: "17 septembre 2026",
+            resume: "Top 10 de l'année, Regardable ce soir dans Mes listes, actions rapides sur les affiches, menu masquable sur le Mac.",
+            fonctionnalites: [
+                Fonctionnalite(symbole: "trophy.fill", titre: "Top 10 de l'année",
+                               detail: "Sur l'accueil, les cinq films et les cinq séries les mieux notés depuis un an, à la place de « Pour toi » et « Parce que tu as aimé »."),
+                Fonctionnalite(symbole: "sidebar.left", titre: "Menu masquable sur le Mac",
+                               detail: "Le bouton en haut à gauche, ou ⌃⌘S, cache le menu pour laisser toute la place à la page."),
+                Fonctionnalite(symbole: "chevron.left.forwardslash.chevron.right", titre: "Flèches des carrousels",
+                               detail: "Sur le Mac, elles sont rangées à droite de chaque rangée et sous le bandeau : un clic fait défiler au lieu d'ouvrir une fiche."),
+                Fonctionnalite(symbole: "speaker.slash.fill", titre: "Bandes-annonces",
+                               detail: "Fermer le lecteur, ou quitter la fenêtre, arrête la vidéo et le son."),
+                Fonctionnalite(symbole: "moon.stars", titre: "Regardable ce soir",
+                               detail: "Dans Mes listes, ne garder que ce qui est sur le NAS, dans tes abonnements ou à la télé ce soir ; trier par durée ou par titre."),
+                Fonctionnalite(symbole: "hand.tap", titre: "Actions rapides",
+                               detail: "Appui long sur une affiche, clic droit sur le Mac : À voir, Vu, Déjà vu avant, Ma soirée, Pas intéressé."),
+                Fonctionnalite(symbole: "character.book.closed", titre: "Genres en français",
+                               detail: "Les noms des genres sont livrés avec l'app : plus de « Genre 28 » sans réseau."),
+            ]
+        ),
+        NoteVersion(
             numero: "1.3",
             date: "17 septembre 2026",
             resume: "Acteurs : recherche, suivi, statistiques justes ; titres similaires et note dans l'en-tête.",

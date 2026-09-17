@@ -263,6 +263,7 @@ private struct GrillePaginee<Entete: View>: View {
                             CarteAffiche(titre: titre, largeur: nil, sousTitre: sousTitre(titre))
                         }
                         .buttonStyle(.plain)
+                        .actionsRapides(titre)
                         .onAppear {
                             if titre.reference == liste.titres.last?.reference {
                                 Task { await chargerSuite() }

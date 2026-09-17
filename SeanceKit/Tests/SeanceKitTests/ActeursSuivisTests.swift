@@ -2,8 +2,8 @@ import Foundation
 import Testing
 @testable import SeanceKit
 
-@Suite("Acteurs suivis et titres similaires")
-struct ActeursEtSimilairesTests {
+@Suite("Acteurs suivis")
+struct ActeursSuivisTests {
     private let reglages = ReglagesAlertes()
 
     private func filmographie(_ roles: String) throws -> Filmographie {
@@ -49,33 +49,6 @@ struct ActeursEtSimilairesTests {
         let coupee = PlanificateurAlertes.nouveauxFilms(acteur: "Keanu Reeves", connus: premiere.connus, filmographie: apres,
                                                         maintenant: maintenant, reglages: sansSorties)
         #expect(coupee.alertes.isEmpty && coupee.connus.contains(1))
-    }
-
-    private func titre(_ id: Int, _ nom: String, type: TypeTitre = .film, langue: String = "en", affiche: String? = "/a.jpg") -> TitreResume {
-        TitreResume(reference: ReferenceTitre(type: type, tmdbID: id), titre: nom, titreOriginal: nom, langueOriginale: langue,
-                    synopsis: "", genres: [28], cheminAffiche: affiche, cheminFond: nil, noteMoyenne: 7, nombreVotes: 1000, date: nil)
-    }
-
-    @Test func parceQueTuAsAime() {
-        let heat = TitreAime(reference: ReferenceTitre(type: .film, tmdbID: 949), titre: "Heat", note: 9)
-        let wick = TitreAime(reference: ReferenceTitre(type: .film, tmdbID: 245_891), titre: "John Wick", note: 8)
-        let dejaVu = titre(10, "Déjà vu")
-        let commun = titre(11, "Collateral")
-        let resultat = TitresSimilaires.selectionner(
-            aimes: [wick, heat],
-            recommandations: [
-                heat.reference: [dejaVu, titre(12, "Ronin"), commun, titre(13, "Film coréen", langue: "ko")],
-                wick.reference: [commun, titre(14, "Nobody"), titre(15, "Sans affiche", affiche: nil),
-                                 titre(949, "Heat")],
-            ],
-            exclus: [dejaVu.reference]
-        )
-        // Recommandé par les deux d'abord ; puis les premiers de chaque titre aimé, le mieux noté devant ;
-        // ni vu, ni hors langue, ni sans affiche, ni un titre aimé lui-même.
-        #expect(resultat.map(\.titre.titre) == ["Collateral", "Ronin", "Nobody"])
-        #expect(resultat.first?.phrase == "Comme Heat et 1 autre")
-        #expect(resultat.first?.parceQue == heat)
-        #expect(resultat[2].phrase == "Comme John Wick")
     }
 
     @Test func sauvegardeDesActeursSuivis() throws {

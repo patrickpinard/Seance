@@ -294,6 +294,7 @@ struct PersonneView: View {
             .background(Theme.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
         }
         .buttonStyle(.plain)
+        .actionsRapides(credit.titreResume)
     }
 
     // MARK: Données

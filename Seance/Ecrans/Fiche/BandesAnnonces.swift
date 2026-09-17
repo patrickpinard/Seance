@@ -50,17 +50,22 @@ struct LecteurBandeAnnonce: View {
     let video: Video
     @Environment(\.dismiss) private var dismiss
     @Environment(\.openURL) private var openURL
+    @Environment(\.scenePhase) private var phase
+    @State private var lecture = ControleLecture()
 
     var body: some View {
         NavigationStack {
             VStack(alignment: .leading, spacing: 16) {
-                LecteurYouTube(video: video)
+                LecteurYouTube(video: video, lecture: lecture)
                     .aspectRatio(16 / 9, contentMode: .fit)
                     .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                 Text(video.nom).font(.headline)
                 if let url = video.urlYouTube {
-                    Button("Ouvrir dans YouTube", systemImage: "arrow.up.right.square") { openURL(url) }
-                        .font(.subheadline)
+                    Button("Ouvrir dans YouTube", systemImage: "arrow.up.right.square") {
+                        lecture.arreter()
+                        openURL(url)
+                    }
+                    .font(.subheadline)
                 }
                 Spacer()
             }
@@ -68,11 +73,42 @@ struct LecteurBandeAnnonce: View {
             .background(Theme.fond)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Fermer", systemImage: "xmark") { dismiss() }
+                    Button("Fermer", systemImage: "xmark") {
+                        lecture.arreter()
+                        dismiss()
+                    }
                 }
             }
         }
         .presentationDetents([.medium, .large])
+        // Fermée d'un geste, par Échap ou en quittant l'onglet : le son s'arrête avec la feuille.
+        .onDisappear { lecture.arreter() }
+        // L'app passe en arrière-plan ou la fenêtre du Mac est fermée : pas de son qui continue derrière.
+        .onChange(of: phase) { _, nouvelle in
+            if nouvelle != .active { lecture.pause() }
+        }
+    }
+}
+
+/// Tient la vue web du lecteur pour l'arrêter au moment voulu : SwiftUI ne la détruit pas toujours à la fermeture
+/// de la feuille, et la vidéo continuait alors à jouer derrière, son compris.
+@MainActor
+final class ControleLecture {
+    weak var vue: WKWebView?
+
+    func pause() {
+        vue?.pauseAllMediaPlayback()
+    }
+
+    /// Met la vidéo en pause, ferme un éventuel plein écran, puis vide la page pour libérer le flux.
+    func arreter() {
+        guard let vue else { return }
+        vue.pauseAllMediaPlayback()
+        vue.closeAllMediaPresentations()
+        vue.setAllMediaPlaybackSuspended(true)
+        vue.stopLoading()
+        vue.loadHTMLString("", baseURL: nil)
+        self.vue = nil
     }
 }
 
@@ -80,11 +116,13 @@ struct LecteurBandeAnnonce: View {
 /// rien n'est gardé sur l'iPhone une fois la feuille fermée.
 private struct LecteurYouTube: UIViewRepresentable {
     let video: Video
+    let lecture: ControleLecture
 
     func makeUIView(context: Context) -> WKWebView {
         let configuration = WKWebViewConfiguration()
         configuration.allowsInlineMediaPlayback = true
-        configuration.allowsPictureInPictureMediaPlayback = true
+        // Pas d'image dans l'image : elle gardait la vidéo et le son une fois la feuille fermée.
+        configuration.allowsPictureInPictureMediaPlayback = false
         configuration.mediaTypesRequiringUserActionForPlayback = []
         configuration.websiteDataStore = .nonPersistent()
         let vue = WKWebView(frame: .zero, configuration: configuration)
@@ -92,13 +130,16 @@ private struct LecteurYouTube: UIViewRepresentable {
         vue.backgroundColor = .black
         vue.scrollView.isScrollEnabled = false
         charger(vue)
+        lecture.vue = vue
         return vue
     }
 
     func updateUIView(_ vue: WKWebView, context: Context) {}
 
     static func dismantleUIView(_ vue: WKWebView, coordinator: ()) {
-        // Arrête le son dès la fermeture de la feuille.
+        // Dernier filet si la feuille disparaît sans passer par `onDisappear`.
+        vue.pauseAllMediaPlayback()
+        vue.closeAllMediaPresentations()
         vue.loadHTMLString("", baseURL: nil)
     }
 

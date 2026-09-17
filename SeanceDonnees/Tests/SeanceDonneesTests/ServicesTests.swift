@@ -160,22 +160,6 @@ struct ServicesTests {
         #expect(try !ServiceGouts(contexte: conteneur.mainContext).contexteCandidats().dejaVus.contains(film.reference))
     }
 
-    @Test func titresAimesPourLesSimilaires() throws {
-        let conteneur = try EntrepotSeance.conteneur(.memoire)
-        let contexte = conteneur.mainContext
-        let service = ServiceSuivi(contexte: contexte)
-        try service.noter(film: try TMDB.film(), note: 8)
-        try service.noter(serie: try TMDB.serie(), note: 10)
-        let moyen = Suivi(reference: ReferenceTitre(type: .film, tmdbID: 1), titre: "Moyen", statut: .termine)
-        moyen.note = 6
-        contexte.insert(moyen)
-        try contexte.save()
-
-        let aimes = try ServiceGouts(contexte: contexte).titresAimes()
-        #expect(aimes.map(\.titre) == ["Reacher", "La Chute de Londres"])
-        #expect(aimes.map(\.note) == [10, 8])
-    }
-
     @Test func sauvegardeAllerRetourSansDoublon() throws {
         let source = try EntrepotSeance.conteneur(.memoire)
         let suivi = ServiceSuivi(contexte: source.mainContext)

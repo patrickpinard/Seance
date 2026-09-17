@@ -89,15 +89,6 @@ public struct ServiceGouts {
         )
     }
 
-    /// Les titres notés 8 ou plus, le mieux noté puis le plus récent d'abord : « Parce que tu as aimé… ».
-    public func titresAimes(maximum: Int = 6) throws -> [TitreAime] {
-        try contexte.fetch(FetchDescriptor<Suivi>(sortBy: [SortDescriptor(\.ajouteLe, order: .reverse)]))
-            .filter { ($0.note ?? 0) >= TitresSimilaires.noteMinimale && $0.statut != .exclu }
-            .sorted { ($0.note ?? 0) > ($1.note ?? 0) }
-            .prefix(maximum)
-            .map { TitreAime(reference: $0.reference, titre: $0.titre, note: $0.note ?? 0) }
-    }
-
     // MARK: - Ce que TMDB ignore
 
     /// Ce que le collecteur de candidats doit écarter (EF-23, EF-26, EF-29).

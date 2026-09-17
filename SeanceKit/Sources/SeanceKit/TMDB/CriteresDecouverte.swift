@@ -143,6 +143,29 @@ extension CriteresDecouverte {
     /// Genres de télé sans intérêt pour des nouveautés : actualités, téléréalité, feuilletons, talk-shows.
     static let genresTeleEcartes = [10763, 10764, 10766, 10767]
 
+    /// Top 10 de l'accueil, cinq films et cinq séries : les mieux notés sur TMDB parmi les films sortis dans
+    /// l'année et les séries avec un épisode diffusé dans l'année. Assez de votes pour que la note compte ;
+    /// ni documentaires ni téléfilms, ni actualités, téléréalité, feuilletons ou talk-shows.
+    public static func top(_ type: TypeTitre, maintenant: Date = .now) -> CriteresDecouverte {
+        var criteres = CriteresDecouverte()
+        let aujourdhui = DateTMDB(maintenant)
+        let ilYAUnAn = DateTMDB(maintenant.addingTimeInterval(-365 * 86_400))
+        criteres.tri = .note
+        switch type {
+        case .film:
+            criteres.sortieDepuis = ilYAUnAn
+            criteres.sortieJusqua = aujourdhui
+            criteres.votesMin = 300
+            criteres.genresExclus = [99, 10770]
+        case .serie:
+            criteres.episodesDepuis = ilYAUnAn
+            criteres.episodesJusqua = aujourdhui
+            criteres.votesMin = 150
+            criteres.genresExclus = [99] + genresTeleEcartes
+        }
+        return criteres
+    }
+
     /// Nouveautés de l'accueil : films sortis et séries avec un épisode diffusé aujourd'hui ou dans
     /// les sept derniers jours, les plus populaires d'abord.
     public static func nouveautes(_ type: TypeTitre, periode: PeriodeTendance, maintenant: Date = .now) -> CriteresDecouverte {

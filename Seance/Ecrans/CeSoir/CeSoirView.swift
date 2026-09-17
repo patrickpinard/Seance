@@ -21,6 +21,7 @@ struct CeSoirView: View {
             }
             .background(Theme.fond)
             .navigationTitle("Ce soir")
+            .boutonBarreLaterale()
             .destinationsTitres()
             .task(id: etat.tmdb != nil) { await soiree.charger(etat: etat, contexte: contexte) }
         }
