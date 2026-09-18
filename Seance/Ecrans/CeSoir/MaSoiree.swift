@@ -27,6 +27,58 @@ final class SoireeModele {
     private(set) var ou: [ReferenceTitre: String] = [:]
     private(set) var enCours = false
 
+    /// Ce qui habille la grande carte d'un titre prévu : son image de fond et, pour un film, sa durée.
+    struct Decor: Codable, Equatable {
+        var fond: String?
+        var minutes: Int?
+    }
+
+    /// Gardé d'un lancement à l'autre : la page s'ouvre avec ses images, sans attendre TMDB.
+    private(set) var decors: [String: Decor] = SoireeModele.decorsEnregistres()
+    private static let cleDecors = "cesoir.decors"
+
+    func decor(_ reference: ReferenceTitre) -> Decor? {
+        decors[Self.cle(reference)]
+    }
+
+    private nonisolated static func cle(_ reference: ReferenceTitre) -> String {
+        "\(reference.type.rawValue)-\(reference.tmdbID)"
+    }
+
+    private static func decorsEnregistres() -> [String: Decor] {
+        guard let donnees = UserDefaults.standard.data(forKey: cleDecors) else { return [:] }
+        return (try? JSONDecoder().decode([String: Decor].self, from: donnees)) ?? [:]
+    }
+
+    /// Lit sur TMDB le décor des titres prévus qui n'en ont pas encore, et oublie ceux qui ne sont plus prévus.
+    func chargerDecors(_ references: [ReferenceTitre], client: TMDBClient?) async {
+        let voulues = Set(references.map(Self.cle))
+        var nouveaux = decors.filter { voulues.contains($0.key) }
+        if let client {
+            let manquantes = references.filter { nouveaux[Self.cle($0)] == nil }
+            await withTaskGroup(of: (String, Decor?).self) { groupe in
+                for reference in manquantes.prefix(12) {
+                    groupe.addTask {
+                        switch reference.type {
+                        case .film:
+                            let film = try? await client.film(reference.tmdbID, complements: [])
+                            return (Self.cle(reference), film.map { Decor(fond: $0.cheminFond, minutes: $0.dureeMinutes) })
+                        case .serie:
+                            let serie = try? await client.serie(reference.tmdbID)
+                            return (Self.cle(reference), serie.map { Decor(fond: $0.cheminFond, minutes: nil) })
+                        }
+                    }
+                }
+                for await (cle, decor) in groupe {
+                    if let decor { nouveaux[cle] = decor }
+                }
+            }
+        }
+        guard nouveaux != decors else { return }
+        decors = nouveaux
+        UserDefaults.standard.set(try? JSONEncoder().encode(nouveaux), forKey: Self.cleDecors)
+    }
+
     /// Un titre qui arrive dans la soirée depuis les idées : son libellé est déjà connu.
     func noterOu(_ reference: ReferenceTitre, _ libelle: String?) {
         if let libelle { ou[reference] = libelle }

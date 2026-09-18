@@ -38,7 +38,7 @@ final class IdeesModele {
             nombreCandidats = candidats.count
             let claude = precise && !demande.envieNettoyee.isEmpty ? etat.claude : nil
             // Douze idées classées, cinq affichées : chaque idée traitée laisse sa place à la suivante.
-            let nouveau = await ServiceRecommandation(claude: claude, nombre: 12)
+            let nouveau = await ServiceRecommandation(claude: claude, nombre: NombreIdees.aClasser)
                 .suggerer(demande, candidats: candidats, profil: profil, nomsGenres: etat.nomsGenres)
             resultat = nouveau
             retirees = []
@@ -114,19 +114,21 @@ struct SectionIdees: View {
     @Environment(EtatApp.self) private var etat
     @Environment(\.modelContext) private var contexte
     @State private var precisionOuverte = false
+    @AppStorage(NombreIdees.cle) private var nombreIdees = NombreIdees.parDefaut
+    @AppStorage(Prenom.cle) private var prenom = ""
 
-    /// Cinq idées à la fois, parmi celles ni traitées ni déjà montrées plus haut.
+    /// Trois, cinq ou dix idées à la fois (Réglages › Toi), parmi celles ni traitées ni déjà montrées plus haut.
     private var idees: [SuggestionClassee] {
         Array((modele.resultat?.suggestions ?? [])
             .filter { !modele.retirees.contains($0.reference) && !dejaMontres.contains($0.reference) }
-            .prefix(5))
+            .prefix(NombreIdees.lire(nombreIdees)))
     }
 
     var body: some View {
         @Bindable var modele = modele
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Label("Idées pour ce soir", systemImage: "sparkles")
+                Label(Prenom.lire(prenom).map { "Des idées pour toi, \($0)" } ?? "Idées pour ce soir", systemImage: "sparkles")
                     .font(.title3.weight(.bold))
                     .labelStyle(EtiquetteSection())
                 Spacer()

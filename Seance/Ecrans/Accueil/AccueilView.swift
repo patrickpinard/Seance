@@ -3,31 +3,45 @@ import SeanceKit
 import SwiftData
 import SwiftUI
 
-/// Ce que l'accueil montre : tout le catalogue ou certaines plateformes, et les sections télé et NAS.
+/// Ce que l'accueil montre : tout le catalogue ou seulement tes plateformes, ses sections, et combien de titres.
+/// Les plateformes elles-mêmes se cochent à un seul endroit : Réglages › Plateformes.
 struct SourcesAccueil: Codable, Hashable {
-    /// `nil` : tout le catalogue TMDB ; sinon, les plateformes choisies.
+    /// `nil` : tout le catalogue TMDB ; sinon, seulement tes plateformes. (Une ancienne version y gardait une liste
+    /// choisie ici, en double des réglages : seule sa présence compte désormais.)
     var plateformes: [Int]?
     var top10 = true
     var tele = true
     var duMoment = true
     var nas = true
+    /// Films et séries du classement, chacun : 3, 5 ou 10.
+    var nombreTop = 5
+    /// Titres de « Du moment » : 10, 20 ou 30.
+    var nombreDuMoment = 20
+    /// Titres du bandeau : 3, 5 ou 8.
+    var nombreBandeau = 5
+    /// « Ce soir à la télé » montre aussi les séries ; sinon, seulement les films.
+    var seriesTele = true
+
+    static let choixTop = [3, 5, 10]
+    static let choixDuMoment = [10, 20, 30]
+    static let choixBandeau = [3, 5, 8]
 
     init() {}
 
-    var filtrees: [Int]? {
-        guard let plateformes, !plateformes.isEmpty else { return nil }
-        return plateformes.sorted()
+    var mesPlateformes: Bool {
+        get { plateformes != nil }
+        set { plateformes = newValue ? [] : nil }
     }
 
     var modifiees: Bool {
-        filtrees != nil || !top10 || !tele || !duMoment || !nas
+        self != SourcesAccueil()
     }
 
     enum CodingKeys: String, CodingKey {
-        case plateformes, top10, tele, duMoment, nas
+        case plateformes, top10, tele, duMoment, nas, nombreTop, nombreDuMoment, nombreBandeau, seriesTele
     }
 
-    /// Les réglages d'une version précédente restent valables : les sections ajoutées depuis sont affichées.
+    /// Les réglages d'une version précédente restent valables : ce qui a été ajouté depuis prend sa valeur par défaut.
     init(from decoder: any Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         plateformes = try c.decodeIfPresent([Int].self, forKey: .plateformes)
@@ -35,6 +49,13 @@ struct SourcesAccueil: Codable, Hashable {
         tele = try c.decodeIfPresent(Bool.self, forKey: .tele) ?? true
         duMoment = try c.decodeIfPresent(Bool.self, forKey: .duMoment) ?? true
         nas = try c.decodeIfPresent(Bool.self, forKey: .nas) ?? true
+        let top = try c.decodeIfPresent(Int.self, forKey: .nombreTop) ?? 5
+        nombreTop = Self.choixTop.contains(top) ? top : 5
+        let moment = try c.decodeIfPresent(Int.self, forKey: .nombreDuMoment) ?? 20
+        nombreDuMoment = Self.choixDuMoment.contains(moment) ? moment : 20
+        let bandeau = try c.decodeIfPresent(Int.self, forKey: .nombreBandeau) ?? 5
+        nombreBandeau = Self.choixBandeau.contains(bandeau) ? bandeau : 5
+        seriesTele = try c.decodeIfPresent(Bool.self, forKey: .seriesTele) ?? true
     }
 }
 
@@ -72,26 +93,26 @@ final class AccueilModele {
         titres.filter { $0.cheminAffiche != nil && RegleLangue.accepte(langueOriginale: $0.langueOriginale, exclu: false) }
     }
 
-    /// Les cinq premiers de chaque type, avec affiche et en version regardable (EF-28), sur les plateformes choisies.
-    func chargerTop(client: TMDBClient, plateformes: [Int]?) async {
+    /// Les premiers de chaque type (3, 5 ou 10), avec affiche et en version regardable (EF-28), sur tes plateformes.
+    func chargerTop(client: TMDBClient, plateformes: [Int]?, nombre: Int) async {
         async let films = client.decouvrirFilms(Self.surPlateformes(CriteresDecouverte.top(.film), plateformes))
         async let series = client.decouvrirSeries(Self.surPlateformes(CriteresDecouverte.top(.serie), plateformes))
-        func cinq(_ titres: [TitreResume]) -> [TitreResume] {
-            Array(Self.affichables(titres).prefix(5))
+        func premiers(_ titres: [TitreResume]) -> [TitreResume] {
+            Array(Self.affichables(titres).prefix(nombre))
         }
-        topFilms = cinq((try? await films.resultats.map(\.titreResume)) ?? [])
-        topSeries = cinq((try? await series.resultats.map(\.titreResume)) ?? [])
+        topFilms = premiers((try? await films.resultats.map(\.titreResume)) ?? [])
+        topSeries = premiers((try? await series.resultats.map(\.titreResume)) ?? [])
     }
 
-    /// « Du moment » (EF-01) : films et séries entrelacés, sur les plateformes choisies ; les vingt premiers.
-    func charger(client: TMDBClient, plateformes: [Int]?) async {
+    /// « Du moment » (EF-01) : films et séries entrelacés, sur tes plateformes ; les 10, 20 ou 30 premiers.
+    func charger(client: TMDBClient, plateformes: [Int]?, nombre: Int) async {
         erreur = nil
         do {
             async let films = client.decouvrirFilms(Self.surPlateformes(CriteresDecouverte.duMoment(.film), plateformes))
             async let series = client.decouvrirSeries(Self.surPlateformes(CriteresDecouverte.duMoment(.serie), plateformes))
             let listeFilms = Self.affichables(try await films.resultats.map(\.titreResume))
             let listeSeries = Self.affichables(try await series.resultats.map(\.titreResume))
-            let titres = Array(Self.entrelacer(listeFilms, listeSeries).prefix(20))
+            let titres = Array(Self.entrelacer(listeFilms, listeSeries).prefix(nombre))
             datesSeries = await DatesNouveautes.episodes(titres.filter { $0.reference.type == .serie }, client: client)
             duMoment = titres
         } catch is CancellationError {
@@ -122,6 +143,7 @@ struct AccueilView: View {
     @Query(filter: #Predicate<Abonnement> { $0.actif }, sort: \Abonnement.nom) private var abonnements: [Abonnement]
     @Query(sort: \Diffusion.debut) private var diffusions: [Diffusion]
     @AppStorage("accueil.sources") private var sourcesBrutes = Data()
+    @AppStorage(Prenom.cle) private var prenomBrut = ""
     @State private var modele = AccueilModele()
     @State private var reglageSources = false
     @State private var chemin = NavigationPath()
@@ -142,9 +164,27 @@ struct AccueilView: View {
         (try? JSONDecoder().decode(SourcesAccueil.self, from: sourcesBrutes)) ?? SourcesAccueil()
     }
 
-    /// Les plateformes choisies encore cochées dans les réglages.
+    /// « Seulement sur mes plateformes » : celles cochées dans Réglages › Plateformes ; aucune cochée, tout le catalogue.
     private var plateformes: [Int]? {
-        sources.filtrees.map { ids in ids.filter { id in abonnements.contains { $0.providerID == id } } }.flatMap { $0.isEmpty ? nil : $0 }
+        guard sources.mesPlateformes, !abonnements.isEmpty else { return nil }
+        return abonnements.map(\.providerID).sorted()
+    }
+
+    /// Ce qui oblige à relire TMDB quand il change.
+    private struct CleChargement: Hashable {
+        let plateformes: [Int]?
+        let top: Int
+        let duMoment: Int
+    }
+
+    private var cleChargement: CleChargement {
+        CleChargement(plateformes: plateformes, top: sources.nombreTop, duMoment: sources.nombreDuMoment)
+    }
+
+    private func charger(_ client: TMDBClient) async {
+        async let moment: Void = modele.charger(client: client, plateformes: plateformes, nombre: sources.nombreDuMoment)
+        async let top: Void = modele.chargerTop(client: client, plateformes: plateformes, nombre: sources.nombreTop)
+        _ = await (moment, top)
     }
 
     var body: some View {
@@ -152,16 +192,8 @@ struct AccueilView: View {
             Group {
                 if let client = etat.tmdb {
                     contenu
-                        .task(id: plateformes) {
-                            async let moment: Void = modele.charger(client: client, plateformes: plateformes)
-                            async let top: Void = modele.chargerTop(client: client, plateformes: plateformes)
-                            _ = await (moment, top)
-                        }
-                        .refreshable {
-                            async let moment: Void = modele.charger(client: client, plateformes: plateformes)
-                            async let top: Void = modele.chargerTop(client: client, plateformes: plateformes)
-                            _ = await (moment, top)
-                        }
+                        .task(id: cleChargement) { await charger(client) }
+                        .refreshable { await charger(client) }
                         .onChange(of: modele.erreur) { _, erreur in
                             guard erreur != nil else { return }
                             etat.journal.noter(.tmdb, "L'accueil n'a pas pu se charger.", erreur: modele.erreurDetaillee)
@@ -186,7 +218,7 @@ struct AccueilView: View {
                         Label("Personnaliser", systemImage: "slider.horizontal.3")
                             .labelStyle(.titleAndIcon)
                     }
-                    .help("Choisir les plateformes et les sections de l'accueil")
+                    .help("Choisir les sections de l'accueil et le nombre de titres")
                     .accessibilityIdentifier("boutonSources")
                     if sources.nas {
                         Button { chemin.append(DestinationAccueil.nas) } label: {
@@ -220,17 +252,28 @@ struct AccueilView: View {
     private var contenu: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 28) {
-                // Les cinq premiers du moment qui ont une image de fond.
-                BandeauVedette(titres: Array(modele.duMoment.filter { $0.cheminFond != nil }.prefix(5)))
+                // Les premiers du moment qui ont une image de fond : 3, 5 ou 8.
+                BandeauVedette(titres: Array(modele.duMoment.filter { $0.cheminFond != nil }.prefix(sources.nombreBandeau)))
 
                 if let erreur = modele.erreur {
                     MessageEtat(texte: erreur, ton: .probleme, libelleAction: "Réessayer") {
                         guard let client = etat.tmdb else { return }
-                        Task {
-                            await modele.charger(client: client, plateformes: plateformes)
-                            await modele.chargerTop(client: client, plateformes: plateformes)
-                        }
+                        Task { await charger(client) }
                     }
+                }
+
+                if let prenom = Prenom.lire(prenomBrut) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(Prenom.salut(prenom))
+                            .font(.title2.weight(.heavy))
+                            .foregroundStyle(Theme.degradeAccent)
+                        Text(resumeSoiree == nil ? "Voici de quoi choisir ta soirée." : "Ta soirée est prête, et voici de quoi en préparer d'autres.")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, -14)
+                    .accessibilityElement(children: .combine)
                 }
 
                 if let resumeSoiree {
@@ -265,12 +308,13 @@ struct AccueilView: View {
                 }
 
                 if sources.top10, !modele.topFilms.isEmpty || !modele.topSeries.isEmpty {
-                    SectionTop10(films: modele.topFilms, series: modele.topSeries,
+                    SectionTop10(films: modele.topFilms, series: modele.topSeries, nombre: sources.nombreTop,
                                  plateformes: plateformes.map(nomsPlateformes))
                 }
 
                 if sources.tele {
-                    SectionTele(diffusions: diffusions, lectureEnCours: etat.teleEnCours) {
+                    SectionTele(diffusions: sources.seriesTele ? diffusions : diffusions.filter { $0.typeBrut == TypeTitre.film.rawValue },
+                                lectureEnCours: etat.teleEnCours) {
                         chemin.append(DestinationAccueil.tele)
                     }
                 }
@@ -318,48 +362,54 @@ private struct ReglageSourcesAccueil: View {
     var body: some View {
         NavigationStack {
             Form {
+                // Les plateformes se cochent à un seul endroit, Réglages › Plateformes : ici, on choisit seulement de s'y limiter.
                 Section {
-                    Picker("Afficher", selection: Binding {
-                        sources.plateformes == nil
-                    } set: { toutLeCatalogue in
-                        sources.plateformes = toutLeCatalogue ? nil : abonnements.map(\.providerID)
-                    }) {
-                        Text("Tout le catalogue").tag(true)
-                        Text("Mes plateformes").tag(false)
-                    }
-                    .pickerStyle(.segmented)
-                    .listRowBackground(Color.clear)
-
-                    if sources.plateformes != nil {
-                        if abonnements.isEmpty {
-                            Text("Coche d'abord tes abonnements dans Réglages › Plateformes.").foregroundStyle(.secondary)
-                        }
-                        ForEach(abonnements) { abonnement in
-                            Toggle(abonnement.nom, isOn: Binding {
-                                sources.plateformes?.contains(abonnement.providerID) == true
-                            } set: { actif in
-                                var liste = sources.plateformes ?? []
-                                if actif { liste.append(abonnement.providerID) } else { liste.removeAll { $0 == abonnement.providerID } }
-                                sources.plateformes = liste
-                            })
-                            .tint(Theme.accent)
-                        }
-                    }
+                    Toggle("Seulement sur mes plateformes", isOn: $sources.mesPlateformes)
+                        .tint(Theme.accent)
+                        .disabled(abonnements.isEmpty)
                 } header: {
-                    Text("Plateformes")
+                    Text("Catalogue")
                 } footer: {
-                    Text("Le bandeau, le Top 10 de l'année et « Du moment » ne montrent que ce qui est disponible sur les plateformes choisies.")
+                    if abonnements.isEmpty {
+                        Text("Coche d'abord tes abonnements dans Réglages › Plateformes : l'accueil montre tout le catalogue en attendant.")
+                    } else if sources.mesPlateformes {
+                        Text("Le bandeau, le Top et « Du moment » ne montrent que ce qui est disponible sur \(abonnements.map(\.nom).formatted(.list(type: .and).locale(Locale(identifier: "fr_CH")))). Tes plateformes se cochent dans Réglages › Plateformes.")
+                    } else {
+                        Text("L'accueil montre tout le catalogue ; le badge en coin d'affiche dit ce qui est sur tes plateformes.")
+                    }
                 }
 
                 Section {
-                    Toggle("Top 10 de l'année", isOn: $sources.top10).tint(Theme.accent)
+                    Toggle("Top de l'année", isOn: $sources.top10).tint(Theme.accent)
                     Toggle("Ce soir à la télé", isOn: $sources.tele).tint(Theme.accent)
                     Toggle("Du moment", isOn: $sources.duMoment).tint(Theme.accent)
                     Toggle("Sur ton NAS", isOn: $sources.nas).tint(Theme.accent)
                 } header: {
                     Text("Sections de l'accueil")
+                }
+
+                Section {
+                    choix("Bandeau du haut", valeur: $sources.nombreBandeau, parmi: SourcesAccueil.choixBandeau)
+                    if sources.top10 {
+                        choix("Top : films et séries, chacun", valeur: $sources.nombreTop, parmi: SourcesAccueil.choixTop)
+                    }
+                    if sources.duMoment {
+                        choix("Du moment", valeur: $sources.nombreDuMoment, parmi: SourcesAccueil.choixDuMoment)
+                    }
+                    if sources.tele {
+                        Toggle("Les séries aussi, à la télé", isOn: $sources.seriesTele).tint(Theme.accent)
+                    }
+                } header: {
+                    Text("Combien de titres")
                 } footer: {
-                    Text("Le bandeau en haut reprend les cinq premiers titres du moment.")
+                    Text("Moins de titres, c'est un accueil qui se lit d'un coup d'œil ; plus, c'est davantage de choix.")
+                }
+
+                if sources.modifiees {
+                    Section {
+                        Button("Revenir aux réglages d'origine") { sources = SourcesAccueil() }
+                            .tint(Theme.accentClair)
+                    }
                 }
             }
             .scrollContentBackground(.hidden)
@@ -371,8 +421,20 @@ private struct ReglageSourcesAccueil: View {
                 }
             }
         }
-        .presentationDetents([.medium, .large])
+        .presentationDetents([.large])
         .presentationBackground(Theme.fond)
+    }
+
+    /// « Du moment   10 | 20 | 30 » : le libellé à gauche, les valeurs en segments à droite.
+    private func choix(_ libelle: String, valeur: Binding<Int>, parmi valeurs: [Int]) -> some View {
+        LabeledContent(libelle) {
+            Picker(libelle, selection: valeur) {
+                ForEach(valeurs, id: \.self) { Text("\($0)").tag($0) }
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            .frame(maxWidth: 170)
+        }
     }
 }
 
@@ -468,13 +530,15 @@ private struct Carrousel: View {
 private struct SectionTop10: View {
     let films: [TitreResume]
     let series: [TitreResume]
-    /// « Sur Netflix et Prime Video » quand l'accueil est limité à certaines plateformes.
+    /// Films et séries du classement, chacun : 3, 5 ou 10.
+    let nombre: Int
+    /// « Sur Netflix et Prime Video » quand l'accueil est limité à tes plateformes.
     let plateformes: String?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            TitreSection("Top 10 de l'année")
-            Text(plateformes.map { "Les mieux notés sur TMDB depuis un an · sur \($0)" } ?? "Les mieux notés sur TMDB depuis un an")
+            TitreSection("Top \(nombre * 2) de l'année")
+            Text("Les \(nombre) films et les \(nombre) séries les mieux notés sur TMDB depuis un an" + (plateformes.map { " · sur \($0)" } ?? ""))
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .padding(.horizontal, 20)

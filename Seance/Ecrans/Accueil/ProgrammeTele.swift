@@ -69,7 +69,7 @@ struct PastilleChaine: View {
 }
 
 /// « FILM » en couleur, « SÉRIE » en retrait : le film du soir se repère d'un coup d'œil.
-private struct PastilleType: View {
+struct PastilleType: View {
     let film: Bool
 
     var body: some View {
@@ -279,14 +279,19 @@ struct LigneDiffusion: View {
         LienDiffusion(bloc: bloc) {
             HStack(spacing: 12) {
                 VStack(spacing: 2) {
+                    // « 23:50 » est plus large que « 00:10 » : jamais sur deux lignes.
                     Text(HeuresTele.heure(bloc.debut))
                         .font(.system(size: 19, weight: .heavy, design: .rounded))
+                        .monospacedDigit()
+                        .lineLimit(1)
+                        .fixedSize()
                         .foregroundStyle(Theme.accentClair)
                     Text(HeuresTele.duree(bloc.dureeMinutes))
                         .font(.caption2)
                         .foregroundStyle(.secondary)
+                        .lineLimit(1)
                 }
-                .frame(width: 58)
+                .frame(width: 64)
                 ImageDistante(url: bloc.image, coins: 9)
                     .frame(width: 104, height: 58)
                 VStack(alignment: .leading, spacing: 4) {
@@ -375,10 +380,10 @@ struct ProgrammeTeleView: View {
         }
     }
 
-    /// Les passages pas encore finis, du type choisi, réunis en blocs et rangés par jour.
+    /// Les passages pas encore finis, du type choisi, réunis en blocs et rangés par journée télé (de 6 h à 6 h).
     private func blocsParJour(maintenant: Date) -> [DateTMDB: [BlocDiffusion]] {
         let retenues = diffusions.filter { $0.fin > maintenant && (type == nil || $0.typeBrut == type?.rawValue) }
-        return Dictionary(grouping: GrilleTele.blocs(retenues)) { DateTMDB($0.debut) }
+        return Dictionary(grouping: GrilleTele.blocs(retenues)) { GrilleTele.jourTele($0.debut) }
     }
 
     private func nomChaine(_ identifiant: String) -> String {
@@ -396,21 +401,9 @@ struct ProgrammeTeleView: View {
                     Button {
                         withAnimation(.easeOut(duration: 0.2)) { jourChoisi = jour }
                     } label: {
-                        VStack(spacing: 2) {
-                            Text(nomCourt(jour, maintenant: maintenant))
-                                .font(.caption.weight(.bold))
-                            Text("\(jour.jour)")
-                                .font(.system(size: 22, weight: .heavy, design: .rounded))
-                            Text(films > 0 ? Format.pluriel(films, "film") : Format.pluriel((parJour[jour] ?? []).count, "série"))
-                                .font(.caption2)
-                                .opacity(0.75)
-                        }
-                        .frame(minWidth: 66)
-                        .padding(.vertical, 9).padding(.horizontal, 6)
-                        .foregroundStyle(actif ? Color.black : Color.primary)
-                        .background(actif ? AnyShapeStyle(Theme.degradeAccent) : AnyShapeStyle(Theme.surface),
-                                    in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-                        .contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                        TuileJour(nom: nomCourt(jour, maintenant: maintenant), numero: jour.jour,
+                                  detail: films > 0 ? Format.pluriel(films, "film") : Format.pluriel((parJour[jour] ?? []).count, "série"),
+                                  actif: actif)
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel("\(nomLong(jour, maintenant: maintenant)), \(Format.pluriel((parJour[jour] ?? []).count, "programme"))")
@@ -422,14 +415,14 @@ struct ProgrammeTeleView: View {
     }
 
     private func nomCourt(_ jour: DateTMDB, maintenant: Date) -> String {
-        if jour == DateTMDB(maintenant) { return "Auj." }
-        if jour == DateTMDB(maintenant.addingTimeInterval(86_400)) { return "Demain" }
+        if jour == GrilleTele.jourTele(maintenant) { return "Auj." }
+        if jour == GrilleTele.jourTele(maintenant.addingTimeInterval(86_400)) { return "Demain" }
         return jour.instant(heure: 12).formatted(.dateTime.weekday(.abbreviated).locale(Locale(identifier: "fr_CH"))).capitalized
     }
 
     private func nomLong(_ jour: DateTMDB, maintenant: Date) -> String {
-        if jour == DateTMDB(maintenant) { return "Aujourd'hui" }
-        if jour == DateTMDB(maintenant.addingTimeInterval(86_400)) { return "Demain" }
+        if jour == GrilleTele.jourTele(maintenant) { return "Aujourd'hui" }
+        if jour == GrilleTele.jourTele(maintenant.addingTimeInterval(86_400)) { return "Demain" }
         return jour.instant(heure: 12).formatted(.dateTime.weekday(.wide).day().month(.wide).locale(Locale(identifier: "fr_CH")))
     }
 

@@ -67,6 +67,11 @@ struct GrilleTeleTests {
             diffusion("Antigang", chaine: "TF1.fr", debut: heure(21, 10).addingTimeInterval(Double($0 - 1) * 3000), minutes: 50, serie: (9, 2, $0), dans: contexte)
         }
         #expect(GrilleTele.blocs(quatre).first?.libelleEpisodes == "S02E01 à E04")
+        // Un guide qui répète le même numéro : on compte plutôt que d'écrire « S08E01 et E01 ».
+        let repetes = (0...1).map {
+            diffusion("Un si grand soleil", chaine: "France3.fr", debut: heure(20, 25).addingTimeInterval(Double($0) * 1320), minutes: 22, serie: (7, 8, 1), dans: contexte)
+        }
+        #expect(GrilleTele.blocs(repetes).first?.libelleEpisodes == "S08E01 · 2 épisodes")
         // Sans identifiant TMDB, le titre du guide fait foi ; sans numéros, on compte les épisodes.
         let sansNumero = [
             diffusion("Scènes de ménages", chaine: "M6.fr", debut: heure(20, 40), minutes: 15, serie: (nil, nil, nil), dans: contexte),
@@ -97,5 +102,8 @@ struct GrilleTeleTests {
         // Un film de 1 h 30 du matin appartient à la soirée de la veille.
         #expect(calendrier.component(.day, from: GrilleTele.soir(bloc(heure(1, 30, jour: 19)), calendrier: calendrier)) == 18)
         #expect(calendrier.component(.day, from: GrilleTele.soir(bloc(heure(20, 55)), calendrier: calendrier)) == 18)
+        // La journée télé va de 6 h à 6 h.
+        #expect(GrilleTele.jourTele(heure(0, 10, jour: 19), calendrier: calendrier) == GrilleTele.jourTele(heure(23, 50), calendrier: calendrier))
+        #expect(GrilleTele.jourTele(heure(6, 0, jour: 19), calendrier: calendrier) != GrilleTele.jourTele(heure(5, 59, jour: 19), calendrier: calendrier))
     }
 }

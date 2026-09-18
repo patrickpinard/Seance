@@ -22,7 +22,7 @@ struct NoteVersion: Identifiable {
         NoteVersion(
             numero: "2.5",
             date: "18 septembre 2026",
-            resume: "Réglages ne fige plus l'iPhone, et un programme télé qui se lit d'un coup d'œil.",
+            resume: "Réglages ne fige plus l'iPhone ; programme télé et Ce soir refaits en grandes cartes ; source des idées, accueil à ta mesure et ton prénom.",
             fonctionnalites: [
                 Fonctionnalite(symbole: "gearshape", titre: "Réglages sur l'iPhone",
                                detail: "Ouvrir Réglages depuis l'engrenage du Profil figeait l'app, puis iOS la fermait. La page et toutes ses sous-pages s'ouvrent de nouveau, et un test automatique les parcourt."),
@@ -36,6 +36,14 @@ struct NoteVersion: Identifiable {
                                detail: "Un film de ta liste qui passe à la télé porte un liseré orange et « Dans ta liste » ; un titre déjà vu est signalé aussi."),
                 Fonctionnalite(symbole: "calendar", titre: "Prévoir depuis le programme",
                                detail: "Clic droit ou appui long sur un passage : « Prévoir pour ce soir-là » l'ajoute à la soirée du jour de diffusion."),
+                Fonctionnalite(symbole: "moon.stars", titre: "Ce soir, dans le même esprit",
+                               detail: "La même rangée de jours que le programme télé : ce soir et la semaine, plus les soirées lointaines déjà prévues. Chaque titre en grande carte, avec son image, où le regarder, « Regardé » bien visible, ou « Ce soir » pour le ramener."),
+                Fonctionnalite(symbole: "square.grid.2x2", titre: "Source des idées dans Explorer",
+                               detail: "Toutes, Streaming, NAS ou Télé (ce soir, cette semaine) : un choix en haut d'Explorer, qui part de la bonne liste."),
+                Fonctionnalite(symbole: "slider.horizontal.3", titre: "Accueil à ta mesure",
+                               detail: "« Seulement sur mes plateformes » remplace la liste qui doublait Réglages › Plateformes. Tu choisis le nombre de titres du bandeau (3, 5, 8), du Top (3, 5, 10) et de « Du moment » (10, 20, 30), et si la télé montre aussi les séries."),
+                Fonctionnalite(symbole: "person", titre: "Ton prénom",
+                               detail: "Réglages › Toi : Séance te salue sur l'accueil et te propose « Des idées pour toi ». Au même endroit, le nombre d'idées du soir : 3, 5 ou 10."),
             ]
         ),
         NoteVersion(

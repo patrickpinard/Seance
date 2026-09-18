@@ -23,6 +23,18 @@ final class ReglagesTests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Comptes"].firstMatch.waitForExistence(timeout: 10), "Réglages ne s'ouvre pas")
         capture("reglages")
 
+        // Le prénom se saisit et se retrouve sur sa ligne.
+        app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Prénom'")).firstMatch.tap()
+        XCTAssertTrue(app.navigationBars["Toi"].waitForExistence(timeout: 8), "La page « Toi » ne s'ouvre pas")
+        let champ = app.textFields["Ton prénom"]
+        XCTAssertTrue(champ.waitForExistence(timeout: 5))
+        champ.tap()
+        champ.typeText("Camille\n")
+        capture("reglages-Toi")
+        app.navigationBars.buttons.firstMatch.tap()
+        XCTAssertTrue(app.buttons.matching(NSPredicate(format: "label CONTAINS 'Camille'")).firstMatch.waitForExistence(timeout: 8),
+                      "Le prénom saisi n'apparaît pas dans Réglages")
+
         let pages: [(ligne: String, repere: String)] = [
             ("TMDB", "Clé TMDB"),
             ("Claude", "Clé Claude"),

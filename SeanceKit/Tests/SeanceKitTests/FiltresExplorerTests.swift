@@ -142,4 +142,37 @@ struct ProfilTitreTests {
         f.locaux.dejaVu = .vus
         #expect(f.partDUneListeLocale)
     }
+
+    /// Le sélecteur de source d'Explorer : un seul choix, écrit dans les critères existants.
+    @Test func sourceDesIdees() {
+        var f = FiltresExplorer.parDefaut(avecPlateformes: true)
+        #expect(f.source == .streaming)
+
+        f.source = .nas
+        #expect(f.locaux.obtention == .surNAS)
+        #expect(!f.mesPlateformes, "« Sur mes plateformes » viderait la liste du NAS")
+        #expect(f.partDUneListeLocale)
+        #expect(f.ditParLaSource(.obtention))
+
+        f.source = .tele
+        #expect(f.locaux.obtention == .tous)
+        #expect(f.locaux.tele == .cetteSemaine)
+        f.locaux.tele = .ceSoir
+        f.source = .tele
+        #expect(f.locaux.tele == .ceSoir, "Rechoisir la télé garde « ce soir »")
+        #expect(f.ditParLaSource(.tele))
+
+        f.locaux.chaines = ["TF1.fr"]
+        f.source = .toutes
+        #expect(f.source == .toutes)
+        #expect(f.locaux.tele == .indifferent && f.locaux.chaines.isEmpty && !f.mesPlateformes)
+        #expect(!f.partDUneListeLocale)
+
+        // « Pas sur le NAS » n'est pas une source : il survit au changement, et garde sa puce.
+        f.locaux.obtention = .pasSurNAS
+        f.source = .streaming
+        #expect(f.locaux.obtention == .pasSurNAS && f.mesPlateformes)
+        #expect(!f.ditParLaSource(.obtention))
+        #expect(f.ditParLaSource(.plateformes))
+    }
 }

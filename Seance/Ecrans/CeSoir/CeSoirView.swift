@@ -3,14 +3,15 @@ import SeanceKit
 import SwiftData
 import SwiftUI
 
-/// « Ce soir » : seulement ce que tu as choisi de regarder ce soir, puis tes prochaines soirées, prévues à la date
-/// de ton choix. Pour choisir, « Ajouter » réunit les rendez-vous du jour, tes épisodes, ta liste regardable et
-/// des idées selon tes goûts ; la page, elle, reste ta sélection.
+/// « Ce soir » : ce que tu as choisi de regarder ce soir, en grandes cartes, sous la rangée de tes soirées (la même que
+/// celle du programme télé) : un jour marqué a quelque chose de prévu, le toucher montre sa soirée. Pour choisir, « Ajouter » réunit les rendez-vous du
+/// jour, tes épisodes, ta liste regardable et des idées selon tes goûts ; la page, elle, reste ta sélection.
 struct CeSoirView: View {
     @Environment(EtatApp.self) private var etat
     @Environment(\.modelContext) private var contexte
     @Query(sort: \SelectionSoir.ajouteLe) private var selections: [SelectionSoir]
     @Query(sort: \Echeance.date) private var echeances: [Echeance]
+    @AppStorage(Prenom.cle) private var prenom = ""
     @State private var soiree = SoireeModele()
     @State private var idees = IdeesModele()
     @State private var ajout = false
@@ -24,11 +25,35 @@ struct CeSoirView: View {
         return selections.filter { $0.soiree == jour }
     }
 
-    /// Les soirées à venir, la plus proche d'abord, chacune avec ses titres.
-    private var prochaines: [(soiree: String, titres: [SelectionSoir])] {
-        let jour = ServiceSoiree.soiree()
-        let groupes = Dictionary(grouping: selections.filter { $0.soiree > jour }, by: \.soiree)
-        return groupes.keys.sorted().map { ($0, groupes[$0] ?? []) }
+    /// Le jour touché dans la rangée des soirées ; `nil` pour ce soir.
+    @State private var jourChoisi: Date?
+
+    /// Le jour de la soirée en cours, à minuit : une soirée va de 6 h à 6 h.
+    private var aujourdhui: Date {
+        Calendar.current.startOfDay(for: ServiceSoiree.jour(ServiceSoiree.soiree()) ?? .now)
+    }
+
+    /// Le jour affiché : jamais dans le passé, même si la page est restée ouverte jusqu'au lendemain.
+    private var jour: Date {
+        max(jourChoisi ?? aujourdhui, aujourdhui)
+    }
+
+    private var soireeAffichee: String {
+        ServiceSoiree.soiree(jour: jour.addingTimeInterval(12 * 3600))
+    }
+
+    private var ceSoirAffiche: Bool {
+        soireeAffichee == ServiceSoiree.soiree()
+    }
+
+    private var titresAffiches: [SelectionSoir] {
+        let soiree = soireeAffichee
+        return selections.filter { $0.soiree == soiree }
+    }
+
+    /// Nombre de titres par soirée, pour marquer les jours du calendrier.
+    private var prevus: [String: Int] {
+        Dictionary(grouping: selections, by: \.soiree).mapValues(\.count)
     }
 
     var body: some View {
@@ -56,10 +81,12 @@ struct CeSoirView: View {
             .task(id: etat.tmdb != nil) { await soiree.charger(etat: etat, contexte: contexte) }
             // Un titre ajouté ailleurs (fiche, Mes listes, clic droit) : son « où regarder » est lu à son arrivée.
             .onChange(of: selection.map(\.reference)) { Task { await soiree.charger(etat: etat, contexte: contexte) } }
+            // L'image de fond et la durée des titres prévus, pour les grandes cartes.
+            .task(id: selections.map(\.reference)) { await soiree.chargerDecors(selections.map(\.reference), client: etat.tmdb) }
             // Un rappel le jour de chaque soirée prévue, à l'heure des alertes.
             .task(id: selections.map(\.soiree)) { await etat.alertes.programmerRappelsSoirees(contexte: contexte) }
             .sheet(isPresented: $ajout) {
-                AjouterASoiree(soiree: soiree, idees: idees)
+                AjouterASoiree(soiree: soiree, idees: idees, depart: jour.addingTimeInterval(12 * 3600))
             }
             .sheet(item: $aDater) { titre in
                 ChoixSoiree(titre: titre.titre, depart: ServiceSoiree.jour(titre.soiree) ?? .now) { jour in
@@ -69,48 +96,77 @@ struct CeSoirView: View {
         }
     }
 
+    /// Grandes cartes : une colonne sur l'iPhone, deux ou trois sur le Mac.
+    private static let colonnesCartes = [GridItem(.adaptive(minimum: 300, maximum: 560), spacing: 14, alignment: .top)]
+
     private var contenu: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 14) {
-                Text(LibelleSoiree.jour(.now))
+            VStack(alignment: .leading, spacing: 18) {
+                BandeSoirees(jour: Binding { jour } set: { jourChoisi = $0 == aujourdhui ? nil : $0 }, aujourdhui: aujourdhui, prevus: prevus)
+                soireeDuJour
+                    .padding(.horizontal, 20)
+            }
+            .padding(.vertical, 14)
+            .frame(maxWidth: 1180, alignment: .leading)
+            .frame(maxWidth: .infinity)
+            .animation(.snappy, value: titresAffiches.map(\.reference))
+        }
+        .refreshable { await soiree.charger(etat: etat, contexte: contexte) }
+    }
+
+    /// La soirée du jour choisi : sa date, ses grandes cartes, et de quoi en ajouter.
+    private var soireeDuJour: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(ceSoirAffiche ? LibelleSoiree.jour(jour) : LibelleSoiree.soiree(soireeAffichee))
+                    .font(.title2.weight(.heavy))
+                    .foregroundStyle(Theme.degradeAccent)
+                Text(resume)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
+            }
 
-                if let film = filmANoter {
-                    VStack(alignment: .leading, spacing: 10) {
-                        HStack {
-                            Text("Tu as regardé « \(film.titre) ». Ta note ?").font(.headline).lineLimit(2)
-                            Spacer()
-                            Button("Plus tard") { filmANoter = nil }
-                                .font(.subheadline)
-                                .tint(.secondary)
-                        }
-                        HStack(spacing: 5) {
-                            ForEach(1...10, id: \.self) { valeur in
-                                Button { noter(film, valeur) } label: {
-                                    Text("\(valeur)")
-                                        .font(.subheadline.weight(.bold))
-                                        .frame(maxWidth: .infinity, minHeight: 38)
-                                        .background(Theme.surface, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
-                                }
-                                .buttonStyle(.plain)
-                                .accessibilityLabel("Note \(valeur) sur 10")
-                            }
-                        }
-                        Text("Ta note affine tes goûts et les idées du soir.").font(.caption).foregroundStyle(.secondary)
+            if ceSoirAffiche, let film = filmANoter {
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack {
+                        Text("Tu as regardé « \(film.titre) ». Ta note ?").font(.headline).lineLimit(2)
+                        Spacer()
+                        Button("Plus tard") { filmANoter = nil }
+                            .font(.subheadline)
+                            .tint(.secondary)
                     }
-                    .padding(14)
-                    .background(Theme.accent.opacity(0.12), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-                    .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(Theme.accent.opacity(0.35), lineWidth: 1))
-                    .transition(.opacity)
+                    HStack(spacing: 5) {
+                        ForEach(1...10, id: \.self) { valeur in
+                            Button { noter(film, valeur) } label: {
+                                Text("\(valeur)")
+                                    .font(.subheadline.weight(.bold))
+                                    .frame(maxWidth: .infinity, minHeight: 38)
+                                    .background(Theme.surface, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel("Note \(valeur) sur 10")
+                        }
+                    }
+                    Text("Ta note affine tes goûts et les idées du soir.").font(.caption).foregroundStyle(.secondary)
                 }
+                .padding(14)
+                .frame(maxWidth: 720)
+                .background(Theme.accent.opacity(0.12), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(Theme.accent.opacity(0.35), lineWidth: 1))
+                .transition(.opacity)
+            }
 
-                if selection.isEmpty, filmANoter == nil {
-                    vide
-                } else {
-                    ForEach(selection) { titre in
-                        CarteSoiree(titre: titre, rendezVous: rendezVous(titre.reference), ou: soiree.ou[titre.reference],
-                                    peutMarquerVu: titre.reference.type == .film || episode(titre.reference) != nil) {
+            if titresAffiches.isEmpty {
+                if !ceSoirAffiche || filmANoter == nil { vide }
+            } else {
+                LazyVGrid(columns: Self.colonnesCartes, spacing: 14) {
+                    ForEach(titresAffiches) { titre in
+                        CarteSoiree(titre: titre, decor: soiree.decor(titre.reference),
+                                    rendezVous: ceSoirAffiche ? rendezVous(titre.reference) : nil,
+                                    ou: ceSoirAffiche ? soiree.ou[titre.reference] : nil,
+                                    peutMarquerVu: titre.reference.type == .film || episode(titre.reference) != nil,
+                                    note: titre.reference.type == .serie && !soiree.enCours ? "Aucun nouvel épisode disponible" : nil,
+                                    ramener: ceSoirAffiche ? nil : { deplacer(titre, vers: nil) }) {
                             Task { await marquerVu(titre) }
                         } dater: {
                             aDater = titre
@@ -118,48 +174,31 @@ struct CeSoirView: View {
                             retirer(titre)
                         }
                     }
-                    Button { ajout = true } label: {
-                        Label("Ajouter un autre titre", systemImage: "plus")
-                            .font(.subheadline.weight(.semibold))
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 44)
-                            .background(Theme.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-                    }
-                    .buttonStyle(.plain)
-                    .foregroundStyle(Theme.accentClair)
-                    .padding(.top, 4)
                 }
-
-                if !prochaines.isEmpty {
-                    Label("Prochaines soirées", systemImage: "calendar")
-                        .font(.title3.weight(.bold))
-                        .labelStyle(EtiquetteSection())
-                        .padding(.top, 18)
-                    ForEach(prochaines, id: \.soiree) { groupe in
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text(libelle(groupe.soiree))
-                                .font(.subheadline.weight(.semibold))
-                                .foregroundStyle(Theme.accentClair)
-                            ForEach(groupe.titres) { titre in
-                                LigneSoireePrevue(titre: titre) {
-                                    deplacer(titre, vers: nil)
-                                } dater: {
-                                    aDater = titre
-                                } retirer: {
-                                    retirer(titre)
-                                }
-                            }
-                        }
-                    }
+                Button { ajout = true } label: {
+                    Label("Ajouter un autre titre", systemImage: "plus")
+                        .font(.subheadline.weight(.semibold))
+                        .frame(maxWidth: 360)
+                        .frame(height: 44)
+                        .background(Theme.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                        .contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                 }
+                .buttonStyle(.plain)
+                .foregroundStyle(Theme.accentClair)
             }
-            .padding(20)
-            // Sur le Mac, une colonne lisible plutôt que des cartes étirées sur toute la fenêtre.
-            .frame(maxWidth: 720)
-            .frame(maxWidth: .infinity)
-            .animation(.snappy, value: selection.map(\.reference))
         }
-        .refreshable { await soiree.charger(etat: etat, contexte: contexte) }
+    }
+
+    /// « 2 titres pour ce soir · 2 h 02 de film », « Dans 7 jours · 1 titre », « Rien de prévu pour l'instant ».
+    private var resume: String {
+        let titres = titresAffiches
+        let jours = Calendar.current.dateComponents([.day], from: aujourdhui, to: jour).day ?? 0
+        let quand = ceSoirAffiche ? nil : jours > 1 ? "Dans \(jours) jours" : nil
+        guard !titres.isEmpty else { return [quand, "Rien de prévu pour l'instant"].compactMap { $0 }.joined(separator: " · ") }
+        var morceaux = [quand, ceSoirAffiche ? "\(Format.pluriel(titres.count, "titre")) pour ce soir" : Format.pluriel(titres.count, "titre")].compactMap { $0 }
+        let minutes = titres.filter { $0.reference.type == .film }.compactMap { soiree.decor($0.reference)?.minutes }.reduce(0, +)
+        if minutes > 0 { morceaux.append("\(HeuresTele.duree(minutes)) de film") }
+        return morceaux.joined(separator: " · ")
     }
 
     private var vide: some View {
@@ -167,8 +206,10 @@ struct CeSoirView: View {
             Image(systemName: "moon.stars.fill")
                 .font(.system(size: 44))
                 .foregroundStyle(Theme.degradeAccent)
-            Text("Rien de prévu ce soir").font(.title3.weight(.bold))
-            Text("Choisis ce que tu regardes ce soir : la page ne montre que ta sélection.")
+            Text(Prenom.interpeller(ceSoirAffiche ? "Rien de prévu ce soir" : "Rien de prévu ce soir-là", Prenom.lire(prenom)))
+                .font(.title3.weight(.bold))
+            Text(ceSoirAffiche ? "Choisis ce que tu regardes ce soir, ou touche un autre jour pour préparer sa soirée."
+                 : "Choisis ce que tu regarderas ce soir-là : Séance te le rappellera le jour venu.")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -187,6 +228,7 @@ struct CeSoirView: View {
         .padding(.vertical, 48)
         .padding(.horizontal, 20)
         .background(Theme.surface, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .frame(maxWidth: 720)
     }
 
     // MARK: Données
@@ -260,97 +302,6 @@ struct CeSoirView: View {
     }
 }
 
-/// Un titre de la soirée : affiche, ce qui se passe ce soir, où le regarder ; « vu » et « retirer ».
-private struct CarteSoiree: View {
-    let titre: SelectionSoir
-    let rendezVous: String?
-    let ou: String?
-    let peutMarquerVu: Bool
-    let vu: () -> Void
-    let dater: () -> Void
-    let retirer: () -> Void
-
-    var body: some View {
-        HStack(spacing: 14) {
-            NavigationLink(value: titre.reference) {
-                HStack(spacing: 14) {
-                    ImageDistante(url: ImageTMDB.url(titre.cheminAffiche, .affiche), coins: 10)
-                        .frame(width: 70, height: 105)
-                    VStack(alignment: .leading, spacing: 5) {
-                        Text(titre.titre).font(.headline).lineLimit(2)
-                        Text(titre.reference.type == .film ? "Film" : "Série")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                        if let rendezVous {
-                            Text(rendezVous)
-                                .font(.subheadline.weight(.semibold))
-                                .foregroundStyle(Theme.accentClair)
-                                .lineLimit(1)
-                        }
-                        // Le passage télé dit déjà où regarder : pas de doublon.
-                        if let ou, ou != rendezVous, !(rendezVous?.hasPrefix("Sur ") == true && ou.hasPrefix("Ce soir sur")) {
-                            Label(ou, systemImage: ou.hasPrefix("Ce soir") ? "tv" : ou.hasPrefix("Sur le NAS") ? "externaldrive.fill" : "play.tv")
-                                .font(.caption.weight(.semibold))
-                                .foregroundStyle(.green)
-                                .lineLimit(1)
-                        }
-                    }
-                    Spacer(minLength: 0)
-                }
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-
-            VStack(spacing: 10) {
-                if peutMarquerVu {
-                    BoutonIcone(symbole: "checkmark", libelle: "Regardé", principal: true, taille: 36,
-                                explication: "Marquer comme regardé : le film est vu, ou l'épisode coché, et le titre quitte ta soirée.", action: vu)
-                }
-                BoutonIcone(symbole: "calendar", libelle: "Prévoir pour une autre soirée", taille: 36,
-                            explication: "Choisir la date à laquelle tu veux le regarder.", action: dater)
-                BoutonIcone(symbole: "xmark", libelle: "Retirer de ma soirée", taille: 36,
-                            explication: "Retirer ce titre de ta soirée. Il reste dans Mes listes.", action: retirer)
-            }
-        }
-        .padding(12)
-        .background(Theme.surface, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-    }
-}
-
-/// Un titre prévu pour une soirée à venir : le ramener à ce soir, changer sa date, ou le retirer.
-private struct LigneSoireePrevue: View {
-    let titre: SelectionSoir
-    let ceSoir: () -> Void
-    let dater: () -> Void
-    let retirer: () -> Void
-
-    var body: some View {
-        HStack(spacing: 12) {
-            NavigationLink(value: titre.reference) {
-                HStack(spacing: 12) {
-                    ImageDistante(url: ImageTMDB.url(titre.cheminAffiche, .affiche), coins: 8)
-                        .frame(width: 44, height: 66)
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text(titre.titre).font(.headline).lineLimit(2)
-                        Text(titre.reference.type == .film ? "Film" : "Série").font(.caption).foregroundStyle(.secondary)
-                    }
-                    Spacer(minLength: 0)
-                }
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            BoutonIcone(symbole: "moon.stars.fill", libelle: "Regarder ce soir", taille: 34,
-                        explication: "Ramener ce titre à la soirée de ce soir.", action: ceSoir)
-            BoutonIcone(symbole: "calendar", libelle: "Changer la date", taille: 34,
-                        explication: "Choisir une autre soirée.", action: dater)
-            BoutonIcone(symbole: "xmark", libelle: "Retirer", taille: 34,
-                        explication: "Retirer ce titre de cette soirée. Il reste dans Mes listes.", action: retirer)
-        }
-        .padding(10)
-        .background(Theme.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-    }
-}
-
 /// « Ajouter » : tout ce qui peut rejoindre la soirée, hors de la page. Rendez-vous du jour, épisodes, ta liste
 /// regardable ce soir, des idées selon tes goûts, et Explorer pour chercher autre chose.
 private struct AjouterASoiree: View {
@@ -360,8 +311,14 @@ private struct AjouterASoiree: View {
     @Environment(EtatApp.self) private var etat
     @Environment(\.dismiss) private var fermer
     @Query(sort: \SelectionSoir.ajouteLe) private var selections: [SelectionSoir]
-    /// Le jour de la soirée à remplir : ce soir par défaut.
-    @State private var jour = Date.now
+    /// Le jour de la soirée à remplir : celui que montre la page.
+    @State private var jour: Date
+
+    init(soiree: SoireeModele, idees: IdeesModele, depart: Date) {
+        self.soiree = soiree
+        self.idees = idees
+        _jour = State(initialValue: max(depart, Calendar.current.startOfDay(for: .now)))
+    }
 
     /// `nil` pour ce soir : les rendez-vous du jour et « regardable ce soir » s'appliquent.
     private var soireeChoisie: String? {

@@ -7,7 +7,7 @@ import SwiftUI
 /// Un lien « par vue » vers Réglages, depuis la barre d'outils de Profil, figeait l'iPhone : SwiftUI remettait
 /// la destination à jour à chaque rendu, sans fin, jusqu'à ce qu'iOS tue l'app.
 enum DestinationReglage: Hashable {
-    case reglages, tmdb, claude, plateformes, tele, nas, alertes, sauvegarde, aPropos, apercuWidgets
+    case reglages, prenom, tmdb, claude, plateformes, tele, nas, alertes, sauvegarde, aPropos, apercuWidgets
 }
 
 struct PageReglage: View {
@@ -16,6 +16,7 @@ struct PageReglage: View {
     var body: some View {
         switch destination {
         case .reglages: ReglagesView().navigationBarTitleDisplayMode(.inline)
+        case .prenom: ReglagesPrenomView()
         case .tmdb: ReglagesTMDBView()
         case .claude: ReglagesClaudeView()
         case .plateformes: ReglagesPlateformesView()
@@ -41,9 +42,16 @@ struct ReglagesView: View {
     @Environment(EtatApp.self) private var etat
     @Query(filter: #Predicate<Abonnement> { $0.actif }) private var abonnements: [Abonnement]
     @Query(filter: #Predicate<Chaine> { $0.active }) private var chaines: [Chaine]
+    @AppStorage(Prenom.cle) private var prenom = ""
 
     var body: some View {
         List {
+            Section("Toi") {
+                NavigationLink(value: DestinationReglage.prenom) {
+                    LigneReglage(titre: "Prénom", symbole: "person.fill", couleur: .pink, valeur: Prenom.lire(prenom) ?? "À saisir")
+                }
+            }
+
             Section("Comptes") {
                 NavigationLink(value: DestinationReglage.tmdb) {
                     LigneReglage(titre: "TMDB", symbole: "film.stack", couleur: .teal,
@@ -158,6 +166,44 @@ extension View {
             .background(Theme.fond)
             .navigationTitle(titre)
             .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+/// Ton prénom : Séance s'en sert pour te saluer sur l'accueil et quand elle te propose des idées. Il reste sur l'appareil.
+struct ReglagesPrenomView: View {
+    @AppStorage(Prenom.cle) private var prenom = ""
+    @AppStorage(NombreIdees.cle) private var nombreIdees = NombreIdees.parDefaut
+
+    var body: some View {
+        Form {
+            Section {
+                TextField("Ton prénom", text: $prenom)
+                    .textContentType(.givenName)
+                    .textInputAutocapitalization(.words)
+                    .autocorrectionDisabled()
+                    .submitLabel(.done)
+                if Prenom.lire(prenom) != nil {
+                    Button("Effacer", role: .destructive) { prenom = "" }
+                }
+            } header: {
+                Text("Prénom")
+            } footer: {
+                Text(Prenom.lire(prenom).map { "« \(Prenom.salut($0)) » sur l'accueil, « Des idées pour toi, \($0) » le soir. Ton prénom reste sur cet appareil." }
+                     ?? "Séance te saluera par ton prénom sur l'accueil et quand elle te propose des idées. Sans prénom, les phrases restent neutres.")
+            }
+
+            Section {
+                Picker("Idées à la fois", selection: Binding { NombreIdees.lire(nombreIdees) } set: { nombreIdees = $0 }) {
+                    ForEach(NombreIdees.choix, id: \.self) { Text("\($0)").tag($0) }
+                }
+                .pickerStyle(.segmented)
+            } header: {
+                Text("Idées pour ce soir")
+            } footer: {
+                Text("Le nombre d'idées que « Idées pour ce soir » te montre à la fois. Celles que tu écartes sont remplacées par les suivantes.")
+            }
+        }
+        .pageReglages("Toi")
     }
 }
 

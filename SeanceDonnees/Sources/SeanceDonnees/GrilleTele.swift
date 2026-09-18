@@ -39,6 +39,8 @@ public struct BlocDiffusion: Identifiable {
             return diffusions.count > 1 ? "\(diffusions.count) épisodes" : nil
         }
         guard diffusions.count > 1 else { return premier.description }
+        // Certains guides donnent le même numéro à tous les épisodes d'une soirée : « S08E01 et E01 » ne dirait rien.
+        guard premier != dernier else { return "\(premier.description) · \(diffusions.count) épisodes" }
         let suite = premier.saison == dernier.saison ? String(format: "E%02d", dernier.episode) : dernier.description
         return "\(premier.description) \(diffusions.count == 2 ? "et" : "à") \(suite)"
     }
@@ -88,6 +90,15 @@ public enum GrilleTele {
 
     /// Le soir auquel un passage appartient : un film de 1 h du matin se regarde la veille au soir.
     public static func soir(_ bloc: BlocDiffusion, calendrier: Calendar = .current) -> Date {
-        calendrier.component(.hour, from: bloc.debut) < 6 ? bloc.debut.addingTimeInterval(-86_400) : bloc.debut
+        soir(bloc.debut, calendrier: calendrier)
+    }
+
+    private static func soir(_ instant: Date, calendrier: Calendar) -> Date {
+        calendrier.component(.hour, from: instant) < 6 ? instant.addingTimeInterval(-86_400) : instant
+    }
+
+    /// La journée télé va de 6 h à 6 h, comme une soirée : minuit dix se range à la fin de la veille, après 23 h 50.
+    public static func jourTele(_ instant: Date, calendrier: Calendar = .current) -> DateTMDB {
+        DateTMDB(soir(instant, calendrier: calendrier))
     }
 }

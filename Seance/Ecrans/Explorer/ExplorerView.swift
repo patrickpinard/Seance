@@ -375,6 +375,8 @@ struct ExplorerView: View {
                 .pickerStyle(.segmented)
                 .padding(.horizontal, 20)
 
+                selecteurSource
+
                 pucesActives
 
                 if !filtresEnregistres.isEmpty {
@@ -412,11 +414,77 @@ struct ExplorerView: View {
         .scrollDismissesKeyboard(.immediately)
     }
 
+    /// D'où viennent les idées : tout TMDB, tes plateformes, ton NAS ou la télé. Une source sans rien derrière
+    /// (aucune plateforme cochée, NAS vide) reste visible mais ne se choisit pas.
+    private var selecteurSource: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    puceSource(.toutes, "Toutes", symbole: "square.grid.2x2")
+                    puceSource(.streaming, "Streaming", symbole: "play.tv", disponible: !abonnements.isEmpty,
+                               aide: "Coche tes plateformes dans Réglages › Plateformes.")
+                    puceSource(.nas, "NAS", symbole: "externaldrive.fill", disponible: !fichiersNAS.isEmpty,
+                               aide: "Aucun titre reconnu sur ton NAS pour l'instant.")
+                    puceSource(.tele, "Télé", symbole: "tv")
+                }
+                .padding(.horizontal, 20)
+            }
+            if modele.filtres.source == .tele {
+                HStack(spacing: 8) {
+                    puceTele(.ceSoir, "Ce soir")
+                    puceTele(.cetteSemaine, "Cette semaine")
+                }
+                .padding(.horizontal, 20)
+                .transition(.opacity)
+            }
+        }
+    }
+
+    private func puceSource(_ source: FiltresExplorer.Source, _ nom: String, symbole: String, disponible: Bool = true, aide: String? = nil) -> some View {
+        let active = modele.filtres.source == source
+        return Button {
+            withAnimation(.snappy) { modele.filtres.source = source }
+        } label: {
+            Label(nom, systemImage: symbole)
+                .font(.subheadline.weight(.bold))
+                .padding(.horizontal, 14)
+                .frame(height: 36)
+                .foregroundStyle(active ? Color.black : Color.primary)
+                .background(active ? AnyShapeStyle(Theme.degradeAccent) : AnyShapeStyle(Theme.surface), in: Capsule())
+                .contentShape(Capsule())
+        }
+        .buttonStyle(.plain)
+        .disabled(!disponible)
+        .opacity(disponible ? 1 : 0.4)
+        .help(disponible ? "Idées venant de : \(nom.lowercased())" : aide ?? "")
+        .accessibilityLabel("Source : \(nom)")
+        .accessibilityHint(disponible ? "" : aide ?? "")
+        .accessibilityAddTraits(active ? .isSelected : [])
+    }
+
+    private func puceTele(_ quand: FiltresLocaux.Tele, _ nom: String) -> some View {
+        let active = modele.filtres.locaux.tele == quand
+        return Button {
+            withAnimation(.snappy) { modele.filtres.locaux.tele = quand }
+        } label: {
+            Text(nom)
+                .font(.caption.weight(.bold))
+                .padding(.horizontal, 12)
+                .frame(height: 30)
+                .foregroundStyle(active ? Theme.accentClair : Color.secondary)
+                .background(active ? AnyShapeStyle(Theme.accent.opacity(0.18)) : AnyShapeStyle(Theme.surface), in: Capsule())
+                .contentShape(Capsule())
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(active ? .isSelected : [])
+    }
+
     private var pucesActives: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
                 Button { feuilleOuverte = true } label: {
-                    Label(modele.filtres.criteresActifs.isEmpty ? "Filtres" : "Filtres · \(modele.filtres.criteresActifs.count)",
+                    let nombre = modele.filtres.criteresActifs.filter { !modele.filtres.ditParLaSource($0) }.count
+                    Label(nombre == 0 ? "Filtres" : "Filtres · \(nombre)",
                           systemImage: "line.3.horizontal.decrease")
                         .font(.subheadline.weight(.bold))
                         .padding(.horizontal, 14)
@@ -428,7 +496,7 @@ struct ExplorerView: View {
                 .accessibilityIdentifier("boutonFiltres")
 
                 let genres = etat.genres[modele.filtres.type] ?? []
-                ForEach(modele.filtres.criteresActifs, id: \.self) { critere in
+                ForEach(modele.filtres.criteresActifs.filter { !modele.filtres.ditParLaSource($0) }, id: \.self) { critere in
                     let libelle = LibellesFiltres.libelle(critere, modele.filtres, genres: genres)
                     PuceActive(libelle: libelle.texte, portrait: libelle.portrait) {
                         withAnimation(.snappy) { modele.filtres.retirer(critere) }

@@ -82,6 +82,45 @@ public struct FiltresExplorer: Sendable, Hashable, Codable {
         return filtres
     }
 
+    /// D'où viennent les titres proposés : tout TMDB, tes plateformes, ton NAS, ou les programmes télé.
+    public enum Source: String, Sendable, CaseIterable {
+        case toutes, streaming, nas, tele
+    }
+
+    /// Un seul choix à la fois, lu et écrit dans les critères qui existent déjà : « sur mes plateformes », « sur le NAS »
+    /// et « à la télé ». Le NAS et la télé partent de leur liste locale : « sur mes plateformes » ne doit pas les vider.
+    public var source: Source {
+        get {
+            if locaux.obtention == .surNAS { return .nas }
+            if locaux.tele != .indifferent { return .tele }
+            return mesPlateformes ? .streaming : .toutes
+        }
+        set {
+            mesPlateformes = newValue == .streaming
+            if newValue == .nas {
+                locaux.obtention = .surNAS
+            } else if locaux.obtention == .surNAS {
+                locaux.obtention = .tous
+            }
+            if newValue == .tele {
+                if locaux.tele == .indifferent { locaux.tele = .cetteSemaine }
+            } else {
+                locaux.tele = .indifferent
+                locaux.chaines = []
+            }
+        }
+    }
+
+    /// Les critères que le sélecteur de source montre déjà : leur puce ferait doublon.
+    public func ditParLaSource(_ critere: Critere) -> Bool {
+        switch critere {
+        case .plateformes: true
+        case .tele: true
+        case .obtention: locaux.obtention == .surNAS
+        default: false
+        }
+    }
+
     /// Identifiant d'un critère actif, pour sa puce et sa croix (EF-54).
     public enum Critere: Hashable, Sendable {
         case genre(Int)
