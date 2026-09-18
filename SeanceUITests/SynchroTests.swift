@@ -40,6 +40,9 @@ final class SynchroTests: XCTestCase {
         let contenu = try String(contentsOf: dossier.appendingPathComponent(propre), encoding: .utf8)
         XCTAssertTrue(contenu.contains("John Wick"), "Le fichier déposé ne contient pas les titres de cet appareil")
         XCTAssertTrue(contenu.contains("Heat"), "Le fichier déposé ne contient pas le titre reçu")
+        // Et une sauvegarde datée, à côté : le filet de sécurité.
+        let archives = (try? FileManager.default.contentsOfDirectory(atPath: dossier.appendingPathComponent("Sauvegardes datées").path)) ?? []
+        XCTAssertEqual(archives.filter { $0.hasPrefix("Séance — iPhone") }.count, 1, "Pas de sauvegarde datée : \(archives)")
 
         // La page de réglages dit où en est la synchronisation.
         app.tabBars.buttons["Profil"].firstMatch.tap()

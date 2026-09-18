@@ -50,8 +50,7 @@ final class ReglagesTests: XCTestCase {
         ]
         for page in pages {
             let ligne = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", page.ligne)).firstMatch
-            if !ligne.isHittable { app.swipeUp() }
-            XCTAssertTrue(ligne.waitForExistence(timeout: 5), "Ligne « \(page.ligne) » absente")
+            XCTAssertTrue(app.amener(ligne), "Ligne « \(page.ligne) » absente")
             ligne.tap()
             let ouverte = app.navigationBars[page.ligne].waitForExistence(timeout: 8)
                 || app.staticTexts[page.repere].firstMatch.waitForExistence(timeout: 2)

@@ -48,8 +48,20 @@ Ouvre Séance une fois après l'installation, attends une minute, puis :
 2. La notification arrive un quart d'heure avant ; la toucher ouvre la fiche.
 3. iPhone verrouillé, Apple Watch au poignet : l'alerte doit apparaître sur la montre
    (app Watch › Notifications › Séance coché sous « Recopier les alertes de l'iPhone »).
+4. **Depuis la 3.1** — appui long sur l'alerte (iPhone), ou la toucher sur la montre : le bouton « Ajouter à ma soirée ».
+   On doit voir, en rouvrant Séance : le titre dans Ce soir, sans que l'app se soit ouverte au moment du toucher.
 
 ## 6. Apparence et texte
 
 1. Réglages › Apparence › Clair, sur l'iPad et le Mac : parcourir Accueil, Ce soir, une fiche, Réglages.
 2. Réglages d'iOS › Accessibilité › Taille du texte au maximum : l'heure des passages télé, les tuiles de jours et les titres doivent grandir sans se chevaucher.
+
+## 7. Nouvel appareil, sauvegardes datées, iPad (3.1)
+
+1. Réglages › Tes données › **Nouvel appareil** : les trois étapes (données, clé TMDB, mot de passe du NAS) sur un écran ;
+   une étape déjà faite est cochée en vert. Le même écran s'ouvre depuis la bienvenue (« J'ai déjà Séance sur un autre appareil »).
+2. Après deux ou trois synchronisations avec des changements : dans Fichiers, le dossier choisi contient « Sauvegardes datées »,
+   avec au plus cinq fichiers par appareil.
+3. iPad : au lancement, la barre latérale est ouverte et montre tous les onglets.
+4. Explorer : taper un titre de ta liste — la section « Dans tes listes » apparaît avant les résultats de TMDB.
+

@@ -53,6 +53,7 @@ struct BienvenueView: View {
     @State private var position = 0
     @State private var notes = 0
     @State private var chargementNotation = false
+    @State private var nouvelAppareil = false
 
     private var gouts: ServiceGouts { ServiceGouts(contexte: contexte) }
 
@@ -82,6 +83,10 @@ struct BienvenueView: View {
             choisis = (try? gouts.interetsDeclares()) ?? []
             if mode == .gouts { etape = .gouts }
         }
+        .sheet(isPresented: $nouvelAppareil) {
+            // Les données reprises, goûts compris, rendent le reste du parcours inutile.
+            NouvelAppareilView { nouvelAppareil = false; terminer() }
+        }
     }
 
     // MARK: Étapes
@@ -95,10 +100,17 @@ struct BienvenueView: View {
                 .frame(width: 110, height: 110)
                 .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
             Text("Bienvenue dans Séance").font(.largeTitle.weight(.heavy)).multilineTextAlignment(.center)
-            Text("En une minute : tes plateformes, les genres que tu aimes et quelques films que tu connais. les suggestions « Pour toi » de l'accueil seront justes dès ce soir.")
+            Text("En une minute : tes plateformes, les genres que tu aimes et quelques films que tu connais. Les idées du soir seront justes dès ce soir.")
                 .font(.body)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
+            // Un deuxième appareil ne repart pas de zéro : il reprend les données du premier.
+            Button { nouvelAppareil = true } label: {
+                Label("J'ai déjà Séance sur un autre appareil", systemImage: "arrow.triangle.2.circlepath")
+                    .font(.subheadline.weight(.semibold))
+            }
+            .tint(Theme.accentClair)
+            .padding(.top, 6)
             Spacer()
         }
         .padding(28)

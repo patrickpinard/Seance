@@ -1,0 +1,127 @@
+import SeanceDonnees
+import SeanceKit
+import SwiftData
+import SwiftUI
+
+// Réglages › Toi : prénom et idées du soir, apparence.
+
+/// Ton prénom : Séance s'en sert pour te saluer sur l'accueil et quand elle te propose des idées. Il reste sur l'appareil.
+struct ReglagesPrenomView: View {
+    @AppStorage(Prenom.cle) private var prenom = ""
+    @AppStorage(NombreIdees.cle) private var nombreIdees = NombreIdees.parDefaut
+
+    var body: some View {
+        Form {
+            Section {
+                TextField("Ton prénom", text: $prenom)
+                    .textContentType(.givenName)
+                    .textInputAutocapitalization(.words)
+                    .autocorrectionDisabled()
+                    .submitLabel(.done)
+                if Prenom.lire(prenom) != nil {
+                    Button("Effacer", role: .destructive) { prenom = "" }
+                }
+            } header: {
+                Text("Prénom")
+            } footer: {
+                Text(Prenom.lire(prenom).map { "« \(Prenom.salut($0)) » sur l'accueil, « Des idées pour toi, \($0) » le soir. Ton prénom reste sur cet appareil." }
+                     ?? "Séance te saluera par ton prénom sur l'accueil et quand elle te propose des idées. Sans prénom, les phrases restent neutres.")
+            }
+
+            Section {
+                Picker("Idées à la fois", selection: Binding { NombreIdees.lire(nombreIdees) } set: { nombreIdees = $0 }) {
+                    ForEach(NombreIdees.choix, id: \.self) { Text("\($0)").tag($0) }
+                }
+                .pickerStyle(.segmented)
+            } header: {
+                Text("Idées pour ce soir")
+            } footer: {
+                Text("Le nombre d'idées que « Idées pour ce soir » te montre à la fois. Celles que tu écartes sont remplacées par les suivantes.")
+            }
+        }
+        .pageReglages("Toi")
+    }
+}
+
+/// Sombre, clair, ou comme l'appareil : trois aperçus à toucher.
+struct ReglagesApparenceView: View {
+    @AppStorage(Apparence.cle) private var apparence = Apparence.sombre.rawValue
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                HStack(alignment: .top, spacing: 12) {
+                    ForEach(Apparence.allCases) { choix in
+                        let actif = Apparence.lire(apparence) == choix
+                        Button {
+                            withAnimation(.easeOut(duration: 0.25)) { apparence = choix.rawValue }
+                        } label: {
+                            VStack(spacing: 10) {
+                                apercu(choix)
+                                    .frame(height: 120)
+                                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                                    .overlay {
+                                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                            .strokeBorder(actif ? AnyShapeStyle(Theme.degradeAccent) : AnyShapeStyle(Theme.trait), lineWidth: actif ? 3 : 1)
+                                    }
+                                Label(choix.nom, systemImage: actif ? "checkmark.circle.fill" : choix.symbole)
+                                    .font(.subheadline.weight(.semibold))
+                                    .lineLimit(1)
+                                    .minimumScaleFactor(0.7)
+                                    .foregroundStyle(actif ? AnyShapeStyle(Theme.accentClair) : AnyShapeStyle(.primary))
+                            }
+                            .frame(maxWidth: .infinity)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("Apparence \(choix.nom)")
+                        .accessibilityAddTraits(actif ? .isSelected : [])
+                    }
+                }
+                Text("Sombre est l'apparence d'origine de Séance, pensée pour le soir. « Automatique » suit le réglage de ton appareil, et change avec lui. Les grandes images gardent leur texte clair dans les deux cas.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+            .padding(20)
+            .frame(maxWidth: 640)
+            .frame(maxWidth: .infinity)
+        }
+        .background(Theme.fond)
+        .navigationTitle("Apparence")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    /// Une page miniature : un bandeau, un titre, deux affiches. « Automatique » montre les deux moitiés.
+    @ViewBuilder
+    private func apercu(_ choix: Apparence) -> some View {
+        switch choix {
+        case .sombre: miniature(sombre: true)
+        case .clair: miniature(sombre: false)
+        case .systeme:
+            GeometryReader { geometrie in
+                ZStack(alignment: .leading) {
+                    miniature(sombre: false)
+                    miniature(sombre: true)
+                        .mask(alignment: .leading) { Rectangle().frame(width: geometrie.size.width / 2) }
+                }
+            }
+        }
+    }
+
+    private func miniature(sombre: Bool) -> some View {
+        let fond = sombre ? Color(red: 0.04, green: 0.04, blue: 0.055) : Color(red: 0.965, green: 0.96, blue: 0.955)
+        let encre = sombre ? Color.white : Color.black
+        return VStack(alignment: .leading, spacing: 6) {
+            RoundedRectangle(cornerRadius: 5).fill(Theme.degradeAccent).frame(height: 34)
+            RoundedRectangle(cornerRadius: 2).fill(encre.opacity(0.75)).frame(width: 46, height: 6)
+            HStack(spacing: 5) {
+                ForEach(0..<3, id: \.self) { _ in
+                    RoundedRectangle(cornerRadius: 4).fill(encre.opacity(0.14)).frame(height: 38)
+                }
+            }
+        }
+        .padding(8)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .background(fond)
+    }
+}

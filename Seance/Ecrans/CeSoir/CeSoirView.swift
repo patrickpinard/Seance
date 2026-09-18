@@ -195,15 +195,18 @@ struct CeSoirView: View {
                         }
                     }
                 }
-                Button { ajout = true } label: {
-                    Label("Ajouter un autre titre", systemImage: "plus")
-                        .font(.subheadline.weight(.semibold))
-                        .frame(maxWidth: 360)
-                        .frame(height: 44)
-                        .background(Theme.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-                        .contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                Flux(espacement: 10) {
+                    Button { ajout = true } label: {
+                        Label("Ajouter un autre titre", systemImage: "plus")
+                            .font(.subheadline.weight(.semibold))
+                            .padding(.horizontal, 18)
+                            .frame(minHeight: 44)
+                            .background(Theme.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                            .contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    }
+                    .buttonStyle(.plain)
+                    boutonSurprise
                 }
-                .buttonStyle(.plain)
                 .foregroundStyle(Theme.accentClair)
             }
         }
@@ -233,6 +236,8 @@ struct CeSoirView: View {
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
+            boutonSurprise
+                .foregroundStyle(Theme.accentClair)
             Button { ajout = true } label: {
                 Label("Choisir quoi regarder", systemImage: "plus")
                     .font(.headline)
@@ -249,6 +254,37 @@ struct CeSoirView: View {
         .padding(.horizontal, 20)
         .background(Theme.surface, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
         .frame(maxWidth: 720)
+    }
+
+    /// « Surprends-moi » : un titre tiré au sort parmi ceux de ta liste qui sont regardables ce soir-là.
+    private var boutonSurprise: some View {
+        Button { surprendre() } label: {
+            Label("Surprends-moi", systemImage: "dice")
+                .font(.subheadline.weight(.semibold))
+                .padding(.horizontal, 18)
+                .frame(minHeight: 44)
+                .background(Theme.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        }
+        .buttonStyle(.plain)
+        .help("Tire au sort un titre de ta liste, regardable ce soir")
+        .accessibilityHint("Tire au sort un titre de ta liste, regardable ce soir")
+    }
+
+    private func surprendre() {
+        let dejaLa = Set(titresAffiches.map(\.reference))
+        guard let tire = soiree.disponibles.filter({ !dejaLa.contains($0.id) }).randomElement() else {
+            etat.confirmer(soiree.enCours ? "Un instant : Séance regarde ce qui est disponible…"
+                                          : "Rien d'autre de regardable dans ta liste : ouvre « Ajouter » pour des idées",
+                           symbole: "dice")
+            return
+        }
+        let jourVise = soireeAffichee
+        try? ServiceSoiree(contexte: contexte).retenir(tire.id, titre: tire.titre, cheminAffiche: tire.cheminAffiche, soiree: jourVise)
+        soiree.noterOu(tire.id, tire.ou)
+        etat.confirmer("Le sort a choisi « \(tire.titre) »", symbole: "dice.fill") { [contexte] in
+            try? ServiceSoiree(contexte: contexte).retirer(tire.id, soiree: jourVise)
+        }
     }
 
     // MARK: Données

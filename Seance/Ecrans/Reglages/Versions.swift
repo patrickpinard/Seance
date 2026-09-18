@@ -20,6 +20,29 @@ struct NoteVersion: Identifiable {
 
     static let historique: [NoteVersion] = [
         NoteVersion(
+            numero: "3.1",
+            date: "18 septembre 2026",
+            resume: "Un nouvel appareil prêt en trois étapes, des alertes à bouton, et les derniers écrans alignés.",
+            fonctionnalites: [
+                Fonctionnalite(symbole: "iphone.and.arrow.forward", titre: "Nouvel appareil",
+                               detail: "Sur l'écran de bienvenue (« J'ai déjà Séance sur un autre appareil ») et dans Réglages : reprendre tes données, saisir ta clé TMDB et le mot de passe du NAS, sur un seul écran."),
+                Fonctionnalite(symbole: "bell.badge", titre: "« Ajouter à ma soirée » depuis une alerte",
+                               detail: "Un appui long sur une alerte — ou un toucher sur l'Apple Watch — ajoute le titre à ta soirée, sans ouvrir l'app."),
+                Fonctionnalite(symbole: "tv", titre: "Programme télé : chaînes et semaine",
+                               detail: "Un filtre par chaîne, en haut à droite, et sept jours au lieu de tout le guide."),
+                Fonctionnalite(symbole: "square.grid.2x2", titre: "Listes nommées et acteurs en affiches",
+                               detail: "Une liste nommée s'ouvre en grille et se partage en texte ; la filmographie d'un acteur passe en affiches, avec le choix de la liste."),
+                Fonctionnalite(symbole: "magnifyingglass", titre: "« Dans tes listes »",
+                               detail: "Une recherche dans Explorer commence par ce que tu as déjà, sans attendre TMDB."),
+                Fonctionnalite(symbole: "dice", titre: "Surprends-moi",
+                               detail: "Dans Ce soir : un titre tiré au sort parmi ceux de ta liste que tu peux regarder ce soir. Annulable."),
+                Fonctionnalite(symbole: "sidebar.left", titre: "iPad : tous les onglets",
+                               detail: "La barre latérale s'ouvre au lancement : Profil et Réglages ne se cachent plus derrière « > »."),
+                Fonctionnalite(symbole: "clock.arrow.circlepath", titre: "Sauvegardes datées",
+                               detail: "Le dossier de synchronisation garde les cinq derniers états de chaque appareil. Et un enregistrement qui échoue s'écrit désormais au journal au lieu de passer inaperçu."),
+            ]
+        ),
+        NoteVersion(
             numero: "3.0",
             date: "18 septembre 2026",
             resume: "Une synchronisation qui propage aussi les suppressions, l'app utilisable sans réseau, et trois attentions du quotidien.",

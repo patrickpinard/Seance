@@ -30,6 +30,7 @@ struct ExplorerView: View {
     @Query(sort: \FiltreEnregistre.creeLe, order: .reverse) private var filtresEnregistres: [FiltreEnregistre]
     @Query(filter: #Predicate<FichierNAS> { $0.tmdbID != nil }) private var fichiersNAS: [FichierNAS]
     @Query private var visionnages: [Visionnage]
+    @Query(sort: \Suivi.ajouteLe, order: .reverse) private var mesTitres: [Suivi]
     @Query(filter: #Predicate<Suivi> { $0.statutBrut == "termine" }) private var termines: [Suivi]
 
     @State private var texte = ""
@@ -135,6 +136,13 @@ struct ExplorerView: View {
 
     // MARK: Recherche par texte
 
+    /// Tes titres dont le nom contient la recherche, quel que soit leur statut.
+    private var dansMesListes: [Suivi] {
+        let cherche = texte.trimmingCharacters(in: .whitespaces)
+        guard cherche.count >= 2 else { return [] }
+        return Array(mesTitres.filter { !$0.masque && $0.statut != .exclu && $0.titre.localizedStandardContains(cherche) }.prefix(12))
+    }
+
     private var resultatsTexte: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 22) {
@@ -148,6 +156,23 @@ struct ExplorerView: View {
                 .pickerStyle(.segmented)
                 .padding(.horizontal, 20)
 
+                // Ce que tu cherches est peut-être déjà chez toi : tes listes d'abord, sans attendre TMDB.
+                if portee != .acteurs, !dansMesListes.isEmpty {
+                    VStack(alignment: .leading, spacing: 10) {
+                        TitreSection("Dans tes listes")
+                        DefilementHorizontal {
+                            LazyHStack(alignment: .top, spacing: 14) {
+                                ForEach(dansMesListes) { suivi in
+                                    NavigationLink(value: suivi.reference) {
+                                        AfficheSuivi(suivi: suivi, rendezVous: nil, episodesVus: 0).frame(width: 110)
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                            }
+                            .padding(.horizontal, 20)
+                        }
+                    }
+                }
                 if portee != .acteurs, !personnes.isEmpty {
                     pastillesPersonnes
                 }
@@ -529,7 +554,7 @@ struct ExplorerView: View {
                     .contextMenu {
                         Button("Supprimer", systemImage: "trash", role: .destructive) {
                             contexte.delete(filtre)
-                            try? contexte.save()
+                            contexte.sauver()
                         }
                     }
                 }

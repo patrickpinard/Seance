@@ -22,11 +22,13 @@ final class ProgrammeTeleTests: XCTestCase {
         app.open(URL(string: "seance://tele")!)
         XCTAssertTrue(app.navigationBars["Programme télé"].waitForExistence(timeout: 10), "Le programme télé ne s'ouvre pas")
         XCTAssertTrue(app.staticTexts["En ce moment"].waitForExistence(timeout: 5), "Pas de section « En ce moment »")
+        XCTAssertTrue(app.buttons["Filtrer par chaîne"].firstMatch.waitForExistence(timeout: 5), "Pas de filtre par chaîne")
         capture("tele-films", attente: 4)
 
         // La cloche d'un passage à venir : « me le rappeler un quart d'heure avant ». iOS demande la permission.
+        // Le soir, plusieurs émissions sont « en ce moment » : leurs cartes repoussent la première cloche sous l'écran.
         let cloche = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Me rappeler'")).firstMatch
-        XCTAssertTrue(cloche.waitForExistence(timeout: 5), "Aucune cloche sur les passages à venir")
+        XCTAssertTrue(app.amener(cloche), "Aucune cloche sur les passages à venir")
         cloche.tap()
         let ecran = XCUIApplication(bundleIdentifier: "com.apple.springboard")
         for libelle in ["Autoriser", "Allow"] where ecran.buttons[libelle].waitForExistence(timeout: 3) {
@@ -38,20 +40,20 @@ final class ProgrammeTeleTests: XCTestCase {
         capture("tele-rappel", attente: 1)
         app.swipeUp()
         capture("tele-films-bas")
-        app.swipeDown()
-
+        XCTAssertTrue(app.amener(app.buttons["Tout"].firstMatch, versLeHaut: true), "Le choix Films, Séries, Tout a disparu")
         app.buttons["Tout"].firstMatch.tap()
-        app.swipeUp()
-        // Deux épisodes de Reacher qui s'enchaînent sur RTS 1 : une seule carte.
-        let reacher = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Reacher'"))
-        XCTAssertTrue(reacher.firstMatch.waitForExistence(timeout: 5))
-        XCTAssertEqual(reacher.count, 1, "Les épisodes qui s'enchaînent ne sont pas réunis")
-        XCTAssertTrue(reacher.firstMatch.label.contains("S02E06 et E07"))
+        // Reacher passe ce soir : « en soirée », « en ce moment », ou déjà fini selon l'heure du test. Pour la capture.
+        app.amener(app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Reacher'")).firstMatch, essais: 3)
         capture("tele-tout-bas")
 
-        // Un autre jour, puis la fiche d'un passage et le retour.
-        app.swipeDown()
-        app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Demain'")).firstMatch.tap()
+        // Un autre jour. Deux épisodes de Jack Ryan s'y enchaînent sur RTS 2 : une seule carte.
+        let demain = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Demain'")).firstMatch
+        XCTAssertTrue(app.amener(demain, versLeHaut: true), "La rangée de jours a disparu")
+        demain.tap()
+        let jackRyan = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Jack Ryan'"))
+        XCTAssertTrue(app.amener(jackRyan.firstMatch), "Jack Ryan absent du programme de demain")
+        XCTAssertEqual(jackRyan.count, 1, "Les épisodes qui s'enchaînent ne sont pas réunis")
+        XCTAssertTrue(jackRyan.firstMatch.label.contains("S01E03 et E04"), "Libellé inattendu : \(jackRyan.firstMatch.label)")
         capture("tele-demain")
         XCTAssertFalse(app.staticTexts["En ce moment"].exists, "« En ce moment » ne concerne qu'aujourd'hui")
     }

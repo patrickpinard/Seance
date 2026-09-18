@@ -1,4 +1,5 @@
 import SeanceKit
+import SwiftData
 import SwiftUI
 
 /// Journal des problèmes rencontrés, affiché dans À propos › Journal. Pas un journal de débogage :
@@ -64,6 +65,9 @@ final class Journal {
         var repetitions = 1
     }
 
+    /// Le journal de l'app, pour ce qui n'a pas l'état sous la main (un enregistrement qui échoue, loin d'un écran).
+    nonisolated(unsafe) static weak var courant: Journal?
+
     private(set) var entrees: [Entree] = []
     private static let maximum = 150
 
@@ -73,6 +77,7 @@ final class Journal {
 
     init() {
         entrees = (try? JSONDecoder().decode([Entree].self, from: Data(contentsOf: fichier))) ?? []
+        Self.courant = self
     }
 
     /// Note un problème. Le conseil et le détail sont déduits de l'erreur quand ils ne sont pas donnés.
@@ -146,5 +151,18 @@ final class Journal {
             .replacing(#/api_key=[^&\s]+/#, with: "api_key=•••")
             .replacing(#/sk-ant-[A-Za-z0-9_\-]+/#, with: "sk-ant-•••")
             .replacing(#/smb://[^@\s]+@/#, with: "smb://•••@")
+    }
+}
+
+extension ModelContext {
+    /// Enregistre ; un échec n'est plus avalé en silence : il va au journal d'À propos, avec son détail.
+    @MainActor
+    func sauver(_ quoi: String = "Un changement") {
+        do {
+            try save()
+        } catch {
+            Journal.courant?.noter(.general, "\(quoi) n'a pas pu être enregistré.", erreur: error,
+                                   conseil: "Réessaie. Si cela se répète, exporte une sauvegarde depuis Réglages › Sauvegarde.")
+        }
     }
 }

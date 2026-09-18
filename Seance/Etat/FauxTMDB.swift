@@ -14,6 +14,18 @@ struct FauxTMDB: TransportHTTP {
         ProcessInfo.processInfo.environment["SEANCE_FAUX_TMDB"].map { URL(fileURLWithPath: $0, isDirectory: true) }
     }
 
+    /// Les titres de la démonstration (voir Demonstration.swift), pour que leurs fiches portent leur nom.
+    private static let titresConnus: [Int: (nom: String, affiche: String)] = [
+        245_891: ("John Wick", "/7yCzmVL0BI1aSvzgN3jCtXLtyFR.jpg"), 603_692: ("John Wick : Chapitre 4", "/n1YTIyhAqqqFyDGFTzV7WaU1JfK.jpg"),
+        76_341: ("Mad Max : Fury Road", "/oLy2V6AWSEfdPgKOtrSGnwB3Q2R.jpg"), 94_329: ("The Raid", "/e0EeE8Rc5weReJNpwOP78DuCxdH.jpg"),
+        545_609: ("Tyler Rake", "/qVHWs56TvXCKGjsmghWHFRqtKlF.jpg"), 361_743: ("Top Gun : Maverick", "/uuwi4wwG6HAHVqaEvJDx6gI773N.jpg"),
+        353_081: ("Mission : Impossible - Fallout", "/6JO3Oz685phBaADyJtf4wmaafYj.jpg"), 615_457: ("Nobody", "/jKRzh9y5YjYNISbeh55FQwetsSu.jpg"),
+        562: ("Piège de cristal", "/1nOVVjbf8ucbeLmIlK5D2kCQQST.jpg"), 324_552: ("John Wick : Chapitre 2", "/r687UV1zQ5KDB9AxRokRscWIRvt.jpg"),
+        949: ("Heat", "/umSVjVdbVwtx5ryCA2QXL44Durm.jpg"),
+        108_978: ("Reacher", "/qrJOCIAcvPmyZ63KajWTalQtqPT.jpg"), 73_375: ("Jack Ryan", "/sEAUJohzgehanmml9nul3sfIlVr.jpg"),
+        129_552: ("The Night Agent", "/vxCFNBGQ9AeI6GLtnpML1gKuSSK.jpg"),
+    ]
+
     private static let pageVide = Data(#"{"page":1,"results":[],"total_pages":1,"total_results":0}"#.utf8)
 
     func envoyer(_ requete: URLRequest) async throws -> (Data, HTTPURLResponse) {
@@ -25,6 +37,13 @@ struct FauxTMDB: TransportHTTP {
         // la soirée et les fiches parlent du même titre.
         if let identifiant, let lues = donnees, var objet = try? JSONSerialization.jsonObject(with: lues) as? [String: Any] {
             objet["id"] = identifiant
+            // Un titre que la démonstration connaît garde son nom et son affiche ; sans image de fond connue, la
+            // carte se rabat sur l'affiche — mieux que la même image de fond pour tous les titres.
+            if let connu = Self.titresConnus[identifiant] {
+                objet[objet["title"] != nil ? "title" : "name"] = connu.nom
+                objet["poster_path"] = connu.affiche
+                objet["backdrop_path"] = NSNull()
+            }
             donnees = try? JSONSerialization.data(withJSONObject: objet)
         }
         let code = donnees == nil && fichier != nil ? 404 : 200

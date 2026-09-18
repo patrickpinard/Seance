@@ -30,7 +30,15 @@ final class EtatAlertes {
         static let reglages = "alertes.reglages"
     }
 
+    /// Les alertes qui parlent d'un titre portent un bouton « Ajouter à ma soirée » : sur l'iPhone (appui long sur
+    /// l'alerte), et sur l'Apple Watch qui la recopie. Le bouton agit sans ouvrir l'app.
+    nonisolated static let categorieTitre = "seance.titre"
+    nonisolated static let actionSoiree = "seance.action.soiree"
+
     init() {
+        let soiree = UNNotificationAction(identifier: Self.actionSoiree, title: "Ajouter à ma soirée", options: [],
+                                          icon: UNNotificationActionIcon(systemImageName: "moon.stars"))
+        centre.setNotificationCategories([UNNotificationCategory(identifier: Self.categorieTitre, actions: [soiree], intentIdentifiers: [])])
         reglages = UserDefaults.standard.data(forKey: Cle.reglages)
             .flatMap { try? JSONDecoder().decode(ReglagesAlertes.self, from: $0) } ?? ReglagesAlertes()
     }
@@ -172,7 +180,8 @@ final class EtatAlertes {
         contenu.body = "Sur \(nomChaine) à \(heure)."
         contenu.sound = .default
         contenu.threadIdentifier = "seance"
-        contenu.userInfo = ["lien": reference.map { "seance://\($0.type.rawValue)/\($0.tmdbID)" } ?? "seance://tele"]
+        contenu.userInfo = ["lien": reference.map { "seance://\($0.type.rawValue)/\($0.tmdbID)" } ?? "seance://tele", "titre": titre]
+        if reference != nil { contenu.categoryIdentifier = Self.categorieTitre }
         // Un quart d'heure avant ; pour un passage imminent, dans quelques secondes.
         let delai = max(5, debut.addingTimeInterval(-Self.avanceRappelTele).timeIntervalSinceNow)
         let declencheur = UNTimeIntervalNotificationTrigger(timeInterval: delai, repeats: false)
@@ -206,6 +215,7 @@ final class EtatAlertes {
         // Toucher l'alerte ouvre la fiche du titre, ou du premier titre d'un regroupement.
         if let reference = notification.reference {
             contenu.userInfo = ["lien": "seance://\(reference.type.rawValue)/\(reference.tmdbID)"]
+            contenu.categoryIdentifier = Self.categorieTitre
         }
         var calendrier = Calendar(identifier: .gregorian)
         calendrier.timeZone = reglages.fuseau
@@ -239,8 +249,22 @@ final class DelegueNotifications: NSObject, UNUserNotificationCenterDelegate {
     }
 
     func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse) async {
-        guard let texte = response.notification.request.content.userInfo["lien"] as? String,
-              let url = URL(string: texte) else { return }
+        let infos = response.notification.request.content.userInfo
+        guard let texte = infos["lien"] as? String, let url = URL(string: texte) else { return }
+        if response.actionIdentifier == EtatAlertes.actionSoiree {
+            // Depuis l'alerte ou la montre, sans ouvrir l'app : le titre rejoint la soirée de ce soir.
+            await Self.ajouterASoiree(url, titreDeSecours: infos["titre"] as? String)
+            return
+        }
         await ouvrir(url)
+    }
+
+    @MainActor
+    private static func ajouterASoiree(_ url: URL, titreDeSecours: String?) {
+        guard let reference = LienProfond.reference(url), let contexte = ConteneurApp.conteneur?.mainContext else { return }
+        let suivi = try? ServiceSuivi(contexte: contexte).suivi(reference)
+        guard let titre = suivi?.titre ?? titreDeSecours else { return }
+        try? ServiceSoiree(contexte: contexte).retenir(reference, titre: titre, cheminAffiche: suivi?.cheminAffiche)
+        PublicationWidgets.recharger()
     }
 }

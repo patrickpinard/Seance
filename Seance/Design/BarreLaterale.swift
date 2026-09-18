@@ -22,6 +22,18 @@ enum BarreLaterale {
         controleur.sidebar.isHidden = true
     }
 
+    #endif
+
+    /// Sur l'iPad, la barre d'onglets du haut ne montre que trois onglets : Profil et Réglages se cachent derrière « > ».
+    /// La barre latérale, ouverte au lancement, les montre tous ; on la referme d'un geste si on préfère la place.
+    @MainActor
+    static func ouvrirSurIPad() {
+        #if !targetEnvironment(macCatalyst)
+        guard UIDevice.current.userInterfaceIdiom == .pad, let controleur = controleurOnglets() else { return }
+        controleur.sidebar.isHidden = false
+        #endif
+    }
+
     @MainActor
     private static func controleurOnglets() -> UITabBarController? {
         for scene in UIApplication.shared.connectedScenes.compactMap({ $0 as? UIWindowScene }) {
@@ -41,7 +53,6 @@ enum BarreLaterale {
         }
         return chercher(controleur.presentedViewController)
     }
-    #endif
 }
 
 /// Sur le Mac, le titre d'une feuille (« Personnaliser l'accueil ») devenait celui de la fenêtre et y restait.

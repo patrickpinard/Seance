@@ -106,6 +106,11 @@ enum Demonstration {
         let soiree = ServiceSoiree.soiree()
         contexte.insert(SelectionSoir(reference: reacher.reference, titre: reacher.nom, cheminAffiche: reacher.affiche, soiree: soiree))
         contexte.insert(SelectionSoir(reference: aVoir.reference, titre: aVoir.nom, cheminAffiche: aVoir.affiche, soiree: soiree))
+        // Une liste nommée, pour sa page en grille.
+        let liste = ListePerso(nom: "Soirées Keanu")
+        liste.titres = [films[0].reference, films[1].reference, aVoir.reference]
+        liste.apercus = [films[0], films[1], aVoir].map { ApercuTitre(reference: $0.reference, titre: $0.nom, cheminAffiche: $0.affiche) }
+        contexte.insert(liste)
         // Hier soir, un film prévu dont on ne sait pas s'il a été regardé.
         let hier = ServiceSoiree.soiree(Date.now.addingTimeInterval(-86_400))
         contexte.insert(SelectionSoir(reference: ReferenceTitre(type: .film, tmdbID: 949), titre: "Heat", cheminAffiche: "/umSVjVdbVwtx5ryCA2QXL44Durm.jpg", soiree: hier))
@@ -135,7 +140,9 @@ enum Demonstration {
         passage(films[7], chaine: "Arte.fr", debut: a(23, 25))
         passage(films[2], chaine: "TMC.fr", debut: a(14, 5, dans: 1))
         passage(films[6], chaine: "France3.fr", debut: a(21, 5, dans: 1))
+        // Deux épisodes qui s'enchaînent demain : toujours à venir, quelle que soit l'heure où l'on regarde.
         passage(jackRyan, chaine: "RTSDeux.ch", debut: a(20, 40, dans: 1), episode: (1, 3))
+        passage(jackRyan, chaine: "RTSDeux.ch", debut: a(21, 37, dans: 1), episode: (1, 4))
         passage(films[1], chaine: "TF1.fr", debut: a(21, 10, dans: 2))
         passage(films[4], chaine: "M6.fr", debut: a(21, 10, dans: 3))
 
@@ -169,7 +176,7 @@ enum Demonstration {
         fichier(films[4], dossier: "NEW", qualite: "1080p")
         for film in [films[0], films[2], films[5], films[8]] { fichier(film, dossier: "Films", qualite: "1080p") }
         for episode in 1...3 { fichier(nightAgent, dossier: "Séries", qualite: "1080p", episode: episode) }
-        try? contexte.save()
+        contexte.sauver()
     }
 }
 #endif

@@ -38,9 +38,12 @@ struct AfficheSuivi: View {
                     }
                 }
                 .task(id: suivi.reference) { etat.ou.demander(suivi.reference, client: etat.tmdb) }
+            // Deux lignes, place réservée : « John Wick : Chapitre 2 » et « … Chapitre 4 » se distinguent, et les
+            // sous-titres restent alignés d'une affiche à l'autre.
             Text(suivi.titre)
                 .font(.subheadline.weight(.semibold))
-                .lineLimit(1)
+                .lineLimit(2, reservesSpace: true)
+                .multilineTextAlignment(.leading)
             Text(sousTitre.texte)
                 .font(.caption)
                 .foregroundStyle(sousTitre.enAvant ? AnyShapeStyle(Theme.accentClair) : AnyShapeStyle(.secondary))

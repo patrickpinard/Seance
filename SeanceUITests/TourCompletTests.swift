@@ -105,6 +105,15 @@ final class TourCompletTests: XCTestCase {
         app.buttons["Grille"].firstMatch.tap()
         app.buttons["Terminés"].firstMatch.tap()
         capture("08-listes-termines")
+        // Une liste nommée s'ouvre en grille d'affiches.
+        app.buttons["Listes"].firstMatch.tap()
+        let listeNommee = app.buttons.matching(NSPredicate(format: "label CONTAINS 'Soirées Keanu'")).firstMatch
+        XCTAssertTrue(listeNommee.waitForExistence(timeout: 8), "La liste nommée de la démonstration est absente")
+        listeNommee.tap()
+        XCTAssertTrue(app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'John Wick'")).firstMatch.waitForExistence(timeout: 8))
+        capture("08-liste-nommee")
+        app.navigationBars.buttons.firstMatch.tap()
+
         app.buttons["À venir"].firstMatch.tap()
         XCTAssertTrue(app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Tout : '")).firstMatch.waitForExistence(timeout: 10),
                       "La rangée de jours d'« À venir » est absente")
@@ -165,6 +174,8 @@ final class TourCompletTests: XCTestCase {
         capture("20-reglages", attente: 3)
         app.swipeUp()
         capture("21-reglages-bas")
+        XCTAssertTrue(app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Nouvel appareil'")).firstMatch.waitForExistence(timeout: 5),
+                      "Le parcours « Nouvel appareil » n'est pas proposé dans les réglages")
         // La grille des cartes est paresseuse : « Lecture » se touche tant qu'elle est à l'écran.
         app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Lecture'")).firstMatch.tap()
         XCTAssertTrue(app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'VLC'")).firstMatch.waitForExistence(timeout: 10), "Le choix du lecteur est absent")

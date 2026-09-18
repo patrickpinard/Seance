@@ -176,7 +176,7 @@ enum AnnulationTitre {
         } else {
             contexte.delete(suivi)
         }
-        try? contexte.save()
+        contexte.sauver()
     }
 }
 
@@ -225,6 +225,6 @@ struct InstantaneSuivi {
         suivi.modeAlertesBrut = modeAlertes
         suivi.masque = masque
         contexte.insert(suivi)
-        try? contexte.save()
+        contexte.sauver()
     }
 }

@@ -16,3 +16,22 @@ enum Lancement {
         app.launchEnvironment["SEANCE_FAUX_TMDB"] = reponsesTMDB
     }
 }
+
+extension XCUIApplication {
+    /// Amène un élément à portée de doigt par petits glissements. Un `swipeUp` fait défiler une page entière : dans une
+    /// grille paresseuse, la cellule cherchée sort par le haut et disparaît de l'arbre d'accessibilité.
+    @MainActor
+    @discardableResult
+    func amener(_ element: XCUIElement, versLeHaut: Bool = false, essais: Int = 8) -> Bool {
+        func glisser(de depart: CGFloat, a arrivee: CGFloat) {
+            let haut = coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: depart))
+            haut.press(forDuration: 0.05, thenDragTo: coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: arrivee)))
+        }
+        // Dans un sens d'abord (vers le bas, sauf demande contraire), puis dans l'autre, au-delà du point de départ.
+        for essai in 0..<(essais * 3) {
+            if element.exists, element.isHittable { return true }
+            if (essai < essais) != versLeHaut { glisser(de: 0.65, a: 0.35) } else { glisser(de: 0.35, a: 0.65) }
+        }
+        return element.exists && element.isHittable
+    }
+}

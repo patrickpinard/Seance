@@ -8,6 +8,9 @@ enum ConteneurApp {
     static let resultat: Result<ModelContainer, any Error> = Result {
         #if DEBUG
         if Demonstration.active {
+            // La démonstration repart de réglages vierges : un test ne laisse rien au suivant (prénom, apparence,
+            // dossier de synchronisation…). Première chose faite au lancement, avant que quiconque ne lise un réglage.
+            if let identifiant = Bundle.main.bundleIdentifier { UserDefaults.standard.removePersistentDomain(forName: identifiant) }
             let conteneur = try EntrepotSeance.conteneur(.memoire)
             Demonstration.remplir(conteneur.mainContext)
             return conteneur

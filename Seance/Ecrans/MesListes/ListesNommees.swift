@@ -77,7 +77,7 @@ struct SectionListesNommees: View {
             recreee.titres = titres
             recreee.apercus = apercus
             contexte.insert(recreee)
-            try? contexte.save()
+            contexte.sauver()
         }
     }
 }
@@ -98,38 +98,67 @@ struct ListePersoView: View {
         listes.first { $0.persistentModelID == id }
     }
 
+    @Environment(\.horizontalSizeClass) private var largeurGrille
+
+    private var titres: [ApercuTitre] {
+        liste.flatMap { try? ServiceListes(contexte: contexte).titres($0) } ?? []
+    }
+
+    /// « Soirées Statham » et ses titres, en texte : à envoyer par Messages ou Mail.
+    private var textePartage: String {
+        let lignes = titres.map { "• \($0.titre.isEmpty ? "Titre \($0.reference.tmdbID)" : $0.titre) (\($0.reference.type == .film ? "film" : "série"))" }
+        return (["Ma liste « \(liste?.nom ?? "") », depuis Séance :"] + lignes).joined(separator: "\n")
+    }
+
     var body: some View {
-        List {
+        // Une grille d'affiches, comme Mes listes : le retrait et les autres actions sont au clic droit ou à l'appui long.
+        ScrollView {
             if let liste {
-                let titres = (try? ServiceListes(contexte: contexte).titres(liste)) ?? []
                 if titres.isEmpty {
                     Text("Cette liste est vide. Range-y des titres depuis leur fiche (« Plus » › Ajouter à une liste) ou par un clic droit sur une affiche.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
-                        .listRowBackground(Color.clear)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(20)
+                } else {
+                    Text("\(Format.pluriel(titres.count, "titre")) · appui long ou clic droit sur une affiche pour la retirer")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 16)
+                        .padding(.top, 8)
                 }
-                ForEach(titres, id: \.reference) { apercu in
-                    NavigationLink(value: apercu.reference) {
-                        HStack(spacing: 12) {
-                            ImageDistante(url: ImageTMDB.url(apercu.cheminAffiche, .affiche), coins: 8)
-                                .frame(width: 50, height: 75)
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: largeurGrille == .regular ? 150 : 105), spacing: 12, alignment: .top)], spacing: 18) {
+                    ForEach(titres, id: \.reference) { apercu in
+                        NavigationLink(value: apercu.reference) {
                             VStack(alignment: .leading, spacing: 4) {
+                                ImageDistante(url: ImageTMDB.url(apercu.cheminAffiche, .affiche))
+                                    .aspectRatio(2 / 3, contentMode: .fit)
+                                    .overlay(alignment: .topLeading) { BadgeOu(reference: apercu.reference).padding(5) }
+                                    .task(id: apercu.reference) { etat.ou.demander(apercu.reference, client: etat.tmdb) }
                                 Text(apercu.titre.isEmpty ? "\(apercu.reference.type == .film ? "Film" : "Série") \(apercu.reference.tmdbID)" : apercu.titre)
-                                    .font(.headline)
-                                    .lineLimit(2)
+                                    .font(.subheadline.weight(.semibold))
+                                    .lineLimit(2, reservesSpace: true)
+                                    .multilineTextAlignment(.leading)
                                 Text(apercu.reference.type == .film ? "Film" : "Série").font(.caption).foregroundStyle(.secondary)
                             }
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .contextMenu {
+                            Button {
+                                try? ServiceSoiree(contexte: contexte).retenir(apercu.reference, titre: apercu.titre, cheminAffiche: apercu.cheminAffiche)
+                                etat.confirmer("« \(apercu.titre) » ajouté à ta soirée", symbole: "moon.stars.fill")
+                            } label: { Label("Ajouter à ma soirée", systemImage: "moon.stars") }
+                            Button {
+                                etat.titreADater = TitreChoisi(reference: apercu.reference, titre: apercu.titre, cheminAffiche: apercu.cheminAffiche)
+                            } label: { Label("Prévoir pour une soirée…", systemImage: "calendar") }
+                            Divider()
+                            Button(role: .destructive) { retirer(apercu, de: liste) } label: { Label("Retirer de la liste", systemImage: "minus.circle") }
                         }
                     }
-                    .swipeActions { Button("Retirer", role: .destructive) { retirer(apercu, de: liste) } }
-                    .contextMenu {
-                        Button {
-                            etat.titreADater = TitreChoisi(reference: apercu.reference, titre: apercu.titre, cheminAffiche: apercu.cheminAffiche)
-                        } label: { Label("Prévoir pour une soirée…", systemImage: "calendar") }
-                        Divider()
-                        Button(role: .destructive) { retirer(apercu, de: liste) } label: { Label("Retirer de la liste", systemImage: "minus.circle") }
-                    }
                 }
+                .padding(16)
             }
         }
         .scrollContentBackground(.hidden)
@@ -139,6 +168,9 @@ struct ListePersoView: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
+                    if !titres.isEmpty {
+                        ShareLink(item: textePartage) { Label("Partager la liste…", systemImage: "square.and.arrow.up") }
+                    }
                     Button {
                         nouveauNom = liste?.nom ?? ""
                         renommage = true

@@ -193,7 +193,7 @@ struct MesListesView: View {
                         try? ServiceSuivi(contexte: contexte).supprimerDesTermines(supprimes)
                         etat.confirmer("\(Format.pluriel(supprimes.count, "titre supprimé", "titres supprimés")) des terminés", symbole: "trash") { [contexte] in
                             supprimes.forEach { $0.masque = false }
-                            try? contexte.save()
+                            contexte.sauver()
                         }
                     }
                 } message: {
@@ -482,18 +482,18 @@ struct MesListesView: View {
     private func changer(_ suivi: Suivi, en statut: StatutSuivi) {
         let avant = suivi.statut
         suivi.statut = statut
-        try? contexte.save()
+        contexte.sauver()
         etat.confirmer(statut == .termine ? "« \(suivi.titre) » dans Terminés" : "« \(suivi.titre) » de nouveau à voir",
                        symbole: statut == .termine ? "checkmark" : "arrow.uturn.backward") { [contexte] in
             suivi.statut = avant
-            try? contexte.save()
+            contexte.sauver()
         }
     }
 
     private func retirer(_ suivi: Suivi) {
         let copie = InstantaneSuivi(suivi)
         contexte.delete(suivi)
-        try? contexte.save()
+        contexte.sauver()
         Task { await etat.alertes.planifier(contexte: contexte, tmdb: etat.tmdb) }
         etat.confirmer("« \(copie.titre) » retiré de Mes listes", symbole: "trash") { [contexte, etat] in
             copie.restaurer(dans: contexte)
@@ -506,13 +506,13 @@ struct MesListesView: View {
         try? ServiceSuivi(contexte: contexte).supprimerDesTermines([suivi])
         etat.confirmer("« \(suivi.titre) » supprimé des terminés", symbole: "trash") { [contexte] in
             suivi.masque = false
-            try? contexte.save()
+            contexte.sauver()
         }
     }
 
     private func basculerAlertes(_ suivi: Suivi) {
         suivi.alertesActives.toggle()
-        try? contexte.save()
+        contexte.sauver()
         Task { await etat.alertes.planifier(contexte: contexte, tmdb: etat.tmdb) }
     }
 }

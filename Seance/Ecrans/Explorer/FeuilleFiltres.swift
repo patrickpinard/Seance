@@ -509,7 +509,7 @@ struct FeuilleFiltres: View {
         let nom = nomEnregistrement.trimmingCharacters(in: .whitespaces)
         guard !nom.isEmpty else { return }
         contexte.insert(FiltreEnregistre(nom: nom, filtres: brouillon, abonnements: abonnements.map(\.providerID)))
-        try? contexte.save()
+        contexte.sauver()
         nomEnregistrement = ""
     }
 }

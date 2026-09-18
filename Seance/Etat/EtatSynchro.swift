@@ -213,6 +213,10 @@ final class EtatSynchro {
                 try await Task.detached { try Self.ecrire(donnees, cible) }.value
                 UserDefaults.standard.set(empreinte, forKey: Cle.empreinte)
                 depose = true
+                // Un filet de sécurité : l'état du jour, daté, à côté ; les cinq derniers de cet appareil sont gardés.
+                let nomAppareil = appareil
+                let jour = DateTMDB(.now).description
+                try? await Task.detached { try Self.archiver(donnees, dossier: dossier, appareil: nomAppareil, jour: jour) }.value
             }
             enregistrerEtat(aDeposer)
 
@@ -281,6 +285,23 @@ final class EtatSynchro {
         }
         if let erreurCoordination { throw erreurCoordination }
         return try resultat.get()
+    }
+
+    nonisolated static let dossierArchives = "Sauvegardes datées"
+    nonisolated static let archivesGardees = 5
+
+    /// « Sauvegardes datées/Séance — iPhone 3F2A — 2026-09-18.json » : une par jour au plus (la dernière du jour la
+    /// remplace), les cinq plus récentes de l'appareil. La synchronisation ne lit jamais ce sous-dossier.
+    private nonisolated static func archiver(_ donnees: Data, dossier: URL, appareil: String, jour: String) throws {
+        let archives = dossier.appendingPathComponent(dossierArchives, isDirectory: true)
+        try FileManager.default.createDirectory(at: archives, withIntermediateDirectories: true)
+        let prefixe = "\(SynchroDossier.prefixe)\(appareil) — "
+        try ecrire(donnees, archives.appendingPathComponent("\(prefixe)\(jour).json"))
+        let miennes = ((try? FileManager.default.contentsOfDirectory(atPath: archives.path)) ?? [])
+            .filter { $0.hasPrefix(prefixe) && $0.hasSuffix(".json") }.sorted(by: >)
+        for ancienne in miennes.dropFirst(archivesGardees) {
+            try? FileManager.default.removeItem(at: archives.appendingPathComponent(ancienne))
+        }
     }
 
     private nonisolated static func ecrire(_ donnees: Data, _ url: URL) throws {

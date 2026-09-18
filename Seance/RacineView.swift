@@ -64,6 +64,11 @@ struct RacineView: View {
         .animation(.snappy, value: etat.confirmation)
         .tint(Theme.accent)
         .task { await etat.chargerGenres() }
+        .task {
+            // Le contrôleur d'onglets n'existe qu'une fois la fenêtre montée.
+            try? await Task.sleep(for: .milliseconds(400))
+            BarreLaterale.ouvrirSurIPad()
+        }
         #if targetEnvironment(macCatalyst)
         .task { BarreLaterale.restaurer() }
         // Sous cette taille, la barre latérale et la fiche en deux colonnes se serrent.

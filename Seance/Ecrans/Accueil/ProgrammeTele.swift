@@ -416,6 +416,11 @@ struct ProgrammeTeleView: View {
     @Query private var suivis: [Suivi]
     @State private var type: TypeTitre? = .film
     @State private var jourChoisi: DateTMDB?
+    /// Les chaînes retenues ; vide : toutes.
+    @State private var chainesChoisies: Set<String> = []
+
+    /// Une semaine suffit : au-delà, le guide est incomplet et change encore.
+    private static let joursAffiches = 7
 
     var body: some View {
         TimelineView(.periodic(from: .now, by: 60)) { horloge in
@@ -425,11 +430,14 @@ struct ProgrammeTeleView: View {
         .navigationTitle("Programme télé")
         .navigationBarTitleDisplayMode(.inline)
         .task { await etat.alertes.actualiserRappelsTele() }
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) { menuChaines }
+        }
     }
 
     private func contenu(maintenant: Date) -> some View {
         let parJour = blocsParJour(maintenant: maintenant)
-        let jours = parJour.keys.sorted()
+        let jours = Array(parJour.keys.sorted().prefix(Self.joursAffiches))
         let jour = jourChoisi.flatMap { jours.contains($0) ? $0 : nil } ?? jours.first
         let marques = MarqueListe.marques(suivis)
         return ScrollView {
@@ -453,7 +461,9 @@ struct ProgrammeTeleView: View {
                     }
                 } else {
                     ContentUnavailableView(type == .serie ? "Aucune série à venir" : "Rien à venir", systemImage: "tv",
-                                           description: Text("Aucun titre reconnu sur tes chaînes pour l'instant. Choisis-les dans Réglages › Télévision."))
+                                           description: Text(chainesChoisies.isEmpty
+                                                             ? "Aucun titre reconnu sur tes chaînes pour l'instant. Choisis-les dans Réglages › Télévision."
+                                                             : "Rien sur les chaînes retenues. Choisis « Toutes les chaînes » en haut à droite."))
                         .padding(.top, 40)
                 }
             }
@@ -463,12 +473,44 @@ struct ProgrammeTeleView: View {
 
     /// Les passages pas encore finis, du type choisi, réunis en blocs et rangés par journée télé (de 6 h à 6 h).
     private func blocsParJour(maintenant: Date) -> [DateTMDB: [BlocDiffusion]] {
-        let retenues = diffusions.filter { $0.fin > maintenant && (type == nil || $0.typeBrut == type?.rawValue) }
+        let retenues = diffusions.filter {
+            $0.fin > maintenant && (type == nil || $0.typeBrut == type?.rawValue) && (chainesChoisies.isEmpty || chainesChoisies.contains($0.chaine))
+        }
         return Dictionary(grouping: GrilleTele.blocs(retenues)) { GrilleTele.jourTele($0.debut) }
     }
 
     private func nomChaine(_ identifiant: String) -> String {
         NomChaine.lire(identifiant, parmi: chaines)
+    }
+
+    /// Les chaînes qui ont quelque chose au programme, par nom : n'en garder que quelques-unes, ou toutes.
+    private var menuChaines: some View {
+        let presentes = Set(diffusions.filter { $0.fin > .now }.map(\.chaine))
+        let triees = presentes.sorted { nomChaine($0).localizedStandardCompare(nomChaine($1)) == .orderedAscending }
+        return Menu {
+            Button {
+                chainesChoisies = []
+            } label: {
+                Label("Toutes les chaînes", systemImage: chainesChoisies.isEmpty ? "checkmark" : "tv")
+            }
+            Divider()
+            ForEach(triees, id: \.self) { chaine in
+                Button {
+                    if chainesChoisies.contains(chaine) { chainesChoisies.remove(chaine) } else { chainesChoisies.insert(chaine) }
+                } label: {
+                    if chainesChoisies.contains(chaine) {
+                        Label(nomChaine(chaine), systemImage: "checkmark")
+                    } else {
+                        Text(nomChaine(chaine))
+                    }
+                }
+            }
+        } label: {
+            Label(chainesChoisies.isEmpty ? "Chaînes" : Format.pluriel(chainesChoisies.count, "chaîne"),
+                  systemImage: chainesChoisies.isEmpty ? "line.3.horizontal.decrease.circle" : "line.3.horizontal.decrease.circle.fill")
+        }
+        .menuActionDismissBehavior(.disabled)
+        .accessibilityLabel(chainesChoisies.isEmpty ? "Filtrer par chaîne" : "Filtre : \(Format.pluriel(chainesChoisies.count, "chaîne"))")
     }
 
     // MARK: Les jours
@@ -478,16 +520,20 @@ struct ProgrammeTeleView: View {
             HStack(spacing: 8) {
                 ForEach(jours, id: \.self) { jour in
                     let actif = jour == choisi
-                    let films = (parJour[jour] ?? []).filter(\.estFilm).count
+                    let blocs = parJour[jour] ?? []
+                    let films = blocs.filter(\.estFilm).count
+                    // « 2 films », « 1 série », ou « 3 titres » quand la journée mêle les deux.
+                    let detail = films == blocs.count ? Format.pluriel(films, "film")
+                        : films == 0 ? Format.pluriel(blocs.count, "série") : Format.pluriel(blocs.count, "titre")
                     Button {
                         withAnimation(.easeOut(duration: 0.2)) { jourChoisi = jour }
                     } label: {
                         TuileJour(nom: nomCourt(jour, maintenant: maintenant), numero: jour.jour,
-                                  detail: films > 0 ? Format.pluriel(films, "film") : Format.pluriel((parJour[jour] ?? []).count, "série"),
+                                  detail: detail,
                                   actif: actif)
                     }
                     .buttonStyle(.plain)
-                    .accessibilityLabel("\(nomLong(jour, maintenant: maintenant)), \(Format.pluriel((parJour[jour] ?? []).count, "programme"))")
+                    .accessibilityLabel("\(nomLong(jour, maintenant: maintenant)), \(Format.pluriel(blocs.count, "programme"))")
                     .accessibilityAddTraits(actif ? .isSelected : [])
                 }
             }

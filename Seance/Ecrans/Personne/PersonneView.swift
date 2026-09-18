@@ -32,6 +32,8 @@ struct PersonneView: View {
     @State private var biographieComplete = false
     @State private var surMesPlateformes: Set<ReferenceTitre> = []
     @State private var plateformesChargees = false
+    @AppStorage("personne.grille") private var enGrille = true
+    @Environment(\.horizontalSizeClass) private var largeurGrille
 
     init(personne: ReferencePersonne, comptes: TitresAvecActeur? = nil) {
         self.personne = personne
@@ -124,24 +126,14 @@ struct PersonneView: View {
                     } else if credits.isEmpty {
                         MessageEtat(texte: "Aucun titre ne correspond à ces filtres.", symbole: "line.3.horizontal.decrease")
                     }
-                    LazyVStack(spacing: 10) {
-                        ForEach(credits, id: \.reference) { credit in
-                            ligne(credit)
-                        }
-                    }
-                    .padding(.horizontal, 20)
+                    grilleOuListe(credits, choix: true)
                 }
 
                 let realisations = AnalyseFilmographie.significatifs(filmographie.realisations)
                 if !realisations.isEmpty {
                     VStack(alignment: .leading, spacing: 12) {
                         TitreSection("Réalisations")
-                        LazyVStack(spacing: 10) {
-                            ForEach(realisations, id: \.reference) { credit in
-                                ligne(credit)
-                            }
-                        }
-                        .padding(.horizontal, 20)
+                        grilleOuListe(realisations, choix: false)
                     }
                 }
 
@@ -254,6 +246,51 @@ struct PersonneView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Theme.surface, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
         .accessibilityElement(children: .combine)
+    }
+
+    /// La filmographie en affiches, comme Mes listes et Explorer ; ou en lignes, qui disent le rôle.
+    @ViewBuilder
+    private func grilleOuListe(_ credits: [CreditPersonne], choix: Bool) -> some View {
+        if choix, !credits.isEmpty {
+            HStack(spacing: 12) {
+                Text(Format.pluriel(credits.count, "titre")).font(.caption).foregroundStyle(.secondary)
+                Spacer()
+                Button { enGrille = true } label: {
+                    Image(systemName: "square.grid.2x2.fill").foregroundStyle(enGrille ? AnyShapeStyle(Theme.accent) : AnyShapeStyle(.secondary))
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Grille")
+                .accessibilityAddTraits(enGrille ? .isSelected : [])
+                Button { enGrille = false } label: {
+                    Image(systemName: "list.bullet").foregroundStyle(enGrille ? AnyShapeStyle(.secondary) : AnyShapeStyle(Theme.accent))
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Liste")
+                .accessibilityAddTraits(enGrille ? [] : .isSelected)
+            }
+            .font(.title3)
+            .padding(.horizontal, 20)
+        }
+        if enGrille {
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: largeurGrille == .regular ? 150 : 105), spacing: 12, alignment: .top)], spacing: 18) {
+                ForEach(credits, id: \.reference) { credit in
+                    NavigationLink(value: credit.reference) {
+                        CarteAffiche(titre: credit.titreResume, largeur: nil,
+                                     sousTitre: vus.contains(credit.reference) ? "✓ Vu" : nil)
+                    }
+                    .buttonStyle(.plain)
+                    .actionsRapides(credit.titreResume)
+                }
+            }
+            .padding(.horizontal, 20)
+        } else {
+            LazyVStack(spacing: 10) {
+                ForEach(credits, id: \.reference) { credit in
+                    ligne(credit)
+                }
+            }
+            .padding(.horizontal, 20)
+        }
     }
 
     private func ligne(_ credit: CreditPersonne) -> some View {

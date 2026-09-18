@@ -516,7 +516,7 @@ private struct ContenuFiche: View {
         guard let cible else { return }
         cible.alertesActives = mode != nil
         if let mode { cible.modeAlertes = mode }
-        try? contexte.save()
+        contexte.sauver()
         rafraichir()
         Task {
             if mode != nil { await etat.alertes.demanderAutorisation() }
@@ -542,7 +542,7 @@ private struct ContenuFiche: View {
         let service = ServiceSuivi(contexte: contexte)
         if let suivi, suivi.masque {
             suivi.masque = false
-            try? contexte.save()
+            contexte.sauver()
             rafraichir()
             etat.confirmer("Remis dans Terminés", symbole: "bookmark.fill")
             return
@@ -550,7 +550,7 @@ private struct ContenuFiche: View {
         if let suivi {
             let copie = InstantaneSuivi(suivi)
             contexte.delete(suivi)
-            try? contexte.save()
+            contexte.sauver()
             etat.confirmer("« \(fiche.titre) » retiré de Mes listes", symbole: "minus.circle") { [contexte] in
                 copie.restaurer(dans: contexte)
                 rafraichir()
