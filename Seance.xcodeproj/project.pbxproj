@@ -28,6 +28,7 @@
 		384FE0F435964622466BCCB2 /* FauxTMDB.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0714561FD96B1A09A61A666 /* FauxTMDB.swift */; };
 		39441D5ABFFC98D2A302160D /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 657612993321CF691E8E7B90 /* InfoPlist.strings */; };
 		39CC7B582D020F02F55F50E2 /* Journal.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6B582A9631F77D0CF1A0AD1 /* Journal.swift */; };
+		3A89356006CFB7C030658FEE /* IPadTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C096216F8F25D89E9BAB625D /* IPadTests.swift */; };
 		3DC619D9658209E9AFF5A423 /* ApercuWidgets.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D9CD2AC426EAC55F2E18D92 /* ApercuWidgets.swift */; };
 		3E59122E7CB372F83EDBF4EA /* PublicationWidgets.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F81823D485206B920058D9E /* PublicationWidgets.swift */; };
 		44CC27564B8FE5C1912FCED7 /* ExplorerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3279F3CE4F19B222D6A87054 /* ExplorerView.swift */; };
@@ -196,6 +197,7 @@
 		BC2A60787D57F81817526B34 /* SeanceKit */ = {isa = PBXFileReference; lastKnownFileType = folder; name = SeanceKit; path = SeanceKit; sourceTree = SOURCE_ROOT; };
 		BC72ED9E3BF950C28E130C53 /* ReglagesOuRegarder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReglagesOuRegarder.swift; sourceTree = "<group>"; };
 		C008722D573D7286070E193D /* ReglagesAlertesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReglagesAlertesView.swift; sourceTree = "<group>"; };
+		C096216F8F25D89E9BAB625D /* IPadTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IPadTests.swift; sourceTree = "<group>"; };
 		C4994130740FE5C4E9733D92 /* SeanceApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeanceApp.swift; sourceTree = "<group>"; };
 		C53B59D1B4297910EB9B20FA /* LecteurWidgets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LecteurWidgets.swift; sourceTree = "<group>"; };
 		C5685087E89C22033827A9C2 /* fr */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = fr; path = fr.lproj/InfoPlist.strings; sourceTree = "<group>"; };
@@ -447,6 +449,7 @@
 				6BF050FFB31533A9C659BB48 /* ClavierTests.swift */,
 				3FAD0B3B3AE70CDCB3242DF4 /* ExplorerTests.swift */,
 				8C27D46355FD45FE0B6BCD9F /* FicheDefilementTests.swift */,
+				C096216F8F25D89E9BAB625D /* IPadTests.swift */,
 				9F521A01F8C00C6861F32A49 /* Lancement.swift */,
 				1EAE8B788413B4185E79D6B4 /* ProgrammeTeleTests.swift */,
 				C823C7D99C49FEB6D7792D4F /* ReglagesTests.swift */,
@@ -714,6 +717,7 @@
 				38494C6BBA699EBC23E52D0A /* ClavierTests.swift in Sources */,
 				C660FE50BC091499DE585220 /* ExplorerTests.swift in Sources */,
 				54F323CA789B8DA3749B81CB /* FicheDefilementTests.swift in Sources */,
+				3A89356006CFB7C030658FEE /* IPadTests.swift in Sources */,
 				D09506312ABD69FBD6A03FA4 /* Lancement.swift in Sources */,
 				235FD4AE7A62D4B74525FB9D /* ProgrammeTeleTests.swift in Sources */,
 				90CB491DC981A4EF8E410D77 /* ReglagesTests.swift in Sources */,
@@ -839,7 +843,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 21;
+				CURRENT_PROJECT_VERSION = 22;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = GATK475J3P;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -859,7 +863,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 3.1;
+				MARKETING_VERSION = 3.1.1;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -943,7 +947,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 21;
+				CURRENT_PROJECT_VERSION = 22;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = GATK475J3P;
 				ENABLE_NS_ASSERTIONS = NO;
@@ -957,7 +961,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 3.1;
+				MARKETING_VERSION = 3.1.1;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";

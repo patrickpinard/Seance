@@ -132,6 +132,7 @@ struct RacineView: View {
                     await PublicationWidgets.actualiser(contexte: contexte, tmdb: etat.tmdb)
                 }
             case .background:
+                BarreLaterale.retenirSurIPad()
                 // Soirée, épisodes cochés, alertes : les widgets relisent tout en quittant l'app.
                 PublicationWidgets.recharger()
                 // Un titre ajouté à tes listes doit pouvoir se dire à Siri sans relancer l'app.

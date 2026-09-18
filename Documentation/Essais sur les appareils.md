@@ -62,6 +62,8 @@ Ouvre Séance une fois après l'installation, attends une minute, puis :
    une étape déjà faite est cochée en vert. Le même écran s'ouvre depuis la bienvenue (« J'ai déjà Séance sur un autre appareil »).
 2. Après deux ou trois synchronisations avec des changements : dans Fichiers, le dossier choisi contient « Sauvegardes datées »,
    avec au plus cinq fichiers par appareil.
-3. iPad : au lancement, la barre latérale est ouverte et montre tous les onglets.
+3. iPad (3.1.1) — **en paysage**, au lancement : la barre latérale est ouverte à côté de la page, avec tous les onglets.
+   La refermer, quitter Séance, la relancer : elle reste fermée. **En portrait** : l'accueil est visible en entier,
+   rien ne le recouvre ; le bouton en haut à gauche ouvre la barre.
 4. Explorer : taper un titre de ta liste — la section « Dans tes listes » apparaît avant les résultats de TMDB.
 

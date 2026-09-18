@@ -1,14 +1,16 @@
 #!/bin/zsh
-# Lance des tests d'interface sur le simulateur iPhone 17 Pro, en relançant une fois si le simulateur reste figé sur son
+# Lance des tests d'interface sur un simulateur (iPhone 17 Pro d'office), en relançant une fois si le simulateur reste figé sur son
 # écran d'accueil (cela arrive au premier lancement après une recompilation : le test ne démarre jamais).
 #
 #   outils/tests-interface.sh                                   # tous les tests sans clé TMDB
 #   outils/tests-interface.sh TourCompletTests/testGrandTexte   # un seul
 #   RESULTAT=.build/x.xcresult outils/tests-interface.sh …      # où ranger le résultat
+#   SIMULATEUR="iPad Air 11-inch (M3)" outils/tests-interface.sh IPadTests   # sur un autre simulateur
 set -uo pipefail
 racine=${0:A:h:h}
-simulateur=$(xcrun simctl list devices available | awk -F '[()]' '/iPhone 17 Pro \(/ { print $2; exit }')
-[[ -n $simulateur ]] || { echo "Simulateur iPhone 17 Pro introuvable."; exit 1; }
+modele=${SIMULATEUR:-iPhone 17 Pro}
+simulateur=$(xcrun simctl list devices available | grep -F "    $modele (" | head -1 | grep -o -E '[0-9A-F]{8}-[0-9A-F-]{27}')
+[[ -n $simulateur ]] || { echo "Simulateur « $modele » introuvable."; exit 1; }
 resultat=${RESULTAT:-$racine/.build/tests-interface.xcresult}
 journal="$racine/.build/tests-interface.log"
 if (( $# )); then
@@ -43,5 +45,5 @@ if (( code == 99 )); then
   xcrun simctl shutdown "$simulateur" > /dev/null 2>&1 || true
   lancer; code=$?
 fi
-grep -E "Test Case .*(passed|failed)|error:" "$journal" | cut -c1-260
+grep -E "Test Case .*(passed|failed|skipped)|error:" "$journal" | cut -c1-260
 exit $code

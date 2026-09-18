@@ -25,14 +25,39 @@ enum BarreLaterale {
     #endif
 
     /// Sur l'iPad, la barre d'onglets du haut ne montre que trois onglets : Profil et Réglages se cachent derrière « > ».
-    /// La barre latérale, ouverte au lancement, les montre tous ; on la referme d'un geste si on préfère la place.
+    /// La barre latérale, ouverte au lancement, les montre tous — mais seulement quand elle tient **à côté** de la page
+    /// (iPad en paysage). En portrait, le système la pose par-dessus le contenu : ouverte d'office, elle masquerait
+    /// l'accueil à chaque lancement. Et si tu l'as refermée en paysage, elle le reste, comme sur le Mac.
     @MainActor
     static func ouvrirSurIPad() {
         #if !targetEnvironment(macCatalyst)
-        guard UIDevice.current.userInterfaceIdiom == .pad, let controleur = controleurOnglets() else { return }
+        guard UIDevice.current.userInterfaceIdiom == .pad, !UserDefaults.standard.bool(forKey: cleMasqueeIPad),
+              let controleur = controleurOnglets(), tientACote(controleur) else { return }
         controleur.sidebar.isHidden = false
         #endif
     }
+
+    /// En quittant l'app : retient si la barre était refermée. En portrait elle l'est presque toujours (elle se referme
+    /// dès qu'on choisit un onglet) : cela ne dit rien du choix de l'utilisateur, on ne retient donc rien.
+    @MainActor
+    static func retenirSurIPad() {
+        #if !targetEnvironment(macCatalyst)
+        guard UIDevice.current.userInterfaceIdiom == .pad, let controleur = controleurOnglets(), tientACote(controleur) else { return }
+        UserDefaults.standard.set(controleur.sidebar.isHidden, forKey: cleMasqueeIPad)
+        #endif
+    }
+
+    #if !targetEnvironment(macCatalyst)
+    private static let cleMasqueeIPad = "ipad.barreLaterale.masquee"
+
+    /// UIKit ne dit pas si la barre se posera à côté ou par-dessus ; il en décide à la largeur. Plus large que haute et
+    /// au moins 1000 points : tous les iPad en paysage plein écran, pas en portrait ni en demi-écran.
+    @MainActor
+    private static func tientACote(_ controleur: UITabBarController) -> Bool {
+        let taille = controleur.view.bounds.size
+        return taille.width >= 1000 && taille.width > taille.height
+    }
+    #endif
 
     @MainActor
     private static func controleurOnglets() -> UITabBarController? {

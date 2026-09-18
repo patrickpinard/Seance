@@ -20,6 +20,19 @@ struct NoteVersion: Identifiable {
 
     static let historique: [NoteVersion] = [
         NoteVersion(
+            numero: "3.1.1",
+            date: "18 septembre 2026",
+            resume: "Sur l'iPad, la barre latérale ne recouvre plus l'accueil.",
+            fonctionnalites: [
+                Fonctionnalite(symbole: "sidebar.left", titre: "iPad : la barre latérale à sa place",
+                               detail: "En paysage, elle s'ouvre à côté de la page et montre tous les onglets ; si tu la refermes, elle le reste. En portrait, où elle recouvrait l'accueil à chaque lancement, elle ne s'ouvre plus toute seule : le bouton en haut à gauche la montre."),
+                Fonctionnalite(symbole: "text.alignleft", titre: "Titres sur deux lignes",
+                               detail: "Sous les affiches de Mes listes et des listes nommées : « John Wick : Chapitre 2 » et « Chapitre 4 » se distinguent."),
+                Fonctionnalite(symbole: "tv", titre: "Programme télé : le compte du jour",
+                               detail: "« 3 titres » quand la journée mêle films et séries, au lieu de ne compter que les films."),
+            ]
+        ),
+        NoteVersion(
             numero: "3.1",
             date: "18 septembre 2026",
             resume: "Un nouvel appareil prêt en trois étapes, des alertes à bouton, et les derniers écrans alignés.",
