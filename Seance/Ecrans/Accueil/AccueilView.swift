@@ -210,6 +210,11 @@ struct AccueilView: View {
             chemin.append(reference)
             etat.ficheDemandee = nil
         }
+        .onChange(of: etat.programmeTeleDemande, initial: true) { _, demande in
+            guard demande else { return }
+            chemin.append(DestinationAccueil.tele)
+            etat.programmeTeleDemande = false
+        }
     }
 
     private var contenu: some View {
@@ -538,42 +543,55 @@ private struct SectionNAS: View {
     }
 }
 
-/// UX-19 : cartes larges des diffusions de ce soir ; quand la soirée est vide ou passée,
-/// les prochains films de la semaine.
+/// UX-19 : grandes cartes de ce qui passe ce soir ; quand la soirée est vide ou passée,
+/// les prochains films de la semaine. Les épisodes qui s'enchaînent ne font qu'une carte.
 private struct SectionTele: View {
     let diffusions: [Diffusion]
     let lectureEnCours: Bool
     let toutVoir: () -> Void
     @Query private var chaines: [Chaine]
+    @Query private var suivis: [Suivi]
 
     /// EF-46 : ce qui commence entre 20 h et 23 h aujourd'hui et n'est pas terminé ; les films d'abord.
-    private var ceSoir: [Diffusion] {
-        let jour = DateTMDB(.now)
+    private func ceSoir(_ blocs: [BlocDiffusion], maintenant: Date) -> [BlocDiffusion] {
+        let jour = DateTMDB(maintenant)
         let debut = jour.instant(heure: 20)
         let fin = jour.instant(heure: 23)
-        return diffusions
-            .filter { $0.debut >= debut && $0.debut <= fin && $0.fin > .now }
-            .sorted { ($0.typeBrut == TypeTitre.film.rawValue ? 0 : 1, $0.debut) < ($1.typeBrut == TypeTitre.film.rawValue ? 0 : 1, $1.debut) }
+        return blocs
+            .filter { $0.debut >= debut && $0.debut <= fin && $0.fin > maintenant }
+            .sorted { ($0.estFilm ? 0 : 1, $0.debut) < ($1.estFilm ? 0 : 1, $1.debut) }
     }
 
     /// Les séries passent tous les jours : la suite de la semaine ne montre que les films.
-    private var prochainement: [Diffusion] {
-        Array(diffusions.filter { $0.debut > .now && $0.typeBrut == TypeTitre.film.rawValue }.prefix(12))
+    private func prochainement(_ blocs: [BlocDiffusion], maintenant: Date) -> [BlocDiffusion] {
+        Array(blocs.filter { $0.debut > maintenant && $0.estFilm }.prefix(12))
     }
 
     var body: some View {
-        let soir = ceSoir
-        let affichees = soir.isEmpty ? prochainement : soir
-        VStack(alignment: .leading, spacing: 12) {
+        TimelineView(.periodic(from: .now, by: 60)) { horloge in
+            section(maintenant: horloge.date)
+        }
+    }
+
+    private func section(maintenant: Date) -> some View {
+        let blocs = GrilleTele.blocs(diffusions.filter { $0.fin > maintenant })
+        let soir = ceSoir(blocs, maintenant: maintenant)
+        let affichees = soir.isEmpty ? prochainement(blocs, maintenant: maintenant) : soir
+        let marques = MarqueListe.marques(suivis)
+        return VStack(alignment: .leading, spacing: 12) {
             TitreSection(titre: soir.isEmpty ? "Prochainement à la télé" : "Ce soir à la télé") {
                 if lectureEnCours {
                     ProgressView().controlSize(.small)
-                } else if !soir.isEmpty {
-                    Circle().fill(.red).frame(width: 8, height: 8)
                 }
                 if !diffusions.isEmpty {
                     BoutonToutVoir(action: toutVoir)
                 }
+            }
+            if !affichees.isEmpty {
+                Text(resume(affichees, ceSoir: !soir.isEmpty))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 20)
             }
             if affichees.isEmpty {
                 if lectureEnCours {
@@ -583,9 +601,11 @@ private struct SectionTele: View {
                 }
             } else {
                 DefilementHorizontal {
-                    HStack(spacing: 12) {
-                        ForEach(affichees) { diffusion in
-                            carte(diffusion)
+                    LazyHStack(spacing: 14) {
+                        ForEach(affichees) { bloc in
+                            CarteDiffusion(bloc: bloc, chaine: nomChaine(bloc.premiere.chaine), marque: bloc.reference.flatMap { marques[$0] },
+                                           maintenant: maintenant, jourVisible: true)
+                                .frame(width: 310)
                         }
                     }
                     .padding(.horizontal, 20)
@@ -594,73 +614,17 @@ private struct SectionTele: View {
         }
     }
 
-    @ViewBuilder
-    private func carte(_ diffusion: Diffusion) -> some View {
-        let enCours = diffusion.debut <= .now
-        let contenu = ZStack(alignment: .bottomLeading) {
-            ImageDistante(url: image(diffusion), coins: 0)
-            LinearGradient(colors: [.black.opacity(0.35), .clear, .black.opacity(0.85)], startPoint: .top, endPoint: .bottom)
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 6) {
-                    Text(nomChaine(diffusion.chaine))
-                        .font(.caption.weight(.heavy))
-                        .padding(.horizontal, 7).padding(.vertical, 4)
-                        .background(.white, in: RoundedRectangle(cornerRadius: 6))
-                        .foregroundStyle(.black)
-                    Group {
-                        if enCours {
-                            Text("En cours").foregroundStyle(.red)
-                        } else if Calendar.current.isDateInToday(diffusion.debut) {
-                            Text(diffusion.debut, format: .dateTime.hour().minute())
-                        } else {
-                            Text(diffusion.debut, format: .dateTime.weekday(.abbreviated).day().hour().minute())
-                        }
-                    }
-                    .font(.caption.weight(.bold))
-                    .padding(.horizontal, 7).padding(.vertical, 4)
-                    .background(.black.opacity(0.55), in: RoundedRectangle(cornerRadius: 6))
-                }
-                Spacer()
-                Text(diffusion.titreGuide).font(.headline).lineLimit(2)
-                Text(detail(diffusion))
-                    .font(.caption)
-                    .foregroundStyle(.white.opacity(0.75))
-            }
-            .padding(12)
-            .foregroundStyle(.white)
-        }
-        .frame(width: 280, height: 158)
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-
-        if let tmdbID = diffusion.tmdbID {
-            NavigationLink(value: ReferenceTitre(type: TypeTitre(rawValue: diffusion.typeBrut) ?? .film, tmdbID: tmdbID)) { contenu }
-                .buttonStyle(.plain)
-        } else {
-            contenu
-        }
-    }
-
-    /// L'image de fond TMDB en priorité, puis l'affiche, puis la vignette du guide.
-    private func image(_ diffusion: Diffusion) -> URL? {
-        ImageTMDB.url(diffusion.cheminFond, .fond)
-            ?? ImageTMDB.url(diffusion.cheminAffiche, .fond)
-            ?? diffusion.imageGuide.flatMap(URL.init(string:))
-    }
-
-    /// « Film · 2000 · 155 min », « Série · S02E05 · 45 min ».
-    private func detail(_ diffusion: Diffusion) -> String {
-        var morceaux = [diffusion.typeBrut == TypeTitre.serie.rawValue ? "Série" : "Film"]
-        if let saison = diffusion.saison, let episode = diffusion.episode {
-            morceaux.append(NumeroEpisode(saison: saison, episode: episode).description)
-        } else if let annee = diffusion.anneeGuide {
-            morceaux.append(String(annee))
-        }
-        morceaux.append("\(Int(diffusion.fin.timeIntervalSince(diffusion.debut) / 60)) min")
-        return morceaux.joined(separator: " · ")
+    /// « 3 films et 2 séries sur tes chaînes, dès 20 h », « Les prochains films sur tes chaînes ».
+    private func resume(_ blocs: [BlocDiffusion], ceSoir: Bool) -> String {
+        guard ceSoir else { return "Les prochains films sur tes chaînes" }
+        let films = blocs.filter(\.estFilm).count
+        let series = blocs.count - films
+        let morceaux = [films > 0 ? Format.pluriel(films, "film") : nil, series > 0 ? Format.pluriel(series, "série") : nil].compactMap { $0 }
+        return morceaux.joined(separator: " et ") + " sur tes chaînes, dès 20 h"
     }
 
     private func nomChaine(_ identifiant: String) -> String {
-        chaines.first { $0.identifiantGuide == identifiant }?.nom ?? identifiant
+        NomChaine.lire(identifiant, parmi: chaines)
     }
 }
 

@@ -20,6 +20,25 @@ struct NoteVersion: Identifiable {
 
     static let historique: [NoteVersion] = [
         NoteVersion(
+            numero: "2.5",
+            date: "18 septembre 2026",
+            resume: "Réglages ne fige plus l'iPhone, et un programme télé qui se lit d'un coup d'œil.",
+            fonctionnalites: [
+                Fonctionnalite(symbole: "gearshape", titre: "Réglages sur l'iPhone",
+                               detail: "Ouvrir Réglages depuis l'engrenage du Profil figeait l'app, puis iOS la fermait. La page et toutes ses sous-pages s'ouvrent de nouveau, et un test automatique les parcourt."),
+                Fonctionnalite(symbole: "tv", titre: "Programme télé par soirée",
+                               detail: "Un jour à la fois, choisi dans une rangée de dates. « En ce moment » et « En soirée » en grandes cartes ; le reste de la journée en lignes, l'heure devant."),
+                Fonctionnalite(symbole: "clock", titre: "L'heure en grand",
+                               detail: "Sur chaque carte : la chaîne, l'heure de début et de fin, « Dans 35 min », et en direct l'avancement avec le temps qui reste."),
+                Fonctionnalite(symbole: "rectangle.stack", titre: "Épisodes réunis",
+                               detail: "Les épisodes d'une série qui s'enchaînent sur une chaîne ne font plus qu'une carte : « S08E01 et E02 »."),
+                Fonctionnalite(symbole: "bookmark", titre: "Tes titres à la télé",
+                               detail: "Un film de ta liste qui passe à la télé porte un liseré orange et « Dans ta liste » ; un titre déjà vu est signalé aussi."),
+                Fonctionnalite(symbole: "calendar", titre: "Prévoir depuis le programme",
+                               detail: "Clic droit ou appui long sur un passage : « Prévoir pour ce soir-là » l'ajoute à la soirée du jour de diffusion."),
+            ]
+        ),
+        NoteVersion(
             numero: "2.4",
             date: "18 septembre 2026",
             resume: "Prévoir et ranger depuis partout, listes nommées, où regarder sur les affiches, et des données versionnées.",

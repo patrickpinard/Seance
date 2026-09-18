@@ -431,7 +431,7 @@ struct InviteCleTMDB: View {
         } description: {
             Text("Séance lit les films, séries et plateformes sur TMDB. La clé est gratuite et reste dans le trousseau de l'appareil.")
         } actions: {
-            NavigationLink("Saisir ma clé TMDB") { ReglagesTMDBView() }
+            NavigationLink("Saisir ma clé TMDB", value: DestinationReglage.tmdb)
                 .buttonStyle(.borderedProminent)
         }
     }

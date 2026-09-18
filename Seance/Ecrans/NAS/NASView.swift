@@ -82,7 +82,7 @@ struct NASView: View {
                 } else if etat.nas.estConfigure {
                     Button("Analyser", systemImage: "arrow.clockwise") { analyser() }
                 }
-                NavigationLink { ReglagesNASView() } label: {
+                NavigationLink(value: DestinationReglage.nas) {
                     Label("Réglages du NAS", systemImage: "gearshape")
                 }
             }
@@ -103,7 +103,7 @@ struct NASView: View {
             } description: {
                 Text("Indique l'adresse, le partage et le mot de passe de ton NAS pour voir les films déjà téléchargés.")
             } actions: {
-                NavigationLink("Configurer le NAS") { ReglagesNASView() }
+                NavigationLink("Configurer le NAS", value: DestinationReglage.nas)
                     .buttonStyle(.borderedProminent)
             }
         } else {

@@ -174,6 +174,10 @@ struct RacineView: View {
                 etat.listeDemandee = .aVenir
                 onglet = .listes
                 return
+            case .tele:
+                onglet = .accueil
+                etat.programmeTeleDemande = true
+                return
             case nil:
                 break
             }
@@ -196,6 +200,9 @@ extension View {
         }
         .navigationDestination(for: ReferencePersonne.self) { personne in
             PersonneView(personne: personne)
+        }
+        .navigationDestination(for: DestinationReglage.self) { destination in
+            PageReglage(destination: destination)
         }
     }
 }

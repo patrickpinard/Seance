@@ -21,6 +21,7 @@
 		1A87204CC25E301D3A307919 /* SeanceWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 8B744A230DB10B098ACBAA1A /* SeanceWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		1C624813E48BF003F682B704 /* SeanceNAS in Frameworks */ = {isa = PBXBuildFile; productRef = 527578283F776F88734B4303 /* SeanceNAS */; };
 		20FA4ABD083DC6765765CA01 /* SeanceDonnees in Frameworks */ = {isa = PBXBuildFile; productRef = 2CAE51A8CC0DF6130D32359E /* SeanceDonnees */; };
+		235FD4AE7A62D4B74525FB9D /* ProgrammeTeleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EAE8B788413B4185E79D6B4 /* ProgrammeTeleTests.swift */; };
 		31EF6B7567FA50350F574204 /* LectureNAS.swift in Sources */ = {isa = PBXBuildFile; fileRef = 562FA0BC92C87B80E5980C1F /* LectureNAS.swift */; };
 		38494C6BBA699EBC23E52D0A /* ClavierTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6BF050FFB31533A9C659BB48 /* ClavierTests.swift */; };
 		39CC7B582D020F02F55F50E2 /* Journal.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6B582A9631F77D0CF1A0AD1 /* Journal.swift */; };
@@ -43,6 +44,7 @@
 		71ABDE907BD2AEE6ABA4AA3C /* NoteTitre.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AD887A9AD6D4723A7D0854A /* NoteTitre.swift */; };
 		7C4DB19315E00E769A3D690A /* EtatNAS.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD94F6BCC152B1B30DE2DF48 /* EtatNAS.swift */; };
 		889E1057E692259368F006C8 /* FeuilleFiltres.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D0200041452BB3D285609DE /* FeuilleFiltres.swift */; };
+		90CB491DC981A4EF8E410D77 /* ReglagesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C823C7D99C49FEB6D7792D4F /* ReglagesTests.swift */; };
 		9465DF498AFBE22D12E9EC5E /* FicheView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 003B43F4A3CFECED924F22EE /* FicheView.swift */; };
 		9B9D518CBB779E2321545F3B /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6507C62249A2769DB1E60E0 /* Theme.swift */; };
 		9D65549B7C3237C021D34BED /* CocherEpisodeIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F6CA7E0DFEDE70FAE64BAE2 /* CocherEpisodeIntent.swift */; };
@@ -61,6 +63,7 @@
 		C2DC72385E62E22BC17B8F7B /* ExplorerModele.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50E6C3ED562D0B27CFEF522C /* ExplorerModele.swift */; };
 		C660FE50BC091499DE585220 /* ExplorerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3FAD0B3B3AE70CDCB3242DF4 /* ExplorerTests.swift */; };
 		C844DDCDD7B1535E749C0C05 /* ListesNommees.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AE0ECC999FF1CA413FECC30 /* ListesNommees.swift */; };
+		CBE171A500AE9BC604731286 /* ProgrammeTele.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F47964B22868DCCC92CA219 /* ProgrammeTele.swift */; };
 		CC898EF9BC0F2AB4B3062CF4 /* SeanceApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4994130740FE5C4E9733D92 /* SeanceApp.swift */; };
 		D3692AACDB2EE1BC63A706F2 /* ReglagesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = ABA6924ED64F1E1D2244C779 /* ReglagesView.swift */; };
 		D4F4F44E2C6AB85B53D771C2 /* CocherEpisodeIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F6CA7E0DFEDE70FAE64BAE2 /* CocherEpisodeIntent.swift */; };
@@ -115,6 +118,7 @@
 		0FF991D92C556A3C1303E019 /* EpisodesSerie.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EpisodesSerie.swift; sourceTree = "<group>"; };
 		12C540EB67C8BD5BA63EA997 /* VuesWidgets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VuesWidgets.swift; sourceTree = "<group>"; };
 		1A183D5A1A3FBB515C991256 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		1EAE8B788413B4185E79D6B4 /* ProgrammeTeleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgrammeTeleTests.swift; sourceTree = "<group>"; };
 		296C605DA0D2EB94945E9572 /* BarreLaterale.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BarreLaterale.swift; sourceTree = "<group>"; };
 		297F7F074F246563F3CA483B /* EtatAlertes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EtatAlertes.swift; sourceTree = "<group>"; };
 		29DE681EF5C1EAA1687286C4 /* MesListesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MesListesView.swift; sourceTree = "<group>"; };
@@ -143,6 +147,7 @@
 		6AD887A9AD6D4723A7D0854A /* NoteTitre.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteTitre.swift; sourceTree = "<group>"; };
 		6BF050FFB31533A9C659BB48 /* ClavierTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClavierTests.swift; sourceTree = "<group>"; };
 		6E0396199B1E4C5178B12F07 /* RacineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RacineView.swift; sourceTree = "<group>"; };
+		6F47964B22868DCCC92CA219 /* ProgrammeTele.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgrammeTele.swift; sourceTree = "<group>"; };
 		6F81823D485206B920058D9E /* PublicationWidgets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PublicationWidgets.swift; sourceTree = "<group>"; };
 		701BB30E177402C310C6B51C /* ProfilView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfilView.swift; sourceTree = "<group>"; };
 		70E5C0C6A6037BEC6D806F5F /* SeanceWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeanceWidget.swift; sourceTree = "<group>"; };
@@ -166,6 +171,7 @@
 		C4994130740FE5C4E9733D92 /* SeanceApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeanceApp.swift; sourceTree = "<group>"; };
 		C53B59D1B4297910EB9B20FA /* LecteurWidgets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LecteurWidgets.swift; sourceTree = "<group>"; };
 		C7971FD6500EC30161EA83E4 /* SeanceNAS */ = {isa = PBXFileReference; lastKnownFileType = folder; name = SeanceNAS; path = SeanceNAS; sourceTree = SOURCE_ROOT; };
+		C823C7D99C49FEB6D7792D4F /* ReglagesTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReglagesTests.swift; sourceTree = "<group>"; };
 		CA91FBA795C5F100C03F8CC6 /* BandesAnnonces.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BandesAnnonces.swift; sourceTree = "<group>"; };
 		CACE819FB69880D873526A37 /* ListesCompletes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ListesCompletes.swift; sourceTree = "<group>"; };
 		CD94F6BCC152B1B30DE2DF48 /* EtatNAS.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EtatNAS.swift; sourceTree = "<group>"; };
@@ -381,6 +387,7 @@
 			children = (
 				5B281D3C94AFCE24D5CACD8E /* AccueilView.swift */,
 				CACE819FB69880D873526A37 /* ListesCompletes.swift */,
+				6F47964B22868DCCC92CA219 /* ProgrammeTele.swift */,
 			);
 			path = Accueil;
 			sourceTree = "<group>";
@@ -392,6 +399,8 @@
 				6BF050FFB31533A9C659BB48 /* ClavierTests.swift */,
 				3FAD0B3B3AE70CDCB3242DF4 /* ExplorerTests.swift */,
 				8C27D46355FD45FE0B6BCD9F /* FicheDefilementTests.swift */,
+				1EAE8B788413B4185E79D6B4 /* ProgrammeTeleTests.swift */,
+				C823C7D99C49FEB6D7792D4F /* ReglagesTests.swift */,
 				3719B49FCFBACBABA76DF8AD /* VisiteTests.swift */,
 			);
 			path = SeanceUITests;
@@ -615,6 +624,7 @@
 				71ABDE907BD2AEE6ABA4AA3C /* NoteTitre.swift in Sources */,
 				07DE75AEB94EC0ECF1D894BB /* PersonneView.swift in Sources */,
 				0301958790324CC4F0427E3F /* ProfilView.swift in Sources */,
+				CBE171A500AE9BC604731286 /* ProgrammeTele.swift in Sources */,
 				3E59122E7CB372F83EDBF4EA /* PublicationWidgets.swift in Sources */,
 				6BE0CB4312106BAE4DF24DB3 /* Raccourcis.swift in Sources */,
 				4BB80C813A05B98CADF6F397 /* RacineView.swift in Sources */,
@@ -639,6 +649,8 @@
 				38494C6BBA699EBC23E52D0A /* ClavierTests.swift in Sources */,
 				C660FE50BC091499DE585220 /* ExplorerTests.swift in Sources */,
 				54F323CA789B8DA3749B81CB /* FicheDefilementTests.swift in Sources */,
+				235FD4AE7A62D4B74525FB9D /* ProgrammeTeleTests.swift in Sources */,
+				90CB491DC981A4EF8E410D77 /* ReglagesTests.swift in Sources */,
 				EB5C447131F05A6754775E34 /* VisiteTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -748,7 +760,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 13;
+				CURRENT_PROJECT_VERSION = 14;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = GATK475J3P;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -768,7 +780,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 2.4;
+				MARKETING_VERSION = 2.5;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -852,7 +864,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 13;
+				CURRENT_PROJECT_VERSION = 14;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = GATK475J3P;
 				ENABLE_NS_ASSERTIONS = NO;
@@ -866,7 +878,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 2.4;
+				MARKETING_VERSION = 2.5;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";

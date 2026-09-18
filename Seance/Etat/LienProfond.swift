@@ -7,14 +7,16 @@ enum LienProfond {
     enum Onglet {
         case ceSoir
         case aVenir
+        case tele
     }
 
-    /// `seance://cesoir` et `seance://avenir`, touchés dans un widget.
+    /// `seance://cesoir` et `seance://avenir`, touchés dans un widget ; `seance://tele` ouvre le programme télé.
     static func onglet(_ url: URL) -> Onglet? {
         guard url.scheme == "seance" else { return nil }
         switch url.host() {
         case "cesoir": return .ceSoir
         case "avenir": return .aVenir
+        case "tele": return .tele
         default: return nil
         }
     }

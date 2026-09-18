@@ -33,6 +33,8 @@ final class EtatApp {
     var ficheDemandee: ReferenceTitre?
     /// Demandé depuis une fiche acteur : Explorer s'ouvre filtré sur cette personne.
     var filtreExplorerDemande: PersonneFiltre?
+    /// `seance://tele` : l'accueil ouvre le programme télé puis remet la demande à zéro.
+    var programmeTeleDemande = false
     /// Onglet à ouvrir, demandé depuis un autre écran (Ce soir vers Explorer).
     var ongletDemande: OngletRacine?
     /// Demandé par le widget « À venir » : Mes listes s'ouvre sur cet onglet.

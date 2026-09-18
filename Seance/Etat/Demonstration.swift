@@ -106,6 +106,35 @@ enum Demonstration {
         let soiree = ServiceSoiree.soiree()
         contexte.insert(SelectionSoir(reference: reacher.reference, titre: reacher.nom, cheminAffiche: reacher.affiche, soiree: soiree))
         contexte.insert(SelectionSoir(reference: aVoir.reference, titre: aVoir.nom, cheminAffiche: aVoir.affiche, soiree: soiree))
+
+        // Programme télé : un film en cours, la soirée, le reste de la journée et les jours suivants.
+        let aujourdhui = DateTMDB(.now)
+        func passage(_ titre: Titre, chaine: String, debut: Date, episode: (Int, Int)? = nil) {
+            let programme = ProgrammeTV(chaine: chaine, debut: debut, fin: debut.addingTimeInterval(TimeInterval(titre.duree * 60)), titre: titre.nom)
+            let diffusion = Diffusion(programme: programme, rattachement: nil)
+            diffusion.typeBrut = titre.reference.type.rawValue
+            diffusion.tmdbID = titre.reference.tmdbID
+            diffusion.cheminAffiche = titre.affiche
+            diffusion.anneeGuide = episode == nil ? 2014 : nil
+            diffusion.saison = episode?.0
+            diffusion.episode = episode?.1
+            contexte.insert(diffusion)
+        }
+        func a(_ heure: Int, _ minute: Int, dans jours: Int = 0) -> Date {
+            aujourdhui.instant(heure: heure).addingTimeInterval(TimeInterval(jours * 86_400 + minute * 60))
+        }
+        passage(films[3], chaine: "W9.fr", debut: Date.now.addingTimeInterval(-40 * 60))
+        passage(films[5], chaine: "France2.fr", debut: Date.now.addingTimeInterval(95 * 60))
+        passage(aVoir, chaine: "TF1.fr", debut: a(20, 55))
+        passage(films[8], chaine: "M6.fr", debut: a(21, 5))
+        passage(reacher, chaine: "RTSUn.ch", debut: a(21, 10), episode: (2, 6))
+        passage(reacher, chaine: "RTSUn.ch", debut: a(22, 2), episode: (2, 7))
+        passage(films[7], chaine: "Arte.fr", debut: a(23, 25))
+        passage(films[2], chaine: "TMC.fr", debut: a(14, 5, dans: 1))
+        passage(films[6], chaine: "France3.fr", debut: a(21, 5, dans: 1))
+        passage(jackRyan, chaine: "RTSDeux.ch", debut: a(20, 40, dans: 1), episode: (1, 3))
+        passage(films[1], chaine: "TF1.fr", debut: a(21, 10, dans: 2))
+        passage(films[4], chaine: "M6.fr", debut: a(21, 10, dans: 3))
         try? contexte.save()
     }
 }

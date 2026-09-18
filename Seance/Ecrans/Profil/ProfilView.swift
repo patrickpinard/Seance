@@ -104,10 +104,7 @@ struct ProfilView: View {
             .toolbar {
                 if classeTaille == .compact {
                     ToolbarItem(placement: .topBarTrailing) {
-                        NavigationLink {
-                            ReglagesView()
-                                .navigationBarTitleDisplayMode(.inline)
-                        } label: {
+                        NavigationLink(value: DestinationReglage.reglages) {
                             Image(systemName: "gearshape")
                         }
                         .accessibilityLabel("Réglages")

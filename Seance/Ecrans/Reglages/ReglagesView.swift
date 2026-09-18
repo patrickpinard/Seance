@@ -3,6 +3,37 @@ import SeanceKit
 import SwiftData
 import SwiftUI
 
+/// Les pages de réglages, ouvertes par valeur (`destinationsTitres()` les déclare à la racine de chaque pile).
+/// Un lien « par vue » vers Réglages, depuis la barre d'outils de Profil, figeait l'iPhone : SwiftUI remettait
+/// la destination à jour à chaque rendu, sans fin, jusqu'à ce qu'iOS tue l'app.
+enum DestinationReglage: Hashable {
+    case reglages, tmdb, claude, plateformes, tele, nas, alertes, sauvegarde, aPropos, apercuWidgets
+}
+
+struct PageReglage: View {
+    let destination: DestinationReglage
+
+    var body: some View {
+        switch destination {
+        case .reglages: ReglagesView().navigationBarTitleDisplayMode(.inline)
+        case .tmdb: ReglagesTMDBView()
+        case .claude: ReglagesClaudeView()
+        case .plateformes: ReglagesPlateformesView()
+        case .tele: ReglagesTeleView()
+        case .nas: ReglagesNASView()
+        case .alertes: ReglagesAlertesView()
+        case .sauvegarde: ReglagesSauvegardeView()
+        case .aPropos: AProposView()
+        case .apercuWidgets:
+            #if DEBUG
+            ApercuWidgetsView()
+            #else
+            EmptyView()
+            #endif
+        }
+    }
+}
+
 /// Réglages de l'app classés par thème, comme l'app Réglages d'iOS : une ligne par catégorie, avec son état
 /// en un coup d'œil, et une page par catégorie. Tes goûts et tes statistiques sont dans Profil.
 /// Sans pile de navigation : onglet à part sur le Mac, page ouverte depuis Profil sur l'iPhone.
@@ -14,45 +45,45 @@ struct ReglagesView: View {
     var body: some View {
         List {
             Section("Comptes") {
-                NavigationLink { ReglagesTMDBView() } label: {
+                NavigationLink(value: DestinationReglage.tmdb) {
                     LigneReglage(titre: "TMDB", symbole: "film.stack", couleur: .teal,
                                  valeur: etat.tmdb == nil ? "À saisir" : "Connecté")
                 }
-                NavigationLink { ReglagesClaudeView() } label: {
+                NavigationLink(value: DestinationReglage.claude) {
                     LigneReglage(titre: "Claude", symbole: "sparkles", couleur: .orange,
                                  valeur: etat.claude == nil ? "Facultatif" : "Connecté")
                 }
             }
 
             Section("Où regarder") {
-                NavigationLink { ReglagesPlateformesView() } label: {
+                NavigationLink(value: DestinationReglage.plateformes) {
                     LigneReglage(titre: "Plateformes", symbole: "play.rectangle.on.rectangle.fill", couleur: .red,
                                  valeur: abonnements.isEmpty ? "Aucune" : "\(abonnements.count)")
                 }
-                NavigationLink { ReglagesTeleView() } label: {
+                NavigationLink(value: DestinationReglage.tele) {
                     LigneReglage(titre: "Télévision", symbole: "tv.fill", couleur: .blue,
                                  valeur: chaines.isEmpty ? "Aucune chaîne" : "\(chaines.count) chaînes")
                 }
-                NavigationLink { ReglagesNASView() } label: {
+                NavigationLink(value: DestinationReglage.nas) {
                     LigneReglage(titre: "NAS", symbole: "externaldrive.fill", couleur: .green,
                                  valeur: etat.nas.estConfigure ? "Configuré" : "À configurer")
                 }
             }
 
             Section("Me prévenir") {
-                NavigationLink { ReglagesAlertesView() } label: {
+                NavigationLink(value: DestinationReglage.alertes) {
                     LigneReglage(titre: "Alertes", symbole: "bell.badge.fill", couleur: .red, valeur: libelleAlertes)
                 }
             }
 
             Section("Mes données") {
-                NavigationLink { ReglagesSauvegardeView() } label: {
+                NavigationLink(value: DestinationReglage.sauvegarde) {
                     LigneReglage(titre: "Sauvegarde", symbole: "externaldrive.badge.icloud", couleur: .indigo, valeur: nil)
                 }
             }
 
             Section {
-                NavigationLink { AProposView() } label: {
+                NavigationLink(value: DestinationReglage.aPropos) {
                     LigneReglage(titre: "À propos", symbole: "info", couleur: .gray, valeur: expirationProche)
                 }
             }
@@ -60,7 +91,7 @@ struct ReglagesView: View {
             #if DEBUG
             if ApercuWidgetsView.actif {
                 Section("Développement") {
-                    NavigationLink { ApercuWidgetsView() } label: {
+                    NavigationLink(value: DestinationReglage.apercuWidgets) {
                         LigneReglage(titre: "Aperçu des widgets", symbole: "square.grid.2x2.fill", couleur: .gray, valeur: nil)
                     }
                 }
