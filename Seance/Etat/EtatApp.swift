@@ -11,6 +11,10 @@ final class EtatApp {
     private(set) var tmdb: TMDBClient?
     /// Facultatif : sans clé, « Idées pour ce soir » classe les titres sur l'appareil (EF-27).
     private(set) var claude: ClientClaude?
+    /// « Prévoir pour une soirée… » et « Ajouter à une liste… », demandés depuis une fiche, un clic droit ou
+    /// Mes listes : la feuille s'ouvre au-dessus de l'écran en cours.
+    var titreADater: TitreChoisi?
+    var titrePourListe: TitreChoisi?
     /// ⌘F ou une demande d'un autre écran : Explorer s'ouvre, le champ de recherche actif.
     var rechercheDemandee = false
     /// Date d'expiration de l'installation (compte Apple gratuit : 7 jours), lue dans le profil de l'app.
@@ -36,6 +40,8 @@ final class EtatApp {
     let depot = DepotCles()
     let nas: EtatNAS
     let alertes = EtatAlertes()
+    /// Badges « où regarder » des affiches.
+    let ou = EtatOu()
     let journal = Journal()
     /// Gardé ici : le centre de notifications ne retient son délégué que faiblement.
     private var delegueNotifications: DelegueNotifications?

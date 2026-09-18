@@ -10,13 +10,16 @@ import UIKit
 struct ImageDistante: View {
     let url: URL?
     var coins: CGFloat = 12
+    /// Ce qui tient la place d'une image absente : une pellicule, ou une silhouette pour une personne.
+    var symboleVide = "film"
 
     @State private var image: UIImage?
     @State private var echec = false
 
-    init(url: URL?, coins: CGFloat = 12) {
+    init(url: URL?, coins: CGFloat = 12, symboleVide: String = "film") {
         self.url = url
         self.coins = coins
+        self.symboleVide = symboleVide
         _image = State(initialValue: url.flatMap { CacheImages.partage.enMemoire($0) })
     }
 
@@ -28,7 +31,7 @@ struct ImageDistante: View {
                 if let image {
                     Image(uiImage: image).resizable().scaledToFill().transition(.opacity)
                 } else if url == nil || echec {
-                    Image(systemName: "film").foregroundStyle(.tertiary)
+                    Image(systemName: symboleVide).foregroundStyle(.tertiary)
                 }
             }
             .clipped()
@@ -217,10 +220,17 @@ struct CarteAffiche: View {
     /// Remplace l'année sous le titre, par exemple par une date de sortie.
     var sousTitre: String?
 
+    @Environment(EtatApp.self) private var etat
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             ImageDistante(url: ImageTMDB.url(titre.cheminAffiche, .affiche))
                 .aspectRatio(2 / 3, contentMode: .fit)
+                // Où regarder, sans ouvrir la fiche : NAS, plateforme de tes abonnements, télé de ce soir.
+                .overlay(alignment: .topLeading) {
+                    BadgeOu(reference: titre.reference).padding(5)
+                }
+                .task(id: titre.reference) { etat.ou.demander(titre.reference, client: etat.tmdb) }
                 .overlay(alignment: .bottomLeading) {
                     if titre.nombreVotes > 0 {
                         AnneauNote(pourcentage: titre.pourcentageNote)

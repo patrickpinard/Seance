@@ -28,13 +28,37 @@ public enum EntrepotSeance {
         [TitreCache.self, Diffusion.self, EtatPlateformes.self, AlertePlanifiee.self, FichierNAS.self, Echeance.self]
     }
 
+    /// Ouvre le magasin avec le plan de migration (SchemaSeance.swift). Si cette ouverture échoue, le magasin est
+    /// rouvert comme avant la 2.4, par la migration automatique : une erreur du plan ne doit jamais couper
+    /// l'app de ses données.
     public static func conteneur(_ emplacement: Emplacement = .groupeApp) throws -> ModelContainer {
         let utilisateur = configuration("Utilisateur", modelesUtilisateur, emplacement)
         let cache = configuration("Cache", modelesCache, emplacement)
-        return try ModelContainer(
-            for: Schema(modelesUtilisateur + modelesCache),
-            configurations: utilisateur, cache
-        )
+        do {
+            return try ModelContainer(
+                for: Schema(versionedSchema: SchemaSeanceV2.self),
+                migrationPlan: PlanMigrationSeance.self,
+                configurations: utilisateur, cache
+            )
+        } catch {
+            derniereErreurDuPlan = String(describing: error)
+            return try ModelContainer(
+                for: Schema(modelesUtilisateur + modelesCache),
+                configurations: utilisateur, cache
+            )
+        }
+    }
+
+    /// Renseignée quand le plan de migration n'a pas pu ouvrir le magasin ; l'app la note dans son journal.
+    public nonisolated(unsafe) static var derniereErreurDuPlan: String?
+
+    /// Pour les tests : une base telle que Séance 2.3 la créait, sans version (comme les bases installées)
+    /// ou déclarée en version 1.
+    static func conteneurV1(dossier: URL, versionne: Bool) throws -> ModelContainer {
+        let utilisateur = configuration("Utilisateur", SchemaSeanceV1.modelesUtilisateur, .dossier(dossier))
+        let cache = configuration("Cache", modelesCache, .dossier(dossier))
+        let schema = versionne ? Schema(versionedSchema: SchemaSeanceV1.self) : Schema(SchemaSeanceV1.models)
+        return try ModelContainer(for: schema, configurations: utilisateur, cache)
     }
 
     private static func configuration(

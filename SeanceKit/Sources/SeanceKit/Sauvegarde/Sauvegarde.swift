@@ -64,14 +64,29 @@ public struct Sauvegarde: Codable, Sendable, Equatable {
     }
 
     public struct Liste: Codable, Sendable, Equatable {
+        /// Nom et affiche d'un titre de la liste ; absent des sauvegardes antérieures à la version 2.4.
+        public struct Apercu: Codable, Sendable, Equatable {
+            public var reference: ReferenceTitre
+            public var titre: String
+            public var cheminAffiche: String?
+
+            public init(reference: ReferenceTitre, titre: String, cheminAffiche: String?) {
+                self.reference = reference
+                self.titre = titre
+                self.cheminAffiche = cheminAffiche
+            }
+        }
+
         public var nom: String
         public var creeeLe: Date
         public var titres: [ReferenceTitre]
+        public var apercus: [Apercu]?
 
-        public init(nom: String, creeeLe: Date, titres: [ReferenceTitre]) {
+        public init(nom: String, creeeLe: Date, titres: [ReferenceTitre], apercus: [Apercu]? = nil) {
             self.nom = nom
             self.creeeLe = creeeLe
             self.titres = titres
+            self.apercus = apercus
         }
     }
 

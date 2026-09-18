@@ -125,6 +125,18 @@ struct AccueilView: View {
     @State private var modele = AccueilModele()
     @State private var reglageSources = false
     @State private var chemin = NavigationPath()
+    @Query(sort: \SelectionSoir.ajouteLe) private var selections: [SelectionSoir]
+
+    /// « Ce soir : Heat, Reacher », ou la prochaine soirée prévue ; rien quand aucune soirée n'est prévue.
+    private var resumeSoiree: String? {
+        let jour = ServiceSoiree.soiree()
+        let ceSoir = selections.filter { $0.soiree == jour }.map(\.titre)
+        if !ceSoir.isEmpty {
+            return "Ce soir : " + ceSoir.prefix(2).joined(separator: ", ") + (ceSoir.count > 2 ? " et \(Format.pluriel(ceSoir.count - 2, "autre"))" : "")
+        }
+        guard let prochaine = selections.filter({ $0.soiree > jour }).min(by: { $0.soiree < $1.soiree }) else { return nil }
+        return "\(LibelleSoiree.soiree(prochaine.soiree)) : \(prochaine.titre)"
+    }
 
     private var sources: SourcesAccueil {
         (try? JSONDecoder().decode(SourcesAccueil.self, from: sourcesBrutes)) ?? SourcesAccueil()
@@ -214,6 +226,23 @@ struct AccueilView: View {
                             await modele.chargerTop(client: client, plateformes: plateformes)
                         }
                     }
+                }
+
+                if let resumeSoiree {
+                    Button { etat.ongletDemande = .ceSoir } label: {
+                        HStack(spacing: 10) {
+                            Image(systemName: "moon.stars.fill").foregroundStyle(Theme.accent)
+                            Text(resumeSoiree).font(.subheadline.weight(.semibold)).lineLimit(1)
+                            Spacer(minLength: 0)
+                            Image(systemName: "chevron.right").font(.caption.weight(.semibold)).foregroundStyle(.tertiary)
+                        }
+                        .padding(.horizontal, 14)
+                        .frame(height: 44)
+                        .background(Theme.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.horizontal, 20)
+                    .accessibilityHint("Ouvre Ce soir")
                 }
 
                 // Accueil limité à certaines plateformes : c'est dit, et modifiable d'un geste.

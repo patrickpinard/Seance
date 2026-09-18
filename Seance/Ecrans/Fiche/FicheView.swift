@@ -410,6 +410,7 @@ private struct ContenuFiche: View {
                 Button(role: .destructive) {
                     try? ServiceSuivi(contexte: contexte).marquerNonVu(film: film.reference)
                     rafraichir()
+                    etat.confirmer("Marqué comme non vu", symbole: "eye.slash")
                 } label: {
                     Label("Marquer comme non vu", systemImage: "eye.slash")
                 }
@@ -470,6 +471,17 @@ private struct ContenuFiche: View {
             } label: {
                 Label(dansSoiree ? "Retirer de ma soirée" : "Ajouter à ma soirée", systemImage: dansSoiree ? "moon.fill" : "moon.stars")
             }
+            Button {
+                etat.titreADater = TitreChoisi(reference: fiche.reference, titre: fiche.titre, cheminAffiche: fiche.cheminAffiche)
+            } label: {
+                Label("Prévoir pour une soirée…", systemImage: "calendar")
+            }
+            Button {
+                etat.titrePourListe = TitreChoisi(reference: fiche.reference, titre: fiche.titre, cheminAffiche: fiche.cheminAffiche)
+            } label: {
+                Label("Ajouter à une liste…", systemImage: "list.bullet.rectangle.portrait")
+            }
+            Divider()
             ShareLink(item: adresse, subject: Text(fiche.titre)) {
                 Label("Partager", systemImage: "square.and.arrow.up")
             }
@@ -487,7 +499,7 @@ private struct ContenuFiche: View {
         } label: {
             RondIcone(symbole: "ellipsis", taille: 40)
         }
-        .help("Ma soirée, partager, voir sur TMDB, écarter faute de version française")
+        .help("Ma soirée, prévoir une soirée, listes, partager, voir sur TMDB, écarter faute de version française")
         .accessibilityLabel("Plus d'actions")
     }
 
@@ -532,15 +544,24 @@ private struct ContenuFiche: View {
             suivi.masque = false
             try? contexte.save()
             rafraichir()
+            etat.confirmer("Remis dans Terminés", symbole: "bookmark.fill")
             return
         }
         if let suivi {
+            let copie = InstantaneSuivi(suivi)
             contexte.delete(suivi)
             try? contexte.save()
-        } else if let film = fiche.film {
-            _ = try? service.suivre(film: film)
-        } else if let serie = fiche.serie {
-            _ = try? service.suivre(serie: serie)
+            etat.confirmer("« \(fiche.titre) » retiré de Mes listes", symbole: "minus.circle") { [contexte] in
+                copie.restaurer(dans: contexte)
+                rafraichir()
+            }
+        } else {
+            if let film = fiche.film {
+                _ = try? service.suivre(film: film)
+            } else if let serie = fiche.serie {
+                _ = try? service.suivre(serie: serie)
+            }
+            etat.confirmer("Ajouté à À voir", symbole: "plus.circle.fill")
         }
         rafraichir()
         // Suivre un titre, c'est vouloir être prévenu : l'autorisation est demandée à ce moment-là (EF-81).
@@ -554,6 +575,10 @@ private struct ContenuFiche: View {
         guard !vu else { return }
         try? ServiceSuivi(contexte: contexte).marquerVu(film: film, anterieur: anterieur)
         rafraichir()
+        etat.confirmer(anterieur ? "Marqué déjà vu avant" : "Marqué vu aujourd'hui", symbole: "eye.fill") { [contexte] in
+            try? ServiceSuivi(contexte: contexte).marquerNonVu(film: film.reference)
+            rafraichir()
+        }
     }
 }
 
@@ -691,7 +716,7 @@ private struct CartePersonne: View {
 
     var body: some View {
         VStack(spacing: 6) {
-            ImageDistante(url: ImageTMDB.url(personne.cheminPortrait, .portrait), coins: 40)
+            ImageDistante(url: ImageTMDB.url(personne.cheminPortrait, .portrait), coins: 40, symboleVide: "person.fill")
                 .frame(width: 80, height: 80)
             Text(personne.nom).font(.caption.weight(.semibold)).lineLimit(2).multilineTextAlignment(.center)
             if let role = personne.personnage, !role.isEmpty {

@@ -13,6 +13,8 @@ struct RacineView: View {
     @State private var bienvenue = false
     @State private var onglet = OngletRacine.accueil
     @State private var survolConfirmation = false
+    /// Sur le Mac, le message de confirmation se centre sur le contenu, pas sur la fenêtre avec sa barre latérale.
+    @AppStorage("mac.barreLaterale.masquee") private var barreMasquee = false
 
     var body: some View {
         TabView(selection: $onglet) {
@@ -52,6 +54,9 @@ struct RacineView: View {
             if let confirmation = etat.confirmation {
                 BandeauConfirmation(confirmation: confirmation, survol: $survolConfirmation)
                     .padding(.bottom, 96)
+                    #if targetEnvironment(macCatalyst)
+                    .padding(.leading, classeTaille == .regular && !barreMasquee ? 192 : 0)
+                    #endif
                     .transition(.move(edge: .bottom).combined(with: .opacity))
                     .allowsHitTesting(confirmation.annuler != nil)
             }
@@ -80,6 +85,14 @@ struct RacineView: View {
                 bienvenue = true
             }
         }
+        .sheet(item: Binding { etat.titreADater } set: { etat.titreADater = $0 }) { titre in
+            ChoixSoiree(titre: titre.titre, depart: .now) { jour in
+                PrevoirSoiree.prevoir(titre, le: jour, etat: etat, contexte: contexte)
+            }
+        }
+        .sheet(item: Binding { etat.titrePourListe } set: { etat.titrePourListe = $0 }) { titre in
+            AjoutAListeView(titre: titre)
+        }
         .fullScreenCover(isPresented: $bienvenue) {
             BienvenueView(mode: .premierLancement) {
                 bienvenueTerminee = true
@@ -88,7 +101,15 @@ struct RacineView: View {
         }
         // Relancé quand la clé TMDB arrive : sans elle, rien ne peut être rattaché.
         .task(id: etat.tmdb == nil) {
+            // Le magasin s'est ouvert par la voie de secours : à savoir, même si rien n'est perdu.
+            if let erreur = EntrepotSeance.derniereErreurDuPlan {
+                etat.journal.noter(.general, "Le plan de migration des données n'a pas pu s'appliquer : le magasin a été ouvert par la migration automatique.",
+                                   conseil: "Rien n'est perdu. Détail : \(erreur.prefix(200))")
+                EntrepotSeance.derniereErreurDuPlan = nil
+            }
+            etat.ou.actualiserLocal(contexte: contexte)
             await etat.demarrer(contexte: contexte)
+            etat.ou.actualiserLocal(contexte: contexte)
             await etat.alertes.programmerRappelExpiration(etat.expirationInstallation)
             await PublicationWidgets.actualiser(contexte: contexte, tmdb: etat.tmdb, force: true)
             // Siri apprend les titres de tes listes pour « Ajoute … à ma soirée ».
@@ -99,6 +120,7 @@ struct RacineView: View {
             switch nouvelle {
             case .active:
                 etat.nas.verifierRetour()
+                etat.ou.actualiserLocal(contexte: contexte)
                 Task {
                     await etat.revenirAuPremierPlan(contexte: contexte)
                     await PublicationWidgets.actualiser(contexte: contexte, tmdb: etat.tmdb)

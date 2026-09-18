@@ -203,7 +203,7 @@ struct ActeursSuivisView: View {
             ForEach(acteurs) { acteur in
                 NavigationLink(value: ReferencePersonne(id: acteur.personneID, nom: acteur.nom)) {
                     HStack(spacing: 12) {
-                        ImageDistante(url: ImageTMDB.url(acteur.cheminPortrait, .portrait), coins: 22)
+                        ImageDistante(url: ImageTMDB.url(acteur.cheminPortrait, .portrait), coins: 22, symboleVide: "person.fill")
                             .frame(width: 44, height: 44)
                         VStack(alignment: .leading, spacing: 2) {
                             Text(acteur.nom)

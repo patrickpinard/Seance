@@ -20,6 +20,27 @@ struct NoteVersion: Identifiable {
 
     static let historique: [NoteVersion] = [
         NoteVersion(
+            numero: "2.4",
+            date: "18 septembre 2026",
+            resume: "Prévoir et ranger depuis partout, listes nommées, où regarder sur les affiches, et des données versionnées.",
+            fonctionnalites: [
+                Fonctionnalite(symbole: "calendar", titre: "Prévoir depuis partout",
+                               detail: "« Prévoir pour une soirée… » dans le menu Plus de la fiche, au clic droit ou à l'appui long sur une affiche, et dans Mes listes."),
+                Fonctionnalite(symbole: "list.bullet.rectangle.portrait", titre: "Listes nommées",
+                               detail: "L'onglet Listes de Mes listes : crée « Soirées Statham », range-y des titres par « Ajouter à une liste… », renomme, supprime. Et une recherche dans tes propres titres."),
+                Fonctionnalite(symbole: "play.tv", titre: "Où regarder, sur l'affiche",
+                               detail: "Un petit badge en coin : le logo de ta plateforme, le NAS, ou la télé de ce soir."),
+                Fonctionnalite(symbole: "star", titre: "Noter après avoir regardé",
+                               detail: "Dans Ce soir, ✓ sur un film propose aussitôt sa note de 1 à 10."),
+                Fonctionnalite(symbole: "house", titre: "Ta soirée sur l'accueil",
+                               detail: "Sous le bandeau, ce qui est prévu ce soir ou pour ta prochaine soirée."),
+                Fonctionnalite(symbole: "checkmark.bubble", titre: "Confirmations partout",
+                               detail: "À voir, Vu et Retirer confirment depuis la fiche, avec Annuler ; le message se centre sur le contenu, et les personnes sans photo ont une silhouette."),
+                Fonctionnalite(symbole: "externaldrive.badge.checkmark", titre: "Données versionnées",
+                               detail: "Chaque évolution du modèle de données a désormais sa version et sa migration testée ; tes données actuelles s'ouvrent sans changement."),
+            ]
+        ),
+        NoteVersion(
             numero: "2.3",
             date: "18 septembre 2026",
             resume: "Prévoir un film ou une série pour la soirée de ton choix.",

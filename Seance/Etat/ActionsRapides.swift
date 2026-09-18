@@ -110,8 +110,14 @@ struct MenuActionsTitre: View {
             Button { lancer(.dejaVuAvant) } label: { Label("Toute la série déjà vue avant", systemImage: "clock.arrow.circlepath") }
         }
         Button { lancer(.soiree) } label: { Label("Ajouter à ma soirée", systemImage: "moon.stars") }
+        Button { etat.titreADater = choisi } label: { Label("Prévoir pour une soirée…", systemImage: "calendar") }
+        Button { etat.titrePourListe = choisi } label: { Label("Ajouter à une liste…", systemImage: "list.bullet.rectangle.portrait") }
         Divider()
         Button(role: .destructive) { lancer(.pasInteresse) } label: { Label("Pas intéressé", systemImage: "hand.thumbsdown") }
+    }
+
+    private var choisi: TitreChoisi {
+        TitreChoisi(reference: titre.reference, titre: titre.titre, cheminAffiche: titre.cheminAffiche)
     }
 
     private func lancer(_ action: ActionsRapides.Action) {

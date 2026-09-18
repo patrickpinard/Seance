@@ -292,7 +292,7 @@ struct FeuilleFiltres: View {
                     personnesTrouvees = []
                 } label: {
                     HStack(spacing: 10) {
-                        ImageDistante(url: ImageTMDB.url(personne.cheminPortrait, .portrait), coins: 18)
+                        ImageDistante(url: ImageTMDB.url(personne.cheminPortrait, .portrait), coins: 18, symboleVide: "person.fill")
                             .frame(width: 36, height: 36)
                         VStack(alignment: .leading) {
                             Text(personne.nom).font(.subheadline.weight(.semibold))

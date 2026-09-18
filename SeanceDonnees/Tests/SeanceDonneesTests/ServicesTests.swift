@@ -146,6 +146,39 @@ struct ServicesTests {
         #expect(try gouts.profil().affinite(genre: 53) > 0)
     }
 
+    @Test func listesNommees() throws {
+        let conteneur = try EntrepotSeance.conteneur(.memoire)
+        let contexte = conteneur.mainContext
+        let service = ServiceListes(contexte: contexte)
+        let heat = ReferenceTitre(type: .film, tmdbID: 949)
+        let reacher = ReferenceTitre(type: .serie, tmdbID: 108_978)
+
+        let statham = try #require(try service.creer("  Soirées Statham "))
+        #expect(statham.nom == "Soirées Statham")
+        #expect(try service.creer("soirees statham") === statham, "même nom, même liste")
+        #expect(try service.creer("   ") == nil)
+
+        try service.ajouter(heat, titre: "Heat", cheminAffiche: "/heat.jpg", a: statham)
+        try service.ajouter(heat, titre: "Heat", cheminAffiche: "/heat.jpg", a: statham)
+        // Un titre sans aperçu (ancienne sauvegarde) emprunte son nom au titre suivi.
+        statham.titres.append(reacher)
+        contexte.insert(Suivi(reference: reacher, titre: "Reacher", statut: .enCours, cheminAffiche: "/reacher.jpg"))
+        try contexte.save()
+        #expect(try service.titres(statham).map(\.titre) == ["Heat", "Reacher"])
+
+        // Aller-retour par la sauvegarde : les aperçus suivent.
+        let fichier = try ServiceSauvegarde(contexte: contexte).exporter().encoder()
+        let cible = try EntrepotSeance.conteneur(.memoire)
+        try ServiceSauvegarde(contexte: cible.mainContext).importer(try Sauvegarde.decoder(fichier))
+        let relue = try #require(try ServiceListes(contexte: cible.mainContext).listes().first)
+        #expect(relue.titres == [heat, reacher] && relue.apercus.map(\.cheminAffiche) == ["/heat.jpg"])
+
+        try service.retirer(heat, de: statham)
+        #expect(statham.titres == [reacher] && statham.apercus.isEmpty)
+        try service.supprimer(statham)
+        #expect(try service.listes().isEmpty)
+    }
+
     @Test func soireesPrevuesALAvance() throws {
         let conteneur = try EntrepotSeance.conteneur(.memoire)
         let contexte = conteneur.mainContext

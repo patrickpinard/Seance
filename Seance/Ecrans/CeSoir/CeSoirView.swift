@@ -16,6 +16,8 @@ struct CeSoirView: View {
     @State private var ajout = false
     /// Le titre dont on choisit la soirée dans le calendrier.
     @State private var aDater: SelectionSoir?
+    /// Le film qu'on vient de marquer regardé : c'est le bon moment pour le noter.
+    @State private var filmANoter: FicheFilm?
 
     private var selection: [SelectionSoir] {
         let jour = ServiceSoiree.soiree()
@@ -70,11 +72,40 @@ struct CeSoirView: View {
     private var contenu: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
-                Text(Self.jourEnToutesLettres(.now))
+                Text(LibelleSoiree.jour(.now))
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
 
-                if selection.isEmpty {
+                if let film = filmANoter {
+                    VStack(alignment: .leading, spacing: 10) {
+                        HStack {
+                            Text("Tu as regardé « \(film.titre) ». Ta note ?").font(.headline).lineLimit(2)
+                            Spacer()
+                            Button("Plus tard") { filmANoter = nil }
+                                .font(.subheadline)
+                                .tint(.secondary)
+                        }
+                        HStack(spacing: 5) {
+                            ForEach(1...10, id: \.self) { valeur in
+                                Button { noter(film, valeur) } label: {
+                                    Text("\(valeur)")
+                                        .font(.subheadline.weight(.bold))
+                                        .frame(maxWidth: .infinity, minHeight: 38)
+                                        .background(Theme.surface, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+                                }
+                                .buttonStyle(.plain)
+                                .accessibilityLabel("Note \(valeur) sur 10")
+                            }
+                        }
+                        Text("Ta note affine tes goûts et les idées du soir.").font(.caption).foregroundStyle(.secondary)
+                    }
+                    .padding(14)
+                    .background(Theme.accent.opacity(0.12), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(Theme.accent.opacity(0.35), lineWidth: 1))
+                    .transition(.opacity)
+                }
+
+                if selection.isEmpty, filmANoter == nil {
                     vide
                 } else {
                     ForEach(selection) { titre in
@@ -185,10 +216,17 @@ struct CeSoirView: View {
             }
             try? ServiceSuivi(contexte: contexte).marquerVu(film: film)
             etat.confirmer("« \(titre.titre) » marqué vu", symbole: "eye.fill")
+            withAnimation(.snappy) { filmANoter = film }
         } else {
             return
         }
         try? ServiceSoiree(contexte: contexte).retirer(reference)
+    }
+
+    private func noter(_ film: FicheFilm, _ valeur: Int) {
+        try? ServiceSuivi(contexte: contexte).noter(film: film, note: valeur)
+        etat.confirmer("« \(film.titre) » noté \(valeur)/10", symbole: "star.fill")
+        withAnimation(.snappy) { filmANoter = nil }
     }
 
     private func retirer(_ titre: SelectionSoir) {
@@ -217,17 +255,8 @@ struct CeSoirView: View {
         }
     }
 
-    /// « Demain », « Samedi 20 septembre ».
     private func libelle(_ soiree: String) -> String {
-        guard let jour = ServiceSoiree.jour(soiree) else { return soiree }
-        if ServiceSoiree.soiree(jour: Date.now.addingTimeInterval(86_400)) == soiree, ServiceSoiree.soiree() != soiree { return "Demain" }
-        return Self.jourEnToutesLettres(jour)
-    }
-
-    /// « Vendredi 18 septembre » : majuscule au jour seulement, comme on l'écrit en français.
-    private static func jourEnToutesLettres(_ date: Date) -> String {
-        let texte = date.formatted(.dateTime.weekday(.wide).day().month(.wide).locale(Locale(identifier: "fr_CH")))
-        return texte.prefix(1).uppercased() + texte.dropFirst()
+        LibelleSoiree.soiree(soiree)
     }
 }
 
@@ -319,58 +348,6 @@ private struct LigneSoireePrevue: View {
         }
         .padding(10)
         .background(Theme.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-    }
-}
-
-/// Le calendrier d'une soirée : à partir d'aujourd'hui.
-private struct ChoixSoiree: View {
-    let titre: String
-    let choisir: (Date) -> Void
-
-    @Environment(\.dismiss) private var fermer
-    @State private var jour: Date
-
-    init(titre: String, depart: Date, choisir: @escaping (Date) -> Void) {
-        self.titre = titre
-        self.choisir = choisir
-        _jour = State(initialValue: max(depart, Calendar.current.startOfDay(for: .now)))
-    }
-
-    var body: some View {
-        NavigationStack {
-            VStack(spacing: 16) {
-                Text("Quel soir veux-tu regarder « \(titre) » ?")
-                    .font(.headline)
-                    .multilineTextAlignment(.center)
-                DatePicker("Soirée", selection: $jour, in: Calendar.current.startOfDay(for: .now)..., displayedComponents: .date)
-                    .datePickerStyle(.graphical)
-                    .tint(Theme.accent)
-                    .environment(\.locale, Locale(identifier: "fr_CH"))
-                Button {
-                    choisir(jour)
-                    fermer()
-                } label: {
-                    Text("Prévoir pour \(jour.formatted(.dateTime.weekday(.wide).day().month(.wide).locale(Locale(identifier: "fr_CH"))))")
-                        .font(.headline)
-                        .foregroundStyle(.black)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 48)
-                        .background(Theme.degradeAccent, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-                }
-                .buttonStyle(.plain)
-                Spacer(minLength: 0)
-            }
-            .padding(20)
-            .background(Theme.fond)
-            .titreDeFeuille("Choisir la soirée")
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Annuler") { fermer() }
-                }
-            }
-        }
-        .presentationDetents([.large])
-        .presentationBackground(Theme.fond)
     }
 }
 

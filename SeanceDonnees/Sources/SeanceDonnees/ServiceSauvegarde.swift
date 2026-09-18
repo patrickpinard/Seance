@@ -25,7 +25,10 @@ public struct ServiceSauvegarde {
                                          dureeMinutes: v.dureeMinutes, note: v.note, vuLe: v.vuLe, anterieur: v.anterieur ? true : nil)
         }
         s.listes = try contexte.fetch(FetchDescriptor<ListePerso>(sortBy: [SortDescriptor(\.creeeLe)])).map {
-            Sauvegarde.Liste(nom: $0.nom, creeeLe: $0.creeeLe, titres: $0.titres)
+            Sauvegarde.Liste(nom: $0.nom, creeeLe: $0.creeeLe, titres: $0.titres,
+                             apercus: $0.apercus.isEmpty ? nil : $0.apercus.map {
+                                 Sauvegarde.Liste.Apercu(reference: $0.reference, titre: $0.titre, cheminAffiche: $0.cheminAffiche)
+                             })
         }
         s.filtres = try contexte.fetch(FetchDescriptor<FiltreEnregistre>(sortBy: [SortDescriptor(\.creeLe)])).map {
             Sauvegarde.Filtre(nom: $0.nom, type: TypeTitre(rawValue: $0.typeBrut) ?? .film, criteres: $0.criteres,
@@ -73,11 +76,16 @@ public struct ServiceSauvegarde {
             let liste = ListePerso(nom: l.nom)
             liste.creeeLe = l.creeeLe
             liste.titres = l.titres
+            liste.apercus = (l.apercus ?? []).map { ApercuTitre(reference: $0.reference, titre: $0.titre, cheminAffiche: $0.cheminAffiche) }
             contexte.insert(liste)
         }
         if !plan.titresAjoutesAuxListes.isEmpty {
             for liste in try contexte.fetch(FetchDescriptor<ListePerso>()) {
-                liste.titres += plan.titresAjoutesAuxListes[liste.nom] ?? []
+                let ajoutes = plan.titresAjoutesAuxListes[liste.nom] ?? []
+                liste.titres += ajoutes
+                let importes = sauvegarde.listes.first { $0.nom == liste.nom }?.apercus ?? []
+                liste.apercus += importes.filter { ajoutes.contains($0.reference) }
+                    .map { ApercuTitre(reference: $0.reference, titre: $0.titre, cheminAffiche: $0.cheminAffiche) }
             }
         }
         for f in plan.filtres {

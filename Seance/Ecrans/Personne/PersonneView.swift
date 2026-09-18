@@ -156,7 +156,7 @@ struct PersonneView: View {
 
     private var enTete: some View {
         HStack(spacing: 16) {
-            ImageDistante(url: ImageTMDB.url(fiche?.cheminPortrait, .portrait), coins: 55)
+            ImageDistante(url: ImageTMDB.url(fiche?.cheminPortrait, .portrait), coins: 55, symboleVide: "person.fill")
                 .frame(width: 110, height: 110)
             VStack(alignment: .leading, spacing: 6) {
                 Text(fiche?.nom ?? personne.nom).font(.title2.weight(.heavy)).lineLimit(2)

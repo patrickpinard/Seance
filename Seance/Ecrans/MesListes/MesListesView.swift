@@ -12,12 +12,13 @@ struct MesListesView: View {
         case aVoir = "À voir"
         case enCours = "En cours"
         case termines = "Terminés"
+        case listes = "Listes"
 
         var id: String { rawValue }
 
         var statut: StatutSuivi? {
             switch self {
-            case .aVenir: nil
+            case .aVenir, .listes: nil
             case .aVoir: .aVoir
             case .enCours: .enCours
             case .termines: .termine
@@ -38,6 +39,8 @@ struct MesListesView: View {
     @State private var infos: [ReferenceTitre: InfoTitre] = [:]
     @State private var chargementInfos = false
     @State private var confirmerToutSupprimer = false
+    /// Recherche dans ses propres titres, sur l'onglet affiché.
+    @State private var recherche = ""
 
     private struct InfoTitre {
         let etat: EtatDisponibilite
@@ -67,6 +70,8 @@ struct MesListesView: View {
 
                 if onglet == .aVenir {
                     aVenir
+                } else if onglet == .listes {
+                    SectionListesNommees(recherche: recherche)
                 } else if let statut = onglet.statut {
                     barreListe(statut)
                     liste(statut)
@@ -76,7 +81,11 @@ struct MesListesView: View {
             .background(Theme.fond)
             .navigationTitle("Mes listes")
             .boutonBarreLaterale()
+            .searchable(text: $recherche, prompt: "Chercher dans mes listes")
             .destinationsTitres()
+            .navigationDestination(for: PersistentIdentifier.self) { id in
+                ListePersoView(id: id)
+            }
             .refreshable { await etat.alertes.planifier(contexte: contexte, tmdb: etat.tmdb) }
             .task(id: cleInfos) { await chargerInfos(cleInfos.references) }
             // Le filtre ne survit pas à un changement d'écran : en revenant, toute la liste est là.
@@ -94,7 +103,9 @@ struct MesListesView: View {
 
     @ViewBuilder
     private var aVenir: some View {
-        let futures = echeances.filter { $0.date >= Calendar.current.startOfDay(for: .now) }
+        let futures = echeances.filter {
+            $0.date >= Calendar.current.startOfDay(for: .now) && (recherche.isEmpty || $0.titre.localizedCaseInsensitiveContains(recherche))
+        }
         if suivis.contains(where: \.alertesActives) {
             BandeauAlertesCoupees()
                 .listRowBackground(Color.clear)
@@ -231,7 +242,7 @@ struct MesListesView: View {
 
     /// Le filtre ne s'applique pas aux terminés ; tant que la disponibilité d'un titre n'est pas connue, il est caché.
     private func titresAffiches(_ statut: StatutSuivi) -> [Suivi] {
-        let tous = suivis.filter { $0.statut == statut && !$0.masque }
+        let tous = suivis.filter { $0.statut == statut && !$0.masque && (recherche.isEmpty || $0.titre.localizedCaseInsensitiveContains(recherche)) }
         let parReference = Dictionary(tous.map { ($0.reference, $0) }, uniquingKeysWith: { premier, _ in premier })
         let ordonnes = tri.trier(tous.map {
             TriListe.Element(reference: $0.reference, titre: $0.titre, ajouteLe: $0.ajouteLe, dureeMinutes: infos[$0.reference]?.dureeMinutes)
@@ -333,6 +344,12 @@ struct MesListesView: View {
                 Button {
                     try? ServiceSoiree(contexte: contexte).retenir(suivi.reference, titre: suivi.titre, cheminAffiche: suivi.cheminAffiche)
                 } label: { Label("Ajouter à ma soirée", systemImage: "moon.stars") }
+                Button {
+                    etat.titreADater = TitreChoisi(reference: suivi.reference, titre: suivi.titre, cheminAffiche: suivi.cheminAffiche)
+                } label: { Label("Prévoir pour une soirée…", systemImage: "calendar") }
+                Button {
+                    etat.titrePourListe = TitreChoisi(reference: suivi.reference, titre: suivi.titre, cheminAffiche: suivi.cheminAffiche)
+                } label: { Label("Ajouter à une liste…", systemImage: "list.bullet.rectangle.portrait") }
                 if statut != .termine {
                     Button { changer(suivi, en: .termine) } label: { Label("Terminé", systemImage: "checkmark") }
                 } else {

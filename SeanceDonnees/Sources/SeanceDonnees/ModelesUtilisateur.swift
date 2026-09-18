@@ -102,12 +102,33 @@ public final class Visionnage {
     }
 }
 
+/// De quoi afficher un titre d'une liste sans réseau : son nom et son affiche, copiés à l'ajout.
+public struct ApercuTitre: Codable, Sendable, Hashable {
+    public var tmdbID: Int
+    public var typeBrut: String
+    public var titre: String
+    public var cheminAffiche: String?
+
+    public init(reference: ReferenceTitre, titre: String, cheminAffiche: String?) {
+        tmdbID = reference.tmdbID
+        typeBrut = reference.type.rawValue
+        self.titre = titre
+        self.cheminAffiche = cheminAffiche
+    }
+
+    public var reference: ReferenceTitre {
+        ReferenceTitre(type: TypeTitre(rawValue: typeBrut) ?? .film, tmdbID: tmdbID)
+    }
+}
+
 /// Une liste nommée, par exemple « Soirées Statham » (EF-63).
 @Model
 public final class ListePerso {
     public var nom: String = ""
     public var creeeLe: Date = Date.now
     public var titres: [ReferenceTitre] = []
+    /// Nom et affiche de chaque titre (schéma version 2) ; un titre venu d'une ancienne sauvegarde peut ne pas en avoir.
+    public var apercus: [ApercuTitre] = []
 
     public init(nom: String) {
         self.nom = nom

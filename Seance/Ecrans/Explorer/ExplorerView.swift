@@ -164,7 +164,6 @@ struct ExplorerView: View {
                         ForEach(titres) { titre in
                             NavigationLink(value: titre.reference) {
                                 CarteAffiche(titre: titre, largeur: nil)
-                                    .overlay(alignment: .topTrailing) { badges(titre.reference) }
                             }
                             .buttonStyle(.plain)
                             .actionsRapides(titre)
@@ -189,7 +188,7 @@ struct ExplorerView: View {
                 ForEach(personnes) { personne in
                     NavigationLink(value: ReferencePersonne(id: personne.id, nom: personne.nom)) {
                         HStack(spacing: 6) {
-                            ImageDistante(url: ImageTMDB.url(personne.cheminPortrait, .portrait), coins: 14)
+                            ImageDistante(url: ImageTMDB.url(personne.cheminPortrait, .portrait), coins: 14, symboleVide: "person.fill")
                                 .frame(width: 28, height: 28)
                             Text(personne.nom).font(.subheadline.weight(.semibold))
                             Image(systemName: "chevron.right").font(.caption2).foregroundStyle(.secondary)
@@ -252,7 +251,7 @@ struct ExplorerView: View {
                 HStack(spacing: 12) {
                     NavigationLink(value: ReferencePersonne(id: personne.id, nom: personne.nom)) {
                         HStack(spacing: 12) {
-                            ImageDistante(url: ImageTMDB.url(personne.cheminPortrait, .portrait), coins: 28)
+                            ImageDistante(url: ImageTMDB.url(personne.cheminPortrait, .portrait), coins: 28, symboleVide: "person.fill")
                                 .frame(width: 56, height: 56)
                             VStack(alignment: .leading, spacing: 3) {
                                 Text(personne.nom).font(.headline)
@@ -517,7 +516,6 @@ struct ExplorerView: View {
                 ForEach(modele.resultats) { titre in
                     NavigationLink(value: titre.reference) {
                         CarteAffiche(titre: titre, largeur: nil)
-                            .overlay(alignment: .topTrailing) { badges(titre.reference) }
                     }
                     .buttonStyle(.plain)
                     .actionsRapides(titre)
