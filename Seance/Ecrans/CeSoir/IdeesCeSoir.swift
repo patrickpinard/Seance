@@ -245,7 +245,7 @@ private struct CarteIdee: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         if let ou {
-                            Label(ou, systemImage: ou.hasPrefix("Ce soir") ? "tv" : ou.hasPrefix("Sur ton NAS") ? "externaldrive.fill" : "play.tv")
+                            Label(ou, systemImage: ou.hasPrefix("Ce soir") ? "tv" : ou.hasPrefix("Sur le NAS") ? "externaldrive.fill" : "play.tv")
                                 .font(.caption.weight(.semibold))
                                 .foregroundStyle(.green)
                         }

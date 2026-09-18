@@ -110,11 +110,15 @@ final class VisiteTests: XCTestCase {
         }
         app.launchEnvironment["SEANCE_DEMO"] = "1"
         app.launch()
+        // La page ne montre que la sélection du soir ; tout le reste est dans « Ajouter ».
         app.tabBars.buttons["Ce soir"].firstMatch.tap()
-        XCTAssertTrue(app.staticTexts["Ma soirée"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.buttons["Ajouter"].firstMatch.waitForExistence(timeout: 10))
         capture("96-ce-soir", attente: 5)
-        XCTAssertFalse(app.staticTexts["Une idée pour ce soir ?"].exists, "La recherche d'idées est encore là")
-        app.buttons.matching(NSPredicate(format: "label BEGINSWITH \"Envie d\"")).firstMatch.tap()
+        XCTAssertFalse(app.staticTexts["Idées pour ce soir"].exists, "Les idées sont encore sur la page")
+        app.buttons["Ajouter"].firstMatch.tap()
+        XCTAssertTrue(app.staticTexts["Idées pour ce soir"].waitForExistence(timeout: 10), "La feuille Ajouter ne propose pas d'idées")
+        capture("97-ajouter", attente: 4)
+        app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Chercher un titre'")).firstMatch.tap()
         capture("97-vers-explorer")
 
         // Dans Explorer, la barre d'onglets se replie autour du champ de recherche.

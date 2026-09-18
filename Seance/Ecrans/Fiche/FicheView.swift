@@ -315,14 +315,18 @@ private struct ContenuFiche: View {
     }
 
     /// Un bouton d'action et son nom en dessous : les icônes seules ne se comprenaient qu'au survol.
+    /// Largeur fixe, sur deux lignes au besoin : avec des libellés à leur taille naturelle, cinq boutons dépassaient
+    /// la largeur de l'iPhone et toute la fiche s'élargissait avec eux, coupée des deux côtés.
     private func legende<Contenu: View>(_ texte: String, @ViewBuilder _ contenu: () -> Contenu) -> some View {
         VStack(spacing: 5) {
             contenu()
             Text(texte)
                 .font(.caption2.weight(.medium))
                 .foregroundStyle(.secondary)
-                .lineLimit(1)
-                .fixedSize()
+                .multilineTextAlignment(.center)
+                .lineLimit(2)
+                .minimumScaleFactor(0.85)
+                .frame(width: 60, alignment: .top)
                 .accessibilityHidden(true)
         }
     }
@@ -332,7 +336,8 @@ private struct ContenuFiche: View {
         // Un titre supprimé des terminés n'est plus dans Mes listes, même s'il reste vu et noté.
         let dansMesListes = suivi.map { !$0.masque } ?? false
         let masque = suivi?.masque == true
-        return HStack(alignment: .top, spacing: 14) {
+        // Cinq boutons de 60 points, quatre espaces de 8 et les marges : 372 points, sous les 393 du plus étroit des iPhone visés.
+        return HStack(alignment: .top, spacing: 8) {
             legende(dansMesListes ? "Retirer" : masque ? "Remettre" : "À voir") {
                 BoutonIcone(
                     symbole: dansMesListes ? "minus" : "plus",
@@ -371,7 +376,7 @@ private struct ContenuFiche: View {
                     }
                 }
             }
-            Spacer()
+            Spacer(minLength: 0)
             legende("Plus") {
                 menuAutres
             }

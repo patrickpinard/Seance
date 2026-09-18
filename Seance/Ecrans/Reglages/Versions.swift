@@ -20,6 +20,19 @@ struct NoteVersion: Identifiable {
 
     static let historique: [NoteVersion] = [
         NoteVersion(
+            numero: "2.2",
+            date: "18 septembre 2026",
+            resume: "Ce soir, en plus simple : seulement ce que tu as choisi de regarder.",
+            fonctionnalites: [
+                Fonctionnalite(symbole: "moon.stars.fill", titre: "Ce soir, ta sélection",
+                               detail: "La page ne montre que les films et séries gardés pour ce soir, avec où les regarder ; ✓ quand c'est regardé, ✕ pour retirer."),
+                Fonctionnalite(symbole: "plus.circle", titre: "Ajouter",
+                               detail: "Rendez-vous du jour, épisodes à regarder, ta liste regardable ce soir et idées selon tes goûts sont réunis dans une feuille, à un geste de la page."),
+                Fonctionnalite(symbole: "hand.tap", titre: "Profil",
+                               detail: "« Mes goûts » répond sur toute la ligne, et la fiche d'un acteur suivi s'ouvre devant la liste au lieu de se ranger dessous."),
+            ]
+        ),
+        NoteVersion(
             numero: "2.1",
             date: "17 septembre 2026",
             resume: "Le parcours d'un utilisateur, corrigé point par point : idées qui se renouvellent, fiches de séries justes, écrans plus nets.",

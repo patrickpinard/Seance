@@ -6,6 +6,10 @@ import SwiftUI
 /// Ce qui te concerne, à part des réglages de l'app : ta collection, tes dernières notes, tes acteurs favoris et suivis,
 /// tes goûts, tes statistiques et ton bilan de l'année.
 /// Sur l'iPhone, l'engrenage ouvre Réglages, qui n'a pas d'onglet à lui.
+enum DestinationProfil: Hashable {
+    case acteursSuivis, statistiques
+}
+
 struct ProfilView: View {
     @Environment(\.horizontalSizeClass) private var classeTaille
     @Environment(\.modelContext) private var contexte
@@ -61,14 +65,14 @@ struct ProfilView: View {
                 Section("Tes goûts") {
                     Button { gouts = true } label: {
                         LigneReglage(titre: "Mes goûts", symbole: "heart.fill", couleur: .pink,
-                                     valeur: genres.isEmpty ? "À choisir" : "\(genres.count) genres")
+                                     valeur: genres.isEmpty ? "À choisir" : "\(genres.count) genres", chevron: true)
                     }
                     .buttonStyle(.plain)
                     .accessibilityHint("Choisir tes genres et noter des films connus")
                 }
 
                 Section {
-                    NavigationLink { ActeursSuivisView() } label: {
+                    NavigationLink(value: DestinationProfil.acteursSuivis) {
                         LigneReglage(titre: "Acteurs suivis", symbole: "person.2.fill", couleur: .teal,
                                      valeur: acteursSuivis.isEmpty ? "Aucun" : "\(acteursSuivis.count)")
                     }
@@ -79,14 +83,14 @@ struct ProfilView: View {
                 }
 
                 Section("Ce que tu as regardé") {
-                    NavigationLink { StatistiquesView() } label: {
+                    NavigationLink(value: DestinationProfil.statistiques) {
                         LigneReglage(titre: "Statistiques", symbole: "chart.bar.fill", couleur: .purple, valeur: libelleStatistiques)
                     }
                     // Le bilan en cartes a besoin d'au moins un visionnage.
                     if !visionnages.isEmpty {
                         Button { bilan = true } label: {
                             LigneReglage(titre: ServiceStatistiques.bilanOuvert() ? "Ton bilan \(String(Self.annee))" : "Ton année \(String(Self.annee)) jusqu'ici",
-                                         symbole: "sparkles.rectangle.stack.fill", couleur: .orange, valeur: nil)
+                                         symbole: "sparkles.rectangle.stack.fill", couleur: .orange, valeur: nil, chevron: true)
                         }
                         .buttonStyle(.plain)
                         .accessibilityHint("Ouvre le bilan en plein écran")
@@ -111,6 +115,12 @@ struct ProfilView: View {
                 }
             }
             .destinationsTitres()
+            .navigationDestination(for: DestinationProfil.self) { destination in
+                switch destination {
+                case .acteursSuivis: ActeursSuivisView()
+                case .statistiques: StatistiquesView()
+                }
+            }
             .navigationDestination(for: TitresAvecActeur.self) { comptes in
                 PersonneView(personne: comptes.personne, comptes: comptes)
             }
@@ -207,6 +217,12 @@ struct ActeursSuivisView: View {
                     Button("Ne plus suivre", role: .destructive) {
                         try? ServiceActeurs(contexte: contexte).nePlusSuivre(acteur.personneID)
                     }
+                }
+                // Le Mac n'a pas de glissement : clic droit.
+                .contextMenu {
+                    Button(role: .destructive) {
+                        try? ServiceActeurs(contexte: contexte).nePlusSuivre(acteur.personneID)
+                    } label: { Label("Ne plus suivre", systemImage: "bell.slash") }
                 }
             }
         }

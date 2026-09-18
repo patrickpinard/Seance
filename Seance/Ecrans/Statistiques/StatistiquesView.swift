@@ -98,9 +98,7 @@ struct StatistiquesView: View {
                 .help("Choisir l'année affichée")
             }
         }
-        .navigationDestination(for: TitresAvecActeur.self) { comptes in
-            PersonneView(personne: comptes.personne, comptes: comptes)
-        }
+        // La destination des acteurs est déclarée par Profil, à la racine de la pile.
         .fullScreenCover(item: Binding(get: { bilanAnnee.map(AnneeBilan.init) }, set: { bilanAnnee = $0?.id })) { choix in
             BilanAnneeView(annee: choix.id)
         }

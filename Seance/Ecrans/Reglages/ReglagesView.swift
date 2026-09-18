@@ -94,6 +94,8 @@ struct LigneReglage: View {
     let symbole: String
     let couleur: Color
     let valeur: String?
+    /// Pour une ligne-bouton (feuille, plein écran) : le chevron que les liens de navigation ont d'office.
+    var chevron = false
 
     var body: some View {
         HStack(spacing: 12) {
@@ -107,7 +109,14 @@ struct LigneReglage: View {
             if let valeur {
                 Text(valeur).foregroundStyle(.secondary)
             }
+            if chevron {
+                Image(systemName: "chevron.right")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(.tertiary)
+            }
         }
+        // Dans un bouton sans style, seul le contenu dessiné reçoit les clics : l'espace vide de la ligne aussi, ainsi.
+        .contentShape(Rectangle())
     }
 }
 

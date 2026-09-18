@@ -29,7 +29,10 @@ public struct ServiceActeurs {
     }
 
     public func nePlusSuivre(_ personneID: Int) throws {
-        try contexte.delete(model: ActeurSuivi.self, where: #Predicate { $0.personneID == personneID })
+        // Objet par objet : une suppression en lot ne prévient pas les listes affichées, qui garderaient l'acteur.
+        for acteur in try contexte.fetch(FetchDescriptor<ActeurSuivi>(predicate: #Predicate { $0.personneID == personneID })) {
+            contexte.delete(acteur)
+        }
         try contexte.save()
     }
 }
