@@ -18,6 +18,11 @@ enum DossiersSeance {
     static var images: URL {
         URL.cachesDirectory.appending(path: identifiant).appending(path: "Images")
     }
+
+    /// Les réponses de TMDB gardées sur disque (voir `CacheTMDB`).
+    static var reponsesTMDB: URL {
+        URL.cachesDirectory.appending(path: identifiant).appending(path: "TMDB")
+    }
 }
 
 /// Place occupée par Séance sur l'appareil, pour À propos.
@@ -45,11 +50,12 @@ struct Volumetrie: Equatable, Sendable {
         var volumetrie = Volumetrie()
         volumetrie.application = taille(Bundle.main.bundleURL)
         volumetrie.images = taille(DossiersSeance.images)
+        volumetrie.cache += taille(DossiersSeance.reponsesTMDB)
         volumetrie.divers = taille(DossiersSeance.reglages.appending(path: "journal.json"))
         if let partage = EntrepotSeance.dossierPartage {
             let magasins = partage.appending(path: "Library/Application Support")
             volumetrie.donnees = fichiers(commencantPar: "Utilisateur.store", dans: magasins)
-            volumetrie.cache = fichiers(commencantPar: "Cache.store", dans: magasins)
+            volumetrie.cache += fichiers(commencantPar: "Cache.store", dans: magasins)
             volumetrie.divers += taille(partage.appending(path: "Vignettes")) + taille(partage.appending(path: InstantaneWidgets.nomFichier))
         }
         return volumetrie

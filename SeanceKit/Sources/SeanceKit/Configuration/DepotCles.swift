@@ -10,9 +10,10 @@ public struct DepotCles: Sendable {
     }
 
     /// Accepte indifféremment la clé d'API v3 ou le jeton d'accès en lecture v4.
-    public func client() throws -> TMDBClient? {
+    /// `transport` : le réseau, ou le réseau derrière un cache (`CacheTMDB`).
+    public func client(transport: any TransportHTTP = URLSession.shared) throws -> TMDBClient? {
         guard let valeur = try coffre.lire(.tmdb) else { return nil }
-        return TMDBClient(identifiants: .depuis(valeur))
+        return TMDBClient(identifiants: .depuis(valeur), transport: transport)
     }
 
     /// Sans clé Claude, « Ce soir » se rabat sur le classement local (EF-27).

@@ -887,15 +887,16 @@ private struct EspaceUtilise: View {
                 } label: {
                     Text("Total").fontWeight(.semibold)
                 }
-                Button("Vider les affiches en cache", role: .destructive) {
+                Button("Vider les affiches et les fiches en cache", role: .destructive) {
                     enVidage = true
                     CacheImages.partage.vider()
+                    EtatApp.cacheTMDB.vider()
                     Task {
                         self.volumetrie = await Volumetrie.mesurer()
                         enVidage = false
                     }
                 }
-                .disabled(enVidage || volumetrie.images == 0)
+                .disabled(enVidage || (volumetrie.images == 0 && volumetrie.cache == 0))
             } else {
                 HStack {
                     Text("Mesure en cours…").foregroundStyle(.secondary)
@@ -906,7 +907,7 @@ private struct EspaceUtilise: View {
         } header: {
             Text("Espace utilisé")
         } footer: {
-            Text("Tes données sont ce que la sauvegarde protège. Le reste se reconstruit tout seul : les affiches se rechargent quand elles s'affichent.")
+            Text("Tes données sont ce que la sauvegarde protège. Le reste se reconstruit tout seul : affiches et fiches se rechargent à l'affichage. Les fiches gardées servent aussi quand tu n'as pas de réseau.")
         }
         .task { volumetrie = await Volumetrie.mesurer() }
     }

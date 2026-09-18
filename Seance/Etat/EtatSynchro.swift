@@ -29,6 +29,21 @@ enum ImportSauvegarde {
         let sauvegarde = try Sauvegarde.decoder(donnees)
         let plan = try ServiceSauvegarde(contexte: contexte).importer(sauvegarde)
         let reglages = PreferencesSauvegardees.appliquer(sauvegarde.preferences ?? [:], etat: etat)
+        let bilan = Bilan(parties: parties(plan, reglages: reglages))
+        if !bilan.estVide {
+            etat.ou.actualiserLocal(contexte: contexte)
+            Task { await etat.alertes.planifier(contexte: contexte, tmdb: etat.tmdb) }
+        }
+        return bilan
+    }
+
+    /// « 2 titres, 1 supprimé, 1 mis à jour » : ce qu'un fichier du dossier de synchronisation a changé ici.
+    static func phrase(_ recu: ServiceSynchro.Recu) -> String {
+        (parties(recu.ajouts, reglages: 0) + [(recu.misAJour, "mis à jour", "mis à jour"), (recu.supprimes, "supprimé", "supprimés")]
+            .filter { $0.0 > 0 }.map { Format.pluriel($0.0, $0.1, $0.2) }).joined(separator: ", ")
+    }
+
+    private static func parties(_ plan: PlanImport, reglages: Int) -> [String] {
         let comptes: [(Int, String, String)] = [
             (plan.suivis.count, "titre", "titres"), (plan.suivisCompletes.count, "titre complété", "titres complétés"),
             (plan.visionnages.count, "visionnage", "visionnages"), (plan.soirees.count, "soirée prévue", "soirées prévues"),
@@ -37,12 +52,7 @@ enum ImportSauvegarde {
             (plan.abonnements.count, "plateforme", "plateformes"), (plan.chaines.count, "chaîne", "chaînes"),
             (plan.reports.count, "idée reportée", "idées reportées"), (reglages, "réglage", "réglages"),
         ]
-        let bilan = Bilan(parties: comptes.filter { $0.0 > 0 }.map { Format.pluriel($0.0, $0.1, $0.2) })
-        if !bilan.estVide {
-            etat.ou.actualiserLocal(contexte: contexte)
-            Task { await etat.alertes.planifier(contexte: contexte, tmdb: etat.tmdb) }
-        }
-        return bilan
+        return comptes.filter { $0.0 > 0 }.map { Format.pluriel($0.0, $0.1, $0.2) }
     }
 
     /// La sauvegarde de cet appareil, réglages compris, prête à être écrite ou envoyée.
@@ -62,8 +72,9 @@ enum ImportSauvegarde {
 }
 
 /// Synchronisation entre tes appareils par un dossier d'iCloud Drive (ou de Fichiers), sans CloudKit : tu choisis le
-/// même dossier sur chaque appareil, une fois. Chacun y dépose son fichier et importe ceux des autres quand ils ont
-/// changé (voir `SynchroDossier`). Rien n'est supprimé par la synchronisation : elle ajoute et complète.
+/// même dossier sur chaque appareil, une fois. Chacun y dépose son fichier et fusionne ceux des autres quand ils ont
+/// changé (voir `SynchroDossier` et `ServiceSynchro`) : ajouts, mais aussi suppressions et retours en arrière, le plus
+/// récent l'emportant. Une sauvegarde importée à la main, elle, ne supprime jamais rien.
 @MainActor
 @Observable
 final class EtatSynchro {
@@ -124,6 +135,7 @@ final class EtatSynchro {
         // Un autre dossier : tout ce qu'il contient est nouveau, et notre fichier n'y est pas encore.
         defauts.removeObject(forKey: Cle.importes)
         defauts.removeObject(forKey: Cle.empreinte)
+        try? FileManager.default.removeItem(at: Self.fichierEtat)
         nomDossier = url.lastPathComponent
         dernierMessage = nil
     }
@@ -131,6 +143,7 @@ final class EtatSynchro {
     func oublier() {
         let defauts = UserDefaults.standard
         [Cle.signet, Cle.nomDossier, Cle.importes, Cle.empreinte, Cle.derniere].forEach(defauts.removeObject)
+        try? FileManager.default.removeItem(at: Self.fichierEtat)
         nomDossier = nil
         derniereSynchro = nil
         dernierMessage = nil
@@ -156,32 +169,52 @@ final class EtatSynchro {
                 UserDefaults.standard.set(neuf, forKey: Cle.signet)
             }
 
-            // 1. Les fichiers des autres.
+            // 1. Les fichiers des autres qui ont changé depuis leur dernier import.
             let propre = SynchroDossier.nomFichier(appareil: appareil)
             var importes = (UserDefaults.standard.dictionary(forKey: Cle.importes) as? [String: Date]) ?? [:]
             let presents = try await Task.detached { try Self.lister(dossier) }.value
-            var recus: [String] = []
+            var recues: [(nom: String, sauvegarde: Sauvegarde)] = []
+            var datesLues: [String: Date] = [:]
             for fichier in SynchroDossier.aImporter(presents, propre: propre, dejaImportes: importes) {
                 let url = dossier.appendingPathComponent(fichier.nom)
-                guard let donnees = try? await Task.detached(operation: { try Self.lire(url) }).value else { continue }
                 // Un fichier illisible (en cours d'écriture ailleurs) sera relu la prochaine fois.
-                guard let bilan = try? ImportSauvegarde.importer(donnees, etat: etat, contexte: contexte) else { continue }
-                importes[fichier.nom] = fichier.modifieLe
-                if !bilan.estVide { recus.append("\(bilan.phrase) (\(Self.nomAppareil(fichier.nom)))") }
+                guard let donnees = try? await Task.detached(operation: { try Self.lire(url) }).value,
+                      let sauvegarde = try? Sauvegarde.decoder(donnees) else { continue }
+                recues.append((fichier.nom, sauvegarde))
+                datesLues[fichier.nom] = fichier.modifieLe
             }
-            UserDefaults.standard.set(importes, forKey: Cle.importes)
 
-            // 2. Le nôtre, seulement s'il a changé : y toucher pour rien réveillerait les autres appareils.
-            let sauvegarde = try ImportSauvegarde.exporter(contexte: contexte)
-            let empreinte = try Self.empreinte(sauvegarde)
+            // 2. La fusion : suppressions et retours en arrière compris, le plus récent l'emporte.
+            let resultat = try ServiceSynchro(contexte: contexte)
+                .fusionner(recues: recues, precedente: etatPrecedent(), preferences: PreferencesSauvegardees.lire())
+            _ = PreferencesSauvegardees.appliquer(resultat.preferencesRemplacees, etat: etat, remplacer: true)
+            // Les réglages jamais touchés ici se reprennent aussi, comme à l'import d'un fichier.
+            for (_, sauvegarde) in recues { _ = PreferencesSauvegardees.appliquer(sauvegarde.preferences ?? [:], etat: etat) }
+            importes.merge(datesLues) { _, recente in recente }
+            UserDefaults.standard.set(importes, forKey: Cle.importes)
+            var recus: [String] = []
+            for recu in resultat.recus where !recu.estVide {
+                recus.append("\(ImportSauvegarde.phrase(recu)) (\(Self.nomAppareil(recu.nom)))")
+            }
+            if !recus.isEmpty {
+                etat.ou.actualiserLocal(contexte: contexte)
+                Task { await etat.alertes.planifier(contexte: contexte, tmdb: etat.tmdb) }
+            }
+
+            // 3. Notre fichier, seulement s'il a changé : y toucher pour rien réveillerait les autres appareils.
+            //    Il devient aussi le point de comparaison de la prochaine synchronisation.
+            var aDeposer = resultat.aDeposer
+            aDeposer.preferences = PreferencesSauvegardees.lire()
+            let empreinte = try Self.empreinte(aDeposer)
             var depose = false
             if empreinte != UserDefaults.standard.string(forKey: Cle.empreinte) {
-                let donnees = try sauvegarde.encoder()
+                let donnees = try aDeposer.encoder()
                 let cible = dossier.appendingPathComponent(propre)
                 try await Task.detached { try Self.ecrire(donnees, cible) }.value
                 UserDefaults.standard.set(empreinte, forKey: Cle.empreinte)
                 depose = true
             }
+            enregistrerEtat(aDeposer)
 
             derniereSynchro = .now
             UserDefaults.standard.set(Date.now, forKey: Cle.derniere)
@@ -197,6 +230,22 @@ final class EtatSynchro {
             dernierMessage = "La synchronisation n'a pas abouti : le dossier est-il toujours là, et iCloud Drive disponible ?"
             etat.journal.noter(.general, "La synchronisation par le dossier n'a pas abouti.", erreur: error)
         }
+    }
+
+    /// L'état déposé à la synchronisation précédente : c'est en s'y comparant que l'appareil sait ce qu'il a modifié
+    /// ou supprimé depuis. Gardé hors du dossier partagé, qu'un autre appareil pourrait avoir vidé.
+    private static var fichierEtat: URL {
+        let dossier = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        try? FileManager.default.createDirectory(at: dossier, withIntermediateDirectories: true)
+        return dossier.appendingPathComponent("synchro-etat.json")
+    }
+
+    private func etatPrecedent() -> Sauvegarde? {
+        (try? Data(contentsOf: Self.fichierEtat)).flatMap { try? Sauvegarde.decoder($0) }
+    }
+
+    private func enregistrerEtat(_ sauvegarde: Sauvegarde) {
+        try? sauvegarde.encoder().write(to: Self.fichierEtat, options: .atomic)
     }
 
     /// « Séance — iPad 77C1.json » → « iPad ».

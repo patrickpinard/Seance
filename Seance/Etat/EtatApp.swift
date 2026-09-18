@@ -43,6 +43,7 @@ final class EtatApp {
     let nas: EtatNAS
     let alertes = EtatAlertes()
     /// Badges « où regarder » des affiches.
+    static let cacheTMDB = CacheTMDB(dossier: DossiersSeance.reponsesTMDB)
     let ou = EtatOu()
     /// Images de fond et durées des titres, pour les grandes cartes.
     let decors = EtatDecors()
@@ -91,7 +92,9 @@ final class EtatApp {
         }
         UNUserNotificationCenter.current().delegate = delegue
         delegueNotifications = delegue
-        tmdb = try? depot.client()
+        // Les réponses de TMDB passent par un cache sur disque : plus rapide, et l'app reste utilisable sans réseau.
+        Self.cacheTMDB.purger()
+        tmdb = try? depot.client(transport: Self.cacheTMDB)
         #if DEBUG
         // Tests d'interface : un TMDB de théâtre, qui répond avec des réponses enregistrées (voir FauxTMDB).
         if let dossier = FauxTMDB.dossierDemande {
@@ -237,10 +240,10 @@ final class EtatApp {
     /// Teste la clé contre TMDB avant de l'enregistrer : une clé refusée ne remplace pas la précédente.
     func enregistrerCle(_ texte: String) async throws {
         let propre = texte.trimmingCharacters(in: .whitespacesAndNewlines)
-        let client = TMDBClient(identifiants: .depuis(propre))
-        _ = try await client.genres(.film)
+        // Le test de la clé va droit au réseau : une réponse gardée ne prouverait rien.
+        _ = try await TMDBClient(identifiants: .depuis(propre)).genres(.film)
         try depot.coffre.enregistrer(propre, pour: .tmdb)
-        tmdb = client
+        tmdb = TMDBClient(identifiants: .depuis(propre), transport: Self.cacheTMDB)
     }
 
     func supprimerCle() throws {

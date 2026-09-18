@@ -230,6 +230,10 @@ public struct Sauvegarde: Codable, Sendable, Equatable {
     public var soirees: [Soiree]?
     public var reports: [Report]?
     public var preferences: [String: Preference]?
+    /// Synchronisation entre appareils (voir FusionSynchro.swift) : quand chaque élément a changé pour la dernière
+    /// fois, et ce qui a été supprimé. Absents d'une sauvegarde exportée à la main, qui ne fait qu'ajouter.
+    public var modifications: [String: Date]?
+    public var suppressions: [Suppression]?
 
     public init(creeeLe: Date) {
         self.creeeLe = creeeLe

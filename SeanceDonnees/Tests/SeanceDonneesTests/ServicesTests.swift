@@ -190,12 +190,21 @@ struct ServicesTests {
         #expect(samedi == "2026-09-19")
         #expect(ServiceSoiree.jour(samedi) == Date.suisse("2026-09-19 12:00"))
 
-        // Une soirée passée, une pour samedi, puis un ajout pour ce soir : seule la passée disparaît.
+        // Une soirée d'il y a dix jours, celle d'hier, une pour samedi, puis un ajout pour ce soir : la plus ancienne
+        // disparaît ; celle d'hier attend qu'on dise si le film a été regardé.
+        contexte.insert(SelectionSoir(reference: ReferenceTitre(type: .film, tmdbID: 2), titre: "Il y a dix jours", cheminAffiche: nil, soiree: "2026-09-07"))
         contexte.insert(SelectionSoir(reference: ReferenceTitre(type: .film, tmdbID: 1), titre: "Hier", cheminAffiche: nil, soiree: "2026-09-16"))
         try service.retenir(heat, titre: "Heat", cheminAffiche: nil, soiree: samedi, maintenant: jeudi)
         try service.retenir(wick, titre: "John Wick", cheminAffiche: nil, maintenant: jeudi)
         #expect(try service.selection(maintenant: jeudi).map(\.titre) == ["John Wick"])
         #expect(try service.aVenir(maintenant: jeudi).map(\.titre) == ["Heat"])
+        #expect(try service.enAttente(maintenant: jeudi).map(\.titre) == ["Hier"])
+        #expect(try contexte.fetchCount(FetchDescriptor<SelectionSoir>()) == 3)
+
+        // Le film d'hier a été marqué vu entre-temps : la question ne se pose plus.
+        contexte.insert(Visionnage(reference: ReferenceTitre(type: .film, tmdbID: 1), dureeMinutes: 100, vuLe: Date.suisse("2026-09-16 23:30")))
+        try contexte.save()
+        #expect(try service.enAttente(maintenant: jeudi).isEmpty)
         #expect(try contexte.fetchCount(FetchDescriptor<SelectionSoir>()) == 2)
 
         // Prévu ailleurs, le titre est déplacé, jamais dédoublé ; une date passée vaut ce soir.
@@ -365,6 +374,59 @@ struct ServicesTests {
 
         try statistiques.retablir(touches)
         #expect(try statistiques.bilan(annee: nil).nombreFilms == 1)
+    }
+
+    /// Deux appareils et un dossier : une suppression et un « non vu » faits sur l'iPhone arrivent sur l'iPad, et ce
+    /// que l'iPad a encore ne revient pas sur l'iPhone.
+    @Test func synchronisationAvecSuppressionsEtRetoursEnArriere() throws {
+        let iphone = try EntrepotSeance.conteneur(.memoire)
+        let ipad = try EntrepotSeance.conteneur(.memoire)
+        let film = try TMDB.film()
+        let serie = try TMDB.serie()
+        for conteneur in [iphone, ipad] {
+            let suivi = ServiceSuivi(contexte: conteneur.mainContext)
+            try suivi.marquerVu(film: film, note: 8)
+            try suivi.suivre(serie: serie)
+        }
+        let t0 = Date(timeIntervalSince1970: 1_789_000_000)
+        func synchroniser(_ conteneur: ModelContainer, recoit: Sauvegarde?, precedente: Sauvegarde?, a date: Date) throws -> ServiceSynchro.Resultat {
+            try ServiceSynchro(contexte: conteneur.mainContext)
+                .fusionner(recues: recoit.map { [("autre", $0)] } ?? [], precedente: precedente, preferences: [:], maintenant: date)
+        }
+
+        // Première synchronisation des deux : rien à se dire, rien n'est daté.
+        var etatIPhone = try synchroniser(iphone, recoit: nil, precedente: nil, a: t0).aDeposer
+        var etatIPad = try synchroniser(ipad, recoit: etatIPhone, precedente: nil, a: t0).aDeposer
+        #expect(etatIPhone.modifications == nil && etatIPad.suppressions == nil)
+
+        // Sur l'iPhone : la série est retirée, le film redevient « non vu ».
+        let suiviIPhone = ServiceSuivi(contexte: iphone.mainContext)
+        iphone.mainContext.delete(try #require(try suiviIPhone.suivi(serie.reference)))
+        try suiviIPhone.marquerNonVu(film: film.reference)
+        try iphone.mainContext.save()
+        etatIPhone = try synchroniser(iphone, recoit: etatIPad, precedente: etatIPhone, a: t0.addingTimeInterval(3600)).aDeposer
+        let serieSurIPhone = try suiviIPhone.suivi(serie.reference)
+        let filmVuSurIPhone = try suiviIPhone.estVu(film.reference)
+        #expect(serieSurIPhone == nil, "La série retirée ne doit pas revenir de l'iPad")
+        #expect(!filmVuSurIPhone, "Le film ne doit pas redevenir vu à cause de l'iPad")
+        #expect(etatIPhone.suppressions?.contains { $0.cle == "suivi:\(serie.reference)" } == true)
+
+        // Sur l'iPad : il reçoit le fichier de l'iPhone.
+        let recu = try synchroniser(ipad, recoit: etatIPhone, precedente: etatIPad, a: t0.addingTimeInterval(7200))
+        etatIPad = recu.aDeposer
+        let suiviIPad = ServiceSuivi(contexte: ipad.mainContext)
+        let serieSurIPad = try suiviIPad.suivi(serie.reference)
+        let filmVuSurIPad = try suiviIPad.estVu(film.reference)
+        #expect(serieSurIPad == nil, "La suppression doit arriver sur l'iPad")
+        #expect(!filmVuSurIPad, "Le « non vu » doit arriver sur l'iPad")
+        #expect(recu.recus.first?.supprimes ?? 0 >= 1)
+        // La suppression garde sa date d'origine sur l'iPad : il la transmettra telle quelle.
+        #expect(etatIPad.suppressions?.first { $0.cle == "suivi:\(serie.reference)" }?.le == t0.addingTimeInterval(3600))
+
+        // Et l'iPhone, en recevant l'état de l'iPad, ne change plus rien : tout est aligné.
+        let retour = try synchroniser(iphone, recoit: etatIPad, precedente: etatIPhone, a: t0.addingTimeInterval(9000))
+        let changements = retour.recus.filter { !$0.estVide }.count
+        #expect(changements == 0)
     }
 
     @Test func purgeDuCache() throws {

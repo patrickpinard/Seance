@@ -308,6 +308,7 @@ struct MesListesView: View {
     @ViewBuilder
     private func liste(_ statut: StatutSuivi) -> some View {
         let titres = titresAffiches(statut)
+        let reperes = reperes
         if titres.isEmpty, ceSoirSeulement, statut != .termine, suivis.contains(where: { $0.statut == statut }) {
             vide(chargementInfos
                  ? "Recherche sur tes plateformes, ton NAS et la télé…"
@@ -323,7 +324,7 @@ struct MesListesView: View {
             LazyVGrid(columns: [GridItem(.adaptive(minimum: largeurGrille == .regular ? 150 : 105), spacing: 12, alignment: .top)], spacing: 18) {
                 ForEach(titres) { suivi in
                     NavigationLink(value: suivi.reference) {
-                        AfficheSuivi(suivi: suivi, rendezVous: prochainRendezVous(suivi), episodesVus: episodesVus(suivi))
+                        AfficheSuivi(suivi: suivi, rendezVous: prochainRendezVous(suivi, reperes), episodesVus: reperes.episodesVus[suivi.tmdbID] ?? 0)
                     }
                     .buttonStyle(.plain)
                     .contextMenu { menu(suivi, statut) }
@@ -334,7 +335,7 @@ struct MesListesView: View {
         }
         ForEach(enGrille ? [] : titres) { suivi in
             NavigationLink(value: suivi.reference) {
-                ligne(suivi)
+                ligne(suivi, reperes)
             }
             .swipeActions(edge: .leading, allowsFullSwipe: false) {
                 Button {
@@ -396,19 +397,32 @@ struct MesListesView: View {
         }
     }
 
-    /// « S02E09 · dans 3 j » : le prochain rendez-vous d'un titre surveillé.
-    private func prochainRendezVous(_ suivi: Suivi) -> String? {
+    /// Ce que chaque ligne demande — ses épisodes vus, son prochain rendez-vous — se calcule une fois pour toute la
+    /// liste : chercher dans tous les visionnages à chaque ligne coûtait le produit des deux.
+    private struct Reperes {
+        var episodesVus: [Int: Int] = [:]
+        var rendezVous: [ReferenceTitre: Echeance] = [:]
+    }
+
+    private var reperes: Reperes {
+        var reperes = Reperes()
+        for visionnage in visionnages where visionnage.typeBrut == TypeTitre.serie.rawValue {
+            reperes.episodesVus[visionnage.tmdbID, default: 0] += 1
+        }
         let aujourdhui = Calendar.current.startOfDay(for: .now)
-        return echeances.first { $0.tmdbID == suivi.tmdbID && $0.typeBrut == suivi.typeBrut && $0.date >= aujourdhui }
-            .map { "\($0.libelle) · \(compteARebours($0.date).lowercased())" }
+        // Les rendez-vous sont triés par date : le premier rencontré est le prochain.
+        for echeance in echeances where echeance.date >= aujourdhui && reperes.rendezVous[echeance.reference] == nil {
+            reperes.rendezVous[echeance.reference] = echeance
+        }
+        return reperes
     }
 
-    private func episodesVus(_ suivi: Suivi) -> Int {
-        guard suivi.type == .serie else { return 0 }
-        return visionnages.filter { $0.tmdbID == suivi.tmdbID && $0.typeBrut == TypeTitre.serie.rawValue }.count
+    /// « S02E09 · dans 3 j » : le prochain rendez-vous d'un titre surveillé.
+    private func prochainRendezVous(_ suivi: Suivi, _ reperes: Reperes) -> String? {
+        reperes.rendezVous[suivi.reference].map { "\($0.libelle) · \(compteARebours($0.date).lowercased())" }
     }
 
-    private func ligne(_ suivi: Suivi) -> some View {
+    private func ligne(_ suivi: Suivi, _ reperes: Reperes) -> some View {
         HStack(spacing: 12) {
             ImageDistante(url: ImageTMDB.url(suivi.cheminAffiche, .affiche), coins: 8)
                 .frame(width: 50, height: 75)
@@ -416,9 +430,8 @@ struct MesListesView: View {
                 Text(suivi.titre).font(.headline).lineLimit(2)
                 HStack(spacing: 6) {
                     Text(suivi.type == .film ? "Film" : "Série")
-                    if suivi.type == .serie {
-                        let vus = visionnages.filter { $0.tmdbID == suivi.tmdbID && $0.typeBrut == TypeTitre.serie.rawValue }.count
-                        if vus > 0 { Text("· \(vus) épisode\(vus > 1 ? "s" : "") vu\(vus > 1 ? "s" : "")") }
+                    if suivi.type == .serie, let vus = reperes.episodesVus[suivi.tmdbID], vus > 0 {
+                        Text("· \(vus) épisode\(vus > 1 ? "s" : "") vu\(vus > 1 ? "s" : "")")
                     }
                     if let note = suivi.note {
                         Text("· ta note \(note)/10").foregroundStyle(Theme.accentClair)
@@ -432,8 +445,8 @@ struct MesListesView: View {
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(RegardableCeSoir.retient(info.etat, maintenant: .now) ? Color.green : Color.secondary)
                 }
-                if let prochaine = echeances.first(where: { $0.tmdbID == suivi.tmdbID && $0.typeBrut == suivi.typeBrut && $0.date >= Calendar.current.startOfDay(for: .now) }) {
-                    Label("\(prochaine.libelle) · \(compteARebours(prochaine.date).lowercased())", systemImage: "calendar")
+                if let rendezVous = prochainRendezVous(suivi, reperes) {
+                    Label(rendezVous, systemImage: "calendar")
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(Theme.accentClair)
                 }

@@ -64,9 +64,10 @@ enum PreferencesSauvegardees {
 
     /// Applique les réglages importés qui n'ont jamais été touchés ici, comme le reste de l'import : rien n'est écrasé.
     /// Renvoie le nombre de réglages repris.
-    static func appliquer(_ preferences: [String: Sauvegarde.Preference], etat: EtatApp, defauts: UserDefaults = .standard) -> Int {
+    /// `remplacer` : pour les réglages qu'un autre appareil a modifiés plus récemment (synchronisation).
+    static func appliquer(_ preferences: [String: Sauvegarde.Preference], etat: EtatApp, remplacer: Bool = false, defauts: UserDefaults = .standard) -> Int {
         var repris = 0
-        for (cle, valeur) in preferences where defauts.object(forKey: cle) == nil {
+        for (cle, valeur) in preferences where remplacer || defauts.object(forKey: cle) == nil {
             switch (cle, valeur) {
             case (cleAlertes, .donnees(let brut)):
                 // Les alertes et le NAS gardent leurs réglages en mémoire : ils passent par leur propre porte.

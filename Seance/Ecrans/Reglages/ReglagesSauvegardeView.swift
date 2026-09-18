@@ -56,7 +56,7 @@ struct ReglagesSauvegardeView: View {
                 Text("Synchroniser mes appareils")
             } footer: {
                 Text(etat.synchro.estConfiguree
-                     ? "Chaque appareil dépose son fichier dans ce dossier et reprend ceux des autres quand ils ont changé. Choisis le même dossier sur ton iPhone, ton iPad et ton Mac. La synchronisation ajoute et complète ; elle ne supprime rien."
+                     ? "Chaque appareil dépose son fichier dans ce dossier et fusionne ceux des autres quand ils ont changé : ce que tu ajoutes, modifies ou supprimes sur l'un arrive sur les autres, le changement le plus récent l'emportant. Choisis le même dossier sur ton iPhone, ton iPad et ton Mac."
                      : "Crée un dossier « Séance » dans iCloud Drive, puis choisis-le ici sur chacun de tes appareils : iPhone, iPad et Mac se tiennent alors à jour tout seuls, sans compte à créer. N'importe quel dossier de Fichiers partagé entre tes appareils convient aussi.")
             }
 

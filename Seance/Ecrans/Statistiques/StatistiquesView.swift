@@ -16,12 +16,18 @@ struct StatistiquesView: View {
 
     private static let anneeCourante = Calendar.current.component(.year, from: .now)
 
-    var body: some View {
-        let _ = visionnages.count
-        let service = ServiceStatistiques(contexte: contexte)
-        let bilan = (try? service.bilan(annee: annee)) ?? BilanStatistiques()
-        let annees = Set(((try? service.annees()) ?? []) + [Self.anneeCourante]).sorted(by: >)
+    /// Le bilan parcourt tous les visionnages et leurs castings : calculé quand la période ou les visionnages
+    /// changent, pas à chaque rendu de la page.
+    @State private var bilan = BilanStatistiques()
+    @State private var annees: [Int] = [Calendar.current.component(.year, from: .now)]
 
+    private struct CleBilan: Hashable {
+        let annee: Int?
+        let visionnages: Int
+        let anterieurs: Int
+    }
+
+    var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 CarteCollection()
@@ -94,6 +100,11 @@ struct StatistiquesView: View {
         .background(Theme.fond)
         .navigationTitle("Statistiques")
         .navigationBarTitleDisplayMode(.large)
+        .task(id: CleBilan(annee: annee, visionnages: visionnages.count, anterieurs: visionnages.filter(\.anterieur).count)) {
+            let service = ServiceStatistiques(contexte: contexte)
+            bilan = (try? service.bilan(annee: annee)) ?? BilanStatistiques()
+            annees = Set(((try? service.annees()) ?? []) + [Self.anneeCourante]).sorted(by: >)
+        }
         .confirmationDialog("Remettre les statistiques à zéro ?", isPresented: $confirmerRemiseAZero, titleVisibility: .visible) {
             Button("Remettre à zéro", role: .destructive) { remettreAZero() }
         } message: {
