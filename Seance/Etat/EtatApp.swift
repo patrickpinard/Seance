@@ -46,6 +46,10 @@ final class EtatApp {
     let ou = EtatOu()
     /// Images de fond et durées des titres, pour les grandes cartes.
     let decors = EtatDecors()
+    /// Synchronisation entre appareils par un dossier d'iCloud Drive.
+    let synchro = EtatSynchro()
+    /// Une sauvegarde « .seance » reçue par AirDrop ou ouverte depuis Fichiers : l'import se confirme.
+    var sauvegardeRecue: URL?
     let journal = Journal()
     /// Gardé ici : le centre de notifications ne retient son délégué que faiblement.
     private var delegueNotifications: DelegueNotifications?

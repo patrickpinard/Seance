@@ -11,6 +11,21 @@
 	<string>fr</string>
 	<key>CFBundleDisplayName</key>
 	<string>Séance</string>
+	<key>CFBundleDocumentTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Sauvegarde de Séance</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>LSHandlerRank</key>
+			<string>Owner</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>ch.patrick.seance.sauvegarde</string>
+			</array>
+		</dict>
+	</array>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -62,6 +77,8 @@
 		<string>infuse</string>
 		<string>vlc-x-callback</string>
 	</array>
+	<key>LSSupportsOpeningDocumentsInPlace</key>
+	<true/>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>Séance lit la liste des films et séries de ton NAS, sur le réseau de la maison.</string>
 	<key>UIBackgroundModes</key>
@@ -84,5 +101,25 @@
 	</array>
 	<key>UIUserInterfaceStyle</key>
 	<string>Dark</string>
+	<key>UTExportedTypeDeclarations</key>
+	<array>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.json</string>
+			</array>
+			<key>UTTypeDescription</key>
+			<string>Sauvegarde de Séance</string>
+			<key>UTTypeIdentifier</key>
+			<string>ch.patrick.seance.sauvegarde</string>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>seance</string>
+				</array>
+			</dict>
+		</dict>
+	</array>
 </dict>
 </plist>

@@ -17,8 +17,8 @@ settings:
     # Équipe personnelle de Patrick (compte Apple gratuit).
     DEVELOPMENT_TEAM: GATK475J3P
     # Version affichée dans À propos › Versions ; à changer avec Seance/Ecrans/Reglages/Versions.swift.
-    MARKETING_VERSION: "2.7"
-    CURRENT_PROJECT_VERSION: "16"
+    MARKETING_VERSION: "2.8"
+    CURRENT_PROJECT_VERSION: "17"
 
 packages:
   SeanceKit:
@@ -61,6 +61,23 @@ targets:
             INAlternativeAppNamePronunciationHint: séance ciné
           - INAlternativeAppName: Séance Cinéma
             INAlternativeAppNamePronunciationHint: séance cinéma
+        # Une sauvegarde « .seance » (même JSON que « .json ») s'ouvre dans l'app : AirDrop, Fichiers, Mail.
+        UTExportedTypeDeclarations:
+          - UTTypeIdentifier: ch.patrick.seance.sauvegarde
+            UTTypeDescription: Sauvegarde de Séance
+            UTTypeConformsTo:
+              - public.json
+            UTTypeTagSpecification:
+              public.filename-extension:
+                - seance
+        CFBundleDocumentTypes:
+          - CFBundleTypeName: Sauvegarde de Séance
+            CFBundleTypeRole: Viewer
+            LSHandlerRank: Owner
+            LSItemContentTypes:
+              - ch.patrick.seance.sauvegarde
+        # Le Mac n'accepte que « sur place » : le fichier reçu est lu là où il est, sous accès protégé.
+        LSSupportsOpeningDocumentsInPlace: true
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         UILaunchScreen: {}

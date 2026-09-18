@@ -44,6 +44,7 @@
 		6B1CEF917A706C02E011736E /* ListesCompletes.swift in Sources */ = {isa = PBXBuildFile; fileRef = CACE819FB69880D873526A37 /* ListesCompletes.swift */; };
 		6BE0CB4312106BAE4DF24DB3 /* Raccourcis.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32E76981CE172025F2148C2A /* Raccourcis.swift */; };
 		71ABDE907BD2AEE6ABA4AA3C /* NoteTitre.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AD887A9AD6D4723A7D0854A /* NoteTitre.swift */; };
+		7A016605A2B0A846DD8142B6 /* SynchroTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A06907A2B6102E83064C962B /* SynchroTests.swift */; };
 		7C4DB19315E00E769A3D690A /* EtatNAS.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD94F6BCC152B1B30DE2DF48 /* EtatNAS.swift */; };
 		889E1057E692259368F006C8 /* FeuilleFiltres.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D0200041452BB3D285609DE /* FeuilleFiltres.swift */; };
 		90CB491DC981A4EF8E410D77 /* ReglagesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C823C7D99C49FEB6D7792D4F /* ReglagesTests.swift */; };
@@ -86,6 +87,7 @@
 		FC66DDA64C3A840C4CB2D4F3 /* ChoixSoiree.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49F605778D99EB9E5C2D53BA /* ChoixSoiree.swift */; };
 		FE7576C913266B279565E431 /* Composants.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1E76531BEB952957EAAEE65 /* Composants.swift */; };
 		FEE6A8F2F23E1E3C87548D00 /* ModelesWidgets.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED0B44CF550A1F10AF3049BA /* ModelesWidgets.swift */; };
+		FF9FE76F17F1CD64E7E63F2D /* EtatSynchro.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90761F2586C2B18FD2046492 /* EtatSynchro.swift */; };
 		FFCD2E7F759C8F02A5857C49 /* IdeesCeSoir.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F0A5CECA4CE808ED4DF352C /* IdeesCeSoir.swift */; };
 /* End PBXBuildFile section */
 
@@ -169,9 +171,11 @@
 		832BDD6EB7D6F3C924990D39 /* Versions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Versions.swift; sourceTree = "<group>"; };
 		8B744A230DB10B098ACBAA1A /* SeanceWidget.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = SeanceWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		8C27D46355FD45FE0B6BCD9F /* FicheDefilementTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FicheDefilementTests.swift; sourceTree = "<group>"; };
+		90761F2586C2B18FD2046492 /* EtatSynchro.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EtatSynchro.swift; sourceTree = "<group>"; };
 		9AE0ECC999FF1CA413FECC30 /* ListesNommees.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ListesNommees.swift; sourceTree = "<group>"; };
 		9F359EEF2BD50F8A8280CD01 /* AVenir.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AVenir.swift; sourceTree = "<group>"; };
 		9F521A01F8C00C6861F32A49 /* Lancement.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Lancement.swift; sourceTree = "<group>"; };
+		A06907A2B6102E83064C962B /* SynchroTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SynchroTests.swift; sourceTree = "<group>"; };
 		A33739359CBDF876AD2F1B6E /* MaSoiree.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MaSoiree.swift; sourceTree = "<group>"; };
 		A651E64C91DB8A9F75E0C3FD /* BienvenueView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BienvenueView.swift; sourceTree = "<group>"; };
 		A6B582A9631F77D0CF1A0AD1 /* Journal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Journal.swift; sourceTree = "<group>"; };
@@ -270,6 +274,7 @@
 				C7706567EB9521978C37DCC4 /* EtatDecors.swift */,
 				CD94F6BCC152B1B30DE2DF48 /* EtatNAS.swift */,
 				AA553B0B30B7023CD901CBEC /* EtatOu.swift */,
+				90761F2586C2B18FD2046492 /* EtatSynchro.swift */,
 				D0714561FD96B1A09A61A666 /* FauxTMDB.swift */,
 				A6B582A9631F77D0CF1A0AD1 /* Journal.swift */,
 				0661326CD01844A8F4B22D2B /* LienProfond.swift */,
@@ -430,6 +435,7 @@
 				9F521A01F8C00C6861F32A49 /* Lancement.swift */,
 				1EAE8B788413B4185E79D6B4 /* ProgrammeTeleTests.swift */,
 				C823C7D99C49FEB6D7792D4F /* ReglagesTests.swift */,
+				A06907A2B6102E83064C962B /* SynchroTests.swift */,
 				ED072241FDDEE5DC57D56512 /* TourCompletTests.swift */,
 				3719B49FCFBACBABA76DF8AD /* VisiteTests.swift */,
 			);
@@ -640,6 +646,7 @@
 				A9536F4C9B5ABE97BDFE231D /* EtatDecors.swift in Sources */,
 				7C4DB19315E00E769A3D690A /* EtatNAS.swift in Sources */,
 				616A93EDB3DFF0D208EA4B0D /* EtatOu.swift in Sources */,
+				FF9FE76F17F1CD64E7E63F2D /* EtatSynchro.swift in Sources */,
 				C2DC72385E62E22BC17B8F7B /* ExplorerModele.swift in Sources */,
 				44CC27564B8FE5C1912FCED7 /* ExplorerView.swift in Sources */,
 				384FE0F435964622466BCCB2 /* FauxTMDB.swift in Sources */,
@@ -690,6 +697,7 @@
 				D09506312ABD69FBD6A03FA4 /* Lancement.swift in Sources */,
 				235FD4AE7A62D4B74525FB9D /* ProgrammeTeleTests.swift in Sources */,
 				90CB491DC981A4EF8E410D77 /* ReglagesTests.swift in Sources */,
+				7A016605A2B0A846DD8142B6 /* SynchroTests.swift in Sources */,
 				EDBBE1D377840342A321B6B8 /* TourCompletTests.swift in Sources */,
 				EB5C447131F05A6754775E34 /* VisiteTests.swift in Sources */,
 			);
@@ -811,7 +819,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 16;
+				CURRENT_PROJECT_VERSION = 17;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = GATK475J3P;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -831,7 +839,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 2.7;
+				MARKETING_VERSION = 2.8;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -915,7 +923,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 16;
+				CURRENT_PROJECT_VERSION = 17;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = GATK475J3P;
 				ENABLE_NS_ASSERTIONS = NO;
@@ -929,7 +937,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 2.7;
+				MARKETING_VERSION = 2.8;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";

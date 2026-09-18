@@ -93,6 +93,7 @@ struct RacineView: View {
         .sheet(item: Binding { etat.titrePourListe } set: { etat.titrePourListe = $0 }) { titre in
             AjoutAListeView(titre: titre)
         }
+        .modifier(ReceptionEtSynchro())
         .fullScreenCover(isPresented: $bienvenue) {
             BienvenueView(mode: .premierLancement) {
                 bienvenueTerminee = true
@@ -168,6 +169,11 @@ struct RacineView: View {
             if demande != nil { onglet = .accueil }
         }
         .onOpenURL { url in
+            // Un fichier : une sauvegarde reçue par AirDrop ou ouverte depuis Fichiers.
+            if url.isFileURL {
+                etat.sauvegardeRecue = url
+                return
+            }
             switch LienProfond.onglet(url) {
             case .ceSoir:
                 onglet = .ceSoir

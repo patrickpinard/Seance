@@ -20,6 +20,19 @@ struct NoteVersion: Identifiable {
 
     static let historique: [NoteVersion] = [
         NoteVersion(
+            numero: "2.8",
+            date: "18 septembre 2026",
+            resume: "Tes appareils se tiennent à jour par un dossier d'iCloud Drive, et une sauvegarde s'envoie par AirDrop.",
+            fonctionnalites: [
+                Fonctionnalite(symbole: "icloud", titre: "Synchronisation par iCloud Drive",
+                               detail: "Réglages › Sauvegarde : choisis le même dossier d'iCloud Drive sur ton iPhone, ton iPad et ton Mac. Chaque appareil y dépose son fichier et reprend ceux des autres à chaque ouverture de Séance. Sans compte à créer ; elle ajoute et complète, sans rien supprimer."),
+                Fonctionnalite(symbole: "square.and.arrow.up.on.square", titre: "Envoyer à un autre appareil",
+                               detail: "AirDrop, Messages ou Mail : l'autre appareil — même sur un autre compte Apple — reçoit un fichier « .seance », propose « Ouvrir avec Séance », et l'import se confirme d'un geste."),
+                Fonctionnalite(symbole: "doc", titre: "Des sauvegardes qui s'ouvrent dans Séance",
+                               detail: "Toucher un fichier « .seance » dans Fichiers ouvre Séance et propose de l'importer."),
+            ]
+        ),
+        NoteVersion(
             numero: "2.7",
             date: "18 septembre 2026",
             resume: "Une sauvegarde enfin complète pour passer d'un appareil à l'autre, et Siri qui comprend mieux.",
