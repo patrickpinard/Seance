@@ -15,7 +15,7 @@ struct TuileJour: View {
             Text(nom)
                 .font(.caption.weight(.bold))
             Text("\(numero)")
-                .font(.system(size: 22, weight: .heavy, design: .rounded))
+                .font(.system(.title2, design: .rounded).weight(.heavy))
             Text(detail)
                 .font(.caption2)
                 .opacity(0.75)
@@ -27,6 +27,7 @@ struct TuileJour: View {
         .background(actif ? AnyShapeStyle(Theme.degradeAccent) : marque ? AnyShapeStyle(Theme.accent.opacity(0.16)) : AnyShapeStyle(Theme.surface),
                     in: RoundedRectangle(cornerRadius: 14, style: .continuous))
         .contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .texteContenu()
     }
 }
 

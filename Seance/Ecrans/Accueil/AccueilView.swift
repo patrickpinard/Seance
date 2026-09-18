@@ -13,6 +13,8 @@ struct SourcesAccueil: Codable, Hashable {
     var tele = true
     var duMoment = true
     var nas = true
+    /// « Dans ta liste, regardable ce soir » : ce que tu voulais voir et qui est sur le NAS, tes plateformes ou la télé.
+    var regardable = true
     /// Films et séries du classement, chacun : 3, 5 ou 10.
     var nombreTop = 5
     /// Titres de « Du moment » : 10, 20 ou 30.
@@ -38,7 +40,7 @@ struct SourcesAccueil: Codable, Hashable {
     }
 
     enum CodingKeys: String, CodingKey {
-        case plateformes, top10, tele, duMoment, nas, nombreTop, nombreDuMoment, nombreBandeau, seriesTele
+        case plateformes, top10, tele, duMoment, nas, regardable, nombreTop, nombreDuMoment, nombreBandeau, seriesTele
     }
 
     /// Les réglages d'une version précédente restent valables : ce qui a été ajouté depuis prend sa valeur par défaut.
@@ -49,6 +51,7 @@ struct SourcesAccueil: Codable, Hashable {
         tele = try c.decodeIfPresent(Bool.self, forKey: .tele) ?? true
         duMoment = try c.decodeIfPresent(Bool.self, forKey: .duMoment) ?? true
         nas = try c.decodeIfPresent(Bool.self, forKey: .nas) ?? true
+        regardable = try c.decodeIfPresent(Bool.self, forKey: .regardable) ?? true
         let top = try c.decodeIfPresent(Int.self, forKey: .nombreTop) ?? 5
         nombreTop = Self.choixTop.contains(top) ? top : 5
         let moment = try c.decodeIfPresent(Int.self, forKey: .nombreDuMoment) ?? 20
@@ -148,6 +151,12 @@ struct AccueilView: View {
     @State private var reglageSources = false
     @State private var chemin = NavigationPath()
     @Query(sort: \SelectionSoir.ajouteLe) private var selections: [SelectionSoir]
+    @Query(sort: \Suivi.ajouteLe, order: .reverse) private var suivis: [Suivi]
+
+    /// Ce que tu veux voir ou es en train de regarder : on demande pour chacun où il se regarde (réponse gardée 12 h).
+    private var candidatsRegardables: [Suivi] {
+        Array(suivis.filter { ($0.statut == .aVoir || $0.statut == .enCours) && !$0.masque }.prefix(40))
+    }
 
     /// « Ce soir : Heat, Reacher », ou la prochaine soirée prévue ; rien quand aucune soirée n'est prévue.
     private var resumeSoiree: String? {
@@ -155,6 +164,9 @@ struct AccueilView: View {
         let ceSoir = selections.filter { $0.soiree == jour }.map(\.titre)
         if !ceSoir.isEmpty {
             return "Ce soir : " + ceSoir.prefix(2).joined(separator: ", ") + (ceSoir.count > 2 ? " et \(Format.pluriel(ceSoir.count - 2, "autre"))" : "")
+        }
+        if let passee = selections.filter({ $0.soiree < jour }).max(by: { $0.soiree < $1.soiree }) {
+            return "\(passee.soiree == ServiceSoiree.soiree(Date.now.addingTimeInterval(-86_400)) ? "Hier soir" : "L'autre soir") : \(passee.titre) — regardé ?"
         }
         guard let prochaine = selections.filter({ $0.soiree > jour }).min(by: { $0.soiree < $1.soiree }) else { return nil }
         return "\(LibelleSoiree.soiree(prochaine.soiree)) : \(prochaine.titre)"
@@ -204,6 +216,10 @@ struct AccueilView: View {
             }
             .background(Theme.fond)
             .boutonBarreLaterale()
+            .task(id: candidatsRegardables.map(\.reference)) {
+                guard sources.regardable else { return }
+                for suivi in candidatsRegardables { etat.ou.demander(suivi.reference, client: etat.tmdb) }
+            }
             .destinationsTitres()
             .navigationDestination(for: DestinationAccueil.self) { destination in
                 switch destination {
@@ -307,6 +323,14 @@ struct AccueilView: View {
                     .padding(.horizontal, 20)
                 }
 
+                if sources.regardable {
+                    // Sur le NAS, sur tes plateformes ou à la télé ce soir : le badge « où regarder » le sait déjà.
+                    let regardables = candidatsRegardables.filter { etat.ou.badge($0.reference) != nil }
+                    if !regardables.isEmpty {
+                        SectionRegardable(suivis: regardables)
+                    }
+                }
+
                 if sources.top10, !modele.topFilms.isEmpty || !modele.topSeries.isEmpty {
                     SectionTop10(films: modele.topFilms, series: modele.topSeries, nombre: sources.nombreTop,
                                  plateformes: plateformes.map(nomsPlateformes))
@@ -380,6 +404,7 @@ struct ReglageSourcesAccueil: View {
                 }
 
                 Section {
+                    Toggle("Regardable ce soir, dans ta liste", isOn: $sources.regardable).tint(Theme.accent)
                     Toggle("Top de l'année", isOn: $sources.top10).tint(Theme.accent)
                     Toggle("Ce soir à la télé", isOn: $sources.tele).tint(Theme.accent)
                     Toggle("Du moment", isOn: $sources.duMoment).tint(Theme.accent)
@@ -438,6 +463,45 @@ struct ReglageSourcesAccueil: View {
     }
 }
 
+/// « Dans ta liste, regardable ce soir » : les titres que tu voulais voir et qui sont sous la main, en affiches.
+private struct SectionRegardable: View {
+    let suivis: [Suivi]
+
+    @Environment(EtatApp.self) private var etat
+    @Environment(\.modelContext) private var contexte
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            TitreSection("Regardable ce soir, dans ta liste")
+            Text("Sur ton NAS, sur tes plateformes ou à la télé ce soir")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 20)
+            DefilementHorizontal {
+                LazyHStack(alignment: .top, spacing: 14) {
+                    ForEach(suivis) { suivi in
+                        NavigationLink(value: suivi.reference) {
+                            AfficheSuivi(suivi: suivi, rendezVous: nil, episodesVus: 0)
+                                .frame(width: 118)
+                        }
+                        .buttonStyle(.plain)
+                        .contextMenu {
+                            Button {
+                                try? ServiceSoiree(contexte: contexte).retenir(suivi.reference, titre: suivi.titre, cheminAffiche: suivi.cheminAffiche)
+                                etat.confirmer("« \(suivi.titre) » ajouté à ta soirée", symbole: "moon.stars.fill")
+                            } label: { Label("Ajouter à ma soirée", systemImage: "moon.stars") }
+                            Button {
+                                etat.titreADater = TitreChoisi(reference: suivi.reference, titre: suivi.titre, cheminAffiche: suivi.cheminAffiche)
+                            } label: { Label("Prévoir pour une soirée…", systemImage: "calendar") }
+                        }
+                    }
+                }
+                .padding(.horizontal, 20)
+            }
+        }
+    }
+}
+
 /// UX-01 : bandeau vedette à faire défiler.
 private struct BandeauVedette: View {
     let titres: [TitreResume]
@@ -477,7 +541,7 @@ private struct BandeauVedette: View {
                                        startPoint: .top, endPoint: .bottom)
                         VStack(alignment: .leading, spacing: 10) {
                             Text(titre.titre)
-                                .font(.system(size: 32, weight: .heavy))
+                                .font(.largeTitle.weight(.heavy))
                                 .lineLimit(2)
                             HStack(spacing: 10) {
                                 AnneauNote(pourcentage: titre.pourcentageNote)
@@ -613,6 +677,7 @@ private struct SectionTele: View {
     let diffusions: [Diffusion]
     let lectureEnCours: Bool
     let toutVoir: () -> Void
+    @Environment(EtatApp.self) private var etat
     @Query private var chaines: [Chaine]
     @Query private var suivis: [Suivi]
 
@@ -635,6 +700,7 @@ private struct SectionTele: View {
         TimelineView(.periodic(from: .now, by: 60)) { horloge in
             section(maintenant: horloge.date)
         }
+        .task { await etat.alertes.actualiserRappelsTele() }
     }
 
     private func section(maintenant: Date) -> some View {

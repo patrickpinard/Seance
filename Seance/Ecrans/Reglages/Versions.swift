@@ -20,6 +20,25 @@ struct NoteVersion: Identifiable {
 
     static let historique: [NoteVersion] = [
         NoteVersion(
+            numero: "3.0",
+            date: "18 septembre 2026",
+            resume: "Une synchronisation qui propage aussi les suppressions, l'app utilisable sans réseau, et trois attentions du quotidien.",
+            fonctionnalites: [
+                Fonctionnalite(symbole: "arrow.triangle.2.circlepath", titre: "Synchronisation complète",
+                               detail: "Ce que tu supprimes, marques « non vu » ou changes de note sur un appareil arrive sur les autres : le changement le plus récent l'emporte, et un titre retiré ne revient plus. Ton prénom, tes alertes et l'adresse du NAS suivent aussi. Une sauvegarde importée à la main, elle, ne supprime jamais rien."),
+                Fonctionnalite(symbole: "bolt.horizontal", titre: "Plus rapide, et sans réseau",
+                               detail: "Les réponses de TMDB sont gardées sur l'appareil : une fiche déjà ouverte s'affiche aussitôt, et dans le train l'app montre ce qu'elle a déjà vu. Statistiques et Mes listes ne recalculent plus tout à chaque affichage."),
+                Fonctionnalite(symbole: "moon.stars", titre: "« Hier soir : regardé ? »",
+                               detail: "Une soirée passée ne s'efface plus en silence : Ce soir demande si tu as regardé le film — « Regardé », « Ce soir » ou l'oublier. L'accueil le rappelle."),
+                Fonctionnalite(symbole: "bell", titre: "Une cloche sur chaque passage télé",
+                               detail: "Dans le programme télé et sur l'accueil : « me le rappeler un quart d'heure avant », pour n'importe quel film ou série, même hors de ta liste."),
+                Fonctionnalite(symbole: "sparkles.tv", titre: "Regardable ce soir, dans ta liste",
+                               detail: "Sur l'accueil : ce que tu voulais voir et qui est sous la main, sur ton NAS, tes plateformes ou à la télé ce soir."),
+                Fonctionnalite(symbole: "textformat.size", titre: "Texte agrandi et contraste",
+                               detail: "Les heures, les dates et les titres suivent la taille de texte choisie dans iOS. En apparence claire, l'orange des textes est plus soutenu, pour rester lisible."),
+            ]
+        ),
+        NoteVersion(
             numero: "2.9",
             date: "18 septembre 2026",
             resume: "Un Profil en images, des Réglages en tableau de bord, et l'apparence claire ou sombre au choix.",

@@ -92,10 +92,12 @@ private struct PastilleMarque: View {
         case .dansTaListe:
             Label("Dans ta liste", systemImage: "bookmark.fill")
                 .font(.caption2.weight(.bold))
+                .fixedSize()
                 .foregroundStyle(Theme.accentClair)
         case .dejaVu:
             Label("Déjà vu", systemImage: "eye.fill")
                 .font(.caption2.weight(.bold))
+                .fixedSize()
                 .foregroundStyle(surImage ? AnyShapeStyle(.white.opacity(0.8)) : AnyShapeStyle(.secondary))
         }
     }
@@ -153,6 +155,53 @@ private extension BlocDiffusion {
     }
 }
 
+/// La cloche d'un passage télé : « me le rappeler un quart d'heure avant », pour n'importe quel titre du programme.
+struct ClocheDiffusion: View {
+    let bloc: BlocDiffusion
+    let chaine: String
+    /// Sur une image : pastille sombre. Sur une ligne : pastille de surface.
+    var surImage = true
+    /// Sur le Mac, un clic sur la cloche traverserait jusqu'à la carte du dessous : elle se rend insensible au survol.
+    @Binding var survol: Bool
+
+    @Environment(EtatApp.self) private var etat
+
+    var body: some View {
+        let actif = etat.alertes.aUnRappel(chaine: bloc.premiere.chaine, debut: bloc.debut)
+        Button {
+            Task { await basculer() }
+        } label: {
+            Image(systemName: actif ? "bell.fill" : "bell")
+                .font(.system(size: 14, weight: .bold))
+                .contentTransition(.symbolEffect(.replace))
+                .foregroundStyle(actif ? AnyShapeStyle(Color.black) : surImage ? AnyShapeStyle(Color.white) : AnyShapeStyle(Color.primary))
+                .frame(width: 34, height: 34)
+                .background(actif ? AnyShapeStyle(Theme.degradeAccent) : surImage ? AnyShapeStyle(.black.opacity(0.65)) : AnyShapeStyle(Theme.surface), in: Circle())
+                .contentShape(Circle())
+        }
+        .buttonStyle(.plain)
+        .onHover { survol = $0 }
+        .onDisappear { survol = false }
+        .help(actif ? "Retirer le rappel" : "Me le rappeler un quart d'heure avant")
+        .accessibilityLabel(actif ? "Retirer le rappel de \(bloc.premiere.titreGuide)" : "Me rappeler \(bloc.premiere.titreGuide) un quart d'heure avant")
+        .sensoryFeedback(.selection, trigger: actif)
+    }
+
+    private func basculer() async {
+        let pose = await etat.alertes.basculerRappelTele(titre: bloc.premiere.titreGuide, nomChaine: chaine, chaine: bloc.premiere.chaine,
+                                                         debut: bloc.debut, reference: bloc.reference)
+        switch pose {
+        case true?:
+            let quand = HeuresTele.heure(max(.now, bloc.debut.addingTimeInterval(-EtatAlertes.avanceRappelTele)))
+            etat.confirmer("Rappel à \(quand) pour « \(bloc.premiere.titreGuide) »", symbole: "bell.fill")
+        case false?:
+            etat.confirmer("Rappel retiré", symbole: "bell.slash")
+        case nil:
+            etat.confirmer("Active les notifications de Séance pour recevoir ce rappel", symbole: "bell.slash")
+        }
+    }
+}
+
 /// Un lien vers la fiche quand le passage est rattaché à TMDB, avec son menu ; la carte seule sinon.
 private struct LienDiffusion<Contenu: View>: View {
     let bloc: BlocDiffusion
@@ -179,8 +228,22 @@ struct CarteDiffusion: View {
     /// Hors d'une page classée par jour : « sam. 20 » devant l'heure quand ce n'est pas aujourd'hui.
     var jourVisible = false
 
+    @State private var survolCloche = false
+
     var body: some View {
         let avancement = bloc.avancement(maintenant: maintenant)
+        carte(avancement)
+            #if targetEnvironment(macCatalyst)
+            .allowsHitTesting(!survolCloche)
+            #endif
+            .overlay(alignment: .bottomTrailing) {
+                if bloc.debut > maintenant {
+                    ClocheDiffusion(bloc: bloc, chaine: chaine, survol: $survolCloche).padding(10)
+                }
+            }
+    }
+
+    private func carte(_ avancement: Double?) -> some View {
         LienDiffusion(bloc: bloc) {
             Color.clear
                 .aspectRatio(16 / 9, contentMode: .fit)
@@ -219,7 +282,7 @@ struct CarteDiffusion: View {
                                     .font(.subheadline.weight(.bold))
                             }
                             Text(HeuresTele.heure(bloc.debut))
-                                .font(.system(size: 26, weight: .heavy, design: .rounded))
+                                .font(.system(.title, design: .rounded).weight(.heavy))
                                 .foregroundStyle(Theme.accentClair)
                             Text("→ \(HeuresTele.heure(bloc.fin))")
                                 .font(.caption.weight(.semibold))
@@ -252,6 +315,7 @@ struct CarteDiffusion: View {
                         }
                     }
                     .padding(12)
+                    .padding(.trailing, avancement == nil ? 40 : 0)
                 }
                 .foregroundStyle(.white)
                 .surImage()
@@ -276,13 +340,29 @@ struct LigneDiffusion: View {
     let chaine: String
     let marque: MarqueListe?
 
+    @State private var survolCloche = false
+
     var body: some View {
+        HStack(spacing: 8) {
+            lien
+                #if targetEnvironment(macCatalyst)
+                .allowsHitTesting(!survolCloche)
+                #endif
+            if bloc.debut > .now {
+                ClocheDiffusion(bloc: bloc, chaine: chaine, surImage: false, survol: $survolCloche)
+            }
+        }
+        .padding(10)
+        .background(Theme.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+    }
+
+    private var lien: some View {
         LienDiffusion(bloc: bloc) {
             HStack(spacing: 12) {
                 VStack(spacing: 2) {
                     // « 23:50 » est plus large que « 00:10 » : jamais sur deux lignes.
                     Text(HeuresTele.heure(bloc.debut))
-                        .font(.system(size: 19, weight: .heavy, design: .rounded))
+                        .font(.system(.title3, design: .rounded).weight(.heavy))
                         .monospacedDigit()
                         .lineLimit(1)
                         .fixedSize()
@@ -292,7 +372,7 @@ struct LigneDiffusion: View {
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                 }
-                .frame(width: 64)
+                .frame(minWidth: 64)
                 ImageDistante(url: bloc.image, coins: 9)
                     .frame(width: 104, height: 58)
                 VStack(alignment: .leading, spacing: 4) {
@@ -320,9 +400,7 @@ struct LigneDiffusion: View {
                 }
                 Spacer(minLength: 0)
             }
-            .padding(10)
-            .background(Theme.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-            .contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .contentShape(Rectangle())
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(bloc.descriptionVocale(chaine: chaine, marque: marque))
@@ -332,6 +410,7 @@ struct LigneDiffusion: View {
 
 /// Tout le programme à venir des chaînes cochées (EF-46 à EF-49) : un jour à la fois, la soirée en vedette.
 struct ProgrammeTeleView: View {
+    @Environment(EtatApp.self) private var etat
     @Query(sort: \Diffusion.debut) private var diffusions: [Diffusion]
     @Query private var chaines: [Chaine]
     @Query private var suivis: [Suivi]
@@ -345,6 +424,7 @@ struct ProgrammeTeleView: View {
         .background(Theme.fond)
         .navigationTitle("Programme télé")
         .navigationBarTitleDisplayMode(.inline)
+        .task { await etat.alertes.actualiserRappelsTele() }
     }
 
     private func contenu(maintenant: Date) -> some View {

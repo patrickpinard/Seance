@@ -51,9 +51,15 @@ struct CeSoirView: View {
         return selections.filter { $0.soiree == soiree }
     }
 
+    /// Les soirées passées de la semaine, pas encore tranchées : « Hier soir · Heat — regardé ? ».
+    private var enAttente: [SelectionSoir] {
+        let ceSoir = ServiceSoiree.soiree()
+        return selections.filter { $0.soiree < ceSoir }.sorted { $0.soiree > $1.soiree }
+    }
+
     /// Nombre de titres par soirée, pour marquer les jours du calendrier.
     private var prevus: [String: Int] {
-        Dictionary(grouping: selections, by: \.soiree).mapValues(\.count)
+        Dictionary(grouping: selections.filter { $0.soiree >= ServiceSoiree.soiree() }, by: \.soiree).mapValues(\.count)
     }
 
     var body: some View {
@@ -83,6 +89,7 @@ struct CeSoirView: View {
             .onChange(of: selection.map(\.reference)) { Task { await soiree.charger(etat: etat, contexte: contexte) } }
             // L'image de fond et la durée des titres prévus, pour les grandes cartes.
             .task(id: selections.map(\.reference)) { await etat.decors.charger(selections.map(\.reference), client: etat.tmdb) }
+            .task(id: selections.count) { _ = try? ServiceSoiree(contexte: contexte).enAttente() }
             // Un rappel le jour de chaque soirée prévue, à l'heure des alertes.
             .task(id: selections.map(\.soiree)) { await etat.alertes.programmerRappelsSoirees(contexte: contexte) }
             .sheet(isPresented: $ajout) {
@@ -124,6 +131,19 @@ struct CeSoirView: View {
                 Text(resume)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
+            }
+
+            if ceSoirAffiche {
+                ForEach(enAttente) { titre in
+                    CarteSoireePassee(titre: titre, decor: etat.decors.decor(titre.reference)) {
+                        Task { await marquerVu(titre) }
+                    } ceSoir: {
+                        deplacer(titre, vers: nil)
+                    } retirer: {
+                        retirer(titre)
+                    }
+                    .frame(maxWidth: 560)
+                }
             }
 
             if ceSoirAffiche, let film = filmANoter {
@@ -256,13 +276,15 @@ struct CeSoirView: View {
                 etat.confirmer("TMDB ne répond pas : réessaie dans un instant", symbole: "exclamationmark.triangle")
                 return
             }
-            try? ServiceSuivi(contexte: contexte).marquerVu(film: film)
+            // Une soirée passée : le film a été vu ce soir-là, à l'heure du film.
+            let quand = titre.soiree < ServiceSoiree.soiree() ? ServiceSoiree.jour(titre.soiree)?.addingTimeInterval(9 * 3600) : nil
+            try? ServiceSuivi(contexte: contexte).marquerVu(film: film, le: quand ?? .now)
             etat.confirmer("« \(titre.titre) » marqué vu", symbole: "eye.fill")
             withAnimation(.snappy) { filmANoter = film }
-        } else {
+        } else if titre.soiree >= ServiceSoiree.soiree() {
             return
         }
-        try? ServiceSoiree(contexte: contexte).retirer(reference)
+        try? ServiceSoiree(contexte: contexte).retirer(reference, soiree: titre.soiree)
     }
 
     private func noter(_ film: FicheFilm, _ valeur: Int) {

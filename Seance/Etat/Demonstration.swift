@@ -106,6 +106,9 @@ enum Demonstration {
         let soiree = ServiceSoiree.soiree()
         contexte.insert(SelectionSoir(reference: reacher.reference, titre: reacher.nom, cheminAffiche: reacher.affiche, soiree: soiree))
         contexte.insert(SelectionSoir(reference: aVoir.reference, titre: aVoir.nom, cheminAffiche: aVoir.affiche, soiree: soiree))
+        // Hier soir, un film prévu dont on ne sait pas s'il a été regardé.
+        let hier = ServiceSoiree.soiree(Date.now.addingTimeInterval(-86_400))
+        contexte.insert(SelectionSoir(reference: ReferenceTitre(type: .film, tmdbID: 949), titre: "Heat", cheminAffiche: "/umSVjVdbVwtx5ryCA2QXL44Durm.jpg", soiree: hier))
 
         // Programme télé : un film en cours, la soirée, le reste de la journée et les jours suivants.
         let aujourdhui = DateTMDB(.now)

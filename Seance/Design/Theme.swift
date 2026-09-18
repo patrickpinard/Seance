@@ -7,9 +7,10 @@ import UIKit
 /// leur texte blanc et leur orange vif se lisent sur la photo quelle que soit l'apparence.
 enum Theme {
     static let accent = Color("AccentColor")
-    /// L'orange des textes et des icônes : vif sur fond sombre, plus soutenu sur fond clair pour rester lisible.
+    /// L'orange des textes et des icônes : vif sur fond sombre, plus soutenu sur fond clair, où il garde un contraste de
+    /// 5,3:1 sur le fond et 4,6:1 sur une carte (le seuil de lisibilité est 4,5:1).
     static let accentClair = dynamique(sombre: UIColor(red: 1, green: 0.635, blue: 0.29, alpha: 1),
-                                       clair: UIColor(red: 0.80, green: 0.34, blue: 0.0, alpha: 1))
+                                       clair: UIColor(red: 0.68, green: 0.27, blue: 0.02, alpha: 1))
     static let fond = dynamique(sombre: UIColor(red: 0.04, green: 0.04, blue: 0.055, alpha: 1),
                                 clair: UIColor(red: 0.965, green: 0.96, blue: 0.955, alpha: 1))
     /// Le fond des cartes et des puces : translucide, pour s'empiler (une puce dans une carte reste visible).
@@ -96,8 +97,15 @@ enum Apparence: String, CaseIterable, Identifiable {
 }
 
 extension View {
-    /// Pour une carte dont le fond est une photo assombrie : ses couleurs restent celles du mode sombre.
+    /// Pour une carte dont le fond est une photo assombrie : ses couleurs restent celles du mode sombre, et son texte
+    /// suit la taille choisie dans iOS jusqu'à un plafond — au-delà, une image 16/9 ne peut plus tout loger.
     func surImage() -> some View {
         environment(\.colorScheme, .dark)
+            .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+    }
+
+    /// Pour une tuile ou une puce de largeur comptée (jours, sources) : même plafond.
+    func texteContenu() -> some View {
+        dynamicTypeSize(...DynamicTypeSize.xxxLarge)
     }
 }

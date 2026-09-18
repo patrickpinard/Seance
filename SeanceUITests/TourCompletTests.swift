@@ -35,6 +35,32 @@ final class TourCompletTests: XCTestCase {
         try tour(apparence: "clair", prefixe: "clair-")
     }
 
+    /// Texte très agrandi (réglage d'accessibilité d'iOS) : les pages principales se capturent pour relecture.
+    func testGrandTexte() throws {
+        continueAfterFailure = true
+        Lancement.demonstration(app)
+        app.launchArguments += ["-apparence", "sombre", "-profil.prenom", "Camille",
+                                "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityL"]
+        app.launch()
+        prefixe = "grand-"
+        XCTAssertTrue(app.staticTexts["Du moment"].firstMatch.waitForExistence(timeout: 20))
+        capture("01-accueil", attente: 5)
+        app.swipeUp()
+        capture("02-accueil-tele")
+        onglet("Ce soir")
+        capture("03-ce-soir", attente: 4)
+        onglet("Mes listes")
+        capture("04-listes")
+        app.buttons["À venir"].firstMatch.tap()
+        capture("05-a-venir", attente: 3)
+        onglet("Profil")
+        capture("06-profil", attente: 3)
+        app.navigationBars.buttons["Réglages"].firstMatch.tap()
+        capture("07-reglages", attente: 3)
+        app.open(URL(string: "seance://tele")!)
+        capture("08-tele", attente: 5)
+    }
+
     private func tour(apparence: String, prefixe: String) throws {
         continueAfterFailure = true
         Lancement.demonstration(app)
@@ -45,6 +71,8 @@ final class TourCompletTests: XCTestCase {
 
         // Accueil : le faux TMDB remplit le Top et « Du moment » ; la démonstration, la télé et le NAS.
         XCTAssertTrue(app.staticTexts["Du moment"].firstMatch.waitForExistence(timeout: 20), "L'accueil ne charge pas « Du moment »")
+        XCTAssertTrue(app.staticTexts["Regardable ce soir, dans ta liste"].firstMatch.waitForExistence(timeout: 10),
+                      "L'accueil ne montre pas ce qui est regardable ce soir dans la liste")
         capture("01-accueil", attente: 5)
         app.swipeUp()
         capture("02-accueil-tele")
@@ -56,6 +84,8 @@ final class TourCompletTests: XCTestCase {
         XCTAssertTrue(app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Ce soir, '")).firstMatch.waitForExistence(timeout: 10),
                       "La rangée des soirées est absente")
         XCTAssertTrue(app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Reacher'")).firstMatch.waitForExistence(timeout: 10))
+        XCTAssertTrue(app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Hier soir, Heat'")).firstMatch.waitForExistence(timeout: 8),
+                      "La soirée d'hier ne demande pas si le film a été regardé")
         capture("04-ce-soir", attente: 4)
         app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Demain' OR label CONTAINS 'rien de prévu'")).element(boundBy: 1).tap()
         capture("05-ce-soir-autre-jour")

@@ -44,27 +44,37 @@ private struct LigneEtat: View {
     let enOrdre: Bool
     var action: String?
 
+    @Environment(\.dynamicTypeSize) private var tailleTexte
+
     var body: some View {
-        HStack(spacing: 10) {
+        HStack(alignment: .top, spacing: 10) {
             Image(systemName: enOrdre ? "checkmark.circle.fill" : "exclamationmark.circle.fill")
                 .font(.headline)
                 .foregroundStyle(enOrdre ? Color.green : Color.orange)
             VStack(alignment: .leading, spacing: 1) {
                 Text(titre).font(.subheadline.weight(.semibold))
-                Text(detail).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                Text(detail).font(.caption).foregroundStyle(.secondary).lineLimit(tailleTexte.isAccessibilitySize ? 3 : 1)
+                // En texte agrandi, l'action passe sous le libellé : à côté, elle le coupait en deux.
+                if tailleTexte.isAccessibilitySize { pastilleAction.padding(.top, 4) }
             }
             Spacer(minLength: 4)
-            if let action, !enOrdre {
-                Text(action)
-                    .font(.caption.weight(.bold))
-                    .padding(.horizontal, 10).frame(height: 28)
-                    .background(Theme.accent.opacity(0.2), in: Capsule())
-                    .foregroundStyle(Theme.accentClair)
-            }
+            if !tailleTexte.isAccessibilitySize { pastilleAction }
         }
         .contentShape(Rectangle())
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("État, \(titre) : \(detail)\(enOrdre ? "" : ", à régler")")
+    }
+
+    @ViewBuilder
+    private var pastilleAction: some View {
+        if let action, !enOrdre {
+            Text(action)
+                .font(.caption.weight(.bold))
+                .fixedSize()
+                .padding(.horizontal, 10).frame(minHeight: 28)
+                .background(Theme.accent.opacity(0.2), in: Capsule())
+                .foregroundStyle(Theme.accentClair)
+        }
     }
 }
 

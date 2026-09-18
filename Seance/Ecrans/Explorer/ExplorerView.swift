@@ -455,6 +455,7 @@ struct ExplorerView: View {
             .background(active ? AnyShapeStyle(Theme.degradeAccent) : AnyShapeStyle(Theme.surface),
                         in: RoundedRectangle(cornerRadius: 13, style: .continuous))
             .contentShape(RoundedRectangle(cornerRadius: 13, style: .continuous))
+            .texteContenu()
         }
         .buttonStyle(.plain)
         .disabled(!disponible)

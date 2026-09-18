@@ -277,12 +277,14 @@ struct TitreSection<Accessoire: View>: View {
     let titre: String
     @ViewBuilder var accessoire: Accessoire
 
+    @Environment(\.dynamicTypeSize) private var tailleTexte
+
     var body: some View {
         HStack(spacing: 10) {
-            // Le titre tient sur une ligne : il rétrécit un peu plutôt que de passer à la ligne.
+            // Le titre tient sur une ligne : il rétrécit un peu plutôt que de passer à la ligne ; en texte agrandi, deux.
             Text(titre)
                 .font(.title3.weight(.bold))
-                .lineLimit(1)
+                .lineLimit(tailleTexte.isAccessibilitySize ? 2 : 1)
                 .minimumScaleFactor(0.75)
                 .layoutPriority(1)
             Spacer(minLength: 4)

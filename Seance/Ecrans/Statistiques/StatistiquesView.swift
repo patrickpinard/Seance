@@ -275,7 +275,7 @@ private struct CarteHeures: View {
         VStack(alignment: .leading, spacing: 14) {
             HStack(alignment: .firstTextBaseline, spacing: 10) {
                 Text(Format.duree(bilan.minutesTotales))
-                    .font(.system(size: 52, weight: .heavy, design: .rounded))
+                    .font(.system(.largeTitle, design: .rounded).weight(.heavy))
                     .foregroundStyle(Theme.degradeAccent)
                 VStack(alignment: .leading, spacing: 0) {
                     Text("regardées \(periode)").font(.headline)

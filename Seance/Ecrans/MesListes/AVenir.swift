@@ -86,7 +86,7 @@ struct CarteEcheance: View {
                 .overlay(alignment: .bottomLeading) {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(date)
-                            .font(.system(size: 22, weight: .heavy, design: .rounded))
+                            .font(.system(.title2, design: .rounded).weight(.heavy))
                             .foregroundStyle(Theme.accentClair)
                             .lineLimit(1)
                             .minimumScaleFactor(0.8)

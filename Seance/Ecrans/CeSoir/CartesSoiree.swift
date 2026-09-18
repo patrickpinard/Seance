@@ -148,3 +148,76 @@ struct CarteSoiree: View {
         .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).strokeBorder(.white.opacity(0.1), lineWidth: 1))
     }
 }
+
+/// Une soirée passée qui n'a pas été tranchée : « Hier soir · Heat — regardé ? ». Trois réponses : oui, ce soir, non.
+struct CarteSoireePassee: View {
+    let titre: SelectionSoir
+    let decor: EtatDecors.Decor?
+    let regarde: () -> Void
+    let ceSoir: () -> Void
+    let retirer: () -> Void
+
+    /// « Hier soir », « Mardi soir ».
+    private var quand: String {
+        guard let jour = ServiceSoiree.jour(titre.soiree) else { return "L'autre soir" }
+        if titre.soiree == ServiceSoiree.soiree(Date.now.addingTimeInterval(-86_400)) { return "Hier soir" }
+        let nom = jour.formatted(.dateTime.weekday(.wide).locale(Locale(identifier: "fr_CH")))
+        return nom.prefix(1).uppercased() + nom.dropFirst() + " soir"
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            NavigationLink(value: titre.reference) {
+                HStack(spacing: 12) {
+                    ImageDistante(url: ImageTMDB.url(decor?.fond, .fond) ?? ImageTMDB.url(titre.cheminAffiche, .fond), coins: 9)
+                        .frame(width: 96, height: 54)
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("\(quand) · regardé ?")
+                            .font(.caption.weight(.heavy))
+                            .foregroundStyle(Theme.accentClair)
+                        Text(titre.titre)
+                            .font(.subheadline.weight(.semibold))
+                            .lineLimit(2)
+                            .multilineTextAlignment(.leading)
+                    }
+                    Spacer(minLength: 0)
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("\(quand), \(titre.titre). L'as-tu regardé ?")
+
+            // En texte agrandi, les trois réponses passent à la ligne plutôt que de se tronquer.
+            Flux(espacement: 10) {
+                Button(action: regarde) {
+                    Label("Regardé", systemImage: "checkmark")
+                        .font(.subheadline.weight(.bold))
+                        .fixedSize()
+                        .foregroundStyle(.black)
+                        .padding(.horizontal, 16)
+                        .frame(minHeight: 36)
+                        .background(Theme.degradeAccent, in: Capsule())
+                        .contentShape(Capsule())
+                }
+                .buttonStyle(.plain)
+                Button(action: ceSoir) {
+                    Label("Ce soir", systemImage: "moon.stars.fill")
+                        .font(.subheadline.weight(.bold))
+                        .fixedSize()
+                        .foregroundStyle(Theme.accentClair)
+                        .padding(.horizontal, 14)
+                        .frame(minHeight: 36)
+                        .background(Theme.accent.opacity(0.18), in: Capsule())
+                        .contentShape(Capsule())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Pas encore : le regarder ce soir")
+                BoutonIcone(symbole: "xmark", libelle: "Pas regardé, l'oublier", taille: 36,
+                            explication: "Retirer ce titre de cette soirée passée. Il reste dans Mes listes.", action: retirer)
+            }
+        }
+        .padding(12)
+        .background(Theme.surface, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(Theme.accent.opacity(0.35), lineWidth: 1))
+    }
+}

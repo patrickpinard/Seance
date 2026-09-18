@@ -133,6 +133,59 @@ final class EtatAlertes {
         }
     }
 
+    // MARK: Rappels de passages télé
+
+    /// Les passages télé dont tu as touché la cloche : « me le rappeler un quart d'heure avant ». Pour n'importe quel
+    /// titre du programme, suivi ou non. Identifiants hors du préfixe des alertes : leur recalcul ne les efface pas.
+    private(set) var rappelsTele: Set<String> = []
+    private static let prefixeRappelTele = "seance.rappel.tele."
+    static let avanceRappelTele: TimeInterval = 15 * 60
+
+    static func cleRappel(chaine: String, debut: Date) -> String {
+        "\(chaine)|\(Int(debut.timeIntervalSince1970))"
+    }
+
+    func aUnRappel(chaine: String, debut: Date) -> Bool {
+        rappelsTele.contains(Self.cleRappel(chaine: chaine, debut: debut))
+    }
+
+    /// Relit les rappels encore programmés : ceux qui ont sonné ont disparu d'eux-mêmes.
+    func actualiserRappelsTele() async {
+        rappelsTele = Set(await centre.pendingNotificationRequests().map(\.identifier)
+            .filter { $0.hasPrefix(Self.prefixeRappelTele) }.map { String($0.dropFirst(Self.prefixeRappelTele.count)) })
+    }
+
+    /// Pose ou retire le rappel d'un passage. Renvoie `nil` si les notifications sont refusées, sinon le nouvel état.
+    func basculerRappelTele(titre: String, nomChaine: String, chaine: String, debut: Date, reference: ReferenceTitre?) async -> Bool? {
+        let cle = Self.cleRappel(chaine: chaine, debut: debut)
+        if rappelsTele.contains(cle) {
+            centre.removePendingNotificationRequests(withIdentifiers: [Self.prefixeRappelTele + cle])
+            rappelsTele.remove(cle)
+            return false
+        }
+        if autorisation == .notDetermined { await demanderAutorisation() }
+        await actualiserAutorisation()
+        guard autorisees else { return nil }
+        let contenu = UNMutableNotificationContent()
+        let heure = debut.formatted(.dateTime.hour(.twoDigits(amPM: .omitted)).minute(.twoDigits).locale(Locale(identifier: "fr_CH")))
+        contenu.title = "\(titre) commence bientôt"
+        contenu.body = "Sur \(nomChaine) à \(heure)."
+        contenu.sound = .default
+        contenu.threadIdentifier = "seance"
+        contenu.userInfo = ["lien": reference.map { "seance://\($0.type.rawValue)/\($0.tmdbID)" } ?? "seance://tele"]
+        // Un quart d'heure avant ; pour un passage imminent, dans quelques secondes.
+        let delai = max(5, debut.addingTimeInterval(-Self.avanceRappelTele).timeIntervalSinceNow)
+        let declencheur = UNTimeIntervalNotificationTrigger(timeInterval: delai, repeats: false)
+        do {
+            try await centre.add(UNNotificationRequest(identifier: Self.prefixeRappelTele + cle, content: contenu, trigger: declencheur))
+            rappelsTele.insert(cle)
+            return true
+        } catch {
+            journal?.noter(.general, "Le rappel d'un passage télé n'a pas pu être programmé.", erreur: error)
+            return nil
+        }
+    }
+
     /// EF-84 : une alerte d'essai dans 5 secondes, pour vérifier l'affichage.
     func envoyerEssai() async {
         if autorisation == .notDetermined { await demanderAutorisation() }
