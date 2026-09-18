@@ -20,6 +20,19 @@ struct NoteVersion: Identifiable {
 
     static let historique: [NoteVersion] = [
         NoteVersion(
+            numero: "2.3",
+            date: "18 septembre 2026",
+            resume: "Prévoir un film ou une série pour la soirée de ton choix.",
+            fonctionnalites: [
+                Fonctionnalite(symbole: "calendar", titre: "Soirées à la date de ton choix",
+                               detail: "Dans Ce soir, le calendrier d'un titre le prévoit pour un autre soir ; « Ajouter » remplit la soirée de la date choisie. Les prochaines soirées s'affichent sous celle de ce soir."),
+                Fonctionnalite(symbole: "bell", titre: "Rappel le jour venu",
+                               detail: "À l'heure des alertes, Séance rappelle ce que tu as prévu pour la soirée, et le titre passe tout seul dans « Ce soir »."),
+                Fonctionnalite(symbole: "iphone", titre: "Fiche sur iPhone",
+                               detail: "Les fiches avec bande-annonce ne débordent plus de l'écran."),
+            ]
+        ),
+        NoteVersion(
             numero: "2.2",
             date: "18 septembre 2026",
             resume: "Ce soir, en plus simple : seulement ce que tu as choisi de regarder.",

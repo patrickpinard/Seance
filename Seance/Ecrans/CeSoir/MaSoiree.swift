@@ -125,6 +125,8 @@ final class SoireeModele {
 /// regardables ce soir. Un titre ajouté quitte ces listes : il est dans la soirée.
 struct PropositionsSoiree: View {
     let modele: SoireeModele
+    /// La soirée à remplir ; `nil` pour ce soir. Pour une soirée à venir, les rendez-vous d'aujourd'hui ne comptent pas.
+    var soiree: String?
 
     @Environment(EtatApp.self) private var etat
     @Environment(\.modelContext) private var contexte
@@ -132,12 +134,13 @@ struct PropositionsSoiree: View {
     @Query(sort: \Echeance.date) private var echeances: [Echeance]
 
     private var retenus: Set<ReferenceTitre> {
-        let jour = ServiceSoiree.soiree()
+        let jour = soiree ?? ServiceSoiree.soiree()
         return Set(selections.filter { $0.soiree == jour }.map(\.reference))
     }
 
     /// Les rendez-vous de tes titres surveillés aujourd'hui : télé pas encore finie, épisodes et sorties du jour.
     private var aNePasManquer: [Echeance] {
+        guard soiree == nil else { return [] }
         let calendrier = Calendar.current
         let maintenant = Date.now
         let retenus = retenus
@@ -183,7 +186,7 @@ struct PropositionsSoiree: View {
 
             if !disponibles.isEmpty {
                 VStack(alignment: .leading, spacing: 10) {
-                    entete("Dans ta liste, regardable ce soir", symbole: "bookmark.fill")
+                    entete(soiree == nil ? "Dans ta liste, regardable ce soir" : "Dans ta liste, déjà regardable", symbole: "bookmark.fill")
                     ForEach(disponibles) { titre in
                         ligne(reference: titre.id, titre: titre.titre, affiche: titre.cheminAffiche, detail: titre.ou)
                     }
@@ -220,9 +223,9 @@ struct PropositionsSoiree: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            BoutonIcone(symbole: "plus", libelle: "Ajouter à ma soirée", principal: true, taille: 34,
-                        explication: "Ajouter ce titre à ta soirée.") {
-                try? ServiceSoiree(contexte: contexte).retenir(reference, titre: titre, cheminAffiche: affiche)
+            BoutonIcone(symbole: "plus", libelle: soiree == nil ? "Ajouter à ma soirée" : "Prévoir pour cette soirée", principal: true, taille: 34,
+                        explication: "Ajouter ce titre à la soirée choisie.") {
+                try? ServiceSoiree(contexte: contexte).retenir(reference, titre: titre, cheminAffiche: affiche, soiree: soiree)
             }
         }
         .padding(10)

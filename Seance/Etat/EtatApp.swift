@@ -68,7 +68,12 @@ final class EtatApp {
         nas.journal = journal
         alertes.journal = journal
         let delegue = DelegueNotifications { [weak self] url in
-            self?.ficheDemandee = LienProfond.reference(url)
+            // Le rappel d'une soirée prévue ouvre « Ce soir » ; les autres alertes, la fiche du titre.
+            if LienProfond.onglet(url) == .ceSoir {
+                self?.ongletDemande = .ceSoir
+            } else {
+                self?.ficheDemandee = LienProfond.reference(url)
+            }
         }
         UNUserNotificationCenter.current().delegate = delegue
         delegueNotifications = delegue

@@ -107,6 +107,32 @@ final class EtatAlertes {
         try? await centre.add(UNNotificationRequest(identifier: "seance.expiration", content: contenu, trigger: declencheur))
     }
 
+    /// Une soirée prévue à l'avance : le jour venu, à l'heure des alertes, un rappel de ce qui est au programme.
+    /// Identifiants hors du préfixe des alertes, pour que leur recalcul ne les efface pas.
+    func programmerRappelsSoirees(contexte: ModelContext) async {
+        let anciens = await centre.pendingNotificationRequests().map(\.identifier).filter { $0.hasPrefix("seance.soiree.") }
+        centre.removePendingNotificationRequests(withIdentifiers: anciens)
+        await actualiserAutorisation()
+        guard autorisees, let prevues = try? ServiceSoiree(contexte: contexte).aVenir() else { return }
+        var calendrier = Calendar(identifier: .gregorian)
+        calendrier.timeZone = reglages.fuseau
+        for (soiree, titres) in Dictionary(grouping: prevues, by: \.soiree) {
+            guard let jour = ServiceSoiree.jour(soiree, fuseau: reglages.fuseau) else { continue }
+            var composants = calendrier.dateComponents([.year, .month, .day], from: jour)
+            composants.hour = reglages.heure
+            composants.minute = reglages.minute
+            guard let date = calendrier.date(from: composants), date > .now else { continue }
+            let contenu = UNMutableNotificationContent()
+            contenu.title = "Ta soirée de ce soir"
+            contenu.body = titres.map(\.titre).joined(separator: ", ")
+            contenu.sound = .default
+            contenu.threadIdentifier = "seance"
+            contenu.userInfo = ["lien": "seance://cesoir"]
+            let declencheur = UNCalendarNotificationTrigger(dateMatching: composants, repeats: false)
+            try? await centre.add(UNNotificationRequest(identifier: "seance.soiree.\(soiree)", content: contenu, trigger: declencheur))
+        }
+    }
+
     /// EF-84 : une alerte d'essai dans 5 secondes, pour vérifier l'affichage.
     func envoyerEssai() async {
         if autorisation == .notDetermined { await demanderAutorisation() }

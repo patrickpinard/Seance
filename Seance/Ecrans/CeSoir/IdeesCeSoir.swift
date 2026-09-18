@@ -106,6 +106,8 @@ struct SectionIdees: View {
     let modele: IdeesModele
     /// Titres déjà montrés plus haut dans « Ce soir » : une idée ne les répète pas.
     let dejaMontres: Set<ReferenceTitre>
+    /// La soirée à laquelle « Je regarde » ajoute le titre ; `nil` pour ce soir.
+    var soiree: String?
     /// « Je regarde » : la soirée apprend où regarder le titre, pour l'afficher sous son nom.
     let jeRegarde: (ReferenceTitre, String?) -> Void
 
@@ -195,9 +197,9 @@ struct SectionIdees: View {
         switch action {
         case .jeRegarde:
             _ = try? gouts.jeRegarde(suggestion.candidat)
-            try? ServiceSoiree(contexte: contexte).retenir(reference, titre: titre.titre, cheminAffiche: titre.cheminAffiche)
+            try? ServiceSoiree(contexte: contexte).retenir(reference, titre: titre.titre, cheminAffiche: titre.cheminAffiche, soiree: soiree)
             jeRegarde(reference, modele.libelleOu(reference))
-            etat.confirmer("Ajouté à ma soirée", symbole: "moon.stars.fill")
+            etat.confirmer(soiree == nil ? "Ajouté à ma soirée" : "Prévu pour cette soirée", symbole: "moon.stars.fill")
         case .pasCeSoir:
             try? gouts.reporter(reference)
             etat.confirmer("Écarté pour ce soir", symbole: "clock.arrow.circlepath") { [modele, contexte] in

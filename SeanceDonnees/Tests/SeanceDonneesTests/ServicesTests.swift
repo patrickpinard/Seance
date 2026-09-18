@@ -146,6 +146,39 @@ struct ServicesTests {
         #expect(try gouts.profil().affinite(genre: 53) > 0)
     }
 
+    @Test func soireesPrevuesALAvance() throws {
+        let conteneur = try EntrepotSeance.conteneur(.memoire)
+        let contexte = conteneur.mainContext
+        let service = ServiceSoiree(contexte: contexte)
+        let jeudi = Date.suisse("2026-09-17 20:00")
+        let heat = ReferenceTitre(type: .film, tmdbID: 949)
+        let wick = ReferenceTitre(type: .film, tmdbID: 245_891)
+        let samedi = ServiceSoiree.soiree(jour: Date.suisse("2026-09-19 12:00"))
+        #expect(samedi == "2026-09-19")
+        #expect(ServiceSoiree.jour(samedi) == Date.suisse("2026-09-19 12:00"))
+
+        // Une soirée passée, une pour samedi, puis un ajout pour ce soir : seule la passée disparaît.
+        contexte.insert(SelectionSoir(reference: ReferenceTitre(type: .film, tmdbID: 1), titre: "Hier", cheminAffiche: nil, soiree: "2026-09-16"))
+        try service.retenir(heat, titre: "Heat", cheminAffiche: nil, soiree: samedi, maintenant: jeudi)
+        try service.retenir(wick, titre: "John Wick", cheminAffiche: nil, maintenant: jeudi)
+        #expect(try service.selection(maintenant: jeudi).map(\.titre) == ["John Wick"])
+        #expect(try service.aVenir(maintenant: jeudi).map(\.titre) == ["Heat"])
+        #expect(try contexte.fetchCount(FetchDescriptor<SelectionSoir>()) == 2)
+
+        // Prévu ailleurs, le titre est déplacé, jamais dédoublé ; une date passée vaut ce soir.
+        try service.retenir(heat, titre: "Heat", cheminAffiche: nil, soiree: "2026-09-21", maintenant: jeudi)
+        #expect(try service.aVenir(maintenant: jeudi).map(\.soiree) == ["2026-09-21"])
+        try service.retenir(heat, titre: "Heat", cheminAffiche: nil, soiree: "2026-09-01", maintenant: jeudi)
+        #expect(try service.selection(maintenant: jeudi).map(\.titre).sorted() == ["Heat", "John Wick"])
+        #expect(try service.aVenir(maintenant: jeudi).isEmpty)
+
+        // Le jour venu, la soirée prévue devient celle de ce soir.
+        try service.retenir(heat, titre: "Heat", cheminAffiche: nil, soiree: samedi, maintenant: jeudi)
+        #expect(try service.selection(maintenant: Date.suisse("2026-09-19 19:00")).map(\.titre) == ["Heat"])
+        try service.retirer(heat, soiree: samedi)
+        #expect(try service.aVenir(maintenant: jeudi).isEmpty)
+    }
+
     @Test func serieSansEpisodeRedevientAVoir() throws {
         let conteneur = try EntrepotSeance.conteneur(.memoire)
         let service = ServiceSuivi(contexte: conteneur.mainContext)
