@@ -135,6 +135,37 @@ enum Demonstration {
         passage(jackRyan, chaine: "RTSDeux.ch", debut: a(20, 40, dans: 1), episode: (1, 3))
         passage(films[1], chaine: "TF1.fr", debut: a(21, 10, dans: 2))
         passage(films[4], chaine: "M6.fr", debut: a(21, 10, dans: 3))
+
+        // À venir : un épisode ce soir, une saison la semaine prochaine, une sortie dans un mois, un passage télé demain.
+        func rendezVous(_ titre: Titre, dans jours: Int, _ libelle: String, _ nature: EcheancePrevue.Nature) {
+            let date = a(20, 0, dans: jours)
+            contexte.insert(Echeance(EcheancePrevue(reference: titre.reference, titre: titre.nom, date: date, libelle: libelle, nature: nature),
+                                     cheminAffiche: titre.affiche))
+        }
+        rendezVous(reacher, dans: 0, "S02E06 · Nouvel épisode", .episode)
+        rendezVous(films[6], dans: 1, "Sur France 3 à 21:05", .tele)
+        rendezVous(jackRyan, dans: 6, "Saison 2", .saison)
+        rendezVous(aVoir, dans: 33, "Sortie en streaming", .sortie)
+
+        // NAS : quelques films, deux nouveautés du dossier NEW, une série en épisodes.
+        func fichier(_ titre: Titre, dossier: String, qualite: String, episode: Int? = nil) {
+            let nom = episode.map { "\(titre.nom) S01E0\($0).mkv" } ?? "\(titre.nom) (2014).mkv"
+            let fichier = FichierNAS(chemin: "/\(dossier)/\(nom)", type: titre.reference.type, tmdbID: titre.reference.tmdbID,
+                                     qualite: qualite, tailleOctets: 8_400_000_000)
+            fichier.dossier = dossier
+            fichier.titre = titre.nom
+            fichier.annee = 2014
+            fichier.cheminAffiche = titre.affiche
+            fichier.noteMoyenne = 7.4
+            fichier.nombreVotes = 1200
+            fichier.saison = episode == nil ? nil : 1
+            fichier.episode = episode
+            contexte.insert(fichier)
+        }
+        fichier(aVoir, dossier: "NEW", qualite: "4K")
+        fichier(films[4], dossier: "NEW", qualite: "1080p")
+        for film in [films[0], films[2], films[5], films[8]] { fichier(film, dossier: "Films", qualite: "1080p") }
+        for episode in 1...3 { fichier(nightAgent, dossier: "Séries", qualite: "1080p", episode: episode) }
         try? contexte.save()
     }
 }

@@ -418,17 +418,16 @@ struct ExplorerView: View {
     /// (aucune plateforme cochée, NAS vide) reste visible mais ne se choisit pas.
     private var selecteurSource: some View {
         VStack(alignment: .leading, spacing: 8) {
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
-                    puceSource(.toutes, "Toutes", symbole: "square.grid.2x2")
-                    puceSource(.streaming, "Streaming", symbole: "play.tv", disponible: !abonnements.isEmpty,
-                               aide: "Coche tes plateformes dans Réglages › Plateformes.")
-                    puceSource(.nas, "NAS", symbole: "externaldrive.fill", disponible: !fichiersNAS.isEmpty,
-                               aide: "Aucun titre reconnu sur ton NAS pour l'instant.")
-                    puceSource(.tele, "Télé", symbole: "tv")
-                }
-                .padding(.horizontal, 20)
+            HStack(spacing: 8) {
+                puceSource(.toutes, "Toutes", symbole: "square.grid.2x2")
+                puceSource(.streaming, "Streaming", symbole: "play.tv", disponible: !abonnements.isEmpty,
+                           aide: "Coche tes plateformes dans Réglages › Plateformes.")
+                puceSource(.nas, "NAS", symbole: "externaldrive.fill", disponible: !fichiersNAS.isEmpty,
+                           aide: "Aucun titre reconnu sur ton NAS pour l'instant.")
+                puceSource(.tele, "Télé", symbole: "tv")
             }
+            .frame(maxWidth: 560)
+            .padding(.horizontal, 20)
             if modele.filtres.source == .tele {
                 HStack(spacing: 8) {
                     puceTele(.ceSoir, "Ce soir")
@@ -445,13 +444,17 @@ struct ExplorerView: View {
         return Button {
             withAnimation(.snappy) { modele.filtres.source = source }
         } label: {
-            Label(nom, systemImage: symbole)
-                .font(.subheadline.weight(.bold))
-                .padding(.horizontal, 14)
-                .frame(height: 36)
-                .foregroundStyle(active ? Color.black : Color.primary)
-                .background(active ? AnyShapeStyle(Theme.degradeAccent) : AnyShapeStyle(Theme.surface), in: Capsule())
-                .contentShape(Capsule())
+            // Quatre cases de même largeur, l'icône au-dessus du nom : elles tiennent sur l'iPhone sans défiler.
+            VStack(spacing: 3) {
+                Image(systemName: symbole).font(.subheadline.weight(.semibold))
+                Text(nom).font(.caption.weight(.bold)).lineLimit(1).minimumScaleFactor(0.8)
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: 50)
+            .foregroundStyle(active ? Color.black : Color.primary)
+            .background(active ? AnyShapeStyle(Theme.degradeAccent) : AnyShapeStyle(Theme.surface),
+                        in: RoundedRectangle(cornerRadius: 13, style: .continuous))
+            .contentShape(RoundedRectangle(cornerRadius: 13, style: .continuous))
         }
         .buttonStyle(.plain)
         .disabled(!disponible)

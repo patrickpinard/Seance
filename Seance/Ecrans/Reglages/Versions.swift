@@ -20,6 +20,25 @@ struct NoteVersion: Identifiable {
 
     static let historique: [NoteVersion] = [
         NoteVersion(
+            numero: "2.6",
+            date: "18 septembre 2026",
+            resume: "« À venir » en rangée de jours, Mes listes en affiches, un NAS plus parlant, et l'app entièrement testée sur l'iPhone et l'iPad mini.",
+            fonctionnalites: [
+                Fonctionnalite(symbole: "calendar", titre: "« À venir » comme le programme télé",
+                               detail: "Une rangée de jours — « Tout » d'abord, puis chaque jour où il se passe quelque chose — et chaque rendez-vous en grande carte : sa date en grand, épisode, saison, sortie ou télé, et « Aujourd'hui » mis en avant."),
+                Fonctionnalite(symbole: "square.grid.2x2", titre: "Mes listes en affiches",
+                               detail: "Grille ou liste, comme dans Explorer. Sur chaque affiche : où regarder, la cloche si le titre est surveillé, et dessous son prochain rendez-vous, ta note ou tes épisodes vus. Clic droit ou appui long : les mêmes actions qu'en liste."),
+                Fonctionnalite(symbole: "externaldrive", titre: "Le NAS dans le même style",
+                               detail: "« Nouveaux sur ton NAS » en grandes cartes, le dossier NEW tout en images, et sur les affiches un liseré orange pour ce qui est dans ta liste, un œil pour ce que tu as vu, et la note TMDB."),
+                Fonctionnalite(symbole: "magnifyingglass", titre: "Sources NAS et Télé réparées",
+                               detail: "Avec « Français ou anglais » (le réglage d'origine d'Explorer), les sources NAS et Télé ne trouvaient rien. Elles listent maintenant tous leurs titres. Les quatre sources tiennent sur l'écran de l'iPhone."),
+                Fonctionnalite(symbole: "bolt", titre: "Profil plus léger",
+                               detail: "Tes acteurs favoris ne sont plus recalculés à chaque affichage, seulement quand tes visionnages changent."),
+                Fonctionnalite(symbole: "checkmark.seal", titre: "Testée sans clé TMDB",
+                               detail: "En développement, un faux TMDB rejoue des réponses enregistrées : l'Accueil, Ce soir, Explorer, Mes listes, le NAS et le Profil sont parcourus et capturés automatiquement sur l'iPhone, et l'app a été vue sur l'iPad mini."),
+            ]
+        ),
+        NoteVersion(
             numero: "2.5",
             date: "18 septembre 2026",
             resume: "Réglages ne fige plus l'iPhone ; programme télé et Ce soir refaits en grandes cartes ; source des idées, accueil à ta mesure et ton prénom.",

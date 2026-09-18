@@ -44,6 +44,8 @@ final class EtatApp {
     let alertes = EtatAlertes()
     /// Badges « où regarder » des affiches.
     let ou = EtatOu()
+    /// Images de fond et durées des titres, pour les grandes cartes.
+    let decors = EtatDecors()
     let journal = Journal()
     /// Gardé ici : le centre de notifications ne retient son délégué que faiblement.
     private var delegueNotifications: DelegueNotifications?
@@ -86,6 +88,12 @@ final class EtatApp {
         UNUserNotificationCenter.current().delegate = delegue
         delegueNotifications = delegue
         tmdb = try? depot.client()
+        #if DEBUG
+        // Tests d'interface : un TMDB de théâtre, qui répond avec des réponses enregistrées (voir FauxTMDB).
+        if let dossier = FauxTMDB.dossierDemande {
+            tmdb = TMDBClient(identifiants: .cleAPI("demonstration"), transport: FauxTMDB(dossier: dossier), tentativesMax: 1)
+        }
+        #endif
         claude = try? depot.clientClaude()
     }
 
@@ -186,6 +194,10 @@ final class EtatApp {
     /// Relit le guide TV si la dernière lecture a plus de 12 h ou si les chaînes cochées ont changé ;
     /// `force` passe outre, pour le bouton des réglages.
     func actualiserTele(contexte: ModelContext, force: Bool = false) async {
+        #if DEBUG
+        // En démonstration, le guide est fictif : le vrai le remplacerait, et les captures changeraient chaque jour.
+        if Demonstration.active { return }
+        #endif
         guard !teleEnCours, let service = service(contexte),
               let actives = try? ServiceProgrammesTV.chainesActives(contexte) else { return }
         let lues = UserDefaults.standard.stringArray(forKey: CleReglage.chainesLues)

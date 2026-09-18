@@ -72,7 +72,8 @@ extension FiltresExplorer {
         if let noteMin, titre.noteMoyenne < noteMin { return false }
         if let votesMin, titre.nombreVotes < votesMin { return false }
         if let dureeMax, (profil.dureeMinutes ?? .max) > dureeMax { return false }
-        if let langue, titre.langueOriginale != langue { return false }
+        // « fr|en » est la syntaxe de TMDB pour « français ou anglais » : ici, c'est l'app qui compare.
+        if let langue, !langue.split(separator: "|").map(String.init).contains(titre.langueOriginale ?? "") { return false }
 
         if mesPlateformes || !monetisations.isEmpty {
             let types = monetisations.isEmpty ? [CriteresDecouverte.Monetisation.abonnement, .gratuit, .avecPublicite] : monetisations

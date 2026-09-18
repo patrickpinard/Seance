@@ -22,7 +22,7 @@ private struct PastilleOu: View {
 /// (ou « Ce soir » pour une soirée à venir), changer de soir, retirer.
 struct CarteSoiree: View {
     let titre: SelectionSoir
-    let decor: SoireeModele.Decor?
+    let decor: EtatDecors.Decor?
     let rendezVous: String?
     let ou: String?
     let peutMarquerVu: Bool

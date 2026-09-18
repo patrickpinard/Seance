@@ -1,11 +1,15 @@
 #!/bin/zsh
-# Compile Séance en Release et l'installe sur l'iPhone branché et sur ce Mac.
+# Compile Séance en Release et l'installe sur les iPhone et iPad branchés et sur ce Mac.
 # Avec un compte Apple gratuit, l'app cesse de s'ouvrir au bout de 7 jours : relancer ce script suffit,
 # les données restent sur chaque appareil.
 #
-#   outils/installer.sh            # iPhone et Mac
+#   outils/installer.sh            # iPhone, iPad et Mac
 #   outils/installer.sh --iphone   # iPhone seulement
+#   outils/installer.sh --ipad     # iPad seulement
 #   outils/installer.sh --mac      # Mac seulement
+#
+# Un iPhone ou un iPad doit être jumelé avec ce Mac, sous iOS ou iPadOS 26, et avoir le mode développeur activé
+# (Réglages › Confidentialité et sécurité › Mode développeur).
 set -euo pipefail
 racine=${0:A:h:h}
 projet="$racine/Seance.xcodeproj"
@@ -15,12 +19,14 @@ application="/Applications/Séance.app"
 lsregister=/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister
 
 iphone=true
+ipad=true
 mac=true
 case "${1:-}" in
-  --iphone) mac=false ;;
-  --mac) iphone=false ;;
+  --iphone) mac=false; ipad=false ;;
+  --ipad) mac=false; iphone=false ;;
+  --mac) iphone=false; ipad=false ;;
   "") ;;
-  *) echo "Option inconnue : $1 (--iphone ou --mac)"; exit 2 ;;
+  *) echo "Option inconnue : $1 (--iphone, --ipad ou --mac)"; exit 2 ;;
 esac
 
 mkdir -p "$racine/.build"
@@ -53,18 +59,39 @@ version() {
   /usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$1"
 }
 
-if $iphone; then
-  # L'iPhone physique connecté et jumelé ; son identifiant précède « (UDID) ».
-  udid=$(xcrun devicectl list devices 2>/dev/null | awk '/physical/ && /available/ { for (i = 1; i < NF; i++) if ($(i+1) == "(UDID)") { print $i; exit } }')
-  if [[ -z $udid ]]; then
-    echo "Aucun iPhone disponible : branche-le, déverrouille-le, puis relance (ou utilise --mac)."
+# Les appareils physiques branchés et jumelés : « identifiant<TAB>modèle », l'identifiant précédant « (UDID) ».
+appareils() {
+  xcrun devicectl list devices 2>/dev/null | awk '/physical/ && /available/ {
+    for (i = 1; i < NF; i++) if ($(i+1) == "(UDID)") { id = $i }
+    modele = ($0 ~ /iPad/) ? "iPad" : "iPhone"
+    print id "\t" modele
+  }'
+}
+
+installer_sur() {
+  local udid=$1 nom=$2
+  local app="$derives/Build/Products/Release-iphoneos/Seance.app"
+  # Compiler pour cet appareil l'inscrit au profil d'installation du compte gratuit.
+  compiler "id=$udid" "$nom" "$app"
+  if ! xcrun devicectl device install app --device "$udid" "$app" > "$journal.installation" 2>&1; then
+    grep -i -E "error|developer mode|minimum|version" "$journal.installation" | head -5
+    echo "${nom#l\'} : l'installation a échoué. Vérifie qu'il est déverrouillé, sous iOS ou iPadOS 26, mode développeur activé."
+    return 1
+  fi
+  echo "${nom#l\'} : Séance $(version "$app/Info.plist") installée."
+}
+
+if $iphone || $ipad; then
+  trouve=false
+  while IFS=$'\t' read -r udid modele; do
+    [[ -z $udid ]] && continue
+    if [[ $modele == iPad ]]; then $ipad || continue; nom="l'iPad"; else $iphone || continue; nom="l'iPhone"; fi
+    trouve=true
+    installer_sur "$udid" "$nom" || $mac || exit 1
+  done < <(appareils)
+  if ! $trouve; then
+    echo "Aucun iPhone ni iPad disponible : branche-le, déverrouille-le, active son mode développeur, puis relance."
     $mac || exit 1
-    iphone=false
-  else
-    app="$derives/Build/Products/Release-iphoneos/Seance.app"
-    compiler "id=$udid" "l'iPhone" "$app"
-    xcrun devicectl device install app --device "$udid" "$app" > /dev/null
-    echo "iPhone : Séance $(version "$app/Info.plist") installée."
   fi
 fi
 

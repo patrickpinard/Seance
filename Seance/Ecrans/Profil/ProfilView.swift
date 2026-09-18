@@ -19,6 +19,9 @@ struct ProfilView: View {
     @Query private var acteursSuivis: [ActeurSuivi]
     @State private var gouts = false
     @State private var bilan = false
+    /// Le classement des acteurs parcourt tous les visionnages et leurs castings : calculé une fois, puis seulement
+    /// quand ce qu'il compte a changé, pas à chaque rendu de la page.
+    @State private var favoris: [Classement<ActeurStat>] = []
 
     private static let annee = Calendar.current.component(.year, from: .now)
 
@@ -46,7 +49,6 @@ struct ProfilView: View {
                     }
                 }
 
-                let favoris = acteursFavoris
                 if !favoris.isEmpty {
                     Section("Tes acteurs favoris") {
                         ForEach(favoris, id: \.cle) { acteur in
@@ -111,6 +113,7 @@ struct ProfilView: View {
                     }
                 }
             }
+            .task(id: cleFavoris) { favoris = acteursFavoris() }
             .destinationsTitres()
             .navigationDestination(for: DestinationProfil.self) { destination in
                 switch destination {
@@ -163,9 +166,13 @@ struct ProfilView: View {
 
     /// Les trois acteurs les plus regardés depuis le début, comptés comme dans les statistiques ;
     /// un acteur vu dans un seul titre n'est pas encore un favori.
-    private var acteursFavoris: [Classement<ActeurStat>] {
-        let _ = visionnages.count
-        return Array(((try? ServiceStatistiques(contexte: contexte).bilan(annee: nil).acteurs) ?? []).filter { $0.nombreTitres >= 2 }.prefix(3))
+    private func acteursFavoris() -> [Classement<ActeurStat>] {
+        Array(((try? ServiceStatistiques(contexte: contexte).bilan(annee: nil).acteurs) ?? []).filter { $0.nombreTitres >= 2 }.prefix(3))
+    }
+
+    /// Ce dont dépend le classement : les visionnages comptés (pas les « déjà vus avant ») et les suivis, qui portent les castings.
+    private var cleFavoris: [Int] {
+        [visionnages.count, visionnages.filter(\.anterieur).count, suivis.count]
     }
 
     private var genres: Set<String> {

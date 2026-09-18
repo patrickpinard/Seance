@@ -82,7 +82,7 @@ struct CeSoirView: View {
             // Un titre ajouté ailleurs (fiche, Mes listes, clic droit) : son « où regarder » est lu à son arrivée.
             .onChange(of: selection.map(\.reference)) { Task { await soiree.charger(etat: etat, contexte: contexte) } }
             // L'image de fond et la durée des titres prévus, pour les grandes cartes.
-            .task(id: selections.map(\.reference)) { await soiree.chargerDecors(selections.map(\.reference), client: etat.tmdb) }
+            .task(id: selections.map(\.reference)) { await etat.decors.charger(selections.map(\.reference), client: etat.tmdb) }
             // Un rappel le jour de chaque soirée prévue, à l'heure des alertes.
             .task(id: selections.map(\.soiree)) { await etat.alertes.programmerRappelsSoirees(contexte: contexte) }
             .sheet(isPresented: $ajout) {
@@ -161,7 +161,7 @@ struct CeSoirView: View {
             } else {
                 LazyVGrid(columns: Self.colonnesCartes, spacing: 14) {
                     ForEach(titresAffiches) { titre in
-                        CarteSoiree(titre: titre, decor: soiree.decor(titre.reference),
+                        CarteSoiree(titre: titre, decor: etat.decors.decor(titre.reference),
                                     rendezVous: ceSoirAffiche ? rendezVous(titre.reference) : nil,
                                     ou: ceSoirAffiche ? soiree.ou[titre.reference] : nil,
                                     peutMarquerVu: titre.reference.type == .film || episode(titre.reference) != nil,
@@ -196,7 +196,7 @@ struct CeSoirView: View {
         let quand = ceSoirAffiche ? nil : jours > 1 ? "Dans \(jours) jours" : nil
         guard !titres.isEmpty else { return [quand, "Rien de prévu pour l'instant"].compactMap { $0 }.joined(separator: " · ") }
         var morceaux = [quand, ceSoirAffiche ? "\(Format.pluriel(titres.count, "titre")) pour ce soir" : Format.pluriel(titres.count, "titre")].compactMap { $0 }
-        let minutes = titres.filter { $0.reference.type == .film }.compactMap { soiree.decor($0.reference)?.minutes }.reduce(0, +)
+        let minutes = titres.filter { $0.reference.type == .film }.compactMap { etat.decors.decor($0.reference)?.minutes }.reduce(0, +)
         if minutes > 0 { morceaux.append("\(HeuresTele.duree(minutes)) de film") }
         return morceaux.joined(separator: " · ")
     }

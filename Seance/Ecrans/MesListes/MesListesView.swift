@@ -34,6 +34,9 @@ struct MesListesView: View {
     @Query(filter: #Predicate<Abonnement> { $0.actif }) private var abonnements: [Abonnement]
     @State private var onglet = Onglet.aVoir
     @AppStorage("listes.tri") private var triBrut = TriListe.ajout.rawValue
+    /// Affiches en grille, ou lignes détaillées : le même choix que dans Explorer.
+    @AppStorage("listes.grille") private var enGrille = true
+    @Environment(\.horizontalSizeClass) private var largeurGrille
     @State private var ceSoirSeulement = false
     /// Disponibilité et durée lues sur TMDB, par titre ; vidées quand les abonnements changent.
     @State private var infos: [ReferenceTitre: InfoTitre] = [:]
@@ -103,8 +106,11 @@ struct MesListesView: View {
 
     @ViewBuilder
     private var aVenir: some View {
+        // Un passage télé commencé depuis plus de trois heures est fini : il n'est plus « à venir ».
+        let finTele = Date.now.addingTimeInterval(-3 * 3600)
         let futures = echeances.filter {
-            $0.date >= Calendar.current.startOfDay(for: .now) && (recherche.isEmpty || $0.titre.localizedCaseInsensitiveContains(recherche))
+            $0.date >= Calendar.current.startOfDay(for: .now) && !($0.nature == .tele && $0.date < finTele)
+                && (recherche.isEmpty || $0.titre.localizedCaseInsensitiveContains(recherche))
         }
         if suivis.contains(where: \.alertesActives) {
             BandeauAlertesCoupees()
@@ -115,45 +121,8 @@ struct MesListesView: View {
             vide(etat.alertes.enCours
                  ? "Recherche des prochains épisodes et sorties…"
                  : "Rien d'annoncé pour l'instant. Touche la cloche 🔔 sur une fiche pour suivre ses prochains épisodes, ses sorties et ses passages à la télé.")
-        }
-        ForEach(parJour(futures), id: \.jour) { groupe in
-            Section(groupe.libelle) {
-                ForEach(groupe.echeances) { echeance in
-                    NavigationLink(value: echeance.reference) {
-                        HStack(spacing: 12) {
-                            ImageDistante(url: ImageTMDB.url(echeance.cheminAffiche, .affiche), coins: 8)
-                                .frame(width: 44, height: 66)
-                            VStack(alignment: .leading, spacing: 3) {
-                                Text(echeance.titre).font(.headline).lineLimit(1)
-                                Label(echeance.libelle, systemImage: symbole(echeance.nature))
-                                    .font(.subheadline)
-                                    .foregroundStyle(Theme.accentClair)
-                            }
-                            Spacer()
-                            Text(compteARebours(echeance.date))
-                                .font(.caption.weight(.bold))
-                                .padding(.horizontal, 8).padding(.vertical, 4)
-                                .background(Theme.surface, in: Capsule())
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    private func parJour(_ echeances: [Echeance]) -> [(jour: Date, libelle: String, echeances: [Echeance])] {
-        let calendrier = Calendar.current
-        let groupes = Dictionary(grouping: echeances) { calendrier.startOfDay(for: $0.date) }
-        return groupes.keys.sorted().map { jour in
-            let libelle: String
-            if calendrier.isDateInToday(jour) {
-                libelle = "Aujourd'hui"
-            } else if calendrier.isDateInTomorrow(jour) {
-                libelle = "Demain"
-            } else {
-                libelle = jour.formatted(.dateTime.weekday(.wide).day().month(.wide).year().locale(Locale(identifier: "fr_CH"))).capitalized
-            }
-            return (jour, libelle, groupes[jour] ?? [])
+        } else {
+            SectionAVenir(echeances: futures)
         }
     }
 
@@ -163,15 +132,6 @@ struct MesListesView: View {
         case ..<1: return "Aujourd'hui"
         case 1: return "Demain"
         default: return "Dans \(jours) j"
-        }
-    }
-
-    private func symbole(_ nature: EcheancePrevue.Nature) -> String {
-        switch nature {
-        case .episode: "play.tv"
-        case .saison: "sparkles.tv"
-        case .sortie: "film"
-        case .tele: "tv"
         }
     }
 
@@ -231,12 +191,36 @@ struct MesListesView: View {
                     }
                 }
             } label: {
-                Label(tri.rawValue, systemImage: "arrow.up.arrow.down")
-                    .font(.subheadline.weight(.semibold))
+                // Sur l'iPhone, le filtre, le tri et grille/liste partagent une ligne : le tri se réduit à son icône.
+                if largeurGrille == .compact {
+                    Image(systemName: "arrow.up.arrow.down")
+                        .font(.subheadline.weight(.semibold))
+                } else {
+                    Label(tri.rawValue, systemImage: "arrow.up.arrow.down")
+                        .font(.subheadline.weight(.semibold))
+                        .lineLimit(1)
+                        .fixedSize()
+                }
             }
             .tint(Theme.accentClair)
+            .accessibilityLabel("Trier : \(tri.rawValue)")
+            Button { enGrille = true } label: {
+                Image(systemName: "square.grid.2x2.fill")
+                    .foregroundStyle(enGrille ? AnyShapeStyle(Theme.accent) : AnyShapeStyle(.secondary))
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Grille")
+            .accessibilityAddTraits(enGrille ? .isSelected : [])
+            Button { enGrille = false } label: {
+                Image(systemName: "list.bullet")
+                    .foregroundStyle(enGrille ? AnyShapeStyle(.secondary) : AnyShapeStyle(Theme.accent))
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Liste")
+            .accessibilityAddTraits(enGrille ? [] : .isSelected)
         }
         .listRowBackground(Color.clear)
+        .listRowSeparator(.hidden)
         .listRowInsets(EdgeInsets(top: 2, leading: 16, bottom: 2, trailing: 16))
     }
 
@@ -311,7 +295,23 @@ struct MesListesView: View {
             default: vide("Rien ici pour l'instant.")
             }
         }
-        ForEach(titres) { suivi in
+        if enGrille, !titres.isEmpty {
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: largeurGrille == .regular ? 150 : 105), spacing: 12, alignment: .top)], spacing: 18) {
+                ForEach(titres) { suivi in
+                    NavigationLink(value: suivi.reference) {
+                        AfficheSuivi(suivi: suivi, rendezVous: prochainRendezVous(suivi), episodesVus: episodesVus(suivi))
+                    }
+                    .buttonStyle(.plain)
+                    .contextMenu { menu(suivi, statut) }
+                }
+            }
+            .listRowBackground(Color.clear)
+            .listRowSeparator(.hidden)
+            .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 12, trailing: 16))
+            // La ligne contient des liens : sans cela, la liste lui dessine un chevron et lui prend sa largeur.
+            .navigationLinkIndicatorVisibility(.hidden)
+        }
+        ForEach(enGrille ? [] : titres) { suivi in
             NavigationLink(value: suivi.reference) {
                 ligne(suivi)
             }
@@ -340,35 +340,51 @@ struct MesListesView: View {
                 .tint(.orange)
             }
             // Clic droit sur le Mac, appui long sur l'iPhone : les mêmes actions que le glissement.
-            .contextMenu {
-                Button {
-                    try? ServiceSoiree(contexte: contexte).retenir(suivi.reference, titre: suivi.titre, cheminAffiche: suivi.cheminAffiche)
-                } label: { Label("Ajouter à ma soirée", systemImage: "moon.stars") }
-                Button {
-                    etat.titreADater = TitreChoisi(reference: suivi.reference, titre: suivi.titre, cheminAffiche: suivi.cheminAffiche)
-                } label: { Label("Prévoir pour une soirée…", systemImage: "calendar") }
-                Button {
-                    etat.titrePourListe = TitreChoisi(reference: suivi.reference, titre: suivi.titre, cheminAffiche: suivi.cheminAffiche)
-                } label: { Label("Ajouter à une liste…", systemImage: "list.bullet.rectangle.portrait") }
-                if statut != .termine {
-                    Button { changer(suivi, en: .termine) } label: { Label("Terminé", systemImage: "checkmark") }
-                } else {
-                    Button { changer(suivi, en: .aVoir) } label: { Label("À revoir", systemImage: "arrow.uturn.backward") }
-                }
-                if statut == .enCours {
-                    Button { changer(suivi, en: .aVoir) } label: { Label("Remettre à voir", systemImage: "bookmark") }
-                }
-                Button { basculerAlertes(suivi) } label: {
-                    Label(suivi.alertesActives ? "Sans alertes" : "Alertes", systemImage: suivi.alertesActives ? "bell.slash" : "bell")
-                }
-                Divider()
-                if statut == .termine {
-                    Button(role: .destructive) { supprimerDesTermines(suivi) } label: { Label("Supprimer des terminés", systemImage: "trash") }
-                } else {
-                    Button(role: .destructive) { retirer(suivi) } label: { Label("Retirer de mes listes", systemImage: "trash") }
-                }
-            }
+            .contextMenu { menu(suivi, statut) }
         }
+    }
+
+    /// Les actions d'un titre, les mêmes en liste et en grille.
+    @ViewBuilder
+    private func menu(_ suivi: Suivi, _ statut: StatutSuivi) -> some View {
+        Button {
+            try? ServiceSoiree(contexte: contexte).retenir(suivi.reference, titre: suivi.titre, cheminAffiche: suivi.cheminAffiche)
+        } label: { Label("Ajouter à ma soirée", systemImage: "moon.stars") }
+        Button {
+            etat.titreADater = TitreChoisi(reference: suivi.reference, titre: suivi.titre, cheminAffiche: suivi.cheminAffiche)
+        } label: { Label("Prévoir pour une soirée…", systemImage: "calendar") }
+        Button {
+            etat.titrePourListe = TitreChoisi(reference: suivi.reference, titre: suivi.titre, cheminAffiche: suivi.cheminAffiche)
+        } label: { Label("Ajouter à une liste…", systemImage: "list.bullet.rectangle.portrait") }
+        if statut != .termine {
+            Button { changer(suivi, en: .termine) } label: { Label("Terminé", systemImage: "checkmark") }
+        } else {
+            Button { changer(suivi, en: .aVoir) } label: { Label("À revoir", systemImage: "arrow.uturn.backward") }
+        }
+        if statut == .enCours {
+            Button { changer(suivi, en: .aVoir) } label: { Label("Remettre à voir", systemImage: "bookmark") }
+        }
+        Button { basculerAlertes(suivi) } label: {
+            Label(suivi.alertesActives ? "Sans alertes" : "Alertes", systemImage: suivi.alertesActives ? "bell.slash" : "bell")
+        }
+        Divider()
+        if statut == .termine {
+            Button(role: .destructive) { supprimerDesTermines(suivi) } label: { Label("Supprimer des terminés", systemImage: "trash") }
+        } else {
+            Button(role: .destructive) { retirer(suivi) } label: { Label("Retirer de mes listes", systemImage: "trash") }
+        }
+    }
+
+    /// « S02E09 · dans 3 j » : le prochain rendez-vous d'un titre surveillé.
+    private func prochainRendezVous(_ suivi: Suivi) -> String? {
+        let aujourdhui = Calendar.current.startOfDay(for: .now)
+        return echeances.first { $0.tmdbID == suivi.tmdbID && $0.typeBrut == suivi.typeBrut && $0.date >= aujourdhui }
+            .map { "\($0.libelle) · \(compteARebours($0.date).lowercased())" }
+    }
+
+    private func episodesVus(_ suivi: Suivi) -> Int {
+        guard suivi.type == .serie else { return 0 }
+        return visionnages.filter { $0.tmdbID == suivi.tmdbID && $0.typeBrut == TypeTitre.serie.rawValue }.count
     }
 
     private func ligne(_ suivi: Suivi) -> some View {

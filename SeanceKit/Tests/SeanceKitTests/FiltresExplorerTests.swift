@@ -124,6 +124,9 @@ struct ProfilTitreTests {
         verifier(false) { $0.votesMin = 10_000 }
         verifier(false) { $0.dureeMax = 150 }
         verifier(false) { $0.langue = "fr" }
+        // Le réglage par défaut d'Explorer, « français ou anglais », ne doit pas vider les listes du NAS et de la télé.
+        verifier(true) { $0.langue = FiltresExplorer.francaisOuAnglais }
+        verifier(false) { $0.langue = "fr|de" }
         verifier(true) { $0.mesPlateformes = true }
         verifier(false) { $0.mesPlateformes = true; $0.monetisations = [.location] }
         verifier(true) { $0.monetisations = [.location] }
