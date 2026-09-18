@@ -51,6 +51,16 @@ targets:
       properties:
         CFBundleDisplayName: Séance
         CFBundleDevelopmentRegion: fr
+        # Siri ne rattache les phrases des raccourcis qu'à une langue que l'app déclare.
+        CFBundleLocalizations:
+          - fr
+        # « Séance » est un mot courant, que Siri ne prend pas toujours pour un nom d'app : ces noms-là aussi sont acceptés
+        # dans les phrases (« … avec Séance Ciné »).
+        INAlternativeAppNames:
+          - INAlternativeAppName: Séance Ciné
+            INAlternativeAppNamePronunciationHint: séance ciné
+          - INAlternativeAppName: Séance Cinéma
+            INAlternativeAppNamePronunciationHint: séance cinéma
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         UILaunchScreen: {}

@@ -4,7 +4,10 @@ import SeanceKit
 import SwiftData
 
 // Siri et l'app Raccourcis : « Dis Siri, qu'est-ce que je regarde ce soir avec Séance ? » et
-// « Dis Siri, ajoute Reacher à ma soirée dans Séance ». Apple exige le nom de l'app dans la phrase.
+// « Dis Siri, ajoute Reacher à ma soirée dans Séance ». Apple exige le nom de l'app dans la phrase ; « Séance » étant
+// un mot courant, l'Info.plist déclare aussi « Séance Ciné » et « Séance Cinéma » (INAlternativeAppNames).
+// Un titre ne se dit dans la phrase que s'il est dans À voir ou En cours (`suggestedEntities`) : la liste est remise
+// à Siri au lancement et en quittant l'app.
 
 /// Ta soirée prévue, sinon le prochain épisode d'une série, sinon ta liste à voir.
 struct QuoiRegarderIntent: AppIntent {
@@ -143,6 +146,10 @@ struct RaccourcisSeance: AppShortcutsProvider {
                 "Qu'est-ce que je regarde ce soir avec \(.applicationName)",
                 "Qu'est-ce que je regarde ce soir dans \(.applicationName)",
                 "Qu'est-ce qu'on regarde ce soir avec \(.applicationName)",
+                "Que regarder ce soir avec \(.applicationName)",
+                "Ce soir avec \(.applicationName)",
+                "Ma soirée avec \(.applicationName)",
+                "Ma soirée dans \(.applicationName)",
                 "Ma soirée \(.applicationName)",
             ],
             shortTitle: "Ce soir",
@@ -153,7 +160,13 @@ struct RaccourcisSeance: AppShortcutsProvider {
             phrases: [
                 "Ajoute \(\.$titre) à ma soirée dans \(.applicationName)",
                 "Ajoute \(\.$titre) à ma soirée avec \(.applicationName)",
+                "Mets \(\.$titre) dans ma soirée avec \(.applicationName)",
+                "Ajoute \(\.$titre) avec \(.applicationName)",
+                // Sans titre : Siri le demande ensuite, et le cherche aussi sur TMDB. Utile pour un titre anglais,
+                // ou qui n'est pas encore dans tes listes.
                 "Ajouter à ma soirée dans \(.applicationName)",
+                "Ajouter à ma soirée avec \(.applicationName)",
+                "Ajoute un film à ma soirée avec \(.applicationName)",
             ],
             shortTitle: "Ajouter à ma soirée",
             systemImageName: "moon.badge.plus"

@@ -1,0 +1,2 @@
+/* Le nom de l'app, en français : sa présence déclare la langue de l'app à iOS et à Siri. */
+"CFBundleDisplayName" = "Séance";

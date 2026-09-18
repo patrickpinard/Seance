@@ -25,6 +25,7 @@
 		31EF6B7567FA50350F574204 /* LectureNAS.swift in Sources */ = {isa = PBXBuildFile; fileRef = 562FA0BC92C87B80E5980C1F /* LectureNAS.swift */; };
 		38494C6BBA699EBC23E52D0A /* ClavierTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6BF050FFB31533A9C659BB48 /* ClavierTests.swift */; };
 		384FE0F435964622466BCCB2 /* FauxTMDB.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0714561FD96B1A09A61A666 /* FauxTMDB.swift */; };
+		39441D5ABFFC98D2A302160D /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 657612993321CF691E8E7B90 /* InfoPlist.strings */; };
 		39CC7B582D020F02F55F50E2 /* Journal.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6B582A9631F77D0CF1A0AD1 /* Journal.swift */; };
 		3DC619D9658209E9AFF5A423 /* ApercuWidgets.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D9CD2AC426EAC55F2E18D92 /* ApercuWidgets.swift */; };
 		3E59122E7CB372F83EDBF4EA /* PublicationWidgets.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F81823D485206B920058D9E /* PublicationWidgets.swift */; };
@@ -184,6 +185,7 @@
 		C008722D573D7286070E193D /* ReglagesAlertesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReglagesAlertesView.swift; sourceTree = "<group>"; };
 		C4994130740FE5C4E9733D92 /* SeanceApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeanceApp.swift; sourceTree = "<group>"; };
 		C53B59D1B4297910EB9B20FA /* LecteurWidgets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LecteurWidgets.swift; sourceTree = "<group>"; };
+		C5685087E89C22033827A9C2 /* fr */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = fr; path = fr.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		C7706567EB9521978C37DCC4 /* EtatDecors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EtatDecors.swift; sourceTree = "<group>"; };
 		C7971FD6500EC30161EA83E4 /* SeanceNAS */ = {isa = PBXFileReference; lastKnownFileType = folder; name = SeanceNAS; path = SeanceNAS; sourceTree = SOURCE_ROOT; };
 		C823C7D99C49FEB6D7792D4F /* ReglagesTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReglagesTests.swift; sourceTree = "<group>"; };
@@ -403,6 +405,7 @@
 				78C0D0D2C840975DCEA9701B /* Design */,
 				6B0B0AC2453EF94443C6AC03 /* Ecrans */,
 				1BF3F48A42F266AB39056386 /* Etat */,
+				657612993321CF691E8E7B90 /* InfoPlist.strings */,
 			);
 			path = Seance;
 			sourceTree = "<group>";
@@ -592,6 +595,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				B30EFD10E04CCB9D9165DCB1 /* Assets.xcassets in Resources */,
+				39441D5ABFFC98D2A302160D /* InfoPlist.strings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -705,6 +709,17 @@
 			targetProxy = 7E84B43D395BEFCE8225C712 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
+
+/* Begin PBXVariantGroup section */
+		657612993321CF691E8E7B90 /* InfoPlist.strings */ = {
+			isa = PBXVariantGroup;
+			children = (
+				C5685087E89C22033827A9C2 /* fr */,
+			);
+			name = InfoPlist.strings;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
 		1FDBBBD5297FC1901FCBF364 /* Release */ = {
