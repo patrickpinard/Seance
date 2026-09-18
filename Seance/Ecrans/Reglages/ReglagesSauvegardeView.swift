@@ -23,7 +23,7 @@ struct ReglagesSauvegardeView: View {
                     Label("Exporter une sauvegarde", systemImage: "square.and.arrow.up")
                 }
             } footer: {
-                Text("Un fichier avec tes listes, épisodes vus, notes, alertes, filtres, plateformes et chaînes. Il ne contient ni clé ni mot de passe.")
+                Text("Un fichier avec tes listes, épisodes vus, notes, soirées prévues, acteurs suivis, filtres, goûts, plateformes, chaînes et réglages (prénom, accueil, alertes, adresse du NAS). Il ne contient ni clé ni mot de passe : la clé TMDB, la clé Claude et le mot de passe du NAS se saisissent sur chaque appareil.")
             }
 
             Section {
@@ -33,7 +33,7 @@ struct ReglagesSauvegardeView: View {
                     Label("Importer une sauvegarde", systemImage: "square.and.arrow.down")
                 }
             } footer: {
-                Text("L'import ajoute ce qui manque, sans rien effacer ni remplacer. Pratique pour retrouver tes listes sur le Mac ou sur un autre iPhone.")
+                Text("L'import ajoute ce qui manque et complète les titres déjà là — un film vu ou noté sur l'autre appareil le devient ici — sans rien effacer. Ce que tu as supprimé sur un appareil n'est pas supprimé sur l'autre.")
             }
 
             if let message {
@@ -59,7 +59,9 @@ struct ReglagesSauvegardeView: View {
 
     private func exporter() {
         do {
-            document = DocumentSauvegarde(donnees: try ServiceSauvegarde(contexte: contexte).exporter().encoder())
+            var sauvegarde = try ServiceSauvegarde(contexte: contexte).exporter()
+            sauvegarde.preferences = PreferencesSauvegardees.lire()
+            document = DocumentSauvegarde(donnees: try sauvegarde.encoder())
             exportOuvert = true
         } catch {
             message = "La sauvegarde n'a pas pu être préparée."
@@ -74,16 +76,23 @@ struct ReglagesSauvegardeView: View {
             defer { if acces { url.stopAccessingSecurityScopedResource() } }
             let sauvegarde = try Sauvegarde.decoder(Data(contentsOf: url))
             let plan = try ServiceSauvegarde(contexte: contexte).importer(sauvegarde)
-            if plan.estVide {
+            let reglages = PreferencesSauvegardees.appliquer(sauvegarde.preferences ?? [:], etat: etat)
+            // Tout ce qui est arrivé est dit : « 12 titres, 3 soirées, 5 réglages », pas seulement les titres.
+            let comptes: [(Int, String, String)] = [
+                (plan.suivis.count, "titre", "titres"), (plan.suivisCompletes.count, "titre complété", "titres complétés"),
+                (plan.visionnages.count, "visionnage", "visionnages"), (plan.soirees.count, "soirée prévue", "soirées prévues"),
+                (plan.listes.count + plan.titresAjoutesAuxListes.count, "liste", "listes"), (plan.acteursSuivis.count, "acteur suivi", "acteurs suivis"),
+                (plan.filtres.count, "filtre", "filtres"), (plan.interets.count, "goût", "goûts"),
+                (plan.abonnements.count, "plateforme", "plateformes"), (plan.chaines.count, "chaîne", "chaînes"),
+                (plan.reports.count, "idée reportée", "idées reportées"), (reglages, "réglage", "réglages"),
+            ]
+            let parties = comptes.filter { $0.0 > 0 }.map { Format.pluriel($0.0, $0.1, $0.2) }
+            if parties.isEmpty {
                 message = "Rien de nouveau : tout ce que contient ce fichier est déjà là."
             } else {
-                var parties: [String] = []
-                if !plan.suivis.isEmpty { parties.append("\(plan.suivis.count) titre\(plan.suivis.count > 1 ? "s" : "")") }
-                if !plan.visionnages.isEmpty { parties.append("\(plan.visionnages.count) visionnage\(plan.visionnages.count > 1 ? "s" : "")") }
-                if !plan.filtres.isEmpty { parties.append("\(plan.filtres.count) filtre\(plan.filtres.count > 1 ? "s" : "")") }
-                if !plan.abonnements.isEmpty { parties.append("\(plan.abonnements.count) plateforme\(plan.abonnements.count > 1 ? "s" : "")") }
-                message = parties.isEmpty ? "Sauvegarde importée." : "Importé : \(parties.joined(separator: ", "))."
+                message = "Importé : \(parties.joined(separator: ", ")).\(etat.tmdb == nil ? " Il reste à saisir ta clé TMDB dans Réglages › TMDB : les clés ne voyagent pas dans la sauvegarde." : "")"
             }
+            etat.ou.actualiserLocal(contexte: contexte)
             Task { await etat.alertes.planifier(contexte: contexte, tmdb: etat.tmdb) }
         } catch {
             message = "Ce fichier n'a pas pu être importé. Vérifie qu'il s'agit bien d'une sauvegarde de Séance."

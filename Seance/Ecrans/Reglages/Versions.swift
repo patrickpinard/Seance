@@ -20,6 +20,21 @@ struct NoteVersion: Identifiable {
 
     static let historique: [NoteVersion] = [
         NoteVersion(
+            numero: "2.7",
+            date: "18 septembre 2026",
+            resume: "Une sauvegarde enfin complète pour passer d'un appareil à l'autre, et Siri qui comprend mieux.",
+            fonctionnalites: [
+                Fonctionnalite(symbole: "externaldrive.badge.checkmark", titre: "Sauvegarde complète",
+                               detail: "Le fichier emporte maintenant tes soirées prévues, tes idées reportées, les acteurs de tes titres, les logos de tes plateformes, ce que Séance sait déjà de tes acteurs suivis, et tes réglages : prénom, accueil, tri, alertes, adresse du NAS. Jamais une clé ni un mot de passe."),
+                Fonctionnalite(symbole: "arrow.triangle.merge", titre: "Un import qui complète",
+                               detail: "Un titre déjà présent n'était jamais mis à jour. Désormais, un film vu ou noté sur l'autre appareil le devient ici ; rien n'est effacé, et rien ne recule."),
+                Fonctionnalite(symbole: "list.bullet.clipboard", titre: "Un compte rendu honnête",
+                               detail: "Après l'import, Séance dit tout ce qui est arrivé — titres, soirées, listes, acteurs, goûts, réglages — et te rappelle de saisir la clé TMDB si elle manque."),
+                Fonctionnalite(symbole: "mic", titre: "Siri",
+                               detail: "« Séance » étant un mot courant, tu peux aussi dire « Séance Ciné ». Plus de tournures (« Ce soir avec Séance », « Mets … dans ma soirée »), et tes nouveaux titres sont connus de Siri dès que tu quittes l'app."),
+            ]
+        ),
+        NoteVersion(
             numero: "2.6",
             date: "18 septembre 2026",
             resume: "« À venir » en rangée de jours, Mes listes en affiches, un NAS plus parlant, et l'app entièrement testée sur l'iPhone et l'iPad mini.",

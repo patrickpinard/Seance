@@ -296,6 +296,56 @@ struct ServicesTests {
         #expect(try cible.mainContext.fetchCount(FetchDescriptor<Visionnage>()) == 4)
     }
 
+    /// Ce que l'export oubliait jusqu'à la 2.6 : soirées prévues, idées reportées, identifiants des acteurs, logos des
+    /// plateformes, films connus des acteurs suivis. Et un titre déjà présent sur l'autre appareil est complété.
+    @Test func sauvegardeCompleteEtTitresCompletes() throws {
+        let iphone = try EntrepotSeance.conteneur(.memoire)
+        let film = try TMDB.film()
+        let suivi = ServiceSuivi(contexte: iphone.mainContext)
+        try suivi.marquerVu(film: film, note: 9)
+        let demain = Date.now.addingTimeInterval(86_400)
+        try ServiceSoiree(contexte: iphone.mainContext).retenir(ReferenceTitre(type: .film, tmdbID: 949), titre: "Heat", cheminAffiche: "/heat.jpg",
+                                                                soiree: ServiceSoiree.soiree(jour: demain))
+        iphone.mainContext.insert(SuggestionReportee(reference: ReferenceTitre(type: .film, tmdbID: 680), jusquA: demain))
+        iphone.mainContext.insert(Abonnement(providerID: 8, nom: "Netflix", cheminLogo: "/netflix.jpg"))
+        try ServiceActeurs(contexte: iphone.mainContext).suivre(personneID: 6384, nom: "Keanu Reeves", cheminPortrait: nil)
+        let acteur = try #require(try iphone.mainContext.fetch(FetchDescriptor<ActeurSuivi>()).first)
+        acteur.filmsConnus = [603, 245_891]
+        try iphone.mainContext.save()
+        let idsActeurs = try #require(try iphone.mainContext.fetch(FetchDescriptor<Suivi>()).first).acteursPrincipauxIDs
+
+        let fichier = try ServiceSauvegarde(contexte: iphone.mainContext).exporter().encoder()
+
+        // L'iPad connaît déjà le film, « à voir » et sans note, et Netflix sans son logo.
+        let ipad = try EntrepotSeance.conteneur(.memoire)
+        try ServiceSuivi(contexte: ipad.mainContext).suivre(film: film)
+        let dejaLa = try #require(try ipad.mainContext.fetch(FetchDescriptor<Suivi>()).first)
+        dejaLa.acteursPrincipauxIDs = []
+        ipad.mainContext.insert(Abonnement(providerID: 8, nom: "Netflix"))
+        try ipad.mainContext.save()
+
+        let importeur = ServiceSauvegarde(contexte: ipad.mainContext)
+        let plan = try importeur.importer(try Sauvegarde.decoder(fichier))
+        #expect(plan.suivis.isEmpty)
+        #expect(plan.suivisCompletes.count == 1)
+        #expect(plan.soirees.map(\.titre) == ["Heat"])
+        #expect(plan.reports.count == 1)
+        #expect(dejaLa.statut == .termine, "Vu sur l'iPhone : il le devient sur l'iPad")
+        #expect(dejaLa.note == 9)
+        #expect(dejaLa.acteursPrincipauxIDs == idsActeurs)
+        #expect(try ipad.mainContext.fetch(FetchDescriptor<Abonnement>()).map(\.cheminLogo) == ["/netflix.jpg"])
+        #expect(try ipad.mainContext.fetch(FetchDescriptor<ActeurSuivi>()).first?.filmsConnus == [603, 245_891])
+        #expect(try ServiceSoiree(contexte: ipad.mainContext).aVenir().map(\.titre) == ["Heat"])
+
+        // Réimporter n'ajoute rien, et l'import ne fait jamais reculer : noté 9 ici, un fichier qui dit 6 n'y change rien.
+        #expect(try importeur.importer(try Sauvegarde.decoder(fichier)).estVide)
+        var ancien = try Sauvegarde.decoder(fichier)
+        ancien.suivis[0].note = 6
+        ancien.suivis[0].statut = StatutSuivi.aVoir.rawValue
+        #expect(try importeur.importer(ancien).suivisCompletes.isEmpty)
+        #expect(dejaLa.note == 9 && dejaLa.statut == .termine)
+    }
+
     @Test func purgeDuCache() throws {
         let conteneur = try EntrepotSeance.conteneur(.memoire)
         let contexte = conteneur.mainContext

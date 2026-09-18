@@ -61,7 +61,8 @@ version() {
 
 # Les appareils physiques branchés et jumelés : « identifiant<TAB>modèle », l'identifiant précédant « (UDID) ».
 appareils() {
-  xcrun devicectl list devices 2>/dev/null | awk '/physical/ && /available/ {
+  # « connected » quand un tunnel est déjà ouvert ; l'espace écarte « unavailable ».
+  xcrun devicectl list devices 2>/dev/null | awk '/physical/ && / (available|connected)/ {
     for (i = 1; i < NF; i++) if ($(i+1) == "(UDID)") { id = $i }
     modele = ($0 ~ /iPad/) ? "iPad" : "iPhone"
     print id "\t" modele
