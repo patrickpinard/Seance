@@ -417,6 +417,7 @@ struct CarteNouveauteNAS: View {
                 .padding(12)
             }
             .foregroundStyle(.white)
+            .surImage()
             .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
             .overlay {
                 RoundedRectangle(cornerRadius: 18, style: .continuous)

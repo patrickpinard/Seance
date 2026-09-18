@@ -12,6 +12,7 @@ struct StatistiquesView: View {
     @Query private var visionnages: [Visionnage]
     @State private var annee: Int? = Calendar.current.component(.year, from: .now)
     @State private var bilanAnnee: Int?
+    @State private var confirmerRemiseAZero = false
 
     private static let anneeCourante = Calendar.current.component(.year, from: .now)
 
@@ -23,6 +24,7 @@ struct StatistiquesView: View {
 
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
+                CarteCollection()
                 if bilan.minutesTotales == 0 {
                     MessageEtat(texte: annee == nil
                                 ? "Rien de regardé pour l'instant. Marque un film comme vu ou coche des épisodes : tes heures, tes acteurs et tes genres favoris apparaîtront ici."
@@ -68,6 +70,20 @@ struct StatistiquesView: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
+                // Tout en bas, et derrière une confirmation : repartir de zéro ne se fait pas par mégarde.
+                if visionnages.contains(where: { !$0.anterieur }) {
+                    Button(role: .destructive) { confirmerRemiseAZero = true } label: {
+                        Label("Remettre les statistiques à zéro…", systemImage: "arrow.counterclockwise")
+                            .font(.subheadline.weight(.semibold))
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 44)
+                            .background(Theme.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                            .contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(.red)
+                    .padding(.top, 10)
+                }
             }
             .padding(.horizontal, 20)
             .padding(.vertical, 12)
@@ -78,6 +94,11 @@ struct StatistiquesView: View {
         .background(Theme.fond)
         .navigationTitle("Statistiques")
         .navigationBarTitleDisplayMode(.large)
+        .confirmationDialog("Remettre les statistiques à zéro ?", isPresented: $confirmerRemiseAZero, titleVisibility: .visible) {
+            Button("Remettre à zéro", role: .destructive) { remettreAZero() }
+        } message: {
+            Text("Tes heures, tes acteurs et genres favoris et ton bilan repartent de zéro. Rien n'est effacé : tes titres restent vus et notés, et tes goûts ne changent pas. Tes visionnages passent en « déjà vus avant ».")
+        }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
@@ -114,6 +135,14 @@ struct StatistiquesView: View {
     }
 
     /// Le bilan en cartes : ouvert en décembre, « jusqu'ici » avant, toujours ouvert pour une année passée.
+    private func remettreAZero() {
+        let service = ServiceStatistiques(contexte: contexte)
+        guard let touches = try? service.remettreAZero(), !touches.isEmpty else { return }
+        etat.confirmer("Statistiques remises à zéro", symbole: "arrow.counterclockwise") { [contexte] in
+            try? ServiceStatistiques(contexte: contexte).retablir(touches)
+        }
+    }
+
     private func boutonBilan(_ annee: Int) -> some View {
         let enCours = annee == Self.anneeCourante && !ServiceStatistiques.bilanOuvert()
         return Button { bilanAnnee = annee } label: {
@@ -186,6 +215,43 @@ enum Format {
 
     static func pluriel(_ nombre: Int, _ singulier: String, _ pluriel: String? = nil) -> String {
         "\(nombre) \(nombre > 1 ? (pluriel ?? singulier + "s") : singulier)"
+    }
+}
+
+/// En un coup d'œil, depuis le début : ce qui est vu (y compris « déjà vu avant » et les titres notés au premier
+/// lancement) et noté. Indépendant de la période choisie.
+private struct CarteCollection: View {
+    @Query private var suivis: [Suivi]
+    @Query private var visionnages: [Visionnage]
+
+    var body: some View {
+        let vus = Set(visionnages.map { ReferenceTitre(type: $0.type, tmdbID: $0.tmdbID) })
+            .union(suivis.filter { $0.statut == .termine }.map(\.reference))
+        let films = vus.filter { $0.type == .film }.count
+        let notes = suivis.filter { $0.note != nil }.count
+        if !vus.isEmpty {
+            VStack(alignment: .leading, spacing: 10) {
+                Label("Ta collection", systemImage: "square.stack.fill")
+                    .font(.headline)
+                HStack(spacing: 8) {
+                    chiffre(vus.count, "vus")
+                    chiffre(films, films > 1 ? "films" : "film")
+                    chiffre(vus.count - films, vus.count - films > 1 ? "séries" : "série")
+                    chiffre(notes, notes > 1 ? "notés" : "noté")
+                }
+            }
+            .padding(16)
+            .background(Theme.surface, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        }
+    }
+
+    private func chiffre(_ nombre: Int, _ libelle: String) -> some View {
+        VStack(spacing: 2) {
+            Text("\(nombre)").font(.title2.weight(.heavy)).monospacedDigit()
+            Text(libelle).font(.caption).foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity)
+        .accessibilityElement(children: .combine)
     }
 }
 
@@ -292,7 +358,7 @@ private struct GraphiqueMois: View {
         }
         .chartYAxis {
             AxisMarks(position: .leading) { valeur in
-                AxisGridLine().foregroundStyle(.white.opacity(0.08))
+                AxisGridLine().foregroundStyle(Theme.trait)
                 AxisValueLabel { if let heures = valeur.as(Double.self) { Text("\(Int(heures)) h") } }
             }
         }

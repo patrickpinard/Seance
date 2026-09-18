@@ -4,7 +4,8 @@ import SwiftData
 import SwiftUI
 
 /// Suivi d'une série épisode par épisode (EF-11 à EF-13, EF-66) : prochain épisode à regarder,
-/// progression, saisons avec cases à cocher, « vu jusqu'ici » et notes. « Déjà vu avant » coche une saison
+/// progression, saisons avec cases à cocher, « vu jusqu'ici » et notes. Un épisode présent sur le NAS se lance d'ici (▶︎) :
+/// c'est la seule liste d'épisodes de la fiche. « Déjà vu avant » coche une saison
 /// ou toute la série sans la compter dans les statistiques.
 struct SectionEpisodes: View {
     let serie: SerieDetail
@@ -12,6 +13,8 @@ struct SectionEpisodes: View {
     @Environment(EtatApp.self) private var etat
     @Environment(\.modelContext) private var contexte
     @Query private var visionnages: [Visionnage]
+    /// Les épisodes de cette série présents sur le NAS : chacun se lance depuis sa ligne.
+    @Query private var fichiersNAS: [FichierNAS]
     @State private var saisonChoisie: Int?
     @State private var saisonsChargees: [Int: SaisonDetail] = [:]
     @State private var erreur: String?
@@ -21,6 +24,17 @@ struct SectionEpisodes: View {
         let id = serie.id
         let type = TypeTitre.serie.rawValue
         _visionnages = Query(filter: #Predicate<Visionnage> { $0.tmdbID == id && $0.typeBrut == type })
+        _fichiersNAS = Query(filter: #Predicate<FichierNAS> { $0.tmdbID == id && $0.typeBrut == type })
+    }
+
+    /// Le fichier du NAS d'un épisode ; la meilleure qualité quand il y en a plusieurs copies.
+    private func fichierNAS(_ numero: NumeroEpisode) -> FichierNAS? {
+        fichiersNAS.filter { $0.saison == numero.saison && $0.episode == numero.episode }
+            .max { ($0.qualite.flatMap(QualiteVideo.init(description:)) ?? .sd) < ($1.qualite.flatMap(QualiteVideo.init(description:)) ?? .sd) }
+    }
+
+    private var saisonsSurNAS: Set<Int> {
+        Set(fichiersNAS.compactMap(\.saison))
     }
 
     private var vus: Set<NumeroEpisode> {
@@ -69,9 +83,11 @@ struct SectionEpisodes: View {
                         ForEach(saisons) { saison in
                             let vusSaison = vus.filter { $0.saison == saison.numero }.count
                             PuceFiltre(
-                                libelle: vusSaison == saison.nombreEpisodes ? "✓ Saison \(saison.numero)" : "Saison \(saison.numero)",
+                                libelle: (vusSaison == saison.nombreEpisodes ? "✓ Saison \(saison.numero)" : "Saison \(saison.numero)")
+                                    + (saisonsSurNAS.contains(saison.numero) ? " · NAS" : ""),
                                 active: saison.numero == saisonAffichee
                             ) { saisonChoisie = saison.numero }
+                            .accessibilityLabel("Saison \(saison.numero)\(saisonsSurNAS.contains(saison.numero) ? ", sur ton NAS" : "")")
                         }
                     }
                     .padding(.horizontal, 20)
@@ -120,6 +136,9 @@ struct SectionEpisodes: View {
                 }
             }
             Spacer()
+            if let prochain, prochain.disponible, let fichier = fichierNAS(prochain.numero) {
+                BoutonLectureNAS(fichier: fichier, libelle: "Lire \(prochain.numero) depuis le NAS")
+            }
             if let prochain, prochain.disponible {
                 BoutonIcone(symbole: "checkmark", libelle: "Marquer \(prochain.numero) comme vu", principal: true,
                             explication: "Marquer cet épisode comme vu. Appui long sur un épisode de la liste : « Vu jusqu'ici » ou une note.") {
@@ -225,8 +244,18 @@ struct SectionEpisodes: View {
                 }
                 .font(.caption)
                 .foregroundStyle(.secondary)
+                if let fichier = fichierNAS(episode.numeroEpisode) {
+                    Label(["NAS", fichier.qualite].compactMap { $0 }.joined(separator: " · "), systemImage: "externaldrive.fill")
+                        .font(.caption2.weight(.bold))
+                        .foregroundStyle(.green)
+                        .lineLimit(1)
+                        .accessibilityLabel("Sur ton NAS")
+                }
             }
             Spacer(minLength: 0)
+            if let fichier = fichierNAS(episode.numeroEpisode) {
+                BoutonLectureNAS(fichier: fichier, libelle: "Lire l'épisode \(episode.numero) depuis le NAS")
+            }
             Button {
                 if vu {
                     try? ServiceSuivi(contexte: contexte).decocher(episode.numeroEpisode, serie: serie.reference)

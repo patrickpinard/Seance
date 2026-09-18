@@ -3,12 +3,14 @@ import SeanceKit
 import SwiftData
 import SwiftUI
 
-/// Bouton « Lire » (EF-74) : ouvre la vidéo dans l'app choisie dans les réglages ; le menu propose
+/// Bouton « Lire » (EF-74) : ouvre la vidéo dans l'app choisie dans Réglages › Lecture ; un appui long propose
 /// l'autre. Infuse et VLC lisent directement sur le NAS, sans copie sur l'iPhone.
 struct BoutonLectureNAS: View {
     let fichier: FichierNAS
     var libelle = "Lire"
     var grand = false
+    /// Une ligne entière (un épisode, une copie du film) : la toucher n'importe où lance la lecture.
+    var ligne: (titre: String, detail: String)?
 
     @Environment(EtatApp.self) private var etat
     @Environment(\.openURL) private var openURL
@@ -21,7 +23,7 @@ struct BoutonLectureNAS: View {
         // Sur Mac, un seul choix : le lecteur vidéo par défaut de macOS.
         Button { lire(avec: etat.nas.lecteur) } label: { etiquette }
             .buttonStyle(.plain)
-            .accessibilityLabel(libelle)
+            .accessibilityLabel(ligne.map { "Lire \($0.titre)" } ?? libelle)
         #else
         menu
         #endif
@@ -29,7 +31,20 @@ struct BoutonLectureNAS: View {
 
     @ViewBuilder
     private var etiquette: some View {
-        if grand {
+        if let ligne {
+            HStack(spacing: 12) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(ligne.titre).font(.subheadline.weight(.semibold)).foregroundStyle(Color.primary)
+                    Text(ligne.detail).font(.caption).foregroundStyle(.secondary)
+                }
+                .multilineTextAlignment(.leading)
+                Spacer(minLength: 8)
+                RondIcone(symbole: "play.fill", principal: true, taille: 38)
+            }
+            .padding(12)
+            .background(Theme.surface, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        } else if grand {
             Label(libelle, systemImage: "play.fill")
                 .font(.headline)
                 .frame(maxWidth: .infinity)
@@ -51,14 +66,15 @@ struct BoutonLectureNAS: View {
         } primaryAction: {
             lire(avec: etat.nas.lecteur)
         }
-        .accessibilityLabel(libelle)
+        .buttonStyle(.plain)
+        .accessibilityLabel(ligne.map { "Lire \($0.titre) avec \(etat.nas.lecteur.nom)" } ?? libelle)
         .alert("\(absent?.nom ?? "") n'est pas installée", isPresented: Binding { absent != nil } set: { if !$0 { absent = nil } }) {
             if let absent {
                 Button("Ouvrir l'App Store") { openURL(absent.appStore) }
             }
             Button("OK", role: .cancel) {}
         } message: {
-            Text("Installe-la depuis l'App Store, ou choisis l'autre app dans Réglages › NAS.")
+            Text("Installe-la depuis l'App Store, ou choisis l'autre app dans Réglages › Lecture.")
         }
         .alert("Mot de passe du NAS manquant", isPresented: $sansMotDePasse) {
             Button("OK", role: .cancel) {}
@@ -92,21 +108,26 @@ struct BoutonLectureNAS: View {
             } else {
                 absent = lecteur
                 etat.journal.noter(.lecture, "\(lecteur.nom) n'a pas pu ouvrir la vidéo.",
-                                   conseil: "Vérifie que \(lecteur.nom) est installée, ou choisis l'autre app dans Réglages › NAS.")
+                                   conseil: "Vérifie que \(lecteur.nom) est installée, ou choisis l'autre app dans Réglages › Lecture.")
             }
         }
     }
 }
 
-/// Bloc « Sur ton NAS » de la fiche : la copie d'un film, ou les épisodes d'une série par saison.
+/// Bloc « Sur ton NAS » de la fiche. Pour un film : sa ou ses copies, à lancer d'un toucher. Pour une série : ce que le
+/// NAS contient, saison par saison — les épisodes se lancent depuis la liste « Épisodes », qui est la seule de la fiche.
 struct SectionNASFiche: View {
     @Query private var fichiers: [FichierNAS]
-    @State private var saison: Int?
+    @State private var tousVisibles = false
 
     init(reference: ReferenceTitre) {
         let id = reference.tmdbID
         let type = reference.type.rawValue
         _fichiers = Query(filter: #Predicate<FichierNAS> { $0.tmdbID == id && $0.typeBrut == type }, sort: \FichierNAS.chemin)
+    }
+
+    private var numerotes: [FichierNAS] {
+        fichiers.filter { $0.saison != nil && $0.episode != nil }
     }
 
     var body: some View {
@@ -115,56 +136,63 @@ struct SectionNASFiche: View {
                 TitreSection(titre: "Sur ton NAS") {
                     Image(systemName: "externaldrive.fill").foregroundStyle(Theme.accent)
                 }
-                if fichiers.contains(where: { $0.episode != nil }) {
-                    episodes
-                } else {
+                if numerotes.isEmpty {
                     ForEach(fichiers) { fichier in
                         ligne(fichier, titre: fichier.qualite.map { "Copie \($0)" } ?? "Copie sur le NAS")
                     }
-                }
-            }
-        }
-    }
-
-    private var saisons: [Int] {
-        Set(fichiers.compactMap(\.saison)).sorted()
-    }
-
-    @ViewBuilder
-    private var episodes: some View {
-        let choisie = saison ?? saisons.last
-        if saisons.count > 1 {
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
-                    ForEach(saisons, id: \.self) { numero in
-                        PuceFiltre(libelle: "Saison \(numero)", active: numero == choisie) { saison = numero }
+                } else {
+                    resumeParSaison
+                    // Les vidéos sans numéro d'épisode ne sont pas dans la liste « Épisodes » : elles se lancent d'ici.
+                    ForEach(fichiers.filter { $0.saison == nil || $0.episode == nil }) { fichier in
+                        ligne(fichier, titre: fichier.nomFichier)
                     }
                 }
-                .padding(.horizontal, 20)
             }
-        }
-        let liste = fichiers
-            .filter { $0.saison == choisie }
-            .sorted { ($0.episode ?? 0) < ($1.episode ?? 0) }
-        ForEach(liste) { fichier in
-            ligne(fichier, titre: fichier.episode.map { "Épisode \($0)" } ?? fichier.nomFichier)
         }
     }
 
-    private func ligne(_ fichier: FichierNAS, titre: String) -> some View {
-        HStack(spacing: 12) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(titre).font(.subheadline.weight(.semibold))
-                Text([fichier.qualite, ByteCountFormatter.string(fromByteCount: fichier.tailleOctets, countStyle: .file), fichier.dossier]
-                    .compactMap { $0 }.joined(separator: " · "))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+    /// « Saison 1 · épisodes 1 à 8 · 1080p », une ligne par saison présente sur le NAS.
+    private var resumeParSaison: some View {
+        let parSaison = Dictionary(grouping: numerotes) { $0.saison ?? 0 }
+        return VStack(alignment: .leading, spacing: 8) {
+            ForEach(parSaison.keys.sorted(), id: \.self) { saison in
+                let episodes = Set((parSaison[saison] ?? []).compactMap(\.episode)).sorted()
+                let qualite = (parSaison[saison] ?? []).compactMap { $0.qualite.flatMap(QualiteVideo.init(description:)) }.max()?.description
+                HStack(spacing: 10) {
+                    Text("Saison \(saison)")
+                        .font(.subheadline.weight(.bold))
+                    Text([Self.plage(episodes), qualite].compactMap { $0 }.joined(separator: " · "))
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                    Spacer(minLength: 0)
+                }
+                .accessibilityElement(children: .combine)
             }
-            Spacer()
-            BoutonLectureNAS(fichier: fichier)
+            Label("Lance un épisode avec ▶︎ dans la liste « Épisodes » ci-dessous.", systemImage: "play.circle")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .padding(.top, 2)
         }
         .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .background(Theme.surface, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
         .padding(.horizontal, 20)
+    }
+
+    /// « épisodes 1 à 8 », « épisodes 1, 2 et 5 », « épisode 3 ».
+    static func plage(_ episodes: [Int]) -> String {
+        guard let premier = episodes.first, let dernier = episodes.last else { return "" }
+        if episodes.count == 1 { return "épisode \(premier)" }
+        if dernier - premier + 1 == episodes.count { return "épisodes \(premier) à \(dernier)" }
+        if episodes.count <= 6 { return "épisodes " + episodes.map(String.init).formatted(.list(type: .and).locale(Locale(identifier: "fr_CH"))) }
+        return "\(episodes.count) épisodes, du \(premier) au \(dernier)"
+    }
+
+    /// Toute la ligne lance la lecture, pas seulement la pastille ▶︎ : c'est elle qu'on vise du doigt.
+    private func ligne(_ fichier: FichierNAS, titre: String) -> some View {
+        let detail = [fichier.qualite, ByteCountFormatter.string(fromByteCount: fichier.tailleOctets, countStyle: .file), fichier.dossier]
+            .compactMap { $0 }.joined(separator: " · ")
+        return BoutonLectureNAS(fichier: fichier, ligne: (titre, detail))
+            .padding(.horizontal, 20)
     }
 }

@@ -6,6 +6,7 @@ import SwiftUI
 struct SeanceApp: App {
     private let conteneur = ConteneurApp.resultat
     @State private var etat = EtatApp()
+    @AppStorage(Apparence.cle) private var apparence = Apparence.sombre.rawValue
 
     var body: some Scene {
         WindowGroup {
@@ -14,7 +15,7 @@ struct SeanceApp: App {
                 RacineView()
                     .environment(etat)
                     .modelContainer(conteneur)
-                    .preferredColorScheme(.dark)
+                    .preferredColorScheme(Apparence.lire(apparence).schema)
             case .failure(let erreur):
                 ContentUnavailableView(
                     "Données inaccessibles",

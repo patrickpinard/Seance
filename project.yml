@@ -17,8 +17,8 @@ settings:
     # Équipe personnelle de Patrick (compte Apple gratuit).
     DEVELOPMENT_TEAM: GATK475J3P
     # Version affichée dans À propos › Versions ; à changer avec Seance/Ecrans/Reglages/Versions.swift.
-    MARKETING_VERSION: "2.8"
-    CURRENT_PROJECT_VERSION: "17"
+    MARKETING_VERSION: "2.9"
+    CURRENT_PROJECT_VERSION: "18"
 
 packages:
   SeanceKit:
@@ -80,8 +80,9 @@ targets:
         LSSupportsOpeningDocumentsInPlace: true
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
-        UILaunchScreen: {}
-        UIUserInterfaceStyle: Dark
+        # Le fond du lancement : sombre, comme l'apparence d'origine.
+        UILaunchScreen:
+          UIColorName: FondLancement
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
         # Format iPad, utilisé par la version Mac : toutes les orientations, fenêtre redimensionnable.

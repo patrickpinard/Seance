@@ -76,7 +76,7 @@ struct PastilleType: View {
         Text(film ? "FILM" : "SÉRIE")
             .font(.caption2.weight(.black))
             .padding(.horizontal, 6).padding(.vertical, 3)
-            .background(film ? AnyShapeStyle(Theme.degradeAccent) : AnyShapeStyle(.white.opacity(0.22)),
+            .background(film ? AnyShapeStyle(Theme.degradeAccent) : AnyShapeStyle(Color.gray.opacity(0.55)),
                         in: RoundedRectangle(cornerRadius: 5, style: .continuous))
             .foregroundStyle(film ? Color.black : Color.white)
     }
@@ -254,6 +254,7 @@ struct CarteDiffusion: View {
                     .padding(12)
                 }
                 .foregroundStyle(.white)
+                .surImage()
                 .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
                 .overlay {
                     // Un titre de ta liste qui passe à la télé : le liseré le fait ressortir du lot.

@@ -354,7 +354,7 @@ struct AccueilView: View {
 }
 
 /// Feuille « Sources » de l'accueil : plateformes affichées, télévision et NAS.
-private struct ReglageSourcesAccueil: View {
+struct ReglageSourcesAccueil: View {
     @Binding var sources: SourcesAccueil
     let abonnements: [Abonnement]
     @Environment(\.dismiss) private var dismiss
@@ -549,7 +549,7 @@ private struct SectionTop10: View {
                     }
                     if !films.isEmpty, !series.isEmpty {
                         Rectangle()
-                            .fill(.white.opacity(0.12))
+                            .fill(Theme.trait)
                             .frame(width: 1, height: 170)
                             .padding(.horizontal, 6)
                     }

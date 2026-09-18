@@ -25,16 +25,17 @@ struct SectionsJournal: View {
             }
         } else {
             Section {
-                HStack {
-                    ShareLink(item: journal.texte, subject: Text("Journal de Séance")) {
-                        Label("Partager", systemImage: "square.and.arrow.up")
-                    }
-                    Spacer()
-                    Button("Effacer", role: .destructive) { confirmation = true }
+                // Une ligne par action : deux boutons sur une même ligne de liste se déclenchent ensemble.
+                ShareLink(item: journal.texte, subject: Text("Journal de Séance")) {
+                    Label("Partager le journal", systemImage: "square.and.arrow.up")
                 }
-                .font(.subheadline.weight(.semibold))
+                Button(role: .destructive) { confirmation = true } label: {
+                    Label("Effacer le journal (\(Format.pluriel(journal.entrees.count, "entrée")))", systemImage: "trash")
+                }
                 .confirmationDialog("Effacer le journal ?", isPresented: $confirmation, titleVisibility: .visible) {
                     Button("Effacer le journal", role: .destructive) { journal.effacer() }
+                } message: {
+                    Text("Les \(journal.entrees.count) entrées disparaissent de cet appareil. Rien d'autre n'est touché.")
                 }
             } footer: {
                 Text("Le journal reste sur cet appareil. Il ne contient ni clé ni mot de passe.")

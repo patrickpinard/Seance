@@ -1,14 +1,28 @@
 import SeanceKit
 import SwiftUI
+import UIKit
 
-/// Identité visuelle de Séance (UX-17) : fond sombre, accent orange braise.
+/// Identité visuelle de Séance (UX-17) : accent orange braise, sur fond sombre ou clair au choix (Réglages › Apparence).
+/// Les couleurs de page suivent l'apparence ; les grandes cartes-images restent sombres (`.surImage()`), pour que
+/// leur texte blanc et leur orange vif se lisent sur la photo quelle que soit l'apparence.
 enum Theme {
     static let accent = Color("AccentColor")
-    static let accentClair = Color(red: 1, green: 0.635, blue: 0.29)
-    static let fond = Color(red: 0.04, green: 0.04, blue: 0.055)
-    static let surface = Color.white.opacity(0.08)
+    /// L'orange des textes et des icônes : vif sur fond sombre, plus soutenu sur fond clair pour rester lisible.
+    static let accentClair = dynamique(sombre: UIColor(red: 1, green: 0.635, blue: 0.29, alpha: 1),
+                                       clair: UIColor(red: 0.80, green: 0.34, blue: 0.0, alpha: 1))
+    static let fond = dynamique(sombre: UIColor(red: 0.04, green: 0.04, blue: 0.055, alpha: 1),
+                                clair: UIColor(red: 0.965, green: 0.96, blue: 0.955, alpha: 1))
+    /// Le fond des cartes et des puces : translucide, pour s'empiler (une puce dans une carte reste visible).
+    static let surface = dynamique(sombre: UIColor.white.withAlphaComponent(0.08), clair: UIColor.black.withAlphaComponent(0.06))
+    /// Filets, contours et séparateurs posés sur le fond de la page.
+    static let trait = dynamique(sombre: UIColor.white.withAlphaComponent(0.12), clair: UIColor.black.withAlphaComponent(0.12))
 
-    static let degradeAccent = LinearGradient(colors: [accent, accentClair], startPoint: .topLeading, endPoint: .bottomTrailing)
+    /// Le dégradé des boutons principaux, toujours le même : le texte posé dessus est noir.
+    static let degradeAccent = LinearGradient(colors: [accent, Color(red: 1, green: 0.635, blue: 0.29)], startPoint: .topLeading, endPoint: .bottomTrailing)
+
+    private static func dynamique(sombre: UIColor, clair: UIColor) -> Color {
+        Color(uiColor: UIColor { $0.userInterfaceStyle == .dark ? sombre : clair })
+    }
 
     /// UX-04 : vert dès 70 %, jaune de 40 à 69 %, rouge en dessous.
     static func couleurNote(_ pourcentage: Int) -> Color {
@@ -41,4 +55,49 @@ enum ImageTMDB {
 
 extension TitreResume {
     var pourcentageNote: Int { Int((noteMoyenne * 10).rounded()) }
+}
+
+/// Sombre (d'origine), clair, ou comme le système : Réglages › Apparence.
+enum Apparence: String, CaseIterable, Identifiable {
+    case sombre, clair, systeme
+
+    static let cle = "apparence"
+
+    var id: String { rawValue }
+
+    var nom: String {
+        switch self {
+        case .sombre: "Sombre"
+        case .clair: "Clair"
+        case .systeme: "Automatique"
+        }
+    }
+
+    var symbole: String {
+        switch self {
+        case .sombre: "moon.fill"
+        case .clair: "sun.max.fill"
+        case .systeme: "circle.lefthalf.filled"
+        }
+    }
+
+    /// `nil` : l'app suit le réglage de l'appareil.
+    var schema: ColorScheme? {
+        switch self {
+        case .sombre: .dark
+        case .clair: .light
+        case .systeme: nil
+        }
+    }
+
+    static func lire(_ brut: String) -> Apparence {
+        Apparence(rawValue: brut) ?? .sombre
+    }
+}
+
+extension View {
+    /// Pour une carte dont le fond est une photo assombrie : ses couleurs restent celles du mode sombre.
+    func surImage() -> some View {
+        environment(\.colorScheme, .dark)
+    }
 }

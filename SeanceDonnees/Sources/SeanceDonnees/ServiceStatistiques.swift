@@ -32,6 +32,23 @@ public struct ServiceStatistiques {
     }
 
     /// Bilan d'une année, ou de tout l'historique quand `annee` est `nil`.
+    /// Remet les statistiques à zéro sans rien perdre : chaque visionnage compté devient « déjà vu avant », que les
+    /// statistiques ignorent. Les titres restent vus, notés, et comptent toujours dans les goûts. Renvoie les
+    /// visionnages touchés, pour pouvoir annuler.
+    @discardableResult
+    public func remettreAZero() throws -> [Visionnage] {
+        let comptes = try contexte.fetch(FetchDescriptor<Visionnage>(predicate: #Predicate { !$0.anterieur }))
+        comptes.forEach { $0.anterieur = true }
+        try contexte.save()
+        return comptes
+    }
+
+    /// Annule une remise à zéro : ces visionnages comptent de nouveau.
+    public func retablir(_ visionnages: [Visionnage]) throws {
+        visionnages.forEach { $0.anterieur = false }
+        try contexte.save()
+    }
+
     public func bilan(annee: Int?, fuseau: TimeZone = .suisse) throws -> BilanStatistiques {
         Statistiques.calculer(try visionnages(), entre: annee.map { Self.bornes($0, fuseau: fuseau) }, fuseau: fuseau)
     }

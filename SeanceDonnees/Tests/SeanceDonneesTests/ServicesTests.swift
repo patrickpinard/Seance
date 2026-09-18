@@ -346,6 +346,27 @@ struct ServicesTests {
         #expect(dejaLa.note == 9 && dejaLa.statut == .termine)
     }
 
+    @Test func remiseAZeroDesStatistiquesSansRienPerdre() throws {
+        let conteneur = try EntrepotSeance.conteneur(.memoire)
+        let contexte = conteneur.mainContext
+        let film = try TMDB.film()
+        try ServiceSuivi(contexte: contexte).marquerVu(film: film, note: 8)
+        let statistiques = ServiceStatistiques(contexte: contexte)
+        #expect(try statistiques.bilan(annee: nil).nombreFilms == 1)
+
+        let touches = try statistiques.remettreAZero()
+        #expect(touches.count == 1)
+        #expect(try statistiques.bilan(annee: nil).minutesTotales == 0)
+        // Le film reste vu et noté : seuls les compteurs repartent de zéro.
+        #expect(try ServiceSuivi(contexte: contexte).estVu(film.reference))
+        #expect(try ServiceSuivi(contexte: contexte).suivi(film.reference)?.note == 8)
+        // Une seconde remise à zéro n'a plus rien à toucher.
+        #expect(try statistiques.remettreAZero().isEmpty)
+
+        try statistiques.retablir(touches)
+        #expect(try statistiques.bilan(annee: nil).nombreFilms == 1)
+    }
+
     @Test func purgeDuCache() throws {
         let conteneur = try EntrepotSeance.conteneur(.memoire)
         let contexte = conteneur.mainContext

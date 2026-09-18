@@ -95,7 +95,7 @@ struct PuceActive: View {
                 Image(systemName: "xmark")
                     .font(.caption2.weight(.bold))
                     .frame(width: 22, height: 22)
-                    .background(Color.white.opacity(0.12), in: Circle())
+                    .background(Theme.trait, in: Circle())
             }
             .buttonStyle(.plain)
             .accessibilityLabel("Retirer \(libelle)")
@@ -104,7 +104,7 @@ struct PuceActive: View {
         .padding(.trailing, 6)
         .frame(height: 36)
         .background(Theme.surface, in: Capsule())
-        .overlay(Capsule().strokeBorder(Color.white.opacity(0.08)))
+        .overlay(Capsule().strokeBorder(Theme.trait))
     }
 }
 

@@ -20,6 +20,27 @@ struct NoteVersion: Identifiable {
 
     static let historique: [NoteVersion] = [
         NoteVersion(
+            numero: "2.9",
+            date: "18 septembre 2026",
+            resume: "Un Profil en images, des Réglages en tableau de bord, et l'apparence claire ou sombre au choix.",
+            fonctionnalites: [
+                Fonctionnalite(symbole: "person.crop.circle", titre: "Profil en images",
+                               detail: "Tes dernières notes en affiches, tes acteurs en portraits (une cloche sur ceux que tu suis), tes goûts en puces. Les chiffres ne s'imposent plus : « Tes statistiques », en bas de page, ouvre la page qui les réunit tous, avec ta collection et ton année en cartes."),
+                Fonctionnalite(symbole: "gearshape", titre: "Réglages en tableau de bord",
+                               detail: "En tête, « État de Séance » : ce qui est en ordre en vert, ce qui manque en orange, et un toucher mène au réglage. Dessous, une carte par réglage avec son état courant ; deux colonnes sur le Mac et l'iPad. L'accueil se personnalise aussi d'ici."),
+                Fonctionnalite(symbole: "circle.lefthalf.filled", titre: "Apparence sombre, claire ou automatique",
+                               detail: "Réglages › Apparence. Sombre reste l'apparence d'origine ; « Automatique » suit ton appareil. Les grandes images gardent leur texte clair dans les deux cas."),
+                Fonctionnalite(symbole: "play.circle", titre: "Lecture du NAS, épisode par épisode",
+                               detail: "Pour une série, chaque épisode présent sur le NAS porte son ▶︎ dans la liste « Épisodes » — la seule liste de la fiche — et « À regarder » aussi ; les saisons du NAS sont marquées, et « Sur ton NAS » résume ce qu'il contient, saison par saison. Pour un film, toute la ligne lance la lecture. Le choix entre Infuse et VLC a sa page, Réglages › Lecture, qui dit si chaque app est installée et ce qu'elle demande."),
+                Fonctionnalite(symbole: "arrow.uturn.backward", titre: "Retour depuis Mes listes",
+                               detail: "Une fiche ouverte depuis la grille d'affiches ou depuis « À venir » pouvait s'empiler plusieurs fois : le retour ne ramenait plus à Mes listes. Corrigé, et vérifié par un test."),
+                Fonctionnalite(symbole: "arrow.counterclockwise", titre: "Remettre les statistiques à zéro",
+                               detail: "En bas des statistiques. Rien n'est effacé : tes titres restent vus et notés, tes goûts ne changent pas ; seuls les compteurs repartent. Annulable juste après."),
+                Fonctionnalite(symbole: "trash", titre: "Effacer le journal",
+                               detail: "Réglages › À propos › Journal : « Partager » et « Effacer » ont chacun leur ligne — sur une même ligne, ils se déclenchaient ensemble."),
+            ]
+        ),
+        NoteVersion(
             numero: "2.8",
             date: "18 septembre 2026",
             resume: "Tes appareils se tiennent à jour par un dossier d'iCloud Drive, et une sauvegarde s'envoie par AirDrop.",

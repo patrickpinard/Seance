@@ -59,25 +59,50 @@ struct MesListesView: View {
         TriListe(rawValue: triBrut) ?? .ajout
     }
 
+    /// La grille d'affiches et « À venir » défilent librement ; la liste détaillée et les listes nommées restent une
+    /// `List`, pour leurs gestes de glissement. Une grille de liens posée dans une ligne de `List` ouvrait plusieurs
+    /// fiches d'un coup, et le retour ne ramenait plus à Mes listes.
+    private var enDefilementLibre: Bool {
+        onglet == .aVenir || (onglet.statut != nil && enGrille)
+    }
+
+    private var choixOnglet: some View {
+        Picker("Liste", selection: $onglet) {
+            ForEach(Onglet.allCases) { onglet in
+                Text(onglet.rawValue).tag(onglet)
+            }
+        }
+        .pickerStyle(.segmented)
+    }
+
     var body: some View {
         NavigationStack {
-            List {
-                Picker("Liste", selection: $onglet) {
-                    ForEach(Onglet.allCases) { onglet in
-                        Text(onglet.rawValue).tag(onglet)
+            Group {
+                if enDefilementLibre {
+                    ScrollView {
+                        LazyVStack(alignment: .leading, spacing: 12) {
+                            choixOnglet.padding(.horizontal, 16)
+                            if onglet == .aVenir {
+                                aVenir
+                            } else if let statut = onglet.statut {
+                                barreListe(statut).padding(.horizontal, 16)
+                                liste(statut)
+                            }
+                        }
+                        .padding(.vertical, 8)
                     }
-                }
-                .pickerStyle(.segmented)
-                .listRowBackground(Color.clear)
-                .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
-
-                if onglet == .aVenir {
-                    aVenir
-                } else if onglet == .listes {
-                    SectionListesNommees(recherche: recherche)
-                } else if let statut = onglet.statut {
-                    barreListe(statut)
-                    liste(statut)
+                } else {
+                    List {
+                        choixOnglet
+                            .listRowBackground(Color.clear)
+                            .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
+                        if onglet == .listes {
+                            SectionListesNommees(recherche: recherche)
+                        } else if let statut = onglet.statut {
+                            barreListe(statut)
+                            liste(statut)
+                        }
+                    }
                 }
             }
             .scrollContentBackground(.hidden)
@@ -114,8 +139,7 @@ struct MesListesView: View {
         }
         if suivis.contains(where: \.alertesActives) {
             BandeauAlertesCoupees()
-                .listRowBackground(Color.clear)
-                .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
+                .padding(.horizontal, 16)
         }
         if futures.isEmpty {
             vide(etat.alertes.enCours
@@ -305,11 +329,8 @@ struct MesListesView: View {
                     .contextMenu { menu(suivi, statut) }
                 }
             }
-            .listRowBackground(Color.clear)
-            .listRowSeparator(.hidden)
-            .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 12, trailing: 16))
-            // La ligne contient des liens : sans cela, la liste lui dessine un chevron et lui prend sa largeur.
-            .navigationLinkIndicatorVisibility(.hidden)
+            .padding(.horizontal, 16)
+            .padding(.top, 4)
         }
         ForEach(enGrille ? [] : titres) { suivi in
             NavigationLink(value: suivi.reference) {
@@ -441,6 +462,7 @@ struct MesListesView: View {
         Text(texte)
             .font(.footnote)
             .foregroundStyle(.secondary)
+            .padding(.horizontal, enDefilementLibre ? 16 : 0)
             .listRowBackground(Color.clear)
     }
 

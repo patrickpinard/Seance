@@ -7,10 +7,12 @@ import XCTest
 final class TourCompletTests: XCTestCase {
     private var app = XCUIApplication()
 
+    private var prefixe = ""
+
     private func capture(_ nom: String, attente: TimeInterval = 2.5) {
         Thread.sleep(forTimeInterval: attente)
         let piece = XCTAttachment(screenshot: app.screenshot())
-        piece.name = nom
+        piece.name = prefixe + nom
         piece.lifetime = .keepAlways
         add(piece)
     }
@@ -23,10 +25,23 @@ final class TourCompletTests: XCTestCase {
         if ligne.exists { ligne.tap() } else { app.buttons[nom].firstMatch.tap() }
     }
 
+    /// L'apparence d'origine.
     func testTourComplet() throws {
+        try tour(apparence: "sombre", prefixe: "")
+    }
+
+    /// Le même tour en apparence claire : chaque page doit rester lisible.
+    func testTourEnClair() throws {
+        try tour(apparence: "clair", prefixe: "clair-")
+    }
+
+    private func tour(apparence: String, prefixe: String) throws {
         continueAfterFailure = true
         Lancement.demonstration(app)
+        // Les réglages du simulateur restent d'un test à l'autre : apparence et prénom sont imposés.
+        app.launchArguments += ["-apparence", apparence, "-profil.prenom", "Camille"]
         app.launch()
+        self.prefixe = prefixe
 
         // Accueil : le faux TMDB remplit le Top et « Du moment » ; la démonstration, la télé et le NAS.
         XCTAssertTrue(app.staticTexts["Du moment"].firstMatch.waitForExistence(timeout: 20), "L'accueil ne charge pas « Du moment »")
@@ -49,6 +64,12 @@ final class TourCompletTests: XCTestCase {
         onglet("Mes listes")
         XCTAssertTrue(app.buttons["Grille"].firstMatch.waitForExistence(timeout: 10), "Pas de choix grille ou liste")
         capture("06-listes-grille")
+        // Une fiche ouverte depuis la grille se referme : un seul retour ramène à Mes listes.
+        app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'John Wick'")).firstMatch.tap()
+        XCTAssertTrue(app.navigationBars.buttons.firstMatch.waitForExistence(timeout: 10))
+        Thread.sleep(forTimeInterval: 3)
+        app.navigationBars.buttons.firstMatch.tap()
+        XCTAssertTrue(app.buttons["Grille"].firstMatch.waitForExistence(timeout: 8), "Depuis une fiche ouverte dans la grille, un retour ne ramène pas à Mes listes")
         app.buttons["Liste"].firstMatch.tap()
         capture("07-listes-liste")
         app.buttons["Grille"].firstMatch.tap()
@@ -58,6 +79,11 @@ final class TourCompletTests: XCTestCase {
         XCTAssertTrue(app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Tout : '")).firstMatch.waitForExistence(timeout: 10),
                       "La rangée de jours d'« À venir » est absente")
         capture("09-a-venir", attente: 4)
+        app.buttons.matching(NSPredicate(format: "label CONTAINS 'Nouvel épisode' OR label CONTAINS 'Sur '")).firstMatch.tap()
+        XCTAssertTrue(app.navigationBars.buttons.firstMatch.waitForExistence(timeout: 10))
+        Thread.sleep(forTimeInterval: 3)
+        app.navigationBars.buttons.firstMatch.tap()
+        XCTAssertTrue(app.buttons["À venir"].firstMatch.waitForExistence(timeout: 8), "Depuis une fiche ouverte dans « À venir », un retour ne ramène pas à Mes listes")
         app.swipeUp()
         capture("10-a-venir-bas")
 
@@ -67,10 +93,59 @@ final class TourCompletTests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Nouveaux sur ton NAS"].firstMatch.waitForExistence(timeout: 10), "Les nouveautés du NAS sont absentes")
         capture("14-nas", attente: 4)
 
-        // Profil.
+        // Une fiche, par un lien direct : The Night Agent, dont trois épisodes sont sur le NAS de démonstration.
+        app.open(URL(string: "seance://serie/129552")!)
+        capture("15-fiche", attente: 7)
+        app.swipeUp()
+        capture("16-fiche-bas")
+        // « Sur ton NAS » dit la saison ; la lecture se lance depuis la liste des épisodes. Dans le simulateur, Infuse
+        // n'est pas installée, et l'app doit le dire.
+        XCTAssertTrue(app.descendants(matching: .any).matching(NSPredicate(format: "label BEGINSWITH 'Saison 1, épisodes 1 à 3'")).firstMatch.waitForExistence(timeout: 8),
+                      "« Sur ton NAS » ne dit pas quelle saison il contient")
+        XCTAssertFalse(app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Lire Épisode'")).firstMatch.exists,
+                       "Les épisodes sont encore listés une seconde fois dans « Sur ton NAS »")
+        app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Saison 1'")).firstMatch.tap()
+        var essais = 0
+        let episode = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Lire l’épisode 1 ' OR label BEGINSWITH \"Lire l'épisode 1 \"")).firstMatch
+        while !(episode.exists && episode.isHittable), essais < 6 { app.swipeUp(); essais += 1 }
+        XCTAssertTrue(episode.exists, "L'épisode 1, présent sur le NAS, n'a pas de bouton de lecture dans la liste des épisodes")
+        if episode.exists, episode.isHittable {
+            episode.tap()
+            XCTAssertTrue(app.alerts.firstMatch.waitForExistence(timeout: 8), "Toucher ▶︎ sur l'épisode ne tente pas d'ouvrir le lecteur")
+            capture("16-lecture", attente: 1)
+            app.alerts.buttons["OK"].firstMatch.tap()
+        }
+        capture("16-episodes")
+        // Retour depuis la fiche elle-même : sur l'accueil, le premier bouton de la barre est « Personnaliser ».
+        app.navigationBars.buttons.firstMatch.tap()
+
+        // Profil : des images, pas de chiffres ; les statistiques en bas, puis Réglages et l'apparence.
         onglet("Profil")
-        XCTAssertTrue(app.staticTexts["Ta collection"].firstMatch.waitForExistence(timeout: 10))
-        capture("15-profil")
+        XCTAssertTrue(app.staticTexts["Tes goûts"].firstMatch.waitForExistence(timeout: 10))
+        XCTAssertFalse(app.staticTexts["Ta collection"].exists, "Les chiffres sont encore mis en avant sur le Profil")
+        capture("17-profil", attente: 4)
+        app.swipeUp()
+        capture("18-profil-bas")
+        app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Tes statistiques'")).firstMatch.tap()
+        XCTAssertTrue(app.staticTexts["Ta collection"].firstMatch.waitForExistence(timeout: 10), "La collection n'est pas dans les statistiques")
+        capture("19-statistiques", attente: 3)
+        app.navigationBars.buttons.firstMatch.tap()
+        app.navigationBars.buttons["Réglages"].firstMatch.tap()
+        XCTAssertTrue(app.staticTexts["Où regarder"].firstMatch.waitForExistence(timeout: 10))
+        capture("20-reglages", attente: 3)
+        app.swipeUp()
+        capture("21-reglages-bas")
+        // La grille des cartes est paresseuse : « Lecture » se touche tant qu'elle est à l'écran.
+        app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Lecture'")).firstMatch.tap()
+        XCTAssertTrue(app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'VLC'")).firstMatch.waitForExistence(timeout: 10), "Le choix du lecteur est absent")
+        capture("21-lecture")
+        app.navigationBars.buttons.firstMatch.tap()
+        app.swipeDown()
+        app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Apparence'")).firstMatch.tap()
+        XCTAssertTrue(app.buttons["Apparence Clair"].firstMatch.waitForExistence(timeout: 10))
+        capture("22-apparence")
+        app.navigationBars.buttons.firstMatch.tap()
+        app.navigationBars.buttons.firstMatch.tap()
 
         // Explorer : les sources.
         onglet("Explorer")

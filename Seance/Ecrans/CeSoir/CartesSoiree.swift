@@ -92,6 +92,7 @@ struct CarteSoiree: View {
                         .padding(12)
                     }
                     .foregroundStyle(.white)
+                    .surImage()
                     .clipped()
                     .contentShape(Rectangle())
             }

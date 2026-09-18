@@ -157,7 +157,7 @@ struct BandeauConfirmation: View {
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
         .background(.regularMaterial, in: Capsule())
-        .overlay(Capsule().strokeBorder(.white.opacity(0.12), lineWidth: 1))
+        .overlay(Capsule().strokeBorder(Theme.trait, lineWidth: 1))
         .shadow(color: .black.opacity(0.35), radius: 10, y: 4)
         .foregroundStyle(.primary)
         // Sur le Mac, un clic sur le bandeau traverserait jusqu'à l'affiche du dessous.

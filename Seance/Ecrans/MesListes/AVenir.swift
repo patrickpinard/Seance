@@ -105,6 +105,7 @@ struct CarteEcheance: View {
                     .padding(12)
                 }
                 .foregroundStyle(.white)
+                .surImage()
                 .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
                 .overlay {
                     RoundedRectangle(cornerRadius: 18, style: .continuous)
@@ -119,7 +120,7 @@ struct CarteEcheance: View {
     }
 }
 
-/// Les lignes de l'onglet « À venir » de Mes listes : la rangée des jours où il se passe quelque chose (« Tout »
+/// L'onglet « À venir » de Mes listes, dans un défilement libre (pas dans une `List`, qui ouvrait plusieurs liens à la fois) : la rangée des jours où il se passe quelque chose (« Tout »
 /// d'abord), puis les rendez-vous en grandes cartes, le plus proche en tête.
 struct SectionAVenir: View {
     /// Les rendez-vous à partir d'aujourd'hui, déjà filtrés par la recherche, triés par date.
@@ -167,20 +168,13 @@ struct SectionAVenir: View {
             }
             .padding(.horizontal, 16)
         }
-        .listRowBackground(Color.clear)
-        .listRowSeparator(.hidden)
-        .listRowInsets(EdgeInsets(top: 6, leading: 0, bottom: 6, trailing: 0))
 
         LazyVGrid(columns: [GridItem(.adaptive(minimum: 290, maximum: 520), spacing: 14, alignment: .top)], spacing: 14) {
             ForEach(affichees) { echeance in
                 CarteEcheance(echeance: echeance, decor: etat.decors.decor(echeance.reference))
             }
         }
-        .listRowBackground(Color.clear)
-        .listRowSeparator(.hidden)
-        .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 12, trailing: 16))
-        // La ligne contient des liens : sans cela, la liste lui dessine un chevron et lui prend sa largeur.
-        .navigationLinkIndicatorVisibility(.hidden)
+        .padding(.horizontal, 16)
         .task(id: echeances.map(\.reference)) { await etat.decors.charger(echeances.map(\.reference), client: etat.tmdb) }
     }
 

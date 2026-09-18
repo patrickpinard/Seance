@@ -20,7 +20,7 @@ final class ReglagesTests: XCTestCase {
         app.tabBars.buttons["Profil"].firstMatch.tap()
         XCTAssertTrue(app.navigationBars.buttons["Réglages"].firstMatch.waitForExistence(timeout: 10))
         app.navigationBars.buttons["Réglages"].firstMatch.tap()
-        XCTAssertTrue(app.staticTexts["Comptes"].firstMatch.waitForExistence(timeout: 10), "Réglages ne s'ouvre pas")
+        XCTAssertTrue(app.staticTexts["Où regarder"].firstMatch.waitForExistence(timeout: 10), "Réglages ne s'ouvre pas")
         capture("reglages")
 
         // Le prénom se saisit et se retrouve sur sa ligne.
@@ -29,18 +29,21 @@ final class ReglagesTests: XCTestCase {
         let champ = app.textFields["Ton prénom"]
         XCTAssertTrue(champ.waitForExistence(timeout: 5))
         champ.tap()
-        champ.typeText("Camille\n")
+        // Le prénom du simulateur reste d'un test à l'autre : on vide le champ d'abord.
+        champ.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 40) + "Camille\n")
         capture("reglages-Toi")
         app.navigationBars.buttons.firstMatch.tap()
         XCTAssertTrue(app.buttons.matching(NSPredicate(format: "label CONTAINS 'Camille'")).firstMatch.waitForExistence(timeout: 8),
                       "Le prénom saisi n'apparaît pas dans Réglages")
 
         let pages: [(ligne: String, repere: String)] = [
+            ("Apparence", "Apparence"),
             ("TMDB", "Clé TMDB"),
             ("Claude", "Clé Claude"),
             ("Plateformes", "Plateformes"),
             ("Télévision", "Guide des programmes"),
             ("NAS", "NAS"),
+            ("Lecture", "Lecture"),
             ("Alertes", "Alertes"),
             ("Sauvegarde", "Sauvegarde"),
             ("À propos", "L'application"),
@@ -55,8 +58,8 @@ final class ReglagesTests: XCTestCase {
             XCTAssertTrue(ouverte, "La page « \(page.ligne) » ne s'ouvre pas")
             capture("reglages-\(page.ligne)")
             app.navigationBars.buttons.firstMatch.tap()
-            XCTAssertTrue(app.staticTexts["Comptes"].firstMatch.waitForExistence(timeout: 8)
-                          || app.staticTexts["Mes données"].firstMatch.waitForExistence(timeout: 2),
+            XCTAssertTrue(app.staticTexts["Où regarder"].firstMatch.waitForExistence(timeout: 8)
+                          || app.staticTexts["L'app"].firstMatch.waitForExistence(timeout: 2),
                           "Retour à Réglages impossible depuis « \(page.ligne) »")
         }
 

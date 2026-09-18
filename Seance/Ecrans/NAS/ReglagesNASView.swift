@@ -127,19 +127,13 @@ struct ReglagesNASView: View {
                 Text("L'analyse lit les noms de fichiers et les rattache à TMDB. Elle se relance seule une fois par jour.")
             }
 
-            #if !targetEnvironment(macCatalyst)
             Section {
-                Picker("App de lecture", selection: Binding { etat.nas.lecteur } set: { etat.nas.choisir($0) }) {
-                    ForEach(LecteurVideo.allCases) { lecteur in
-                        Text(lecteur.nom).tag(lecteur)
-                    }
+                NavigationLink(value: DestinationReglage.lecture) {
+                    LabeledContent("App de lecture", value: etat.nas.lecteur.nom)
                 }
-            } header: {
-                Text("Lecture")
             } footer: {
-                Text("Infuse ou VLC lisent la vidéo directement sur le NAS, sans la copier sur l'iPhone. Infuse : ajoute d'abord le partage « \(etat.nas.reglages.partage) » dans Infuse (Ajouter des fichiers › SMB) ; Séance y ouvre alors le film ou l'épisode et lance la lecture.")
+                Text("Infuse ou VLC lisent la vidéo directement sur le NAS, sans la copier. Le choix et ce que chaque app demande sont dans Réglages › Lecture.")
             }
-            #endif
         }
         .scrollDismissesKeyboard(.immediately)
         .pageReglages("NAS")

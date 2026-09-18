@@ -164,7 +164,7 @@ struct FeuilleFiltres: View {
     }
 
     private var separateur: some View {
-        Divider().overlay(Color.white.opacity(0.06))
+        Divider().overlay(Theme.trait)
     }
 
     private func entete(_ titre: String, _ detail: String? = nil, accent: Bool = false) -> some View {

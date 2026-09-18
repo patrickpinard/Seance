@@ -45,7 +45,7 @@ enum NombreIdees {
 /// réglages des alertes, adresse et dossiers du NAS. Jamais une clé ni un mot de passe : ils restent dans le trousseau.
 @MainActor
 enum PreferencesSauvegardees {
-    private static let textes = [Prenom.cle, "listes.tri"]
+    private static let textes = [Prenom.cle, "listes.tri", Apparence.cle]
     private static let entiers = [NombreIdees.cle]
     private static let booleens = ["listes.grille", "explorer.liste"]
     private static let donnees = ["accueil.sources"]
