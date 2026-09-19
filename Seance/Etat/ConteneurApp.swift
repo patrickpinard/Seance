@@ -10,7 +10,11 @@ enum ConteneurApp {
         if Demonstration.active {
             // La démonstration repart de réglages vierges : un test ne laisse rien au suivant (prénom, apparence,
             // dossier de synchronisation…). Première chose faite au lancement, avant que quiconque ne lise un réglage.
+            // Dans le simulateur seulement : sur le Mac ou un vrai appareil, ces réglages sont ceux de la vraie app
+            // (même identifiant), et une démonstration lancée pour une capture les effacerait.
+            #if targetEnvironment(simulator)
             if let identifiant = Bundle.main.bundleIdentifier { UserDefaults.standard.removePersistentDomain(forName: identifiant) }
+            #endif
             let conteneur = try EntrepotSeance.conteneur(.memoire)
             if !Demonstration.vide { Demonstration.remplir(conteneur.mainContext) }
             return conteneur

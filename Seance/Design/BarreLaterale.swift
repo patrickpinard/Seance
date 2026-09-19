@@ -28,13 +28,35 @@ enum BarreLaterale {
     /// La barre latérale, ouverte au lancement, les montre tous — mais seulement quand elle tient **à côté** de la page
     /// (iPad en paysage). En portrait, le système la pose par-dessus le contenu : ouverte d'office, elle masquerait
     /// l'accueil à chaque lancement. Et si tu l'as refermée en paysage, elle le reste, comme sur le Mac.
+    /// Appelée au lancement et chaque fois que la fenêtre devient large : un iPad lancé en portrait puis tourné, ou
+    /// encore en train de pivoter au lancement, l'obtient aussi.
+    /// Rend `true` quand il n'y a plus rien à tenter : barre ouverte, ou pas concerné (iPhone, Mac, barre refermée par
+    /// choix, déjà ouverte cette session). `false` : pas encore de contrôleur, ou fenêtre pas (encore) assez large.
     @MainActor
-    static func ouvrirSurIPad() {
-        #if !targetEnvironment(macCatalyst)
-        guard UIDevice.current.userInterfaceIdiom == .pad, !UserDefaults.standard.bool(forKey: cleMasqueeIPad),
-              let controleur = controleurOnglets(), tientACote(controleur) else { return }
+    @discardableResult
+    static func ouvrirSurIPad() -> Bool {
+        #if targetEnvironment(macCatalyst)
+        return true
+        #else
+        // Une seule fois par session : ensuite, la barre est à l'utilisateur, qui l'ouvre et la ferme comme il veut.
+        guard !ouverteCetteSession, UIDevice.current.userInterfaceIdiom == .pad,
+              !UserDefaults.standard.bool(forKey: cleMasqueeIPad) else { return true }
+        guard let controleur = controleurOnglets(), tientACote(controleur) else { return false }
         controleur.sidebar.isHidden = false
+        ouverteCetteSession = true
+        return true
         #endif
+    }
+
+    /// Au lancement, le contrôleur d'onglets n'existe pas tout de suite ; pendant une rotation, la fenêtre change de
+    /// taille en cours de route. Plutôt qu'un essai unique à heure fixe, on réessaie quelques fois, pendant trois
+    /// secondes, et on s'arrête dès que c'est fait ou sans objet.
+    @MainActor
+    static func ouvrirSurIPadDesQuePossible() async {
+        for _ in 0..<8 {
+            try? await Task.sleep(for: .milliseconds(400))
+            if ouvrirSurIPad() { return }
+        }
     }
 
     /// En quittant l'app : retient si la barre était refermée. En portrait elle l'est presque toujours (elle se referme
@@ -49,6 +71,7 @@ enum BarreLaterale {
 
     #if !targetEnvironment(macCatalyst)
     private static let cleMasqueeIPad = "ipad.barreLaterale.masquee"
+    @MainActor private static var ouverteCetteSession = false
 
     /// UIKit ne dit pas si la barre se posera à côté ou par-dessus ; il en décide à la largeur. Plus large que haute et
     /// au moins 1000 points : tous les iPad en paysage plein écran, pas en portrait ni en demi-écran.

@@ -20,6 +20,17 @@ struct NoteVersion: Identifiable {
 
     static let historique: [NoteVersion] = [
         NoteVersion(
+            numero: "3.2.1",
+            date: "19 septembre 2026",
+            resume: "Sur l'iPad, la barre latérale s'ouvre aussi quand tu tournes la tablette.",
+            fonctionnalites: [
+                Fonctionnalite(symbole: "rotate.right", titre: "iPad : portrait, puis paysage",
+                               detail: "Lancée en portrait puis tournée, Séance ouvre la barre latérale à côté de la page, une fois par session ; ensuite elle est à toi."),
+                Fonctionnalite(symbole: "sun.max", titre: "Apparence claire vérifiée sur grand écran",
+                               detail: "Accueil, Réglages, Ce soir, Mes listes et Profil relus en clair sur un iPad en paysage."),
+            ]
+        ),
+        NoteVersion(
             numero: "3.2",
             date: "19 septembre 2026",
             resume: "Des pages vides qui expliquent et proposent, des boutons plus faciles à toucher, et un programme télé juste au petit matin.",

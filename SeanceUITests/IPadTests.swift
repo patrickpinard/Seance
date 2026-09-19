@@ -15,9 +15,10 @@ final class IPadTests: XCTestCase {
         add(piece)
     }
 
-    private func lancer(_ orientation: UIDeviceOrientation) throws {
+    private func lancer(_ orientation: UIDeviceOrientation, arguments: [String] = []) throws {
         XCUIDevice.shared.orientation = orientation
         Lancement.demonstration(app)
+        app.launchArguments += arguments
         app.launch()
         // Le lanceur de tests se dit « iPhone » même sur un iPad : c'est la largeur de la fenêtre qui fait foi.
         let fenetre = app.windows.firstMatch
@@ -31,10 +32,12 @@ final class IPadTests: XCTestCase {
     func testPaysageBarreOuverte() throws {
         try lancer(.landscapeLeft)
         capture("ipad-paysage")
-        // Tous les onglets sont là, sous forme de lignes de la barre latérale.
+        // Tous les onglets sont là, en lignes de la barre latérale — et pas seulement en boutons de la barre du haut,
+        // qui existent aussi quand la barre latérale est fermée : cette assertion-là ne prouvait rien.
+        XCTAssertTrue(app.cells.containing(.staticText, identifier: "Réglages").firstMatch.waitForExistence(timeout: 8),
+                      "La barre latérale n'est pas ouverte en paysage")
         for onglet in ["Accueil", "Ce soir", "Mes listes", "Profil", "Réglages", "Explorer"] {
-            XCTAssertTrue(app.cells.containing(.staticText, identifier: onglet).firstMatch.exists
-                          || app.buttons[onglet].firstMatch.exists, "« \(onglet) » absent de la barre latérale")
+            XCTAssertTrue(app.cells.containing(.staticText, identifier: onglet).firstMatch.exists, "« \(onglet) » absent de la barre latérale")
         }
         // Et la page reste utilisable à côté : un onglet s'ouvre sans avoir à refermer quoi que ce soit.
         let reglages = app.cells.containing(.staticText, identifier: "Réglages").firstMatch
@@ -43,12 +46,31 @@ final class IPadTests: XCTestCase {
         capture("ipad-paysage-reglages")
     }
 
+    /// L'apparence claire sur grand écran, pour relecture : barre latérale, accueil, Ce soir, Mes listes, Réglages.
+    func testApparenceClaire() throws {
+        continueAfterFailure = true
+        try lancer(.landscapeLeft, arguments: ["-apparence", "clair", "-profil.prenom", "Camille"])
+        capture("ipad-clair-accueil")
+        // Un parcours pour relire les captures, pas une vérification : on attend le repère sans en faire une condition.
+        for (onglet, repere) in [("Réglages", "Où regarder"), ("Ce soir", "Ce soir"), ("Mes listes", "Mes listes"), ("Profil", "Tes goûts")] {
+            let ligne = app.cells.containing(.staticText, identifier: onglet).firstMatch
+            if ligne.exists { ligne.tap() } else { app.buttons[onglet].firstMatch.tap() }
+            _ = app.staticTexts[repere].firstMatch.waitForExistence(timeout: 8)
+            capture("ipad-clair-\(onglet)")
+        }
+    }
+
     func testPortraitAccueilVisible() throws {
         try lancer(.portrait)
         capture("ipad-portrait")
         // Rien ne recouvre l'accueil : son premier bouton se touche.
         XCTAssertFalse(app.cells.containing(.staticText, identifier: "Réglages").firstMatch.exists,
                        "La barre latérale recouvre l'accueil en portrait")
+        // On tourne la tablette : la barre s'ouvre alors à côté de la page.
+        XCUIDevice.shared.orientation = .landscapeLeft
+        XCTAssertTrue(app.cells.containing(.staticText, identifier: "Réglages").firstMatch.waitForExistence(timeout: 8),
+                      "En passant en paysage, la barre latérale ne s'ouvre pas")
+        capture("ipad-portrait-puis-paysage")
     }
 
     override func tearDown() async throws {

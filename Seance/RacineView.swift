@@ -64,10 +64,12 @@ struct RacineView: View {
         .animation(.snappy, value: etat.confirmation)
         .tint(Theme.accent)
         .task { await etat.chargerGenres() }
-        .task {
-            // Le contrôleur d'onglets n'existe qu'une fois la fenêtre montée.
-            try? await Task.sleep(for: .milliseconds(400))
-            BarreLaterale.ouvrirSurIPad()
+        // Le contrôleur d'onglets n'existe qu'une fois la fenêtre montée, et prend ses dimensions avec un temps de retard.
+        .task { await BarreLaterale.ouvrirSurIPadDesQuePossible() }
+        // Lancé en portrait puis tourné : la barre s'ouvre quand la fenêtre s'élargit.
+        .onGeometryChange(for: Bool.self) { $0.size.width > $0.size.height } action: { paysage in
+            guard paysage else { return }
+            Task { await BarreLaterale.ouvrirSurIPadDesQuePossible() }
         }
         #if targetEnvironment(macCatalyst)
         .task { BarreLaterale.restaurer() }
