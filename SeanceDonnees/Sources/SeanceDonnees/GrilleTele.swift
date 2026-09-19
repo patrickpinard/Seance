@@ -101,4 +101,11 @@ public enum GrilleTele {
     public static func jourTele(_ instant: Date, calendrier: Calendar = .current) -> DateTMDB {
         DateTMDB(soir(instant, calendrier: calendrier))
     }
+
+    /// Le jour sous lequel afficher un bloc. Une émission **en cours** se range dans la journée de maintenant : à
+    /// 6 h 20, un film commencé à 5 h 40 appartient encore à la journée télé de la veille, et le programme s'ouvrait
+    /// sur « hier » avec ce seul film, celui d'aujourd'hui relégué sur la tuile suivante.
+    public static func jourAffiche(_ bloc: BlocDiffusion, maintenant: Date, calendrier: Calendar = .current) -> DateTMDB {
+        jourTele(max(bloc.debut, maintenant), calendrier: calendrier)
+    }
 }

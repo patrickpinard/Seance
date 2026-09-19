@@ -460,11 +460,23 @@ struct ProgrammeTeleView: View {
                         }
                     }
                 } else {
-                    ContentUnavailableView(type == .serie ? "Aucune série à venir" : "Rien à venir", systemImage: "tv",
-                                           description: Text(chainesChoisies.isEmpty
-                                                             ? "Aucun titre reconnu sur tes chaînes pour l'instant. Choisis-les dans Réglages › Télévision."
-                                                             : "Rien sur les chaînes retenues. Choisis « Toutes les chaînes » en haut à droite."))
-                        .padding(.top, 40)
+                    // Chaque impasse a sa sortie : les réglages des chaînes, ou le retour à toutes les chaînes.
+                    ContentUnavailableView {
+                        Label(type == .serie ? "Aucune série à venir" : "Rien à venir", systemImage: "tv")
+                    } description: {
+                        Text(chainesChoisies.isEmpty
+                             ? "Aucun titre reconnu sur tes chaînes pour l'instant. Choisis tes chaînes, et Séance lira leur programme."
+                             : "Rien sur les chaînes retenues pour ce jour.")
+                    } actions: {
+                        if chainesChoisies.isEmpty {
+                            NavigationLink("Choisir mes chaînes", value: DestinationReglage.tele)
+                                .buttonStyle(.borderedProminent)
+                        } else {
+                            Button("Toutes les chaînes") { chainesChoisies = [] }
+                                .buttonStyle(.borderedProminent)
+                        }
+                    }
+                    .padding(.top, 40)
                 }
             }
             .padding(.vertical, 12)
@@ -476,7 +488,7 @@ struct ProgrammeTeleView: View {
         let retenues = diffusions.filter {
             $0.fin > maintenant && (type == nil || $0.typeBrut == type?.rawValue) && (chainesChoisies.isEmpty || chainesChoisies.contains($0.chaine))
         }
-        return Dictionary(grouping: GrilleTele.blocs(retenues)) { GrilleTele.jourTele($0.debut) }
+        return Dictionary(grouping: GrilleTele.blocs(retenues)) { GrilleTele.jourAffiche($0, maintenant: maintenant) }
     }
 
     private func nomChaine(_ identifiant: String) -> String {

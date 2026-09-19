@@ -85,7 +85,7 @@ struct MesListesView: View {
                             if onglet == .aVenir {
                                 aVenir
                             } else if let statut = onglet.statut {
-                                barreListe(statut).padding(.horizontal, 16)
+                                if suivis.contains(where: { $0.statut == statut }) { barreListe(statut).padding(.horizontal, 16) }
                                 liste(statut)
                             }
                         }
@@ -99,7 +99,7 @@ struct MesListesView: View {
                         if onglet == .listes {
                             SectionListesNommees(recherche: recherche)
                         } else if let statut = onglet.statut {
-                            barreListe(statut)
+                            if suivis.contains(where: { $0.statut == statut }) { barreListe(statut) }
                             liste(statut)
                         }
                     }
@@ -141,10 +141,13 @@ struct MesListesView: View {
             BandeauAlertesCoupees()
                 .padding(.horizontal, 16)
         }
-        if futures.isEmpty {
-            vide(etat.alertes.enCours
-                 ? "Recherche des prochains épisodes et sorties…"
-                 : "Rien d'annoncé pour l'instant. Touche la cloche 🔔 sur une fiche pour suivre ses prochains épisodes, ses sorties et ses passages à la télé.")
+        if futures.isEmpty, etat.alertes.enCours {
+            vide("Recherche des prochains épisodes et sorties…")
+        } else if futures.isEmpty, !recherche.isEmpty {
+            vide("Rien d'annoncé ne correspond à « \(recherche) ».")
+        } else if futures.isEmpty {
+            grandVide(EtatVide(symbole: "calendar.badge.clock", titre: "Rien d'annoncé pour l'instant",
+                               message: "Touche la cloche sur une fiche : ses prochains épisodes, ses sorties et ses passages à la télé se rangent ici, jour par jour."))
         } else {
             SectionAVenir(echeances: futures)
         }
@@ -219,6 +222,7 @@ struct MesListesView: View {
                 if largeurGrille == .compact {
                     Image(systemName: "arrow.up.arrow.down")
                         .font(.subheadline.weight(.semibold))
+                        .zoneDeToucher(largeur: 38)
                 } else {
                     Label(tri.rawValue, systemImage: "arrow.up.arrow.down")
                         .font(.subheadline.weight(.semibold))
@@ -228,20 +232,7 @@ struct MesListesView: View {
             }
             .tint(Theme.accentClair)
             .accessibilityLabel("Trier : \(tri.rawValue)")
-            Button { enGrille = true } label: {
-                Image(systemName: "square.grid.2x2.fill")
-                    .foregroundStyle(enGrille ? AnyShapeStyle(Theme.accent) : AnyShapeStyle(.secondary))
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Grille")
-            .accessibilityAddTraits(enGrille ? .isSelected : [])
-            Button { enGrille = false } label: {
-                Image(systemName: "list.bullet")
-                    .foregroundStyle(enGrille ? AnyShapeStyle(.secondary) : AnyShapeStyle(Theme.accent))
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Liste")
-            .accessibilityAddTraits(enGrille ? [] : .isSelected)
+            BasculeGrilleListe(enGrille: $enGrille)
         }
         .listRowBackground(Color.clear)
         .listRowSeparator(.hidden)
@@ -313,11 +304,21 @@ struct MesListesView: View {
             vide(chargementInfos
                  ? "Recherche sur tes plateformes, ton NAS et la télé…"
                  : "Rien de regardable ce soir dans cette liste : ni sur tes plateformes, ni sur le NAS, ni à la télé.")
+        } else if titres.isEmpty, !recherche.isEmpty {
+            vide("Aucun titre ne correspond à « \(recherche) ».")
         } else if titres.isEmpty {
             switch statut {
-            case .aVoir: vide("Rien à voir pour l'instant. Touche « + » sur une fiche pour l'ajouter ici.")
-            case .enCours: vide("Aucune série en cours. Coche un épisode sur la fiche d'une série pour la suivre ici.")
-            default: vide("Rien ici pour l'instant.")
+            case .aVoir:
+                grandVide(EtatVide(symbole: "bookmark", titre: "Ta liste est vide",
+                                   message: "Touche « + » sur la fiche d'un film ou d'une série pour le garder ici, à voir plus tard.",
+                                   libelleAction: "Trouver des idées") { etat.ongletDemande = .explorer })
+            case .enCours:
+                grandVide(EtatVide(symbole: "play.circle", titre: "Aucune série en cours",
+                                   message: "Coche un épisode sur la fiche d'une série : elle se range ici, avec le prochain à regarder.",
+                                   libelleAction: "Chercher une série") { etat.ongletDemande = .explorer })
+            default:
+                grandVide(EtatVide(symbole: "checkmark.circle", titre: "Rien de terminé pour l'instant",
+                                   message: "Un film marqué vu, une série finie : ils se rangent ici, avec ta note."))
             }
         }
         if enGrille, !titres.isEmpty {
@@ -477,6 +478,15 @@ struct MesListesView: View {
             .foregroundStyle(.secondary)
             .padding(.horizontal, enDefilementLibre ? 16 : 0)
             .listRowBackground(Color.clear)
+    }
+
+    /// Un vrai état vide, dans la liste comme dans le défilement libre.
+    private func grandVide(_ contenu: EtatVide) -> some View {
+        contenu
+            .padding(.horizontal, enDefilementLibre ? 16 : 0)
+            .padding(.top, 8)
+            .listRowBackground(Color.clear)
+            .listRowSeparator(.hidden)
     }
 
     private func changer(_ suivi: Suivi, en statut: StatutSuivi) {

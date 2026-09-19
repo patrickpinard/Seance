@@ -20,6 +20,21 @@ struct NoteVersion: Identifiable {
 
     static let historique: [NoteVersion] = [
         NoteVersion(
+            numero: "3.2",
+            date: "19 septembre 2026",
+            resume: "Des pages vides qui expliquent et proposent, des boutons plus faciles à toucher, et un programme télé juste au petit matin.",
+            fonctionnalites: [
+                Fonctionnalite(symbole: "bookmark", titre: "Mes listes, quand il n'y a encore rien",
+                               detail: "Chaque onglet vide dit ce qu'il montrera et comment le remplir, avec un bouton vers Explorer ; le filtre et le tri ne s'affichent plus au-dessus d'une liste vide."),
+                Fonctionnalite(symbole: "tv", titre: "Programme télé",
+                               detail: "Entre 6 h et la fin d'un film commencé avant 6 h, la page s'ouvrait sur « hier » : une émission en cours se range maintenant dans la journée en cours. Un programme vide propose « Choisir mes chaînes », ou « Toutes les chaînes » si un filtre le vide."),
+                Fonctionnalite(symbole: "hand.tap", titre: "Des boutons à la taille du doigt",
+                               detail: "Grille ou liste, le tri, « Acteurs suivis » : ils répondaient sur 15 points, ils répondent sur 44. Le même choix grille ou liste partout."),
+                Fonctionnalite(symbole: "accessibility", titre: "VoiceOver vérifié à chaque version",
+                               detail: "Un audit automatique parcourt l'accueil, Ce soir, Mes listes, À venir, Profil et Réglages : aucun élément sans nom, aucune cible trop petite."),
+            ]
+        ),
+        NoteVersion(
             numero: "3.1.1",
             date: "18 septembre 2026",
             resume: "Sur l'iPad, la barre latérale ne recouvre plus l'accueil.",

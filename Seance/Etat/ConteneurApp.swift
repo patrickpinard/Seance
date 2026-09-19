@@ -12,7 +12,7 @@ enum ConteneurApp {
             // dossier de synchronisation…). Première chose faite au lancement, avant que quiconque ne lise un réglage.
             if let identifiant = Bundle.main.bundleIdentifier { UserDefaults.standard.removePersistentDomain(forName: identifiant) }
             let conteneur = try EntrepotSeance.conteneur(.memoire)
-            Demonstration.remplir(conteneur.mainContext)
+            if !Demonstration.vide { Demonstration.remplir(conteneur.mainContext) }
             return conteneur
         }
         #endif

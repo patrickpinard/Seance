@@ -17,9 +17,28 @@ if (( $# )); then
   essais=(); for nom in "$@"; do essais+=(-only-testing:SeanceUITests/$nom); done
 else
   essais=(-only-testing:SeanceUITests/TourCompletTests -only-testing:SeanceUITests/ProgrammeTeleTests
-          -only-testing:SeanceUITests/ReglagesTests -only-testing:SeanceUITests/SynchroTests)
+          -only-testing:SeanceUITests/ReglagesTests -only-testing:SeanceUITests/SynchroTests
+          -only-testing:SeanceUITests/EtatsVidesTests -only-testing:SeanceUITests/AccessibiliteTests)
 fi
 "$racine/outils/generer-projet.sh" > /dev/null
+
+# Attend la fin de xcodebuild. Après un test en échec, il lui arrive de rester pendu une fois le bilan écrit
+# (« Test Suite 'Selected tests' … ») : on lui laisse deux minutes pour ranger le résultat, puis on l'arrête.
+finir() {
+  local pid=$1 depuis=0
+  while kill -0 $pid 2> /dev/null; do
+    sleep 5
+    if grep -E -q "Test Suite 'Selected tests' (passed|failed)" "$journal" 2> /dev/null; then
+      (( depuis += 5 ))
+      if (( depuis > 120 )); then
+        kill -INT $pid 2> /dev/null; sleep 10; kill -KILL $pid 2> /dev/null
+        wait $pid 2> /dev/null
+        grep -q "Test Suite 'Selected tests' passed" "$journal" && return 0 || return 65
+      fi
+    fi
+  done
+  wait $pid
+}
 
 lancer() {
   rm -rf "$resultat"
@@ -32,7 +51,7 @@ lancer() {
   # Compilé et lancé, un test écrit « Test Case … started » en moins de quatre minutes ; sinon, le simulateur est figé.
   local attendu=0
   while kill -0 $pid 2> /dev/null; do
-    if grep -q "Test Case .* started" "$journal" 2> /dev/null; then wait $pid; return $?; fi
+    if grep -q "Test Case .* started" "$journal" 2> /dev/null; then finir $pid; return $?; fi
     (( attendu += 5 )); sleep 5
     if (( attendu > 360 )); then kill $pid 2> /dev/null; wait $pid 2> /dev/null; return 99; fi
   done

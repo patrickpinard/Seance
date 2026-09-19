@@ -408,19 +408,10 @@ struct ExplorerView: View {
                     enregistres
                 }
 
-                HStack(alignment: .firstTextBaseline) {
+                HStack(alignment: .center) {
                     resume
                     Spacer()
-                    Button { enListe = false } label: {
-                        Image(systemName: "square.grid.2x2.fill")
-                            .foregroundStyle(enListe ? AnyShapeStyle(.secondary) : AnyShapeStyle(Theme.accent))
-                    }
-                    .accessibilityLabel("Grille")
-                    Button { enListe = true } label: {
-                        Image(systemName: "list.bullet")
-                            .foregroundStyle(enListe ? AnyShapeStyle(Theme.accent) : AnyShapeStyle(.secondary))
-                    }
-                    .accessibilityLabel("Liste")
+                    BasculeGrilleListe(enGrille: Binding { !enListe } set: { enListe = !$0 })
                 }
                 .font(.title3)
                 .padding(.horizontal, 20)

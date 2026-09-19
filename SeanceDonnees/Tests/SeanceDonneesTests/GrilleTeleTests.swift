@@ -105,5 +105,13 @@ struct GrilleTeleTests {
         // La journée télé va de 6 h à 6 h.
         #expect(GrilleTele.jourTele(heure(0, 10, jour: 19), calendrier: calendrier) == GrilleTele.jourTele(heure(23, 50), calendrier: calendrier))
         #expect(GrilleTele.jourTele(heure(6, 0, jour: 19), calendrier: calendrier) != GrilleTele.jourTele(heure(5, 59, jour: 19), calendrier: calendrier))
+        // Commencé à 5 h 40, encore en cours à 6 h 20 : il s'affiche aujourd'hui, pas dans la journée télé d'hier.
+        let matinal = bloc(heure(5, 40, jour: 19))
+        let sixHeuresVingt = heure(6, 20, jour: 19)
+        #expect(GrilleTele.jourTele(matinal.debut, calendrier: calendrier) != GrilleTele.jourTele(sixHeuresVingt, calendrier: calendrier))
+        #expect(GrilleTele.jourAffiche(matinal, maintenant: sixHeuresVingt, calendrier: calendrier) == GrilleTele.jourTele(sixHeuresVingt, calendrier: calendrier))
+        // Avant 6 h, rien ne change ; et un bloc à venir garde le jour de son début.
+        #expect(GrilleTele.jourAffiche(matinal, maintenant: heure(5, 50, jour: 19), calendrier: calendrier) == GrilleTele.jourTele(matinal.debut, calendrier: calendrier))
+        #expect(GrilleTele.jourAffiche(bloc(heure(20, 55, jour: 19)), maintenant: sixHeuresVingt, calendrier: calendrier) == GrilleTele.jourTele(heure(20, 55, jour: 19), calendrier: calendrier))
     }
 }

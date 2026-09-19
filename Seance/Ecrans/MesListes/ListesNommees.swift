@@ -30,10 +30,10 @@ struct SectionListesNommees: View {
             }
         }
         if listes.isEmpty {
-            Text("Aucune liste pour l'instant. Crée-en une, puis range-y des titres depuis leur fiche (« Plus ») ou par un clic droit sur une affiche.")
-                .font(.footnote)
-                .foregroundStyle(.secondary)
+            EtatVide(symbole: "rectangle.stack.badge.plus", titre: "Aucune liste pour l'instant",
+                     message: "Donne-lui un nom ci-dessus — « Soirées entre amis », « À voir avec les enfants » — puis range-y des titres depuis leur fiche (« Plus ») ou par un appui long sur une affiche.")
                 .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
         } else if affichees.isEmpty {
             Text("Aucune liste ne correspond à « \(recherche) ».")
                 .font(.footnote)

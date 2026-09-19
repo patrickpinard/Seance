@@ -255,18 +255,7 @@ struct PersonneView: View {
             HStack(spacing: 12) {
                 Text(Format.pluriel(credits.count, "titre")).font(.caption).foregroundStyle(.secondary)
                 Spacer()
-                Button { enGrille = true } label: {
-                    Image(systemName: "square.grid.2x2.fill").foregroundStyle(enGrille ? AnyShapeStyle(Theme.accent) : AnyShapeStyle(.secondary))
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Grille")
-                .accessibilityAddTraits(enGrille ? .isSelected : [])
-                Button { enGrille = false } label: {
-                    Image(systemName: "list.bullet").foregroundStyle(enGrille ? AnyShapeStyle(.secondary) : AnyShapeStyle(Theme.accent))
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Liste")
-                .accessibilityAddTraits(enGrille ? [] : .isSelected)
+                BasculeGrilleListe(enGrille: $enGrille)
             }
             .font(.title3)
             .padding(.horizontal, 20)

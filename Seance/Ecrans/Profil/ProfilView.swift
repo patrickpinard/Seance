@@ -141,6 +141,7 @@ struct ProfilView: View {
                 NavigationLink(value: DestinationProfil.acteursSuivis) {
                     Text(acteursSuivis.isEmpty ? "Acteurs suivis" : Format.pluriel(acteursSuivis.count, "suivi"))
                         .font(.subheadline.weight(.semibold))
+                        .zoneDeToucher()
                 }
                 .buttonStyle(.plain)
                 .foregroundStyle(Theme.accentClair)

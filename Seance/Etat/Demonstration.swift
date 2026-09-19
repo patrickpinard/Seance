@@ -11,6 +11,12 @@ enum Demonstration {
         ProcessInfo.processInfo.environment["SEANCE_DEMO"] != nil
     }
 
+    /// `SEANCE_DEMO=vide` : le même magasin en mémoire, sans rien dedans — ce que voit quelqu'un qui vient d'installer
+    /// l'app. Pour relire les états vides de chaque écran.
+    static var vide: Bool {
+        ProcessInfo.processInfo.environment["SEANCE_DEMO"] == "vide"
+    }
+
     private struct Titre {
         let reference: ReferenceTitre
         let nom: String

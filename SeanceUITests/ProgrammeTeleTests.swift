@@ -40,8 +40,13 @@ final class ProgrammeTeleTests: XCTestCase {
         capture("tele-rappel", attente: 1)
         app.swipeUp()
         capture("tele-films-bas")
-        XCTAssertTrue(app.amener(app.buttons["Tout"].firstMatch, versLeHaut: true), "Le choix Films, Séries, Tout a disparu")
-        app.buttons["Tout"].firstMatch.tap()
+        // Tout en haut d'abord : sous la barre de navigation translucide, « Tout » se dit touchable mais le toucher
+        // atterrit sur la barre. Et on vérifie que le choix a pris, la suite en dépend.
+        app.swipeDown(); app.swipeDown()
+        let tout = app.buttons["Tout"].firstMatch
+        XCTAssertTrue(tout.waitForExistence(timeout: 5), "Le choix Films, Séries, Tout a disparu")
+        tout.tap()
+        XCTAssertTrue(tout.isSelected, "« Tout » n'est pas sélectionné")
         // Reacher passe ce soir : « en soirée », « en ce moment », ou déjà fini selon l'heure du test. Pour la capture.
         app.amener(app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Reacher'")).firstMatch, essais: 3)
         capture("tele-tout-bas")
