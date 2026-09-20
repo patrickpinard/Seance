@@ -6,6 +6,8 @@ programmes TV, NAS, et « Qu'est-ce que je regarde ce soir ? ».
 Le cahier des exigences (EF-01 à EF-80, UX-01 à UX-29, jalons) est un document Claude :
 https://claude.ai/code/artifact/2dddc5b3-a9c7-4408-afd3-263d00b99e49
 
+Le dépôt distant : https://github.com/patrickpinard/Seance
+
 ## Organisation
 
 | Dossier | Contenu | Compilation |
