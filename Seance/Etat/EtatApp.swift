@@ -51,6 +51,8 @@ final class EtatApp {
     let decors = EtatDecors()
     /// Synchronisation entre appareils par un dossier d'iCloud Drive.
     let synchro = EtatSynchro()
+    /// L'e-mail de la semaine, envoyé par le compte de messagerie de l'utilisateur.
+    let lettre: EtatLettre
     /// Une sauvegarde « .seance » reçue par AirDrop ou ouverte depuis Fichiers : l'import se confirme.
     var sauvegardeRecue: URL?
     let journal = Journal()
@@ -81,6 +83,8 @@ final class EtatApp {
             try? depot.coffre.enregistrer(cle, pour: .tmdb)
         }
         #endif
+        lettre = EtatLettre(coffre: depot.coffre)
+        lettre.journal = journal
         nas = EtatNAS(coffre: depot.coffre)
         videosPerso = EtatVideosPerso(coffre: depot.coffre)
         nas.journal = journal
@@ -205,6 +209,7 @@ final class EtatApp {
         await alertes.planifier(contexte: conteneur.mainContext, tmdb: tmdb)
         // À la maison, le NAS répond : ce que la TV a changé (ou son essai d'alerte) arrive sans ouvrir l'app.
         await synchro.synchroniser(etat: self, contexte: conteneur.mainContext, automatique: true)
+        await lettre.envoyerSiDu(etat: self, contexte: conteneur.mainContext)
     }
 
     /// Relit le guide TV si la dernière lecture a plus de 12 h ou si les chaînes cochées ont changé ;

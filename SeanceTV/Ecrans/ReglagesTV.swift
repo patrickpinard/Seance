@@ -16,6 +16,9 @@ struct ReglagesTV: View {
     @Query(filter: #Predicate<Abonnement> { $0.actif }, sort: \Abonnement.nom) private var abonnements: [Abonnement]
     @Query(filter: #Predicate<Chaine> { $0.active }) private var chaines: [Chaine]
     @Query private var interets: [Interet]
+    /// Leurs affiches habillent les cartes.
+    @Query private var suivis: [Suivi]
+    @Query private var fichiers: [FichierNAS]
     @State private var configuration = false
     @State private var chemin: [ReglageTV] = DepartTV.reglage.flatMap { nom in
         ["cle": ReglageTV.cle, "plateformes": .plateformes, "tele": .tele, "nas": .nas, "videosPerso": .videosPerso,
@@ -24,37 +27,132 @@ struct ReglagesTV: View {
 
     var body: some View {
         NavigationStack(path: $chemin) {
-            PageTV(titre: "Réglages", sousTitre: sousTitre) {
-                SectionTV(titre: "État de Séance sur cette TV") {
-                    ligne(.cle, "TMDB", etat.tmdb != nil ? "Fiches, affiches et plateformes" : "Les fiches et les affiches en viennent", etat.tmdb != nil)
-                    ligne(.plateformes, "Plateformes", abonnements.isEmpty ? "Pour savoir ce que tu peux regarder" : abonnements.map(\.nom).joined(separator: ", "), !abonnements.isEmpty)
-                    ligne(.tele, "Télévision", chaines.isEmpty ? "Choisis tes chaînes" : "\(chaines.count) chaînes · \(libelleGuide)", !chaines.isEmpty)
-                    ligne(.nas, "NAS", etat.nasPret ? "\(etat.nas.hote) · partage « \(etat.nas.partage) »" : "Tes films déjà téléchargés", etat.nasPret)
-                    ligne(.videosPerso, "Vidéos personnelles", libelleVideos, !etat.videosPerso.aConfigurer(films: etat.nas))
-                    ligne(.lecture, "Lecture", "Tes vidéos du NAS s'ouvrent dans \(etat.lecteur.nom)", true)
-                    // Les listes arrivent de l'iPhone, de l'iPad et du Mac par le dossier « Séance » du NAS (EF-144).
-                    LigneTVReglage(titre: etat.synchroEnCours ? "Synchronisation…" : "Synchronisation avec tes appareils",
-                                   detail: libelleSynchro, enOrdre: etat.nasPret && etat.erreurSynchro == nil && etat.derniereSynchro != nil,
-                                   desactive: etat.synchroEnCours,
-                                   action: { Task { await etat.synchroniser(contexte: contexte, bavard: true) } })
-                    LigneTVReglage(titre: "Tester une alerte sur l'iPhone et l'Apple Watch",
-                                   detail: "L'Apple TV n'affiche pas d'alerte : ton iPhone prévient, par le NAS, à sa prochaine ouverture de Séance",
-                                   symbole: "bell.badge.fill", desactive: !etat.nasPret,
-                                   action: { Task { await etat.demanderEssaiAlerte() } })
+            ScrollView {
+                VStack(alignment: .leading, spacing: 40) {
+                    heros
+                    // Piste B de la maquette : une grande carte par réglage, trois de front, comme les cartes de « Ce soir ».
+                    VStack(alignment: .leading, spacing: 18) {
+                        Text("État de Séance sur cette TV").font(.system(size: 34, weight: .bold))
+                        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 36), count: 3), spacing: 36) {
+                            ForEach(Array(points.enumerated()), id: \.offset) { rang, point in
+                                NavigationLink(value: point.reglage) {
+                                    CarteReglageTV(titre: point.titre, symbole: point.symbole, detail: point.detail, enOrdre: point.enOrdre, cheminAffiche: affiche(rang))
+                                }
+                                .buttonStyle(.card)
+                            }
+                        }
+                    }
+                    .focusSection()
+                    VStack(alignment: .leading, spacing: 18) {
+                        Text("Cet appareil").font(.system(size: 34, weight: .bold))
+                        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 36), count: 3), spacing: 36) {
+                            Button { Task { await etat.synchroniser(contexte: contexte, bavard: true) } } label: {
+                                CarteReglageTV(titre: etat.synchroEnCours ? "Synchronisation…" : "Synchroniser maintenant", symbole: "arrow.triangle.2.circlepath",
+                                               detail: libelleSynchro, enOrdre: etat.nasPret && etat.erreurSynchro == nil && etat.derniereSynchro != nil, cheminAffiche: affiche(11))
+                            }
+                            .buttonStyle(.card)
+                            .disabled(etat.synchroEnCours)
+                            Button { Task { await etat.demanderEssaiAlerte() } } label: {
+                                CarteReglageTV(titre: "Tester une alerte", symbole: "bell.badge.fill",
+                                               detail: "Ton iPhone et ta montre préviennent, à la prochaine ouverture de Séance", enOrdre: nil, cheminAffiche: affiche(12))
+                            }
+                            .buttonStyle(.card)
+                            .disabled(!etat.nasPret)
+                            Button { configuration = true } label: {
+                                CarteReglageTV(titre: "Configurer depuis mon iPhone", symbole: "iphone.and.arrow.forward",
+                                               detail: "Un code ici, et tout arrive : clé, NAS, listes", enOrdre: nil, cheminAffiche: affiche(13))
+                            }
+                            .buttonStyle(.card)
+                            NavigationLink(value: ReglageTV.gouts) {
+                                CarteReglageTV(titre: "Tes goûts", symbole: "heart.fill",
+                                               detail: interets.isEmpty ? "Genres à choisir" : interets.map(\.libelle).sorted().joined(separator: ", "), enOrdre: nil, cheminAffiche: affiche(14))
+                            }
+                            .buttonStyle(.card)
+                            NavigationLink(value: ReglageTV.aPropos) {
+                                CarteReglageTV(titre: "À propos", symbole: "info.circle.fill", detail: "Version \(Self.version)", enOrdre: nil, cheminAffiche: affiche(15))
+                            }
+                            .buttonStyle(.card)
+                        }
+                    }
+                    .focusSection()
                 }
-                SectionTV(titre: "Toi") {
-                    ligne(.gouts, "Tes goûts", interets.isEmpty ? "Genres à choisir" : interets.map(\.libelle).sorted().joined(separator: ", "), nil, symbole: "heart.fill")
-                }
-                SectionTV(titre: "Cet appareil",
-                          explication: "Le plus simple : ton iPhone envoie la clé, le NAS et tes listes d'un coup, avec un code à six chiffres.") {
-                    LigneTVReglage(titre: "Configurer depuis mon iPhone", detail: "Un code ici, et tout arrive",
-                                   symbole: "iphone.and.arrow.forward", action: { configuration = true }) { BoutTV(forme: .chevron) }
-                    ligne(.aPropos, "À propos", "Version \(Self.version)", nil, symbole: "info.circle.fill")
-                }
+                .frame(maxWidth: 1640, alignment: .leading)
+                .frame(maxWidth: .infinity)
+                .padding(.horizontal, MargesTV.bord)
+                .padding(.top, 40)
+                .padding(.bottom, 80)
             }
             .navigationDestination(for: ReglageTV.self) { PageReglageTV(reglage: $0).pageOuverte() }
         }
         .fullScreenCover(isPresented: $configuration) { ConfigurationTV() }
+    }
+
+    // MARK: Piste B : héros et grandes cartes
+
+    private struct Point {
+        let reglage: ReglageTV
+        let titre: String
+        let symbole: String
+        let detail: String
+        let enOrdre: Bool
+    }
+
+    private var points: [Point] {
+        [Point(reglage: .cle, titre: "TMDB", symbole: "film.stack", detail: etat.tmdb != nil ? "Fiches, affiches et plateformes" : "Les fiches et les affiches en viennent", enOrdre: etat.tmdb != nil),
+         Point(reglage: .plateformes, titre: "Plateformes", symbole: "play.tv.fill",
+               detail: abonnements.isEmpty ? "Pour savoir ce que tu peux regarder" : abonnements.map(\.nom).joined(separator: ", "), enOrdre: !abonnements.isEmpty),
+         Point(reglage: .tele, titre: "Télévision", symbole: "tv.fill", detail: chaines.isEmpty ? "Choisis tes chaînes" : "\(chaines.count) chaînes · \(libelleGuide)", enOrdre: !chaines.isEmpty),
+         Point(reglage: .nas, titre: "NAS", symbole: "externaldrive.fill", detail: etat.nasPret ? "\(etat.nas.hote) · partage « \(etat.nas.partage) »" : "Tes films déjà téléchargés", enOrdre: etat.nasPret),
+         Point(reglage: .videosPerso, titre: "Vidéos personnelles", symbole: "video.fill", detail: libelleVideos, enOrdre: !etat.videosPerso.aConfigurer(films: etat.nas)),
+         Point(reglage: .lecture, titre: "Lecture", symbole: "play.circle.fill", detail: "Tes vidéos du NAS s'ouvrent dans \(etat.lecteur.nom)", enOrdre: true)]
+    }
+
+    private var affiches: [String] {
+        Array(Set(suivis.compactMap(\.cheminAffiche) + fichiers.compactMap(\.cheminAffiche))).sorted()
+    }
+
+    private func affiche(_ rang: Int) -> String? {
+        affiches.isEmpty ? nil : affiches[(rang * 7 + 3) % affiches.count]
+    }
+
+    /// L'en-tête de la piste C : où en est Séance, et le geste du moment.
+    private var heros: some View {
+        let aRegler = points.filter { !$0.enOrdre }
+        return VStack(alignment: .leading, spacing: 18) {
+            Text(aRegler.isEmpty ? "Séance est prête" : "\(aRegler.count) réglage\(aRegler.count > 1 ? "s" : "") à compléter")
+                .font(.system(size: 58, weight: .heavy))
+            Text(aRegler.isEmpty ? "Tout est branché. Choisis une carte pour l'ouvrir." : "Les cartes orange restent à régler. Le plus simple : tout recevoir de ton iPhone, avec un code.")
+                .font(.system(size: 27)).foregroundStyle(.white.opacity(0.8))
+            HStack(spacing: 24) {
+                if let premier = aRegler.first {
+                    NavigationLink(value: premier.reglage) { Label("Régler : \(premier.titre)", systemImage: premier.symbole) }
+                        .buttonStyle(BoutonTV(principal: true))
+                }
+                Button { configuration = true } label: { Label("Configurer depuis mon iPhone", systemImage: "iphone.and.arrow.forward") }
+                    .buttonStyle(BoutonTV(principal: aRegler.isEmpty ? false : false))
+            }
+            HStack(spacing: 12) {
+                ForEach(Array(points.enumerated()), id: \.offset) { _, point in
+                    HStack(spacing: 8) {
+                        Circle().fill(point.enOrdre ? Color.green : Color.orange).frame(width: 14, height: 14)
+                        Text(point.titre).font(.system(size: 21, weight: .semibold))
+                    }
+                    .padding(.horizontal, 16).frame(height: 40)
+                    .background(.black.opacity(0.5), in: Capsule())
+                }
+            }
+        }
+        .foregroundStyle(.white)
+        .padding(44)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background {
+            ZStack {
+                ImageTV(url: ImageTMDB.url(affiche(0), .afficheGrande), symboleVide: "").blur(radius: 30)
+                LinearGradient(colors: [.black.opacity(0.9), .black.opacity(0.6), Theme.accent.opacity(0.3)], startPoint: .leading, endPoint: .trailing)
+            }
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 34, style: .continuous))
+        .focusSection()
     }
 
     static var version: String { Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "—" }

@@ -68,6 +68,15 @@ public struct ServiceGouts {
             ))
         }
 
+        // Les acteurs que tu suis passent devant tout le reste : suivre quelqu'un, c'est vouloir ses films. Séance
+        // cherche donc d'abord avec eux (`ProfilGouts.acteursPreferes`), avant tes pouces et tes notes.
+        for acteur in try contexte.fetch(FetchDescriptor<ActeurSuivi>()) {
+            observations.append(ObservationGout(
+                origine: .note(10), genres: [], acteurs: [acteur.personneID], nomsActeurs: [acteur.personneID: acteur.nom],
+                type: .film, dureeMinutes: nil, date: acteur.suiviLe, poids: 3
+            ))
+        }
+
         for suivi in suivis {
             // « Jamais » : un rejet en dit autant qu'une bonne note, dans l'autre sens.
             // Une exclusion de langue (EF-29) ne dit rien des goûts : elle reste dehors.

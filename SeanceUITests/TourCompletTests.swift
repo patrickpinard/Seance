@@ -53,7 +53,7 @@ final class TourCompletTests: XCTestCase {
         capture("04-listes")
         app.buttons["À venir"].firstMatch.tap()
         capture("05-a-venir", attente: 3)
-        onglet("Profil")
+        onglet("Préférences")
         capture("06-profil", attente: 3)
         app.navigationBars.buttons["Réglages"].firstMatch.tap()
         capture("07-reglages", attente: 3)
@@ -160,9 +160,9 @@ final class TourCompletTests: XCTestCase {
         app.navigationBars.buttons.firstMatch.tap()
 
         // Profil : des images, pas de chiffres ; les statistiques en bas, puis Réglages et l'apparence.
-        onglet("Profil")
+        onglet("Préférences")
         XCTAssertTrue(app.staticTexts["Tes goûts"].firstMatch.waitForExistence(timeout: 10))
-        XCTAssertFalse(app.staticTexts["Ta collection"].exists, "Les chiffres sont encore mis en avant sur le Profil")
+        XCTAssertFalse(app.staticTexts["Ta collection"].exists, "Les chiffres sont encore mis en avant dans les Préférences")
         capture("17-profil", attente: 4)
         app.swipeUp()
         capture("18-profil-bas")
@@ -173,13 +173,13 @@ final class TourCompletTests: XCTestCase {
         app.navigationBars.buttons["Réglages"].firstMatch.tap()
         XCTAssertTrue(app.staticTexts["Tes appareils"].firstMatch.waitForExistence(timeout: 10))
         capture("20-reglages", attente: 3)
-        app.swipeUp()
-        capture("21-reglages-bas")
-        XCTAssertTrue(app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Nouvel appareil'")).firstMatch.waitForExistence(timeout: 5),
+        // Les grandes cartes de l'état d'abord ; les tuiles (Toi, Tes appareils, L'app) sont plus bas.
+        XCTAssertTrue(app.amener(app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Nouvel appareil'")).firstMatch, essais: 16),
                       "Le parcours « Nouvel appareil » n'est pas proposé dans les réglages")
+        capture("21-reglages-bas")
         // Piste B : « Lecture » est une ligne de l'état, en haut de la page.
         let lecture = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Lecture'")).firstMatch
-        XCTAssertTrue(app.amener(lecture, versLeHaut: true), "La ligne « Lecture » est absente de l'état")
+        XCTAssertTrue(app.amener(lecture, versLeHaut: true, essais: 16), "La carte « Lecture » est absente de l'état")
         lecture.tap()
         XCTAssertTrue(app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'VLC'")).firstMatch.waitForExistence(timeout: 10), "Le choix du lecteur est absent")
         capture("21-lecture")

@@ -46,7 +46,7 @@ struct ProfilView: View {
                 .frame(maxWidth: .infinity)
             }
             .background(Theme.fond)
-            .navigationTitle("Profil")
+            .navigationTitle("Préférences")
             .boutonBarreLaterale()
             .toolbar {
                 // Sur l'iPhone, Réglages n'a pas d'onglet à lui : l'engrenage l'ouvre.

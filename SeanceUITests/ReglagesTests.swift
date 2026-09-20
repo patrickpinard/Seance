@@ -17,14 +17,16 @@ final class ReglagesTests: XCTestCase {
         continueAfterFailure = true
         app.launchEnvironment["SEANCE_DEMO"] = "1"
         app.launch()
-        app.tabBars.buttons["Profil"].firstMatch.tap()
+        app.tabBars.buttons["Préférences"].firstMatch.tap()
         XCTAssertTrue(app.navigationBars.buttons["Réglages"].firstMatch.waitForExistence(timeout: 10))
         app.navigationBars.buttons["Réglages"].firstMatch.tap()
         XCTAssertTrue(app.staticTexts["Tes appareils"].firstMatch.waitForExistence(timeout: 10), "Réglages ne s'ouvre pas")
         capture("reglages")
 
         // Le prénom se saisit et se retrouve sur sa ligne.
-        app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Prénom'")).firstMatch.tap()
+        let prenom = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Prénom'")).firstMatch
+        XCTAssertTrue(app.amener(prenom, essais: 16), "Tuile « Prénom et idées » introuvable")
+        prenom.tap()
         XCTAssertTrue(app.navigationBars["Toi"].waitForExistence(timeout: 8), "La page « Toi » ne s'ouvre pas")
         let champ = app.textFields["Ton prénom"]
         XCTAssertTrue(champ.waitForExistence(timeout: 5))
@@ -52,7 +54,7 @@ final class ReglagesTests: XCTestCase {
         ]
         for page in pages {
             let ligne = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", page.ligne)).firstMatch
-            XCTAssertTrue(app.amener(ligne), "Ligne « \(page.ligne) » absente")
+            XCTAssertTrue(app.amener(ligne, essais: 16), "Ligne « \(page.ligne) » absente")
             ligne.tap()
             let ouverte = app.navigationBars[page.ligne].waitForExistence(timeout: 8)
                 || app.staticTexts[page.repere].firstMatch.waitForExistence(timeout: 2)
@@ -66,7 +68,7 @@ final class ReglagesTests: XCTestCase {
 
         // Retour au Profil, puis un autre onglet : l'app répond toujours.
         app.navigationBars.buttons.firstMatch.tap()
-        XCTAssertTrue(app.staticTexts["Tes goûts"].firstMatch.waitForExistence(timeout: 8), "Retour au Profil impossible")
+        XCTAssertTrue(app.staticTexts["Tes goûts"].firstMatch.waitForExistence(timeout: 8), "Retour aux Préférences impossible")
         app.tabBars.buttons["Accueil"].firstMatch.tap()
         XCTAssertTrue(app.tabBars.buttons["Accueil"].firstMatch.isSelected)
     }

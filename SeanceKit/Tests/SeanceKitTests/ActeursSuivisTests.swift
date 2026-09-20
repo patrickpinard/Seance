@@ -36,12 +36,14 @@ struct ActeursSuivisTests {
         ].joined(separator: ","))
         let suivante = PlanificateurAlertes.nouveauxFilms(acteur: "Keanu Reeves", connus: premiere.connus, filmographie: apres,
                                                           maintenant: maintenant, reglages: reglages)
-        // Seuls les films à venir ou sans date, où il joue un rôle.
-        #expect(suivante.alertes.map(\.reference.tmdbID) == [1, 2])
+        // Les films et les séries à venir ou sans date, où il joue un rôle.
+        #expect(Set(suivante.alertes.map(\.reference.tmdbID)) == [1, 2, 5])
+        func texte(_ id: Int) -> String? { suivante.alertes.first { $0.reference.tmdbID == id }.map { PlanificateurAlertes.texte($0.motif, fuseau: .suisse) } }
+        #expect(texte(5) == "Nouvelle série avec Keanu Reeves, à partir du 1 janvier 2027")
         #expect(suivante.alertes.allSatisfy { $0.date == Date.suisse("2026-09-17 18:00") && $0.motif.ponctuelle })
-        #expect(suivante.connus == [245_891, 1, 2, 3, 4])
-        #expect(PlanificateurAlertes.texte(suivante.alertes[0].motif, fuseau: .suisse) == "Nouveau film avec Keanu Reeves, sortie prévue le 4 juin 2027")
-        #expect(PlanificateurAlertes.texte(suivante.alertes[1].motif, fuseau: .suisse) == "Nouveau film annoncé avec Keanu Reeves")
+        #expect(suivante.connus == [245_891, 1, 2, 3, 4, -5])
+        #expect(texte(1) == "Nouveau film avec Keanu Reeves, sortie prévue le 4 juin 2027")
+        #expect(texte(2) == "Nouveau film annoncé avec Keanu Reeves")
 
         // Les sorties de films désactivées : rien, mais la filmographie reste mémorisée.
         var sansSorties = reglages

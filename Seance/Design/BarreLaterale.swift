@@ -128,8 +128,21 @@ extension View {
     }
 
     /// Le bouton qui masque ou affiche le menu de gauche, en tête de la barre d'un onglet ; rien sur l'iPhone.
-    /// Depuis la 4.9 le Mac a son menu en haut, sans barre latérale : plus de bouton nulle part.
+    /// Posé à la racine de chaque onglet. Sur le Mac (menu en haut, sans barre latérale ni onglet Réglages), c'est la roue
+    /// dentée des réglages, en haut à droite de toutes les pages, comme sur l'Apple TV ; ailleurs, rien.
     func boutonBarreLaterale() -> some View {
+        #if targetEnvironment(macCatalyst)
+        toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                NavigationLink(value: DestinationReglage.reglages) {
+                    Image(systemName: "gearshape.fill")
+                }
+                .help("Réglages (⌘,)")
+                .accessibilityLabel("Réglages")
+            }
+        }
+        #else
         self
+        #endif
     }
 }

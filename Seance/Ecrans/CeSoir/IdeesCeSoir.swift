@@ -155,7 +155,7 @@ struct SectionIdees: View {
             }, cases: [.init(valeur: nil, nom: "Films et séries"), .init(valeur: TypeTitre.film, nom: "Films"), .init(valeur: TypeTitre.serie, nom: "Séries")])
 
             if modele.profil.estVide, modele.charge {
-                MessageEtat(texte: "Choisis tes goûts dans Profil › Mes goûts, et note ce que tu regardes : les idées seront sur mesure.",
+                MessageEtat(texte: "Choisis tes goûts dans Préférences › Mes goûts, et note ce que tu regardes : les idées seront sur mesure.",
                             symbole: "heart")
                     .padding(.horizontal, -20)
             }

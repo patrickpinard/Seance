@@ -10,6 +10,8 @@ public enum CleAPI: String, Sendable, CaseIterable {
     case nas
     /// Mot de passe du second accès, celui des vidéos personnelles (EF-157), quand ce n'est pas le compte des films.
     case nasVideos
+    /// Mot de passe du compte de messagerie qui envoie l'e-mail de la semaine (Séance 5.0).
+    case smtp
 }
 
 public protocol CoffreCles: Sendable {

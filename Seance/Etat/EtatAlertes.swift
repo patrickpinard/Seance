@@ -207,8 +207,42 @@ final class EtatAlertes {
             ? "Reçu : les alertes arrivent bien ici — et sur ton Apple Watch quand l'iPhone est verrouillé."
             : "Les alertes fonctionnent : tu seras prévenu des nouveaux épisodes, des sorties et des passages à la TV."
         contenu.sound = .default
-        let declencheur = UNTimeIntervalNotificationTrigger(timeInterval: depuisLaTV ? 1 : 5, repeats: false)
+        // Demandé ailleurs, l'essai arrive quand Séance s'ouvre ici, donc iPhone en main : vingt secondes laissent le
+        // temps de le verrouiller, sans quoi la montre ne le verrait jamais.
+        let declencheur = UNTimeIntervalNotificationTrigger(timeInterval: depuisLaTV ? Self.delaiEssaiMontre : 5, repeats: false)
         try? await centre.add(UNNotificationRequest(identifier: depuisLaTV ? "seance.essai.ailleurs" : "seance.essai", content: contenu, trigger: declencheur))
+    }
+
+    // MARK: Apple Watch
+
+    /// L'essai pour la montre : iOS ne relaie une alerte à l'Apple Watch que si l'iPhone est verrouillé ou en veille.
+    /// Vingt secondes laissent le temps de le verrouiller ; en main, l'iPhone garde l'alerte pour lui.
+    static let delaiEssaiMontre: TimeInterval = 20
+
+    func envoyerEssaiMontre() async {
+        if autorisation == .notDetermined { await demanderAutorisation() }
+        let contenu = UNMutableNotificationContent()
+        contenu.title = "Séance · essai pour ta montre"
+        contenu.body = "Si tu lis ceci au poignet, tes alertes arrivent bien sur l'Apple Watch."
+        contenu.sound = .default
+        let declencheur = UNTimeIntervalNotificationTrigger(timeInterval: Self.delaiEssaiMontre, repeats: false)
+        try? await centre.add(UNNotificationRequest(identifier: "seance.essai.montre", content: contenu, trigger: declencheur))
+    }
+
+    /// Ce qui, dans les réglages de notification d'iOS pour Séance, empêche une alerte d'atteindre la montre. La montre
+    /// ne recopie que ce que l'iPhone range dans son centre de notifications. Vide : rien à redire de ce côté.
+    func obstaclesMontre() async -> [String] {
+        let reglages = await centre.notificationSettings()
+        var obstacles: [String] = []
+        switch reglages.authorizationStatus {
+        case .authorized, .provisional, .ephemeral: break
+        default: return ["Les alertes de Séance ne sont pas autorisées sur l'iPhone."]
+        }
+        if reglages.notificationCenterSetting != .enabled { obstacles.append("« Centre de notifications » est décoché pour Séance : la montre ne recopie que ce qui y arrive.") }
+        if reglages.alertSetting != .enabled { obstacles.append("Les bannières sont désactivées pour Séance.") }
+        if reglages.lockScreenSetting != .enabled { obstacles.append("« Écran verrouillé » est décoché pour Séance.") }
+        if reglages.soundSetting != .enabled { obstacles.append("Le son est coupé pour Séance : la montre ne vibrera pas.") }
+        return obstacles
     }
 
     private func requete(_ notification: NotificationPrevue) -> UNNotificationRequest {

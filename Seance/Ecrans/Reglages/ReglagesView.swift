@@ -7,7 +7,7 @@ import SwiftUI
 /// Un lien « par vue » vers Réglages, depuis la barre d'outils de Profil, figeait l'iPhone : SwiftUI remettait
 /// la destination à jour à chaque rendu, sans fin, jusqu'à ce qu'iOS tue l'app.
 enum DestinationReglage: Hashable {
-    case reglages, prenom, apparence, tmdb, claude, plateformes, tele, nas, videosPerso, lecture, alertes, sauvegarde, aPropos, versions, journal, apercuWidgets
+    case reglages, prenom, apparence, tmdb, claude, plateformes, tele, nas, videosPerso, lecture, alertes, sauvegarde, lettre, aPropos, versions, journal, apercuWidgets
 }
 
 struct PageReglage: View {
@@ -27,6 +27,7 @@ struct PageReglage: View {
         case .lecture: ReglagesLectureView()
         case .alertes: ReglagesAlertesView()
         case .sauvegarde: ReglagesSauvegardeView()
+        case .lettre: ReglagesLettreView()
         case .aPropos: AProposView(contenu: .application)
         case .versions: AProposView(contenu: .versions)
         case .journal: AProposView(contenu: .journal)
@@ -85,6 +86,55 @@ private struct LigneEtat: View {
     }
 }
 
+/// Une grande carte de réglage, dans le dessin des cartes de « Ce soir » : une affiche de tes titres floutée en fond, le
+/// symbole de l'app en orange, le nom en gros, l'état en pastille (« En ordre », « À régler ») et sa valeur dessous.
+struct CarteReglage: View {
+    let titre: String
+    let symbole: String
+    let detail: String
+    let enOrdre: Bool
+    var cheminAffiche: String?
+
+    var body: some View {
+        HStack(alignment: .center, spacing: 12) {
+            VStack(alignment: .leading, spacing: 5) {
+                Label(enOrdre ? "En ordre" : "À régler", systemImage: enOrdre ? "checkmark.circle.fill" : "exclamationmark.circle.fill")
+                    .font(.caption2.weight(.bold))
+                    .foregroundStyle(enOrdre ? Color.green : Color.orange)
+                    .padding(.horizontal, 8).frame(minHeight: 22)
+                    .background(.black.opacity(0.55), in: Capsule())
+                Text(titre).font(.title3.weight(.heavy)).lineLimit(2)
+                Text(detail).font(.footnote).foregroundStyle(.white.opacity(0.8)).lineLimit(2).multilineTextAlignment(.leading)
+            }
+            Spacer(minLength: 0)
+            Image(systemName: symbole)
+                .font(.system(size: 34, weight: .semibold))
+                .foregroundStyle(Theme.degradeAccent)
+                .frame(width: 48)
+                .accessibilityHidden(true)
+        }
+        .foregroundStyle(.white)
+        .padding(16)
+        .frame(maxWidth: .infinity, minHeight: 112, alignment: .leading)
+        .background {
+            ZStack {
+                Theme.surface
+                if let cheminAffiche {
+                    ImageDistante(url: ImageTMDB.url(cheminAffiche, .affiche), coins: 0).blur(radius: 6).accessibilityHidden(true)
+                }
+                LinearGradient(colors: [.black.opacity(0.9), .black.opacity(0.62), .black.opacity(0.3)], startPoint: .leading, endPoint: .trailing)
+            }
+        }
+        .surImage()
+        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).strokeBorder(enOrdre ? Color.white.opacity(0.1) : Color.orange.opacity(0.55), lineWidth: 1))
+        .contentShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(titre), \(detail), \(enOrdre ? "en ordre" : "à régler")")
+        .accessibilityAddTraits(.isButton)
+    }
+}
+
 /// Une tuile de réglage (EF-169) : le symbole dans l'orange de Séance, le titre, l'état courant. Les icônes aux sept
 /// couleurs, façon Réglages d'iOS, juraient avec le reste de l'app.
 struct TuileReglage: View {
@@ -127,6 +177,8 @@ struct ReglagesView: View {
     @Environment(\.modelContext) private var contexte
     @Query(filter: #Predicate<Abonnement> { $0.actif }, sort: \Abonnement.nom) private var abonnements: [Abonnement]
     @Query(filter: #Predicate<Chaine> { $0.active }) private var chaines: [Chaine]
+    /// Leurs affiches habillent les cartes des réglages.
+    @Query private var suivis: [Suivi]
     @AppStorage(Prenom.cle) private var prenom = ""
     @AppStorage(NombreIdees.cle) private var nombreIdees = NombreIdees.parDefaut
     @AppStorage(Apparence.cle) private var apparence = Apparence.sombre.rawValue
@@ -149,6 +201,9 @@ struct ReglagesView: View {
                     tuile(.prenom, "Prénom et idées", "person.fill",
                           "\(Prenom.lire(prenom) ?? "Prénom à saisir") · \(Format.pluriel(NombreIdees.lire(nombreIdees), "idée"))")
                     tuile(.apparence, "Apparence", Apparence.lire(apparence).symbole, Apparence.lire(apparence).nom)
+                    tuile(.lettre, "E-mail de la semaine", "envelope.fill",
+                          !etat.lettre.reglages.actif ? "Tes sorties, chaque semaine" : etat.lettre.pret ? Format.pluriel(etat.lettre.adresses.count, "destinataire") : "À terminer",
+                          alerte: etat.lettre.reglages.actif && !etat.lettre.pret)
                     // L'accueil se personnalise dans sa feuille, la même que depuis l'accueil : un seul réglage, deux portes.
                     Button { accueil = true } label: { TuileReglage(titre: "Accueil", symbole: "house.fill", valeur: libelleAccueil) }
                         .buttonStyle(.plain)
@@ -215,50 +270,131 @@ struct ReglagesView: View {
 
     // MARK: État de Séance
 
+    /// Un réglage que l'état surveille : son nom, son symbole (ceux de l'app), ce qu'il vaut, s'il est en ordre.
+    private struct PointEtat: Identifiable {
+        let destination: DestinationReglage
+        let titre: String
+        let symbole: String
+        let detail: String
+        let enOrdre: Bool
+        /// Le verbe du bouton quand il reste à régler : « Saisir », « Choisir », « Activer ».
+        let action: String?
+        var id: DestinationReglage { destination }
+    }
+
+    private var points: [PointEtat] {
+        var liste = [
+            PointEtat(destination: .tmdb, titre: "TMDB", symbole: "film.stack",
+                      detail: etat.tmdb == nil ? "Les fiches et les affiches en viennent" : "Fiches, affiches et plateformes", enOrdre: etat.tmdb != nil, action: "Saisir la clé TMDB"),
+            PointEtat(destination: .plateformes, titre: "Plateformes", symbole: "play.tv.fill",
+                      detail: abonnements.isEmpty ? "Pour savoir ce que tu peux regarder" : abonnements.map(\.nom).formatted(.list(type: .and, width: .narrow)),
+                      enOrdre: !abonnements.isEmpty, action: "Choisir mes plateformes"),
+            PointEtat(destination: .tele, titre: "Télévision", symbole: "tv.fill",
+                      detail: chaines.isEmpty ? "Choisis tes chaînes" : "\(chaines.count) chaînes · \(libelleLecture)", enOrdre: !chaines.isEmpty, action: "Choisir mes chaînes"),
+            PointEtat(destination: .nas, titre: "NAS", symbole: "externaldrive.fill",
+                      detail: etat.nas.estConfigure ? libelleNAS.prefix(1).uppercased() + libelleNAS.dropFirst() : "Tes films déjà téléchargés",
+                      enOrdre: etat.nas.estConfigure, action: "Configurer le NAS"),
+            // Facultatives : décochées, la carte le dit sans rien réclamer.
+            PointEtat(destination: .videosPerso, titre: "Vidéos personnelles", symbole: "video.fill",
+                      detail: !etat.videosPerso.actif ? "Désactivées" : etat.videosPerso.aConfigurer(films: etat.nas.reglages) ? "Accès à terminer"
+                          : etat.videosPerso.videos.isEmpty ? "Partage « \(etat.videosPerso.reglages.acces.partage) », pas encore lu" : Format.pluriel(etat.videosPerso.videos.count, "vidéo"),
+                      enOrdre: !etat.videosPerso.aConfigurer(films: etat.nas.reglages), action: "Terminer l'accès aux vidéos"),
+        ]
+        #if !targetEnvironment(macCatalyst)
+        // Un seul lecteur : « Lire » n'ouvre que celui-ci, partout dans l'app.
+        liste.append(PointEtat(destination: .lecture, titre: "Lecture", symbole: "play.circle.fill",
+                               detail: "Tes vidéos du NAS s'ouvrent dans \(etat.nas.lecteur.nom)", enOrdre: true, action: nil))
+        #endif
+        liste.append(PointEtat(destination: .alertes, titre: "Alertes", symbole: "bell.fill",
+                               detail: alertesActives ? "Épisodes, sorties et passages à la TV" : "Rien ne te sera annoncé", enOrdre: alertesActives, action: "Activer les alertes"))
+        liste.append(PointEtat(destination: .sauvegarde, titre: "Sauvegarde et synchronisation", symbole: "arrow.triangle.2.circlepath",
+                               detail: etat.synchro.nomDossier.map { "Dossier « \($0) »" } ?? "Fichier, AirDrop ou dossier iCloud Drive", enOrdre: true, action: nil))
+        if let expiration = etat.expirationInstallation {
+            let libelle = ProfilInstallation.libelle(expiration: expiration)
+            liste.append(PointEtat(destination: .aPropos, titre: "Installation", symbole: "clock.fill",
+                                   detail: libelle.prefix(1).uppercased() + libelle.dropFirst(), enOrdre: expiration.timeIntervalSinceNow > 2 * 86_400, action: "Voir l'installation"))
+        }
+        return liste
+    }
+
+    /// Les affiches de tes titres, pour habiller les cartes : chaque carte garde la sienne d'un jour à l'autre.
+    private var affiches: [String] {
+        Array(Set(suivis.compactMap(\.cheminAffiche))).sorted()
+    }
+
+    private func affiche(_ rang: Int) -> String? {
+        affiches.isEmpty ? nil : affiches[(rang * 7 + 3) % affiches.count]
+    }
+
+    /// Grandes cartes : une par ligne sur l'iPhone, deux ou trois sur l'iPad et le Mac.
+    private static let colonnesCartes = [GridItem(.adaptive(minimum: 300, maximum: 520), spacing: 12, alignment: .top)]
+
+    /// Piste B de la maquette du 20 septembre 2026, avec l'en-tête de la piste C : en tête, où en est Séance et le geste du
+    /// moment ; dessous, une grande carte par réglage surveillé, dans le dessin des cartes de « Ce soir ».
     private var etatDeSeance: some View {
-        let manques = [etat.tmdb == nil, abonnements.isEmpty, chaines.isEmpty, !etat.nas.estConfigure, !alertesActives].filter { $0 }.count
-        return VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 10) {
-                Image(systemName: manques == 0 ? "checkmark.seal.fill" : "wrench.adjustable.fill")
-                    .font(.title3)
-                    .foregroundStyle(manques == 0 ? AnyShapeStyle(Color.green) : AnyShapeStyle(Theme.degradeAccent))
-                VStack(alignment: .leading, spacing: 1) {
-                    Text(manques == 0 ? "Séance est prête" : "\(Format.pluriel(manques, "réglage", "réglages")) à compléter")
-                        .font(.headline)
-                    Text(manques == 0 ? "Tout est branché. Touche une ligne pour l'ouvrir." : "Touche une ligne pour l'ouvrir ; les orange restent à régler.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+        let points = points
+        let manques = points.filter { !$0.enOrdre }
+        return VStack(alignment: .leading, spacing: 14) {
+            heros(points: points, manques: manques)
+            LazyVGrid(columns: Self.colonnesCartes, spacing: 12) {
+                ForEach(Array(points.enumerated()), id: \.element.id) { rang, point in
+                    NavigationLink(value: point.destination) {
+                        CarteReglage(titre: point.titre, symbole: point.symbole, detail: point.detail, enOrdre: point.enOrdre, cheminAffiche: affiche(rang))
+                    }
+                    .buttonStyle(.plain)
                 }
             }
+        }
+        .padding(.horizontal, 20)
+    }
+
+    private func heros(points: [PointEtat], manques: [PointEtat]) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 3) {
+                Text(manques.isEmpty ? "Séance est prête" : "\(Format.pluriel(manques.count, "réglage", "réglages")) à compléter")
+                    .font(.title2.weight(.heavy))
+                Text(manques.isEmpty ? "Tout est branché." : "Le reste est branché. Les cartes orange restent à régler.")
+                    .font(.subheadline)
+                    .foregroundStyle(.white.opacity(0.8))
+            }
             .accessibilityElement(children: .combine)
-            Divider().overlay(Theme.trait)
-            ligne(.tmdb, "TMDB", etat.tmdb == nil ? "Les fiches et les affiches en viennent" : "Fiches, affiches et plateformes", etat.tmdb != nil, "Saisir")
-            ligne(.plateformes, "Plateformes", abonnements.isEmpty ? "Pour savoir ce que tu peux regarder" : abonnements.map(\.nom).formatted(.list(type: .and, width: .narrow)),
-                  !abonnements.isEmpty, "Choisir")
-            ligne(.tele, "Télévision", chaines.isEmpty ? "Choisis tes chaînes" : "\(chaines.count) chaînes · \(libelleLecture)", !chaines.isEmpty, "Choisir")
-            ligne(.nas, "NAS", etat.nas.estConfigure ? libelleNAS.prefix(1).uppercased() + libelleNAS.dropFirst() : "Tes films déjà téléchargés",
-                  etat.nas.estConfigure, "Configurer")
-            // Facultatives : décochées, la ligne le dit sans rien réclamer.
-            ligne(.videosPerso, "Vidéos personnelles",
-                  !etat.videosPerso.actif ? "Désactivées" : etat.videosPerso.aConfigurer(films: etat.nas.reglages) ? "Accès à terminer"
-                  : etat.videosPerso.videos.isEmpty ? "Partage « \(etat.videosPerso.reglages.acces.partage) », pas encore lu" : Format.pluriel(etat.videosPerso.videos.count, "vidéo"),
-                  !etat.videosPerso.aConfigurer(films: etat.nas.reglages), "Terminer")
-            #if !targetEnvironment(macCatalyst)
-            // Un seul lecteur : « Lire » n'ouvre que celui-ci, partout dans l'app.
-            ligne(.lecture, "Lecture", "Tes vidéos du NAS s'ouvrent dans \(etat.nas.lecteur.nom)", true, nil)
-            #endif
-            ligne(.alertes, "Alertes", alertesActives ? "Épisodes, sorties et passages à la TV" : "Rien ne te sera annoncé", alertesActives, "Activer")
-            ligne(.sauvegarde, "Sauvegarde et synchronisation", etat.synchro.nomDossier.map { "Dossier « \($0) »" } ?? "Fichier, AirDrop ou dossier iCloud Drive",
-                  true, nil)
+            // Le geste du moment : ce qui manque d'abord, sinon synchroniser.
+            if let premier = manques.first, let action = premier.action {
+                NavigationLink(value: premier.destination) {
+                    Label(action, systemImage: premier.symbole)
+                        .font(.subheadline.weight(.bold))
+                        .foregroundStyle(.black)
+                        .padding(.horizontal, 18)
+                        .frame(minHeight: 46)
+                        .background(Theme.degradeAccent, in: RoundedRectangle(cornerRadius: 13, style: .continuous))
+                }
+                .buttonStyle(.plain)
+            }
             boutonSynchroniser
-            if let expiration = etat.expirationInstallation {
-                let libelle = ProfilInstallation.libelle(expiration: expiration)
-                ligne(.aPropos, "Installation", libelle.prefix(1).uppercased() + libelle.dropFirst(), expiration.timeIntervalSinceNow > 2 * 86_400, "Voir")
+            Flux(espacement: 6) {
+                ForEach(points) { point in
+                    HStack(spacing: 5) {
+                        Circle().fill(point.enOrdre ? Color.green : Color.orange).frame(width: 8, height: 8)
+                        Text(point.titre).font(.caption2.weight(.semibold))
+                    }
+                    .padding(.horizontal, 9).frame(minHeight: 24)
+                    .background(.black.opacity(0.45), in: Capsule())
+                }
+            }
+            .accessibilityHidden(true)
+        }
+        .foregroundStyle(.white)
+        .padding(18)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background {
+            ZStack {
+                ImageDistante(url: ImageTMDB.url(affiche(0), .fond), coins: 0).blur(radius: 14).opacity(affiches.isEmpty ? 0 : 1).accessibilityHidden(true)
+                LinearGradient(colors: [.black.opacity(0.88), .black.opacity(0.62), Theme.accent.opacity(0.28)], startPoint: .leading, endPoint: .trailing)
             }
         }
-        .padding(14)
-        .background(Theme.surface, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-        .padding(.horizontal, 20)
+        .surImage()
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).strokeBorder(.white.opacity(0.1), lineWidth: 1))
     }
 
     /// Un seul geste pour mettre tous tes appareils d'accord : listes, soirées, notes, pouces, plateformes, chaînes et
@@ -282,10 +418,10 @@ struct ReglagesView: View {
             .disabled(etat.synchro.enCours)
             .accessibilityIdentifier("synchroniserMaintenant")
             if let message = etat.synchro.dernierMessage {
-                Text(message).font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                Text(message).font(.caption).foregroundStyle(.white.opacity(0.75)).fixedSize(horizontal: false, vertical: true)
             } else if let derniere = etat.synchro.derniereSynchro {
                 Text("Dernière synchronisation \(derniere.formatted(.relative(presentation: .named))). Tes réglages voyagent aussi.")
-                    .font(.caption).foregroundStyle(.secondary)
+                    .font(.caption).foregroundStyle(.white.opacity(0.75))
             }
         } else {
             NavigationLink(value: DestinationReglage.sauvegarde) {

@@ -35,7 +35,7 @@ final class VideosPersoTests: XCTestCase {
         XCTAssertTrue(app.navigationBars["Vidéos personnelles"].waitForExistence(timeout: 8), "Un retour ne ramène pas au dossier parent")
 
         // Le réglage : une ligne de l'état, et une case à cocher.
-        app.tabBars.buttons["Profil"].firstMatch.tap()
+        app.tabBars.buttons["Préférences"].firstMatch.tap()
         app.navigationBars.buttons["Réglages"].firstMatch.tap()
         let ligne = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Vidéos personnelles'")).firstMatch
         XCTAssertTrue(app.amener(ligne), "La ligne « Vidéos personnelles » est absente de l'état")

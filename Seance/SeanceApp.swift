@@ -35,7 +35,7 @@ struct SeanceApp: App {
                 Button("Accueil") { etat.ongletDemande = .accueil }.keyboardShortcut("1")
                 Button("Ce soir") { etat.ongletDemande = .ceSoir }.keyboardShortcut("2")
                 Button("Mes listes") { etat.ongletDemande = .listes }.keyboardShortcut("3")
-                Button("Profil") { etat.ongletDemande = .profil }.keyboardShortcut("4")
+                Button("Préférences") { etat.ongletDemande = .profil }.keyboardShortcut("4")
                 Button("Réglages") { etat.ongletDemande = .reglages }.keyboardShortcut("5")
                 Button("Explorer") { etat.ongletDemande = .explorer }.keyboardShortcut("6")
                 Divider()

@@ -180,7 +180,7 @@ final class EtatTV {
         do {
             let demande = try SynchroDossier.EssaiAlerte(de: appareilSynchro).encoder()
             try await DossierSynchroSMB(reglages: nas, motDePasse: motDePasse).ecrire(demande, nom: SynchroDossier.fichierEssaiAlerte)
-            dire("Demande déposée : ouvre Séance sur ton iPhone, l'alerte arrive sur lui et sur ta montre.")
+            dire("Demande déposée. Ouvre Séance sur ton iPhone, puis verrouille-le : l'alerte arrive 20 secondes après, sur la montre aussi.")
         } catch {
             dire("L'essai n'a pas pu être déposé : \(ErreurNAS.message(error))")
         }

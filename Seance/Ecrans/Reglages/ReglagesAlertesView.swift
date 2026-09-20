@@ -10,6 +10,9 @@ struct ReglagesAlertesView: View {
     @Environment(\.openURL) private var openURL
     @State private var essaiEnvoye = false
     @State private var essaiAilleurs: String?
+    /// Essai pour l'Apple Watch : le compte à rebours, et ce qui bloque dans les réglages d'iOS.
+    @State private var secondesMontre: Int?
+    @State private var obstaclesMontre: [String] = []
 
     private var alertes: EtatAlertes { etat.alertes }
 
@@ -52,6 +55,38 @@ struct ReglagesAlertesView: View {
             } footer: {
                 Text("Les alertes s'affichent en pop-up, même quand Séance est ouverte. Les toucher ouvre la fiche du titre. Pour voir l'essai sur ton Apple Watch : envoie-le, puis verrouille l'iPhone — la montre ne prend le relais que lorsque l'iPhone est verrouillé. « Tester sur mes autres appareils » dépose une demande dans tes dossiers de synchronisation : l'autre appareil prévient dès qu'il ouvre Séance.")
             }
+
+            #if !targetEnvironment(macCatalyst)
+            Section {
+                ForEach(obstaclesMontre, id: \.self) { obstacle in
+                    Label(obstacle, systemImage: "exclamationmark.triangle.fill").font(.footnote).foregroundStyle(.orange)
+                }
+                if !obstaclesMontre.isEmpty {
+                    Button("Ouvrir les réglages de notification de Séance") {
+                        if let url = URL(string: UIApplication.openNotificationSettingsURLString) { openURL(url) }
+                    }
+                }
+                Button {
+                    Task {
+                        await alertes.envoyerEssaiMontre()
+                        for reste in stride(from: Int(EtatAlertes.delaiEssaiMontre), through: 0, by: -1) {
+                            secondesMontre = reste
+                            try? await Task.sleep(for: .seconds(1))
+                        }
+                        secondesMontre = nil
+                    }
+                } label: {
+                    Label(secondesMontre.map { "Verrouille l'iPhone maintenant · \($0) s" } ?? "Tester sur l'Apple Watch", systemImage: "applewatch")
+                }
+                .disabled(secondesMontre != nil || alertes.autorisation == .denied)
+                .accessibilityIdentifier("essaiMontre")
+            } header: {
+                Text("Apple Watch")
+            } footer: {
+                Text("iOS ne transmet une alerte à la montre que si l'iPhone est verrouillé ou en veille : en main, il la garde pour lui. C'est pour cela qu'un essai immédiat n'arrive jamais au poignet. Touche « Tester », verrouille l'iPhone, et attends vingt secondes, la montre au poignet et déverrouillée. Si rien n'arrive : dans l'app Watch de l'iPhone › Notifications, active « Séance » sous « Recopier les alertes de l'iPhone », et vérifie qu'aucun mode de concentration (Ne pas déranger, Repos) n'est actif.")
+            }
+            .task { obstaclesMontre = await alertes.obstaclesMontre() }
+            #endif
 
             Section {
                 DatePicker("Heure des alertes", selection: Binding {

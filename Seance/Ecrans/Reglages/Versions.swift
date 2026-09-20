@@ -20,6 +20,25 @@ struct NoteVersion: Identifiable {
 
     static let historique: [NoteVersion] = [
         NoteVersion(
+            numero: "5.0",
+            date: "20 septembre 2026",
+            resume: "L'e-mail de la semaine, des suggestions sur la page Ce soir, des Réglages en grandes cartes, et « Préférences ».",
+            fonctionnalites: [
+                Fonctionnalite(symbole: "envelope.fill", titre: "L'e-mail de la semaine",
+                               detail: "Une fois par semaine, au jour et à l'heure que tu choisis : les épisodes, sorties et passages à la TV de tes titres, les nouveautés de tes plateformes et tes soirées prévues, mis en page aux couleurs de Séance. Plusieurs destinataires, séparés par un point-virgule ; un bouton d'essai et un aperçu. Il part de ton appareil, par ton compte de messagerie (port 465) : Séance n'a pas de serveur."),
+                Fonctionnalite(symbole: "sparkles", titre: "Suggestions pour toi, sur la page Ce soir",
+                               detail: "À côté de « Surprends-moi » : une rangée de titres regardables sur tes plateformes, choisis d'abord d'après les acteurs que tu suis, puis tes pouces levés et tes notes. « + » les ajoute à la soirée."),
+                Fonctionnalite(symbole: "person.2.fill", titre: "Une nouvelle série d'un acteur suivi",
+                               detail: "Les nouveaux films d'un acteur suivi étaient déjà annoncés ; ses nouvelles séries le sont aussi."),
+                Fonctionnalite(symbole: "rectangle.grid.1x2.fill", titre: "Des Réglages en grandes cartes",
+                               detail: "En tête, où en est Séance et le geste du moment — ce qui reste à régler, ou « Synchroniser » ; dessous, une grande carte par réglage, dans le dessin des cartes de « Ce soir », avec les symboles de l'app. La même page sur l'iPhone, l'iPad, le Mac et l'Apple TV."),
+                Fonctionnalite(symbole: "gearshape.fill", titre: "Mac : la roue dentée en haut à droite",
+                               detail: "Les Réglages quittent le menu du Mac : une roue dentée les ouvre depuis toutes les pages, comme sur l'Apple TV."),
+                Fonctionnalite(symbole: "slider.horizontal.3", titre: "« Préférences » au lieu de « Profil »",
+                               detail: "La page dit mieux ce qu'elle contient : tes goûts, tes acteurs, tes notes."),
+            ]
+        ),
+        NoteVersion(
             numero: "4.9",
             date: "20 septembre 2026",
             resume: "Le menu en haut sur le Mac, un bouton pour synchroniser tes appareils, et des Réglages plus directs.",

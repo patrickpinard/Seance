@@ -27,7 +27,7 @@ struct RacineTV: View {
             Tab(value: OngletTV.explorer) { pile { ExplorerTV() } } label: { Text("Explorer") }
             Tab(value: OngletTV.tele) { pile { TeleTV() } } label: { Text("TV") }
             Tab(value: OngletTV.nas) { pile { NASTV() } } label: { Text("NAS") }
-            Tab(value: OngletTV.profil) { pile { ProfilTV() } } label: { Text("Profil") }
+            Tab(value: OngletTV.profil) { pile { ProfilTV() } } label: { Text("Préférences") }
             // Les réglages : une roue dentée tout à droite, plutôt qu'un mot de plus dans le menu. Elle reste dans la barre :
             // un bouton posé par-dessus flotterait quand la barre se replie, et la télécommande s'y perdrait.
             Tab(value: OngletTV.reglages) { pile { ReglagesTV() } } label: {

@@ -390,6 +390,8 @@ struct ReceptionEtSynchro: ViewModifier {
     func body(content: Content) -> some View {
         content
             .task { await etat.synchro.synchroniser(etat: etat, contexte: contexte, automatique: true) }
+            // L'e-mail de la semaine part d'ici, à la première ouverture après le jour et l'heure choisis.
+            .task { await etat.lettre.envoyerSiDu(etat: etat, contexte: contexte) }
             .onChange(of: phase) { _, nouvelle in
                 guard nouvelle == .active else { return }
                 Task { await etat.synchro.synchroniser(etat: etat, contexte: contexte, automatique: true) }

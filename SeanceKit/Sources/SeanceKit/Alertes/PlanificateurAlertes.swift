@@ -34,12 +34,14 @@ public enum MotifAlerte: Sendable, Hashable {
     case bandeAnnonce
     /// « Suivre un acteur » : un film où il joue vient d'apparaître dans sa filmographie.
     case nouveauFilmActeur(nom: String, date: DateTMDB?)
+    /// De même pour une série où il joue (Séance 5.0).
+    case nouvelleSerieActeur(nom: String, date: DateTMDB?)
 
     public var type: TypeAlerte {
         switch self {
         case .arriveeSurPlateforme, .disponibleEnLocation: .arriveePlateforme
         case .nouvelEpisode, .nouvelleSaison, .veilleEpisode, .annonceSaison: .episode
-        case .sortieSalles, .sortieNumerique, .sortie, .veilleSortie, .annonceSortie, .nouveauFilmActeur: .sortieFilm
+        case .sortieSalles, .sortieNumerique, .sortie, .veilleSortie, .annonceSortie, .nouveauFilmActeur, .nouvelleSerieActeur: .sortieFilm
         case .diffusionTele, .rappelDiffusion: .diffusionTele
         case .bandeAnnonce: .bandeAnnonce
         }
@@ -49,7 +51,7 @@ public enum MotifAlerte: Sendable, Hashable {
     /// gardée jusqu'à son envoi. Les autres découlent d'une date et se recalculent à chaque passage.
     public var ponctuelle: Bool {
         switch self {
-        case .annonceSaison, .annonceSortie, .arriveeSurPlateforme, .disponibleEnLocation, .nouveauFilmActeur: true
+        case .annonceSaison, .annonceSortie, .arriveeSurPlateforme, .disponibleEnLocation, .nouveauFilmActeur, .nouvelleSerieActeur: true
         default: false
         }
     }
@@ -72,6 +74,7 @@ public enum MotifAlerte: Sendable, Hashable {
         case .rappelDiffusion(let chaine, let debut): "rappel:\(chaine):\(Int(debut.timeIntervalSince1970))"
         case .bandeAnnonce: "bande-annonce"
         case .nouveauFilmActeur(let nom, _): "acteur:\(nom)"
+        case .nouvelleSerieActeur(let nom, _): "acteurSerie:\(nom)"
         }
     }
 }
@@ -336,14 +339,21 @@ public enum PlanificateurAlertes {
         acteur nom: String, connus: Set<Int>?, filmographie: Filmographie,
         maintenant: Date, reglages: ReglagesAlertes
     ) -> (alertes: [AlertePrevue], connus: Set<Int>) {
-        let films = AnalyseFilmographie.significatifs(filmographie.roles).filter { $0.type == .film }
-        let tous = Set(filmographie.roles.filter { $0.type == .film }.map(\.tmdbID))
+        // Films et séries partagent la mémoire de l'acteur : une série s'y range sous son identifiant négatif, les deux
+        // numérotations de TMDB se recouvrant. Une série déjà diffusée ne s'annonce pas : seules celles à venir comptent.
+        func cle(_ credit: CreditPersonne) -> Int { credit.type == .film ? credit.tmdbID : -credit.tmdbID }
+        let films = AnalyseFilmographie.significatifs(filmographie.roles)
+        let tous = Set(filmographie.roles.map(cle))
         guard let connus, reglages.annonces, reglages.typesActifs.contains(.sortieFilm) else { return ([], tous.union(connus ?? [])) }
         let aujourdhui = DateTMDB(maintenant, fuseau: reglages.fuseau)
         let envoi = prochainEnvoi(apres: maintenant, reglages: reglages)
         let alertes = films
-            .filter { !connus.contains($0.tmdbID) && ($0.date.map { $0 >= aujourdhui } ?? true) }
-            .map { AlertePrevue(reference: $0.reference, titre: $0.titre, motif: .nouveauFilmActeur(nom: nom, date: $0.date), date: envoi) }
+            .filter { !connus.contains(cle($0)) && ($0.date.map { $0 >= aujourdhui } ?? true) }
+            .map { credit in
+                AlertePrevue(reference: credit.reference, titre: credit.titre,
+                             motif: credit.type == .film ? .nouveauFilmActeur(nom: nom, date: credit.date) : .nouvelleSerieActeur(nom: nom, date: credit.date),
+                             date: envoi)
+            }
         return (alertes, tous.union(connus))
     }
 
@@ -422,6 +432,8 @@ public enum PlanificateurAlertes {
         case .bandeAnnonce: return "Nouvelle bande-annonce"
         case .nouveauFilmActeur(let nom, let date):
             return date.map { "Nouveau film avec \(nom), sortie prévue le \(jour($0))" } ?? "Nouveau film annoncé avec \(nom)"
+        case .nouvelleSerieActeur(let nom, let date):
+            return date.map { "Nouvelle série avec \(nom), à partir du \(jour($0))" } ?? "Nouvelle série annoncée avec \(nom)"
         }
     }
 

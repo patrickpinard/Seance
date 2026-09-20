@@ -19,6 +19,8 @@ struct CeSoirView: View {
     @State private var aDater: SelectionSoir?
     /// Le film qu'on vient de marquer regardé : c'est le bon moment pour le noter.
     @State private var filmANoter: FicheFilm?
+    /// Vus, écartés ou reportés depuis le calcul des suggestions.
+    @State private var suggestionsEcartees: Set<ReferenceTitre> = []
 
     private var selection: [SelectionSoir] {
         let jour = ServiceSoiree.soiree()
@@ -85,6 +87,12 @@ struct CeSoirView: View {
             }
             .destinationsTitres()
             .task(id: etat.tmdb != nil) { await soiree.charger(etat: etat, contexte: contexte) }
+            // Les suggestions de la page : calculées une fois par session, comme les idées de la feuille « Ajouter ».
+            .task(id: etat.tmdb != nil) {
+                lireSuggestionsEcartees()
+                if !idees.charge { await idees.chercher(etat: etat, contexte: contexte) }
+            }
+            .onChange(of: selections.count) { lireSuggestionsEcartees() }
             // Un titre ajouté ailleurs (fiche, Mes listes, clic droit) : son « où regarder » est lu à son arrivée.
             .onChange(of: selection.map(\.reference)) { Task { await soiree.charger(etat: etat, contexte: contexte) } }
             // L'image de fond et la durée des titres prévus, pour les grandes cartes.
@@ -178,6 +186,7 @@ struct CeSoirView: View {
 
             if titresAffiches.isEmpty {
                 if !ceSoirAffiche || filmANoter == nil { vide }
+                suggestions
             } else {
                 LazyVGrid(columns: Self.colonnesCartes, spacing: 14) {
                     ForEach(titresAffiches) { titre in
@@ -198,6 +207,7 @@ struct CeSoirView: View {
                         }
                     }
                 }
+                suggestions
                 Flux(espacement: 10) {
                     Button { ajout = true } label: {
                         Label("Ajouter un autre titre", systemImage: "plus")
@@ -213,6 +223,78 @@ struct CeSoirView: View {
                 .foregroundStyle(Theme.accentClair)
             }
         }
+    }
+
+    // MARK: Suggestions pour toi
+
+    /// Les titres suggérés, sans ceux de la soirée affichée ni ceux déjà vus ou écartés depuis le calcul.
+    private var suggestionsAffichees: [SuggestionClassee] {
+        let dejaLa = Set(titresAffiches.map(\.reference))
+        return Array((idees.resultat?.suggestions ?? [])
+            .filter { !idees.retirees.contains($0.reference) && !dejaLa.contains($0.reference) && !suggestionsEcartees.contains($0.reference) }
+            .prefix(10))
+    }
+
+    /// Sur la page même, à côté de « Surprends-moi » : ce que Séance te conseille d'après les acteurs que tu suis d'abord,
+    /// puis tes pouces levés et tes notes — parmi ce qui est regardable sur tes plateformes. « + » l'ajoute à la soirée.
+    @ViewBuilder
+    private var suggestions: some View {
+        let liste = suggestionsAffichees
+        if !liste.isEmpty {
+            VStack(alignment: .leading, spacing: 10) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Label("Suggestions pour toi", systemImage: "sparkles")
+                        .font(.title3.weight(.bold))
+                        .labelStyle(EtiquetteSection())
+                    Text("D'après les acteurs que tu suis, tes pouces levés et tes notes")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+                ScrollView(.horizontal, showsIndicators: false) {
+                    LazyHStack(alignment: .top, spacing: 12) {
+                        ForEach(liste) { suggestion in carteSuggestion(suggestion) }
+                    }
+                    .padding(.horizontal, 20)
+                }
+                .padding(.horizontal, -20)
+            }
+            .padding(.top, 6)
+        } else if idees.enCours {
+            Label("Séance prépare des suggestions…", systemImage: "sparkles").font(.caption).foregroundStyle(.secondary)
+        }
+    }
+
+    private func carteSuggestion(_ suggestion: SuggestionClassee) -> some View {
+        let titre = suggestion.candidat.titre
+        return VStack(alignment: .leading, spacing: 6) {
+            NavigationLink(value: suggestion.reference) {
+                ImageDistante(url: ImageTMDB.url(titre.cheminAffiche, .affiche), coins: 12)
+                    .frame(width: 120, height: 180)
+                    .overlay(alignment: .topLeading) { BadgeOu(reference: suggestion.reference).padding(6) }
+            }
+            .buttonStyle(.plain)
+            .actionsRapides(titre)
+            .accessibilityLabel("\(titre.titre), \(suggestion.reference.type == .film ? "film" : "série"). \(suggestion.phrase)")
+            Text(titre.titre).font(.caption.weight(.semibold)).lineLimit(2, reservesSpace: true).frame(width: 120, alignment: .leading)
+            Button {
+                try? ServiceSoiree(contexte: contexte).retenir(suggestion.reference, titre: titre.titre, cheminAffiche: titre.cheminAffiche, soiree: soireeAffichee)
+                soiree.noterOu(suggestion.reference, idees.libelleOu(suggestion.reference))
+                etat.confirmer(ceSoirAffiche ? "Ajouté à ta soirée" : "Prévu pour cette soirée", symbole: "moon.stars.fill")
+            } label: {
+                Label(ceSoirAffiche ? "Ce soir" : "Ce soir-là", systemImage: "plus")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(.black)
+                    .frame(width: 120, height: 44)
+                    .background(Theme.degradeAccent, in: RoundedRectangle(cornerRadius: 11, style: .continuous))
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Ajouter \(titre.titre) à la soirée")
+        }
+        .task { etat.ou.demander(suggestion.reference, client: etat.tmdb) }
+    }
+
+    private func lireSuggestionsEcartees() {
+        guard let exclusions = try? ServiceGouts(contexte: contexte).contexteCandidats() else { return }
+        suggestionsEcartees = exclusions.dejaVus.union(exclusions.exclus).union(exclusions.reportes)
     }
 
     /// « 2 titres pour ce soir · 2 h 02 de film », « Dans 7 jours · 1 titre », « Rien de prévu pour l'instant ».

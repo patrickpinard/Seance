@@ -16,6 +16,14 @@ struct RacineView: View {
     /// Sur le Mac, le message de confirmation se centre sur le contenu, pas sur la fenêtre avec sa barre latérale.
     @AppStorage("mac.barreLaterale.masquee") private var barreMasquee = false
 
+    static var surMac: Bool {
+        #if targetEnvironment(macCatalyst)
+        true
+        #else
+        false
+        #endif
+    }
+
     var body: some View {
         TabView(selection: $onglet) {
             Tab("Accueil", systemImage: "house.fill", value: .accueil) {
@@ -27,11 +35,12 @@ struct RacineView: View {
             Tab("Mes listes", systemImage: "bookmark", value: .listes) {
                 MesListesView()
             }
-            Tab("Profil", systemImage: "person.crop.circle", value: .profil) {
+            Tab("Préférences", systemImage: "person.crop.circle", value: .profil) {
                 ProfilView()
             }
             // Sur l'iPhone, un 6e onglet cacherait Explorer derrière « Autre » : Réglages s'ouvre depuis Profil.
-            if classeTaille != .compact {
+            // Sur le Mac non plus : la roue dentée, en haut à droite de chaque page, y mène (comme sur l'Apple TV).
+            if classeTaille != .compact, !Self.surMac {
                 Tab("Réglages", systemImage: "gearshape", value: .reglages) {
                     NavigationStack {
                         ReglagesView()
@@ -166,7 +175,7 @@ struct RacineView: View {
         }
         .onChange(of: etat.ongletDemande) { _, demande in
             guard let demande else { return }
-            onglet = demande == .reglages && classeTaille == .compact ? .profil : demande
+            onglet = demande == .reglages && (classeTaille == .compact || Self.surMac) ? .profil : demande
             etat.ongletDemande = nil
         }
         // Fenêtre rétrécie (iPad) : l'onglet Réglages disparaît, Profil le remplace.

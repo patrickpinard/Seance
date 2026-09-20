@@ -120,7 +120,7 @@ struct BienvenueView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 Text("Qu'aimes-tu regarder ?").font(.title.weight(.heavy))
-                Text("Choisis autant de genres que tu veux. Tu pourras changer d'avis dans Profil › Mes goûts.")
+                Text("Choisis autant de genres que tu veux. Tu pourras changer d'avis dans Préférences › Mes goûts.")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 12)], spacing: 12) {

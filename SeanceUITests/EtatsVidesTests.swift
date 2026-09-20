@@ -39,7 +39,7 @@ final class EtatsVidesTests: XCTestCase {
             capture("0\(4 + rang)-listes-\(onglet)")
         }
 
-        app.tabBars.buttons["Profil"].firstMatch.tap()
+        app.tabBars.buttons["Préférences"].firstMatch.tap()
         capture("09-profil", attente: 3)
         app.swipeUp()
         capture("10-profil-bas")

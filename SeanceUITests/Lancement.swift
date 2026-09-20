@@ -22,7 +22,7 @@ extension XCUIApplication {
     /// grille paresseuse, la cellule cherchée sort par le haut et disparaît de l'arbre d'accessibilité.
     @MainActor
     @discardableResult
-    func amener(_ element: XCUIElement, versLeHaut: Bool = false, essais: Int = 8) -> Bool {
+    func amener(_ element: XCUIElement, versLeHaut: Bool = false, essais: Int = 16) -> Bool {
         func glisser(de depart: CGFloat, a arrivee: CGFloat) {
             let haut = coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: depart))
             haut.press(forDuration: 0.05, thenDragTo: coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: arrivee)))
