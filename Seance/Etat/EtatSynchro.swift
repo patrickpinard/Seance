@@ -119,7 +119,9 @@ final class EtatSynchro {
         nomDossier = defauts.data(forKey: Cle.signet) == nil ? nil : defauts.string(forKey: Cle.nomDossier)
         automatique = defauts.object(forKey: Cle.automatique) == nil ? true : defauts.bool(forKey: Cle.automatique)
         derniereSynchro = defauts.object(forKey: Cle.derniere) as? Date
-        parLeNAS = defauts.bool(forKey: Cle.parLeNAS)
+        // D'office dès que le NAS est réglé (4.9) : l'Apple TV n'a que lui, et un interrupteur oublié la laissait sans
+        // nouvelles de l'iPhone. Qui l'a éteint exprès le retrouve éteint.
+        parLeNAS = defauts.object(forKey: Cle.parLeNAS) == nil ? true : defauts.bool(forKey: Cle.parLeNAS)
         derniereSynchroNAS = defauts.object(forKey: Cle.derniereNAS) as? Date
         #if DEBUG
         // Tests d'interface : le dossier est imposé au lancement, sans sélecteur de fichiers ni iCloud Drive.
@@ -130,6 +132,9 @@ final class EtatSynchro {
     }
 
     var estConfiguree: Bool { nomDossier != nil || parLeNAS }
+
+    /// Un dossier choisi, ou le NAS réglé et « Par le NAS » allumé : il y a de quoi synchroniser.
+    func estPrete(nas nasRegle: Bool) -> Bool { nomDossier != nil || (parLeNAS && nasRegle) }
 
     /// « iPhone 3F2A » : le genre d'appareil et quatre caractères tirés une fois pour toutes.
     private var appareil: String {
@@ -206,6 +211,7 @@ final class EtatSynchro {
                                            espace: "synchro", fichierEtat: Self.fichierEtat)
                 let bilan = try await moteur.synchroniser(preferences: preferences, appliquer: appliquer)
                 noter(bilan)
+                await traiterEssaiAlerte(bilan.presents, transport: DossierLocal(dossier: dossier), espace: "synchro", etat: etat)
                 // Un filet de sécurité : l'état du jour, daté, à côté ; les cinq derniers de cet appareil sont gardés.
                 if let donnees = bilan.deposees {
                     let nomAppareil = appareil
@@ -227,12 +233,7 @@ final class EtatSynchro {
                                                espace: "synchro.nas", fichierEtat: Self.fichierEtat)
                     let bilan = try await moteur.synchroniser(preferences: preferences, appliquer: appliquer)
                     noter(bilan)
-                    // « Tester une alerte » demandé depuis l'Apple TV : c'est cet appareil qui prévient (et l'Apple Watch avec lui).
-                    let cleEssai = "synchro.nas.essaiAlerte"
-                    if let demande = SynchroDossier.essaiAlerteDemande(bilan.presents, derniereTraitee: UserDefaults.standard.object(forKey: cleEssai) as? Date) {
-                        UserDefaults.standard.set(demande, forKey: cleEssai)
-                        await etat.alertes.envoyerEssai(depuisLaTV: true)
-                    }
+                    await traiterEssaiAlerte(bilan.presents, transport: transport, espace: "synchro.nas", etat: etat)
                     derniereSynchroNAS = .now
                     UserDefaults.standard.set(Date.now, forKey: Cle.derniereNAS)
                     messageNAS = nil
@@ -264,6 +265,36 @@ final class EtatSynchro {
         } else if !declenchementAuto {
             dernierMessage = depose ? "Tes données ont été déposées. Rien de nouveau des autres appareils." : "Tout est à jour."
         }
+    }
+
+    // MARK: Essai d'alerte entre appareils
+
+    /// Une demande d'essai déposée par un autre appareil (l'Apple TV, le Mac, l'iPad) : celui-ci prévient — et l'Apple
+    /// Watch avec l'iPhone. Une demande ne sert qu'une fois par dossier, et jamais à celui qui l'a faite.
+    private func traiterEssaiAlerte(_ presents: [SynchroDossier.Fichier], transport: any TransportSynchro, espace: String, etat: EtatApp) async {
+        let cle = "\(espace).essaiAlerte"
+        guard let demande = SynchroDossier.essaiAlerteDemande(presents, derniereTraitee: UserDefaults.standard.object(forKey: cle) as? Date) else { return }
+        UserDefaults.standard.set(demande, forKey: cle)
+        guard let donnees = try? await transport.lire(SynchroDossier.fichierEssaiAlerte),
+              let essai = SynchroDossier.EssaiAlerte.decoder(donnees), essai.de != appareil else { return }
+        await etat.alertes.envoyerEssai(de: essai.de)
+    }
+
+    /// « Tester sur mes autres appareils » : dépose la demande dans chaque dossier configuré. Renvoie où elle est partie.
+    func demanderEssaiAilleurs(etat: EtatApp) async -> [String] {
+        guard let demande = try? SynchroDossier.EssaiAlerte(de: appareil).encoder() else { return [] }
+        var depots: [String] = []
+        if let signet = UserDefaults.standard.data(forKey: Cle.signet) {
+            var perime = false
+            if let dossier = try? URL(resolvingBookmarkData: signet, options: [], relativeTo: nil, bookmarkDataIsStale: &perime) {
+                let acces = dossier.startAccessingSecurityScopedResource()
+                defer { if acces { dossier.stopAccessingSecurityScopedResource() } }
+                if (try? await DossierLocal(dossier: dossier).ecrire(demande, nom: SynchroDossier.fichierEssaiAlerte)) != nil { depots.append("iCloud Drive") }
+            }
+        }
+        if parLeNAS, let transport = etat.nas.dossierSynchro(),
+           (try? await transport.ecrire(demande, nom: SynchroDossier.fichierEssaiAlerte)) != nil { depots.append("NAS") }
+        return depots
     }
 
     /// L'état déposé à la synchronisation précédente : c'est en s'y comparant que l'appareil sait ce qu'il a modifié

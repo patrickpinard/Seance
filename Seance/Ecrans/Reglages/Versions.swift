@@ -20,6 +20,21 @@ struct NoteVersion: Identifiable {
 
     static let historique: [NoteVersion] = [
         NoteVersion(
+            numero: "4.9",
+            date: "20 septembre 2026",
+            resume: "Le menu en haut sur le Mac, un bouton pour synchroniser tes appareils, et des Réglages plus directs.",
+            fonctionnalites: [
+                Fonctionnalite(symbole: "menubar.rectangle", titre: "Mac : le menu en haut",
+                               detail: "Comme sur l'iPad et l'Apple TV : les onglets en haut de la fenêtre, plus de barre latérale. ⌘1 à ⌘6 changent toujours d'onglet."),
+                Fonctionnalite(symbole: "arrow.triangle.2.circlepath", titre: "Synchroniser mes appareils maintenant",
+                               detail: "Un bouton en tête des Réglages : listes, soirées, notes, pouces, plateformes, chaînes et réglages passent par ton dossier d'iCloud Drive (et par le NAS s'il est activé). Sans dossier choisi, il t'y mène."),
+                Fonctionnalite(symbole: "bell.badge", titre: "L'essai d'alerte depuis l'Apple TV arrive enfin",
+                               detail: "La TV déposait bien sa demande sur le NAS, mais l'iPhone ne lisait pas ce dossier : « Par le NAS » n'y était pas activé. Il l'est maintenant d'office dès que le NAS est réglé — ce qui fait aussi arriver tes listes sur la TV. Réglages › Alertes gagne « Tester sur mes autres appareils », depuis l'iPad, le Mac ou l'iPhone."),
+                Fonctionnalite(symbole: "square.grid.2x2", titre: "Séance, Versions, Journal : trois tuiles",
+                               detail: "La page « À propos » et ses onglets laissent place à trois tuiles dans les Réglages, à côté de Claude : ce que fait Séance, ce qui a changé, ce qui s'est passé."),
+            ]
+        ),
+        NoteVersion(
             numero: "4.8.2",
             date: "20 septembre 2026",
             resume: "Apple TV : les acteurs se choisissent partout, une image de fond sur les pages, les réglages en roue dentée.",

@@ -178,7 +178,7 @@ final class EtatTV {
     func demanderEssaiAlerte() async {
         guard nasPret, let motDePasse = (try? coffre.lire(.nas)) ?? nil else { return dire("Règle d'abord le NAS : l'essai passe par lui.") }
         do {
-            let demande = Data(#"{"de":"\#(appareilSynchro)","le":"\#(Date.now.ISO8601Format())"}"#.utf8)
+            let demande = try SynchroDossier.EssaiAlerte(de: appareilSynchro).encoder()
             try await DossierSynchroSMB(reglages: nas, motDePasse: motDePasse).ecrire(demande, nom: SynchroDossier.fichierEssaiAlerte)
             dire("Demande déposée : ouvre Séance sur ton iPhone, l'alerte arrive sur lui et sur ta montre.")
         } catch {

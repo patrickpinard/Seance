@@ -26,7 +26,7 @@ struct NouvelAppareilView: View {
     private enum Selection { case dossier, fichier }
 
     private var donneesReprises: Bool {
-        etat.synchro.estConfiguree || messageDonnees != nil
+        etat.synchro.nomDossier != nil || messageDonnees != nil
     }
 
     var body: some View {

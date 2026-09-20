@@ -7,7 +7,7 @@ import SwiftUI
 /// Un lien « par vue » vers Réglages, depuis la barre d'outils de Profil, figeait l'iPhone : SwiftUI remettait
 /// la destination à jour à chaque rendu, sans fin, jusqu'à ce qu'iOS tue l'app.
 enum DestinationReglage: Hashable {
-    case reglages, prenom, apparence, tmdb, claude, plateformes, tele, nas, videosPerso, lecture, alertes, sauvegarde, aPropos, apercuWidgets
+    case reglages, prenom, apparence, tmdb, claude, plateformes, tele, nas, videosPerso, lecture, alertes, sauvegarde, aPropos, versions, journal, apercuWidgets
 }
 
 struct PageReglage: View {
@@ -27,7 +27,9 @@ struct PageReglage: View {
         case .lecture: ReglagesLectureView()
         case .alertes: ReglagesAlertesView()
         case .sauvegarde: ReglagesSauvegardeView()
-        case .aPropos: AProposView()
+        case .aPropos: AProposView(contenu: .application)
+        case .versions: AProposView(contenu: .versions)
+        case .journal: AProposView(contenu: .journal)
         case .apercuWidgets:
             #if DEBUG
             ApercuWidgetsView()
@@ -122,6 +124,7 @@ struct TuileReglage: View {
 /// sont dans Profil. Sans pile de navigation : onglet à part sur le Mac, page ouverte depuis Profil sur l'iPhone.
 struct ReglagesView: View {
     @Environment(EtatApp.self) private var etat
+    @Environment(\.modelContext) private var contexte
     @Query(filter: #Predicate<Abonnement> { $0.actif }, sort: \Abonnement.nom) private var abonnements: [Abonnement]
     @Query(filter: #Predicate<Chaine> { $0.active }) private var chaines: [Chaine]
     @AppStorage(Prenom.cle) private var prenom = ""
@@ -162,9 +165,12 @@ struct ReglagesView: View {
                 }
                 rubrique("L'app") {
                     tuile(.claude, "Claude", "sparkles", etat.claude == nil ? "Facultatif" : "Connecté")
-                    tuile(.aPropos, "À propos", "info.circle.fill",
-                          expirationProche ?? (etat.journal.entrees.isEmpty ? "Versions, journal, espace utilisé" : "Journal : \(Format.pluriel(etat.journal.entrees.count, "entrée"))"),
+                    // Trois portes au lieu d'une page à onglets : ce que fait Séance, ce qui a changé, ce qui s'est passé.
+                    tuile(.aPropos, "Séance", "info.circle.fill", expirationProche ?? "Ce qu'elle fait, ses sources, l'espace utilisé",
                           alerte: expirationProche != nil)
+                    tuile(.versions, "Versions", "clock.arrow.circlepath", "Version \(NoteVersion.historique.first?.numero ?? "") · ce qui a changé")
+                    tuile(.journal, "Journal", "list.bullet.rectangle",
+                          etat.journal.entrees.isEmpty ? "Rien à signaler" : Format.pluriel(etat.journal.entrees.count, "entrée"))
                     #if DEBUG
                     if ApercuWidgetsView.actif { tuile(.apercuWidgets, "Aperçu des widgets", "square.grid.2x2.fill", "Développement") }
                     #endif
@@ -244,6 +250,7 @@ struct ReglagesView: View {
             ligne(.alertes, "Alertes", alertesActives ? "Épisodes, sorties et passages à la TV" : "Rien ne te sera annoncé", alertesActives, "Activer")
             ligne(.sauvegarde, "Sauvegarde et synchronisation", etat.synchro.nomDossier.map { "Dossier « \($0) »" } ?? "Fichier, AirDrop ou dossier iCloud Drive",
                   true, nil)
+            boutonSynchroniser
             if let expiration = etat.expirationInstallation {
                 let libelle = ProfilInstallation.libelle(expiration: expiration)
                 ligne(.aPropos, "Installation", libelle.prefix(1).uppercased() + libelle.dropFirst(), expiration.timeIntervalSinceNow > 2 * 86_400, "Voir")
@@ -252,6 +259,44 @@ struct ReglagesView: View {
         .padding(14)
         .background(Theme.surface, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
         .padding(.horizontal, 20)
+    }
+
+    /// Un seul geste pour mettre tous tes appareils d'accord : listes, soirées, notes, pouces, plateformes, chaînes et
+    /// réglages passent par le dossier d'iCloud Drive (et le NAS s'il est activé). Sans dossier choisi, il mène au réglage.
+    @ViewBuilder
+    private var boutonSynchroniser: some View {
+        if etat.synchro.estPrete(nas: etat.nas.estConfigure) {
+            Button {
+                Task { await etat.synchro.synchroniser(etat: etat, contexte: contexte) }
+            } label: {
+                HStack(spacing: 10) {
+                    if etat.synchro.enCours { ProgressView().tint(.black) } else { Image(systemName: "arrow.triangle.2.circlepath") }
+                    Text(etat.synchro.enCours ? "Synchronisation…" : "Synchroniser mes appareils maintenant").font(.subheadline.weight(.bold))
+                }
+                .foregroundStyle(.black)
+                .frame(maxWidth: .infinity, minHeight: 46)
+                .background(Theme.degradeAccent, in: RoundedRectangle(cornerRadius: 13, style: .continuous))
+                .contentShape(RoundedRectangle(cornerRadius: 13, style: .continuous))
+            }
+            .buttonStyle(.plain)
+            .disabled(etat.synchro.enCours)
+            .accessibilityIdentifier("synchroniserMaintenant")
+            if let message = etat.synchro.dernierMessage {
+                Text(message).font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+            } else if let derniere = etat.synchro.derniereSynchro {
+                Text("Dernière synchronisation \(derniere.formatted(.relative(presentation: .named))). Tes réglages voyagent aussi.")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+        } else {
+            NavigationLink(value: DestinationReglage.sauvegarde) {
+                Label("Synchroniser mes appareils : choisir le dossier iCloud Drive", systemImage: "icloud")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Theme.accentClair)
+                    .frame(maxWidth: .infinity, minHeight: 46)
+                    .background(Theme.accent.opacity(0.15), in: RoundedRectangle(cornerRadius: 13, style: .continuous))
+            }
+            .buttonStyle(.plain)
+        }
     }
 
     private func ligne(_ destination: DestinationReglage, _ titre: String, _ detail: String, _ enOrdre: Bool, _ action: String?) -> some View {

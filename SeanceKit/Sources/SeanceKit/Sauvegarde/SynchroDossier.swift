@@ -8,6 +8,29 @@ public enum SynchroDossier {
     /// qui le découvre à sa synchronisation prévient (l'Apple Watch suit l'iPhone). Hors des fichiers d'appareil.
     public static let fichierEssaiAlerte = "essai-alerte.json"
 
+    /// Le contenu de la demande : qui la fait, pour que cet appareil-là ne se prévienne pas lui-même.
+    public struct EssaiAlerte: Codable, Sendable, Equatable {
+        public var de: String
+        public var le: Date
+
+        public init(de: String, le: Date = .now) {
+            self.de = de
+            self.le = le
+        }
+
+        public func encoder() throws -> Data {
+            let encodeur = JSONEncoder()
+            encodeur.dateEncodingStrategy = .iso8601
+            return try encodeur.encode(self)
+        }
+
+        public static func decoder(_ donnees: Data) -> EssaiAlerte? {
+            let decodeur = JSONDecoder()
+            decodeur.dateDecodingStrategy = .iso8601
+            return try? decodeur.decode(EssaiAlerte.self, from: donnees)
+        }
+    }
+
     /// Vrai si le dossier contient une demande d'essai plus récente que la dernière traitée, et de moins d'un jour.
     public static func essaiAlerteDemande(_ fichiers: [Fichier], derniereTraitee: Date?, maintenant: Date = .now) -> Date? {
         guard let demande = fichiers.first(where: { nomReel($0.nom) == fichierEssaiAlerte })?.modifieLe,

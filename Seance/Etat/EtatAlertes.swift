@@ -196,17 +196,19 @@ final class EtatAlertes {
     }
 
     /// EF-84 : une alerte d'essai dans 5 secondes, pour vérifier l'affichage.
-    /// `depuisLaTV` : l'essai a été demandé dans les réglages de l'Apple TV, et arrive ici par la synchronisation.
-    func envoyerEssai(depuisLaTV: Bool = false) async {
+    /// `de` : l'essai a été demandé sur un autre appareil (« Apple TV 5AB5 »), et arrive ici par la synchronisation.
+    func envoyerEssai(de appareil: String? = nil) async {
+        let depuisLaTV = appareil != nil
+        let origine = appareil.map { $0.split(separator: " ").dropLast().joined(separator: " ") } ?? ""
         if autorisation == .notDetermined { await demanderAutorisation() }
         let contenu = UNMutableNotificationContent()
-        contenu.title = depuisLaTV ? "Séance · essai depuis l'Apple TV" : "Séance"
+        contenu.title = depuisLaTV ? "Séance · essai depuis \(origine.isEmpty ? "un autre appareil" : origine)" : "Séance"
         contenu.body = depuisLaTV
-            ? "Reçu : les alertes réglées sur l'Apple TV arriveront ici, et sur ton Apple Watch."
+            ? "Reçu : les alertes arrivent bien ici — et sur ton Apple Watch quand l'iPhone est verrouillé."
             : "Les alertes fonctionnent : tu seras prévenu des nouveaux épisodes, des sorties et des passages à la TV."
         contenu.sound = .default
-        let declencheur = UNTimeIntervalNotificationTrigger(timeInterval: 5, repeats: false)
-        try? await centre.add(UNNotificationRequest(identifier: "seance.essai", content: contenu, trigger: declencheur))
+        let declencheur = UNTimeIntervalNotificationTrigger(timeInterval: depuisLaTV ? 1 : 5, repeats: false)
+        try? await centre.add(UNNotificationRequest(identifier: depuisLaTV ? "seance.essai.ailleurs" : "seance.essai", content: contenu, trigger: declencheur))
     }
 
     private func requete(_ notification: NotificationPrevue) -> UNNotificationRequest {

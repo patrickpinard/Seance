@@ -46,7 +46,9 @@ final class ReglagesTests: XCTestCase {
             ("Lecture", "Lecture"),
             ("Alertes", "Alertes"),
             ("Sauvegarde", "Sauvegarde"),
-            ("À propos", "L'application"),
+            ("Séance", "L'application"),
+            ("Versions", "Versions"),
+            ("Journal", "Journal"),
         ]
         for page in pages {
             let ligne = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", page.ligne)).firstMatch

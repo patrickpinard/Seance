@@ -41,12 +41,6 @@ struct SeanceApp: App {
                 Divider()
                 Button("Rechercher un film, une série, un acteur") { etat.rechercheDemandee = true }.keyboardShortcut("f")
             }
-            #if targetEnvironment(macCatalyst)
-            CommandGroup(replacing: .sidebar) {
-                Button("Afficher ou masquer la barre latérale") { BarreLaterale.basculer() }
-                    .keyboardShortcut("s", modifiers: [.control, .command])
-            }
-            #endif
         }
         // Réveil accordé par iOS de temps en temps : les alertes restent à jour sans ouvrir l'app.
         .backgroundTask(.appRefresh(EtatAlertes.tacheFond)) {

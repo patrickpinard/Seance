@@ -15,7 +15,9 @@ struct AProposView: View {
         var id: String { rawValue }
     }
 
-    @State private var onglet = Onglet.application
+    /// Chaque contenu a sa tuile dans les Réglages (« Séance », « Versions », « Journal ») : plus d'onglets dans la page.
+    var contenu = Onglet.application
+    private var onglet: Onglet { contenu }
 
     private var numeroVersion: String {
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.9"
@@ -53,13 +55,6 @@ struct AProposView: View {
                                 .multilineTextAlignment(.center)
                         }
                     }
-                    Picker("Onglet", selection: $onglet) {
-                        ForEach(Onglet.allCases) { onglet in
-                            Text(onglet.rawValue).tag(onglet)
-                        }
-                    }
-                    .pickerStyle(.segmented)
-                    .padding(.top, 8)
                 }
                 .frame(maxWidth: .infinity)
                 .listRowBackground(Color.clear)
@@ -84,7 +79,7 @@ struct AProposView: View {
         }
         .scrollContentBackground(.hidden)
         .background(Theme.fond)
-        .navigationTitle("À propos")
+        .navigationTitle(contenu == .application ? "Séance" : contenu.rawValue)
         .navigationBarTitleDisplayMode(.inline)
     }
 

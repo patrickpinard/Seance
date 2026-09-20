@@ -9,6 +9,7 @@ struct ReglagesAlertesView: View {
     @Environment(\.modelContext) private var contexte
     @Environment(\.openURL) private var openURL
     @State private var essaiEnvoye = false
+    @State private var essaiAilleurs: String?
 
     private var alertes: EtatAlertes { etat.alertes }
 
@@ -38,8 +39,18 @@ struct ReglagesAlertesView: View {
                     }
                 }
                 .disabled(alertes.autorisation == .denied)
+                // Depuis l'iPad ou le Mac : faire sonner l'iPhone (et l'Apple Watch), par les dossiers de synchronisation.
+                if etat.synchro.estPrete(nas: etat.nas.estConfigure) {
+                    Button(essaiAilleurs ?? "Tester sur mes autres appareils") {
+                        Task {
+                            let depots = await etat.synchro.demanderEssaiAilleurs(etat: etat)
+                            essaiAilleurs = depots.isEmpty ? "La demande n'a pas pu être déposée"
+                                : "Demande déposée (\(depots.joined(separator: ", "))) : ouvre Séance sur l'autre appareil"
+                        }
+                    }
+                }
             } footer: {
-                Text("Les alertes s'affichent en pop-up, même quand Séance est ouverte. Les toucher ouvre la fiche du titre. Pour voir l'essai sur ton Apple Watch : envoie-le, puis verrouille l'iPhone — la montre ne prend le relais que lorsque l'iPhone est verrouillé.")
+                Text("Les alertes s'affichent en pop-up, même quand Séance est ouverte. Les toucher ouvre la fiche du titre. Pour voir l'essai sur ton Apple Watch : envoie-le, puis verrouille l'iPhone — la montre ne prend le relais que lorsque l'iPhone est verrouillé. « Tester sur mes autres appareils » dépose une demande dans tes dossiers de synchronisation : l'autre appareil prévient dès qu'il ouvre Séance.")
             }
 
             Section {

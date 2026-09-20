@@ -55,7 +55,7 @@ struct ReglagesSauvegardeView: View {
             } header: {
                 Text("Synchroniser mes appareils")
             } footer: {
-                Text(etat.synchro.estConfiguree
+                Text(etat.synchro.estPrete(nas: etat.nas.estConfigure)
                      ? "Chaque appareil dépose son fichier dans ce dossier et fusionne ceux des autres quand ils ont changé : ce que tu ajoutes, modifies ou supprimes sur l'un arrive sur les autres, le changement le plus récent l'emportant. Choisis le même dossier sur ton iPhone, ton iPad et ton Mac. Le sous-dossier « Sauvegardes datées » garde les cinq derniers états de chaque appareil : de quoi revenir en arrière en important l'un d'eux."
                      : "Crée un dossier « Séance » dans iCloud Drive, puis choisis-le ici sur chacun de tes appareils : iPhone, iPad et Mac se tiennent alors à jour tout seuls, sans compte à créer. N'importe quel dossier de Fichiers partagé entre tes appareils convient aussi.")
             }

@@ -128,18 +128,8 @@ extension View {
     }
 
     /// Le bouton qui masque ou affiche le menu de gauche, en tête de la barre d'un onglet ; rien sur l'iPhone.
+    /// Depuis la 4.9 le Mac a son menu en haut, sans barre latérale : plus de bouton nulle part.
     func boutonBarreLaterale() -> some View {
-        #if targetEnvironment(macCatalyst)
-        toolbar {
-            ToolbarItem(placement: .topBarLeading) {
-                Button { BarreLaterale.basculer() } label: {
-                    Label("Barre latérale", systemImage: "sidebar.left")
-                }
-                .help("Masquer ou afficher le menu de gauche (⌃⌘S)")
-            }
-        }
-        #else
         self
-        #endif
     }
 }

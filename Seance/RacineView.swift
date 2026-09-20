@@ -44,8 +44,13 @@ struct RacineView: View {
                 ExplorerView()
             }
         }
-        // iPhone : barre d'onglets ; Mac et grandes fenêtres : barre latérale.
+        // iPhone : barre d'onglets en bas. iPad : onglets en haut, barre latérale à la demande. Mac : le menu en haut, comme
+        // sur l'iPad et l'Apple TV (demande de Patrick, 20 septembre 2026) — plus de barre latérale.
+        #if targetEnvironment(macCatalyst)
+        .tabViewStyle(.tabBarOnly)
+        #else
         .tabViewStyle(.sidebarAdaptable)
+        #endif
         // Confirmation d'une action, au-dessus de la barre d'onglets.
         #if targetEnvironment(macCatalyst)
         .allowsHitTesting(!survolConfirmation)
@@ -55,7 +60,7 @@ struct RacineView: View {
                 BandeauConfirmation(confirmation: confirmation, survol: $survolConfirmation)
                     .padding(.bottom, 96)
                     #if targetEnvironment(macCatalyst)
-                    .padding(.leading, classeTaille == .regular && !barreMasquee ? 192 : 0)
+                    .padding(.leading, 0)
                     #endif
                     .transition(.move(edge: .bottom).combined(with: .opacity))
                     .allowsHitTesting(confirmation.annuler != nil)

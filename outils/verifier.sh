@@ -21,6 +21,9 @@ etape "Interface, iPhone"
 "$racine/outils/tests-interface.sh" || { echo "Échec : interface iPhone (journal : .build/tests-interface.log)."; exit 1; }
 
 etape "Interface, iPad"
+# Après plusieurs séries de tests, le simulateur d'iPad ne pivote plus et le test du paysage échoue à tort : on le redémarre.
+ipad=$(xcrun simctl list devices available | grep -F "    iPad Air 11-inch (M3) (" | head -1 | grep -o -E '[0-9A-F]{8}-[0-9A-F-]{27}')
+[[ -n $ipad ]] && { xcrun simctl shutdown $ipad > /dev/null 2>&1; xcrun simctl boot $ipad > /dev/null 2>&1; }
 SIMULATEUR="iPad Air 11-inch (M3)" RESULTAT="$racine/.build/ipad.xcresult" "$racine/outils/tests-interface.sh" IPadTests \
   || { echo "Échec : interface iPad."; exit 1; }
 # Un test sauté (mauvais simulateur) n'a rien vérifié : ce n'est pas une réussite.
