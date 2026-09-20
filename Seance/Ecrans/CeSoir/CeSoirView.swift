@@ -184,8 +184,11 @@ struct CeSoirView: View {
                         CarteSoiree(titre: titre, decor: etat.decors.decor(titre.reference),
                                     rendezVous: ceSoirAffiche ? rendezVous(titre.reference) : nil,
                                     ou: ceSoirAffiche ? soiree.ou[titre.reference] : nil,
+                                    episode: episode(titre.reference)?.numero,
+                                    minutesEpisode: episode(titre.reference)?.minutes,
                                     peutMarquerVu: titre.reference.type == .film || episode(titre.reference) != nil,
-                                    note: titre.reference.type == .serie && !soiree.enCours ? "Aucun nouvel épisode disponible" : nil,
+                                    note: titre.reference.type != .serie ? nil
+                                        : soiree.enCours ? "Recherche du prochain épisode…" : "Tous les épisodes diffusés sont vus",
                                     ramener: ceSoirAffiche ? nil : { deplacer(titre, vers: nil) }) {
                             Task { await marquerVu(titre) }
                         } dater: {
@@ -219,8 +222,9 @@ struct CeSoirView: View {
         let quand = ceSoirAffiche ? nil : jours > 1 ? "Dans \(jours) jours" : nil
         guard !titres.isEmpty else { return [quand, "Rien de prévu pour l'instant"].compactMap { $0 }.joined(separator: " · ") }
         var morceaux = [quand, ceSoirAffiche ? "\(Format.pluriel(titres.count, "titre")) pour ce soir" : Format.pluriel(titres.count, "titre")].compactMap { $0 }
-        let minutes = titres.filter { $0.reference.type == .film }.compactMap { etat.decors.decor($0.reference)?.minutes }.reduce(0, +)
-        if minutes > 0 { morceaux.append("\(HeuresTele.duree(minutes)) de film") }
+        // Le film en entier, et un seul épisode par série : c'est ce que la soirée dure vraiment.
+        let minutes = titres.compactMap { $0.reference.type == .film ? etat.decors.decor($0.reference)?.minutes : episode($0.reference)?.minutes }.reduce(0, +)
+        if minutes > 0 { morceaux.append("\(HeuresTele.duree(minutes)) au programme") }
         return morceaux.joined(separator: " · ")
     }
 
@@ -297,7 +301,7 @@ struct CeSoirView: View {
     private func rendezVous(_ reference: ReferenceTitre) -> String? {
         let calendrier = Calendar.current
         if let echeance = echeances.first(where: { $0.reference == reference && calendrier.isDateInToday($0.date) }) { return echeance.libelle }
-        if let episode = episode(reference) { return "Épisode \(episode.numero) à regarder" }
+        if let episode = episode(reference) { return episode.libelle }
         return nil
     }
 
@@ -306,7 +310,13 @@ struct CeSoirView: View {
         let reference = titre.reference
         if let episode = episode(reference) {
             await soiree.marquerVu(episode, etat: etat, contexte: contexte)
-            etat.confirmer("Épisode \(episode.numero) marqué vu", symbole: "checkmark")
+            // Un épisode, pas la série : elle quitte la soirée, et un toucher suffit pour enchaîner sur le suivant.
+            let nom = titre.titre
+            let affiche = titre.cheminAffiche
+            let jour = titre.soiree
+            etat.confirmer("Épisode \(episode.numero) vu · encore un ?", symbole: "checkmark", libelleAction: "Encore un") { [contexte] in
+                try? ServiceSoiree(contexte: contexte).retenir(reference, titre: nom, cheminAffiche: affiche, soiree: jour)
+            }
         } else if reference.type == .film, let tmdb = etat.tmdb {
             guard let film = try? await tmdb.film(reference.tmdbID, complements: [.casting]) else {
                 etat.confirmer("TMDB ne répond pas : réessaie dans un instant", symbole: "exclamationmark.triangle")
@@ -316,6 +326,8 @@ struct CeSoirView: View {
             let quand = titre.soiree < ServiceSoiree.soiree() ? ServiceSoiree.jour(titre.soiree)?.addingTimeInterval(9 * 3600) : nil
             try? ServiceSuivi(contexte: contexte).marquerVu(film: film, le: quand ?? .now)
             etat.confirmer("« \(titre.titre) » marqué vu", symbole: "eye.fill")
+            // Vu : il ne doit plus revenir dans les idées de la soirée.
+            idees.retirer(reference)
             withAnimation(.snappy) { filmANoter = film }
         } else if titre.soiree >= ServiceSoiree.soiree() {
             return
@@ -371,6 +383,8 @@ private struct AjouterASoiree: View {
     @Query(sort: \SelectionSoir.ajouteLe) private var selections: [SelectionSoir]
     /// Le jour de la soirée à remplir : celui que montre la page.
     @State private var jour: Date
+    @State private var recherche = RechercheSoireeModele()
+    @Environment(\.modelContext) private var contexte
 
     init(soiree: SoireeModele, idees: IdeesModele, depart: Date) {
         self.soiree = soiree
@@ -405,8 +419,14 @@ private struct AjouterASoiree: View {
                     .padding(12)
                     .background(Theme.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
 
-                    PropositionsSoiree(modele: soiree, soiree: soireeChoisie)
-                    SectionIdees(modele: idees, dejaMontres: dejaMontres, soiree: soireeChoisie) { reference, ou in soiree.noterOu(reference, ou) }
+                    ChampRechercheSoiree(modele: recherche)
+
+                    if recherche.texteNettoye.count >= 2 {
+                        ResultatsRechercheSoiree(modele: recherche, soiree: soireeChoisie)
+                    } else {
+                        PropositionsSoiree(modele: soiree, soiree: soireeChoisie)
+                        SectionIdees(modele: idees, dejaMontres: dejaMontres, soiree: soireeChoisie) { reference, ou in soiree.noterOu(reference, ou) }
+                    }
                     Button {
                         fermer()
                         etat.rechercheDemandee = true
@@ -418,8 +438,8 @@ private struct AjouterASoiree: View {
                                 .frame(width: 34, height: 34)
                                 .background(Theme.accent.opacity(0.15), in: Circle())
                             VStack(alignment: .leading, spacing: 2) {
-                                Text("Chercher un titre").font(.headline)
-                                Text("Dans Explorer ; clic droit ou 🌙 sur sa fiche pour l'ajouter à ta soirée.")
+                                Text("Chercher dans Explorer").font(.headline)
+                                Text("Par genre, acteur, plateforme ou chaîne de télé.")
                                     .font(.subheadline)
                                     .foregroundStyle(.secondary)
                                     .fixedSize(horizontal: false, vertical: true)
@@ -437,6 +457,12 @@ private struct AjouterASoiree: View {
             .scrollDismissesKeyboard(.immediately)
             .background(Theme.fond)
             .titreDeFeuille("Ajouter à ma soirée")
+            // Sans cela, la place d'un grand titre restait vide au-dessus de la date : un tiers d'écran perdu.
+            .navigationBarTitleDisplayMode(.inline)
+            .task(id: recherche.texte) {
+                let exclus = (try? ServiceGouts(contexte: contexte).contexteCandidats().exclus) ?? []
+                await recherche.chercher(client: etat.tmdb, ecartes: exclus)
+            }
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("OK") { fermer() }

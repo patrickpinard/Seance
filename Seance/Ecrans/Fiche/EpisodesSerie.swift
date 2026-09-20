@@ -67,7 +67,7 @@ struct SectionEpisodes: View {
         if !saisons.isEmpty {
             VStack(alignment: .leading, spacing: 14) {
                 TitreSection(titre: "Épisodes") {
-                    Text("\(vus.count) vus sur \(ProgressionSerie.total(serie.saisons))")
+                    Text("\(vus.count) \(vus.count > 1 ? "vus" : "vu") sur \(ProgressionSerie.total(serie.saisons))")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -262,6 +262,7 @@ struct SectionEpisodes: View {
                 } else {
                     _ = try? ServiceSuivi(contexte: contexte).cocher([episode], serie: serie)
                     replanifierAlertes()
+                    quitterLaSoiree(apres: episode.numeroEpisode)
                 }
             } label: {
                 Image(systemName: vu ? "checkmark.circle.fill" : "circle")
@@ -337,6 +338,21 @@ struct SectionEpisodes: View {
         guard !episodes.isEmpty else { return }
         _ = try? ServiceSuivi(contexte: contexte).cocher(episodes, serie: serie, anterieur: anterieur)
         replanifierAlertes()
+        if seulement, !anterieur { quitterLaSoiree(apres: cible) }
+    }
+
+    /// Un épisode coché le soir où la série est prévue : c'était lui, la soirée. La série la quitte, comme depuis la page
+    /// « Ce soir » ; « Encore un » la remet pour enchaîner sur le suivant.
+    private func quitterLaSoiree(apres numero: NumeroEpisode) {
+        let service = ServiceSoiree(contexte: contexte)
+        guard (try? service.estRetenu(serie.reference)) == true else { return }
+        try? service.retirer(serie.reference)
+        let reference = serie.reference
+        let nom = serie.nom
+        let affiche = serie.cheminAffiche
+        etat.confirmer("Épisode \(numero) vu · la série quitte ta soirée", symbole: "checkmark", libelleAction: "Encore un") { [contexte] in
+            try? ServiceSoiree(contexte: contexte).retenir(reference, titre: nom, cheminAffiche: affiche)
+        }
     }
 
     private func replanifierAlertes() {

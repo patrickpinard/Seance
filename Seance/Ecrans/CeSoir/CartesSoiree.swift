@@ -4,20 +4,6 @@ import SwiftUI
 
 // Les cartes de la page Ce soir, dans l'esprit du programme télé : l'image en grand, l'essentiel dessus.
 
-/// « Sur Netflix », « Sur le NAS », « Ce soir sur TF1 » : en vert, lisible sur une image.
-private struct PastilleOu: View {
-    let ou: String
-
-    var body: some View {
-        Label(ou, systemImage: ou.hasPrefix("Ce soir") ? "tv" : ou.hasPrefix("Sur le NAS") || ou.hasPrefix("Sur ton NAS") ? "externaldrive.fill" : "play.tv")
-            .font(.caption2.weight(.bold))
-            .lineLimit(1)
-            .foregroundStyle(.green)
-            .padding(.horizontal, 8).padding(.vertical, 4)
-            .background(.black.opacity(0.65), in: Capsule())
-    }
-}
-
 /// Un titre d'une soirée : son image en 16/9 avec ce qui se passe ce soir et où le regarder ; dessous, « Regardé »
 /// (ou « Ce soir » pour une soirée à venir), changer de soir, retirer.
 struct CarteSoiree: View {
@@ -25,6 +11,9 @@ struct CarteSoiree: View {
     let decor: EtatDecors.Decor?
     let rendezVous: String?
     let ou: String?
+    /// Pour une série : l'épisode à regarder (cherché sur le NAS) et sa durée.
+    var episode: NumeroEpisode?
+    var minutesEpisode: Int?
     let peutMarquerVu: Bool
     /// À la place de « Regardé » quand il n'y a rien à cocher : « Aucun nouvel épisode disponible ».
     var note: String?
@@ -41,7 +30,7 @@ struct CarteSoiree: View {
     }
 
     private var duree: String? {
-        guard let minutes = decor?.minutes, minutes > 0 else { return nil }
+        guard let minutes = titre.reference.type == .serie ? minutesEpisode : decor?.minutes, minutes > 0 else { return nil }
         return HeuresTele.duree(minutes)
     }
 
@@ -61,11 +50,6 @@ struct CarteSoiree: View {
                         LinearGradient(stops: [.init(color: .black.opacity(0.45), location: 0), .init(color: .clear, location: 0.35),
                                                .init(color: .black.opacity(0.92), location: 1)],
                                        startPoint: .top, endPoint: .bottom)
-                    }
-                    .overlay(alignment: .topLeading) {
-                        if let ouAffiche {
-                            PastilleOu(ou: ouAffiche).padding(12)
-                        }
                     }
                     .overlay(alignment: .bottomLeading) {
                         VStack(alignment: .leading, spacing: 4) {
@@ -100,6 +84,13 @@ struct CarteSoiree: View {
             .accessibilityElement(children: .ignore)
             .accessibilityLabel([titre.titre, detail, rendezVous, ouAffiche].compactMap { $0 }.joined(separator: ", "))
             .accessibilityAddTraits(.isButton)
+
+            // Où le regarder, tout de suite : c'est la première chose à savoir d'un titre prévu.
+            ActionsOuRegarder(reference: titre.reference, titre: titre.titre, episode: episode, secours: ouAffiche.flatMap { Self.secours($0) })
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 12)
+                .padding(.top, 8)
+                .background(Theme.surface)
 
             HStack(spacing: 10) {
                 if let ramener {
@@ -146,6 +137,14 @@ struct CarteSoiree: View {
         }
         .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).strokeBorder(.white.opacity(0.1), lineWidth: 1))
+    }
+}
+
+extension CarteSoiree {
+    /// Ce que la soirée sait quand aucune pastille ne s'applique. « Sur Netflix » ou « Sur ton NAS » ont leur pastille :
+    /// seul ce qui n'est pas chez toi (« À louer ou acheter », « Introuvable ») se dit en toutes lettres.
+    static func secours(_ ou: String) -> String? {
+        ou.hasPrefix("Sur ") || ou.hasPrefix("Ce soir sur") ? nil : ou
     }
 }
 

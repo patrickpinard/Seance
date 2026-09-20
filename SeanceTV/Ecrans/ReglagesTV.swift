@@ -325,7 +325,7 @@ private struct PageLectureTV: View {
 
     var body: some View {
         PageTV(titre: "Lecture", sousTitre: "L'app qui lit tes vidéos du NAS. « Lire » n'ouvre que celle-là.") {
-            SectionTV(explication: "Infuse ouvre le titre dans sa bibliothèque : le partage du NAS doit y être ajouté, sur cette Apple TV. VLC lit le fichier directement sur le NAS, avec ton compte et ton mot de passe. Tes vidéos personnelles passent toujours par VLC.") {
+            SectionTV(explication: "Infuse ouvre le titre dans sa bibliothèque : le partage du NAS doit y être ajouté, sur cette Apple TV. VLC lit le fichier directement sur le NAS, avec ton compte et ton mot de passe. Tes vidéos personnelles, elles, n'ont pas de fiche : elles passent par leur adresse dans le lecteur choisi ici.") {
                 ForEach(LecteurVideo.allCases) { lecteur in
                     LigneTVReglage(titre: lecteur.nom, action: { etat.choisir(lecteur) }) { BoutTV(forme: .coche(etat.lecteur == lecteur)) }
                 }

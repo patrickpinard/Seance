@@ -113,7 +113,7 @@ struct MenuActionsTitre: View {
         Button { etat.titreADater = choisi } label: { Label("Prévoir pour une soirée…", systemImage: "calendar") }
         Button { etat.titrePourListe = choisi } label: { Label("Ajouter à une liste…", systemImage: "list.bullet.rectangle.portrait") }
         Divider()
-        Button(role: .destructive) { lancer(.pasInteresse) } label: { Label("Pas intéressé", systemImage: "hand.thumbsdown") }
+        Button(role: .destructive) { lancer(.pasInteresse) } label: { Label("Je n'aime pas : ne plus me le proposer", systemImage: "hand.thumbsdown") }
     }
 
     private var choisi: TitreChoisi {
@@ -128,7 +128,7 @@ struct MenuActionsTitre: View {
 }
 
 extension View {
-    /// Appui long sur iPhone, clic droit sur Mac : À voir, Vu, Déjà vu avant, Ma soirée, Pas intéressé.
+    /// Appui long sur iPhone, clic droit sur Mac : À voir, Vu, Déjà vu avant, Ma soirée, Je n'aime pas.
     func actionsRapides(_ titre: TitreResume) -> some View {
         contextMenu { MenuActionsTitre(titre: titre) }
     }
@@ -147,7 +147,7 @@ struct BandeauConfirmation: View {
                 .font(.subheadline.weight(.semibold))
                 .accessibilityHidden(true)
             if confirmation.annuler != nil {
-                Button("Annuler") { etat.annulerDerniereAction() }
+                Button(confirmation.libelleAction) { etat.annulerDerniereAction() }
                     .font(.subheadline.weight(.bold))
                     .tint(Theme.accentClair)
                     .buttonStyle(.plain)

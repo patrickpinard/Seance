@@ -52,3 +52,21 @@ struct VideosPersoTests {
         #expect(!ailleurs.partageLeCompte(de: films))
     }
 }
+
+@Suite("Lecture d'une vidéo personnelle")
+struct LectureVideoPersoTests {
+    private let acces = ReglagesNAS(hote: "192.168.1.220", partage: "video", dossiers: [], utilisateur: "admin")
+
+    /// Une vidéo de famille n'a pas de fiche TMDB : elle ne peut pas s'ouvrir dans la bibliothèque d'Infuse, seulement
+    /// par son adresse. Les deux lecteurs savent recevoir une adresse ; c'est Infuse qui décidera de la lire ou non.
+    @Test func parSonAdresse() throws {
+        let video = try #require(acces.url(chemin: "2026/Noël.mov", motDePasse: "secret"))
+        let infuse = try #require(LecteurVideo.infuse.lien(pour: video))
+        let vlc = try #require(LecteurVideo.vlc.lien(pour: video))
+        #expect(infuse.absoluteString.hasPrefix("infuse://x-callback-url/play?url="))
+        #expect(vlc.absoluteString.hasPrefix("vlc-x-callback://x-callback-url/stream?url="))
+        // L'adresse voyage encodée : ni « / » ni « : » ne cassent le lien, et le mot de passe y est.
+        #expect(!infuse.absoluteString.contains("smb://"))
+        #expect(infuse.absoluteString.contains("secret"))
+    }
+}

@@ -62,11 +62,13 @@ struct VideosPersoTV: View {
     }
 
     private func lire(_ video: VideoPerso) {
-        guard let lien = etat.videosPerso.lien(pour: video, films: etat.nas) else {
+        guard let lien = etat.videosPerso.lien(pour: video, films: etat.nas, lecteur: etat.lecteur) else {
             return etat.dire("Le mot de passe de cet accès manque : vois Réglages › Vidéos personnelles.")
         }
         ouvrir(lien) { accepte in
-            if !accepte { etat.dire("Tes vidéos personnelles se lisent avec VLC : installe-le sur cette Apple TV.") }
+            if !accepte {
+                etat.dire("\(etat.lecteur.nom) n'a pas ouvert cette vidéo. Si rien ne se lance, choisis VLC dans Réglages › Lecture.")
+            }
         }
     }
 
@@ -115,7 +117,7 @@ struct PageVideosPersoTV: View {
                     Text("Où sont-elles ?")
                 } footer: {
                     Text((memeCompte ? "Même serveur et même compte que tes films : leur mot de passe sert ici aussi. " : "Autre serveur ou autre compte : donne son mot de passe. ")
-                         + "Elles se lisent avec VLC : Infuse n'ouvre par lien que les titres de sa bibliothèque.")
+                         + "Elles s'ouvrent dans le lecteur choisi dans Réglages › Lecture ; n'ayant pas de fiche TMDB, elles passent par leur adresse.")
                 }
             }
         }

@@ -13,8 +13,9 @@ import SwiftUI
 final class EtatOu {
     enum Badge: Hashable {
         case nas
-        case plateforme(nom: String, logo: String?)
-        /// `quand` : « ce soir », ou le jour et l'heure du prochain passage de la semaine.
+        /// `id` : l'identifiant TMDB de la plateforme, pour ouvrir sa recherche sur le titre (`LiensPlateformes`).
+        case plateforme(id: Int, nom: String, logo: String?)
+        /// `quand` : « ce soir à 20:55 », « en ce moment », ou le jour et l'heure du prochain passage de la semaine.
         case tele(chaine: String, quand: String)
     }
 
@@ -76,7 +77,10 @@ final class EtatOu {
             guard let id = diffusion.tmdbID else { continue }
             let reference = ReferenceTitre(type: TypeTitre(rawValue: diffusion.typeBrut) ?? .film, tmdbID: id)
             guard semaine[reference] == nil else { continue }
-            let quand = ceSoir[reference] != nil ? "ce soir" : diffusion.debut.formatted(.dateTime.weekday(.abbreviated).hour().minute().locale(Locale(identifier: "fr_CH")))
+            let heure = diffusion.debut.formatted(.dateTime.hour().minute().locale(Locale(identifier: "fr_CH")))
+            let quand = diffusion.debut <= maintenant ? "en ce moment"
+                : ceSoir[reference] != nil ? "ce soir à \(heure)"
+                : diffusion.debut.formatted(.dateTime.weekday(.wide).day().month(.abbreviated).locale(Locale(identifier: "fr_CH"))) + " à \(heure)"
             semaine[reference] = (chaines[diffusion.chaine] ?? diffusion.chaine, quand)
         }
         teleSemaine = semaine
@@ -88,18 +92,25 @@ final class EtatOu {
         var resultat: [Badge] = []
         if nas.contains(reference) { resultat.append(.nas) }
         let plateformes = (entrees[Self.cle(reference)]?.plateformes ?? []).filter { abonnements.contains($0.id) }.sorted { $0.priorite < $1.priorite }
-        resultat += plateformes.prefix(2).map { .plateforme(nom: $0.nom, logo: $0.logo) }
+        resultat += plateformes.prefix(2).map { .plateforme(id: $0.id, nom: $0.nom, logo: $0.logo) }
         if let passage = teleSemaine[reference] { resultat.append(.tele(chaine: passage.chaine, quand: passage.quand)) }
         return resultat
     }
+
+    /// Vrai quand les plateformes du titre ont été lues : « dans aucun de tes abonnements » peut alors se dire.
+    func plateformesConnues(_ reference: ReferenceTitre) -> Bool {
+        entrees[Self.cle(reference)] != nil
+    }
+
+    var aDesAbonnements: Bool { !abonnements.isEmpty }
 
     /// Le badge d'une affiche : le NAS d'abord, puis la première plateforme cochée, puis la télé de ce soir.
     func badge(_ reference: ReferenceTitre) -> Badge? {
         if nas.contains(reference) { return .nas }
         if let plateforme = entrees[Self.cle(reference)]?.plateformes.filter({ abonnements.contains($0.id) }).min(by: { $0.priorite < $1.priorite }) {
-            return .plateforme(nom: plateforme.nom, logo: plateforme.logo)
+            return .plateforme(id: plateforme.id, nom: plateforme.nom, logo: plateforme.logo)
         }
-        if let chaine = tele[reference] { return .tele(chaine: chaine, quand: "ce soir") }
+        if let chaine = tele[reference] { return .tele(chaine: chaine, quand: teleSemaine[reference]?.quand ?? "ce soir") }
         return nil
     }
 
@@ -154,7 +165,7 @@ struct BadgeOu: View {
             ForEach(badges, id: \.self) { badge in
                 switch badge {
                 case .nas: pastille("externaldrive.fill")
-                case .plateforme(_, let logo): BadgeOu.logo(logo)
+                case .plateforme(_, _, let logo): BadgeOu.logo(logo)
                 case .tele: pastille("tv.fill")
                 }
             }
@@ -170,7 +181,7 @@ struct BadgeOu: View {
     static func libelle(_ badge: EtatOu.Badge) -> String {
         switch badge {
         case .nas: "Sur ton NAS"
-        case .plateforme(let nom, _): nom
+        case .plateforme(_, let nom, _): nom
         case .tele(let chaine, let quand): "\(chaine), \(quand)"
         }
     }
@@ -207,7 +218,7 @@ struct RangeeOu: View {
                     HStack(spacing: 6) {
                         switch badge {
                         case .nas: Image(systemName: "externaldrive.fill").foregroundStyle(Theme.accentClair)
-                        case .plateforme(_, let logo): BadgeOu.logo(logo).frame(width: 20, height: 20)
+                        case .plateforme(_, _, let logo): BadgeOu.logo(logo).frame(width: 20, height: 20)
                         case .tele: Image(systemName: "tv.fill").foregroundStyle(Theme.accentClair)
                         }
                         Text(BadgeOu.libelle(badge)).font(.caption.weight(.semibold)).lineLimit(1)

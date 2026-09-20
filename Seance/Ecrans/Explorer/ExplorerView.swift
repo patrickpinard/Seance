@@ -33,6 +33,12 @@ struct ExplorerView: View {
     @Query(sort: \Suivi.ajouteLe, order: .reverse) private var mesTitres: [Suivi]
     @Query(filter: #Predicate<Suivi> { $0.statutBrut == "termine" }) private var termines: [Suivi]
 
+    /// Les résultats sans ce que tu as écarté (« Je n'aime pas », ni VF ni sous-titres) : ils ne sont plus proposés.
+    private var resultatsProposes: [TitreResume] {
+        let ecartes = Set(mesTitres.filter { $0.statut == .exclu || $0.exclusionLangue }.map(\.reference))
+        return ecartes.isEmpty ? modele.resultats : modele.resultats.filter { !ecartes.contains($0.reference) }
+    }
+
     @State private var texte = ""
     @State private var portee = PorteeRecherche.tout
     @State private var titres: [TitreResume] = []
@@ -560,7 +566,7 @@ struct ExplorerView: View {
         }
         if enListe {
             LazyVStack(spacing: 12) {
-                ForEach(modele.resultats) { titre in
+                ForEach(resultatsProposes) { titre in
                     NavigationLink(value: titre.reference) { ligne(titre) }
                         .buttonStyle(.plain)
                         .actionsRapides(titre)
@@ -570,7 +576,7 @@ struct ExplorerView: View {
             .padding(.horizontal, 20)
         } else {
             LazyVGrid(columns: colonnes, spacing: 18) {
-                ForEach(modele.resultats) { titre in
+                ForEach(resultatsProposes) { titre in
                     NavigationLink(value: titre.reference) {
                         CarteAffiche(titre: titre, largeur: nil)
                     }
@@ -631,7 +637,7 @@ struct ExplorerView: View {
     }
 
     private func suite(apres titre: TitreResume) {
-        guard titre.reference == modele.resultats.last?.reference, let client = etat.tmdb else { return }
+        guard titre.reference == resultatsProposes.last?.reference, let client = etat.tmdb else { return }
         Task { await modele.chargerSuite(client: client, contexte: contexte, abonnements: abonnements.map(\.providerID)) }
     }
 

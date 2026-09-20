@@ -153,6 +153,16 @@ struct AccueilView: View {
     @Query(sort: \SelectionSoir.ajouteLe) private var selections: [SelectionSoir]
     @Query(sort: \Suivi.ajouteLe, order: .reverse) private var suivis: [Suivi]
 
+    /// « Je n'aime pas », « ni VF ni sous-titres » : ces titres ne sont plus proposés, l'accueil compris.
+    private var ecartes: Set<ReferenceTitre> {
+        Set(suivis.filter { $0.statut == .exclu || $0.exclusionLangue }.map(\.reference))
+    }
+
+    private func proposables(_ titres: [TitreResume]) -> [TitreResume] {
+        let ecartes = ecartes
+        return ecartes.isEmpty ? titres : titres.filter { !ecartes.contains($0.reference) }
+    }
+
     /// Ce que tu veux voir ou es en train de regarder : on demande pour chacun où il se regarde (réponse gardée 12 h).
     private var candidatsRegardables: [Suivi] {
         Array(suivis.filter { ($0.statut == .aVoir || $0.statut == .enCours) && !$0.masque }.prefix(40))
@@ -262,7 +272,7 @@ struct AccueilView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 28) {
                 // Les premiers du moment qui ont une image de fond : 3, 5 ou 8.
-                BandeauVedette(titres: Array(modele.duMoment.filter { $0.cheminFond != nil }.prefix(sources.nombreBandeau)))
+                BandeauVedette(titres: Array(proposables(modele.duMoment).filter { $0.cheminFond != nil }.prefix(sources.nombreBandeau)))
 
                 if let erreur = modele.erreur {
                     MessageEtat(texte: erreur, ton: .probleme, libelleAction: "Réessayer") {
@@ -325,7 +335,7 @@ struct AccueilView: View {
                 }
 
                 if sources.top10, !modele.topFilms.isEmpty || !modele.topSeries.isEmpty {
-                    SectionTop10(films: modele.topFilms, series: modele.topSeries, nombre: sources.nombreTop,
+                    SectionTop10(films: proposables(modele.topFilms), series: proposables(modele.topSeries), nombre: sources.nombreTop,
                                  plateformes: plateformes.map(nomsPlateformes))
                 }
 
@@ -346,7 +356,7 @@ struct AccueilView: View {
                             .font(.caption)
                             .foregroundStyle(.secondary)
                             .padding(.horizontal, 20)
-                        Carrousel(titres: modele.duMoment) { modele.sousTitre($0) }
+                        Carrousel(titres: proposables(modele.duMoment)) { modele.sousTitre($0) }
                     }
                 }
 

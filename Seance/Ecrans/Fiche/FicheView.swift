@@ -157,6 +157,8 @@ private struct ContenuFiche: View {
         .toolbarBackground(defile ? .visible : .hidden, for: .navigationBar)
         .ignoresSafeArea(edges: .top)
         .task { rafraichir() }
+        // « Annuler » sur le message d'une action (soirée, je n'aime pas) : les boutons de la fiche se remettent d'accord.
+        .onChange(of: etat.confirmation == nil) { rafraichir() }
         .sheet(item: $videoChoisie) { video in
             LecteurBandeAnnonce(video: video)
         }
@@ -356,6 +358,16 @@ private struct ContenuFiche: View {
                 }
             }
 
+            // 🌙 La soirée est le geste central de Séance : il a sa place dans la rangée, plus derrière « Plus ».
+            legende(dansSoiree ? "Ce soir ✓" : "Ce soir") {
+                BoutonIcone(symbole: dansSoiree ? "moon.fill" : "moon.stars", libelle: dansSoiree ? "Retirer de ma soirée" : "Ajouter à ma soirée",
+                            actif: dansSoiree,
+                            explication: dansSoiree ? "Ce titre est dans ta soirée de ce soir. Touche pour l'en retirer."
+                                                    : "Ajouter ce titre à ta soirée de ce soir. « Plus » permet de choisir un autre soir.") {
+                    basculerSoiree()
+                }
+            }
+
             if let film = fiche.film {
                 legende(vu ? "Vu" : "Marquer vu") {
                     if vu {
@@ -370,7 +382,8 @@ private struct ContenuFiche: View {
                 boutonAlertes
             }
 
-            if let video = fiche.videos.first {
+            // Six boutons ne tiennent pas sur un iPhone : la bande-annonce garde sa section, plus bas dans la fiche.
+            if largeurDisponible >= 440, let video = fiche.videos.first {
                 legende("Bande-annonce") {
                     BoutonIcone(symbole: "play.rectangle.fill", libelle: "Bande-annonce",
                                 explication: "Voir la bande-annonce, lue en streaming : rien n'est enregistré sur l'appareil.") {
@@ -463,17 +476,6 @@ private struct ContenuFiche: View {
         let adresse = URL(string: "https://www.themoviedb.org/\(fiche.reference.type == .film ? "movie" : "tv")/\(fiche.reference.tmdbID)")!
         return Menu {
             Button {
-                let service = ServiceSoiree(contexte: contexte)
-                if dansSoiree {
-                    try? service.retirer(fiche.reference)
-                } else {
-                    try? service.retenir(fiche.reference, titre: fiche.titre, cheminAffiche: fiche.cheminAffiche)
-                }
-                rafraichir()
-            } label: {
-                Label(dansSoiree ? "Retirer de ma soirée" : "Ajouter à ma soirée", systemImage: dansSoiree ? "moon.fill" : "moon.stars")
-            }
-            Button {
                 etat.titreADater = TitreChoisi(reference: fiche.reference, titre: fiche.titre, cheminAffiche: fiche.cheminAffiche)
             } label: {
                 Label("Prévoir pour une soirée…", systemImage: "calendar")
@@ -498,11 +500,57 @@ private struct ContenuFiche: View {
                     Label("Ni VF ni sous-titres FR", systemImage: "captions.bubble")
                 }
             }
+            if suivi?.statut != .exclu {
+                Button(role: .destructive) { nePlusProposer() } label: {
+                    Label("Je n'aime pas : ne plus me le proposer", systemImage: "hand.thumbsdown")
+                }
+            } else {
+                Button {
+                    try? ServiceGouts(contexte: contexte).reproposer(fiche.reference)
+                    rafraichir()
+                    etat.confirmer("« \(fiche.titre) » pourra de nouveau t'être proposé", symbole: "hand.thumbsup")
+                } label: {
+                    Label("Me le reproposer", systemImage: "hand.thumbsup")
+                }
+            }
         } label: {
             RondIcone(symbole: "ellipsis", taille: 40)
         }
-        .help("Ma soirée, prévoir une soirée, listes, partager, voir sur TMDB, écarter faute de version française")
+        .help("Prévoir une soirée, listes, partager, voir sur TMDB, écarter : pas de version française, ou je n'aime pas")
         .accessibilityLabel("Plus d'actions")
+    }
+
+    /// 🌙 Ajoute à la soirée de ce soir ou en retire, et le dit : sans message, rien ne montrait que le geste avait pris.
+    private func basculerSoiree() {
+        let service = ServiceSoiree(contexte: contexte)
+        let reference = fiche.reference
+        let titre = fiche.titre
+        let affiche = fiche.cheminAffiche
+        if dansSoiree {
+            try? service.retirer(reference)
+            etat.confirmer("« \(titre) » retiré de ta soirée", symbole: "moon") { [contexte] in
+                try? ServiceSoiree(contexte: contexte).retenir(reference, titre: titre, cheminAffiche: affiche)
+            }
+        } else {
+            try? service.retenir(reference, titre: titre, cheminAffiche: affiche)
+            etat.confirmer("Ajouté à ta soirée de ce soir", symbole: "moon.stars.fill") { [contexte] in
+                try? ServiceSoiree(contexte: contexte).retirer(reference)
+            }
+        }
+        rafraichir()
+    }
+
+    /// « Je n'aime pas » : le titre ne revient plus dans les idées, l'accueil ni Explorer ; Réglages › Toi permet de tout reproposer.
+    private func nePlusProposer() {
+        let reference = fiche.reference
+        let avant = suivi
+        let statutAvant = avant?.statut
+        try? ServiceGouts(contexte: contexte).jamais(reference, titre: fiche.titre)
+        try? ServiceSoiree(contexte: contexte).retirer(reference)
+        rafraichir()
+        etat.confirmer("Ne te sera plus proposé", symbole: "hand.thumbsdown.fill") { [contexte] in
+            AnnulationTitre.restaurer(reference, existait: avant != nil, statut: statutAvant, contexte: contexte)
+        }
     }
 
     private func reglerAlertes(_ mode: ModeAlerteSerie?) {

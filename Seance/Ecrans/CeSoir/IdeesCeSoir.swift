@@ -116,11 +116,14 @@ struct SectionIdees: View {
     @State private var precisionOuverte = false
     @AppStorage(NombreIdees.cle) private var nombreIdees = NombreIdees.parDefaut
     @AppStorage(Prenom.cle) private var prenom = ""
+    /// Vus, écartés ou reportés depuis le calcul des idées : la liste est gardée pour la session, pas ce qu'elle exclut.
+    /// Sans cela, le film marqué « Regardé » à l'instant revenait en tête des idées.
+    @State private var ecartes: Set<ReferenceTitre> = []
 
     /// Trois, cinq ou dix idées à la fois (Réglages › Toi), parmi celles ni traitées ni déjà montrées plus haut.
     private var idees: [SuggestionClassee] {
         Array((modele.resultat?.suggestions ?? [])
-            .filter { !modele.retirees.contains($0.reference) && !dejaMontres.contains($0.reference) }
+            .filter { !modele.retirees.contains($0.reference) && !dejaMontres.contains($0.reference) && !ecartes.contains($0.reference) }
             .prefix(NombreIdees.lire(nombreIdees)))
     }
 
@@ -142,6 +145,13 @@ struct SectionIdees: View {
                 .help("Chercher d'autres idées")
             }
 
+            // Film, série ou les deux : le choix relance la recherche.
+            SelecteurCases(selection: Binding { modele.demande.type } set: { type in
+                guard type != modele.demande.type else { return }
+                modele.demande.type = type
+                Task { await modele.chercher(etat: etat, contexte: contexte, precise: !modele.demande.envieNettoyee.isEmpty) }
+            }, cases: [.init(valeur: nil, nom: "Films et séries"), .init(valeur: TypeTitre.film, nom: "Films"), .init(valeur: TypeTitre.serie, nom: "Séries")])
+
             if modele.profil.estVide, modele.charge {
                 MessageEtat(texte: "Choisis tes goûts dans Profil › Mes goûts, et note ce que tu regardes : les idées seront sur mesure.",
                             symbole: "heart")
@@ -161,7 +171,7 @@ struct SectionIdees: View {
             }
 
             ForEach(idees) { suggestion in
-                CarteIdee(suggestion: suggestion, ou: modele.libelleOu(suggestion.reference)) { action in traiter(action, suggestion) }
+                CarteIdee(suggestion: suggestion, ou: modele.libelleOu(suggestion.reference).flatMap { CarteSoiree.secours($0) }) { action in traiter(action, suggestion) }
             }
 
             DisclosureGroup(isExpanded: $precisionOuverte) {
@@ -186,7 +196,13 @@ struct SectionIdees: View {
         .task(id: etat.tmdb != nil) {
             if !modele.charge { await modele.chercher(etat: etat, contexte: contexte) }
         }
+        .onAppear(perform: lireEcartes)
         .animation(.easeOut(duration: 0.25), value: idees.map(\.id))
+    }
+
+    private func lireEcartes() {
+        guard let exclusions = try? ServiceGouts(contexte: contexte).contexteCandidats() else { return }
+        ecartes = exclusions.dejaVus.union(exclusions.exclus).union(exclusions.reportes)
     }
 
     /// Les trois actions du cahier (EF-26), avec annulation.
@@ -248,11 +264,6 @@ private struct CarteIdee: View {
                         }
                         .font(.caption)
                         .foregroundStyle(.secondary)
-                        if let ou {
-                            Label(ou, systemImage: ou.hasPrefix("Ce soir") ? "tv" : ou.hasPrefix("Sur le NAS") ? "externaldrive.fill" : "play.tv")
-                                .font(.caption.weight(.semibold))
-                                .foregroundStyle(.green)
-                        }
                         Text(suggestion.phrase)
                             .font(.subheadline)
                             .foregroundStyle(.primary.opacity(0.9))
@@ -265,11 +276,14 @@ private struct CarteIdee: View {
             .buttonStyle(.plain)
             .actionsRapides(suggestion.candidat.titre)
 
+            // Où la regarder, tout de suite : lire sur le NAS, ouvrir la plateforme, ou la chaîne et l'heure.
+            ActionsOuRegarder(reference: suggestion.reference, titre: suggestion.candidat.titre.titre, secours: ou)
+
             // Compact sur l'iPhone : deux icônes rondes (nom à l'appui long) et un seul bouton écrit, sur une ligne.
             HStack(spacing: 10) {
                 Spacer()
-                BoutonIcone(symbole: "hand.thumbsdown", libelle: "Jamais", taille: 36,
-                            explication: "Ne plus jamais proposer ce titre. Séance en tient compte pour tes goûts.") { action(.jamais) }
+                BoutonIcone(symbole: "hand.thumbsdown", libelle: "Je n'aime pas", taille: 36,
+                            explication: "Ne plus jamais proposer ce titre. Séance en tient compte pour tes goûts ; Réglages › Toi permet de tout reproposer.") { action(.jamais) }
                 BoutonIcone(symbole: "clock.arrow.circlepath", libelle: "Pas ce soir", taille: 36,
                             explication: "L'écarter pour ce soir : il pourra revenir dès demain.") { action(.pasCeSoir) }
                 Button { action(.jeRegarde) } label: {

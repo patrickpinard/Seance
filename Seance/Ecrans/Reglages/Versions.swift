@@ -20,6 +20,15 @@ struct NoteVersion: Identifiable {
 
     static let historique: [NoteVersion] = [
         NoteVersion(
+            numero: "4.4.1",
+            date: "20 septembre 2026",
+            resume: "Tes vidéos personnelles s'ouvrent dans le lecteur que tu as choisi, Infuse compris.",
+            fonctionnalites: [
+                Fonctionnalite(symbole: "play.rectangle", titre: "Vidéos personnelles : ton lecteur",
+                               detail: "Elles passaient d'office par VLC. Elles s'ouvrent maintenant dans le lecteur de Réglages › Lecture. N'ayant pas de fiche TMDB, elles ne peuvent pas s'ouvrir dans la bibliothèque d'Infuse comme un film du NAS : Séance lui passe le fichier à son adresse. Si rien ne se lance, l'écran te propose de choisir VLC."),
+            ]
+        ),
+        NoteVersion(
             numero: "4.4",
             date: "20 septembre 2026",
             resume: "L'Apple TV refaite : une grande image d'accueil, des réglages enfin lisibles, et les écrans de l'iPhone.",

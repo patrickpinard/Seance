@@ -72,11 +72,11 @@ struct VideosPersoView: View {
             }
         }
         .task { await etat.videosPerso.lire(films: etat.nas.reglages) }
-        .alert("Cette vidéo ne peut pas s'ouvrir", isPresented: Binding { illisible != nil } set: { if !$0 { illisible = nil } }) {
-            Button("Ouvrir l'App Store") { ouvrir(LecteurVideo.vlc.appStore) }
+        .alert("\(etat.nas.lecteur.nom) n'a pas ouvert cette vidéo", isPresented: Binding { illisible != nil } set: { if !$0 { illisible = nil } }) {
+            Button("Ouvrir l'App Store") { ouvrir(etat.nas.lecteur.appStore) }
             Button("OK", role: .cancel) {}
         } message: {
-            Text("Tes vidéos personnelles se lisent avec VLC : Infuse n'ouvre par lien que les films et séries de sa bibliothèque. Installe VLC, et vérifie le mot de passe de l'accès dans Réglages › Vidéos personnelles.")
+            Text("Vérifie qu'elle est installée, et que le mot de passe de l'accès est enregistré dans Réglages › Vidéos personnelles. Une vidéo de famille n'a pas de fiche TMDB : Infuse doit la lire par son adresse, ce qu'il ne sait peut-être pas faire — dans ce cas, choisis VLC dans Réglages › Lecture.")
         }
     }
 
@@ -104,7 +104,7 @@ struct VideosPersoView: View {
     }
 
     private func lire(_ video: VideoPerso) {
-        guard let lien = etat.videosPerso.lien(pour: video, films: etat.nas.reglages) else { illisible = video; return }
+        guard let lien = etat.videosPerso.lien(pour: video, films: etat.nas.reglages, lecteur: etat.nas.lecteur) else { illisible = video; return }
         ouvrir(lien) { accepte in if !accepte { illisible = video } }
     }
 
@@ -167,7 +167,7 @@ struct ReglagesVideosPersoView: View {
                         NavigationLink(value: DossierVideosPerso()) { Label("Voir mes vidéos", systemImage: "video.fill") }
                     }
                 } footer: {
-                    Text("Elles se lisent avec VLC, même si ton lecteur est Infuse : Infuse n'ouvre par lien que les titres de sa bibliothèque.")
+                    Text("Elles s'ouvrent dans le lecteur choisi dans Réglages › Lecture. Une vidéo de famille n'ayant pas de fiche TMDB, Infuse doit la lire par son adresse : si rien ne se lance, choisis VLC.")
                 }
             }
         }

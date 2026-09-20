@@ -12,6 +12,14 @@ final class SoireeModele {
         let serie: SerieDetail
         let cheminAffiche: String?
         let numero: NumeroEpisode
+        /// Le nom et la durée de l'épisode, lus pour les séries de la soirée : « S01E01 · Winter Is Coming · 62 min ».
+        var nom: String?
+        var minutes: Int?
+
+        /// « S01E01 · Winter Is Coming » ; le numéro seul tant que le nom n'est pas connu.
+        var libelle: String {
+            [numero.description, nom].compactMap { $0 }.joined(separator: " · ")
+        }
     }
 
     struct Disponible: Identifiable {
@@ -44,20 +52,33 @@ final class SoireeModele {
         let nas = Set(((try? contexte.fetch(FetchDescriptor<FichierNAS>(predicate: #Predicate { $0.tmdbID != nil }))) ?? []).compactMap(\.reference))
         let suivi = ServiceSuivi(contexte: contexte)
 
-        let idsSeries = series.map(\.tmdbID)
         let jour = ServiceSoiree.soiree()
-        let gardes = ((try? contexte.fetch(FetchDescriptor<SelectionSoir>())) ?? []).filter { $0.soiree == jour }.map(\.reference)
+        let soirees = ((try? contexte.fetch(FetchDescriptor<SelectionSoir>())) ?? []).filter { $0.soiree >= jour }
+        let gardes = soirees.filter { $0.soiree == jour }.map(\.reference)
+        // Une série prévue pour une soirée compte même si elle n'a jamais été commencée : son prochain épisode est le
+        // premier. Sans cela, la carte disait « Aucun nouvel épisode disponible » et n'offrait rien à cocher.
+        let seriesPrevues = soirees.map(\.reference).filter { $0.type == .serie }
+        let idsSeries = Array(Set(series.map(\.tmdbID) + seriesPrevues.map(\.tmdbID)))
         let referencesOu = Array(Set(aVoir.map(\.reference) + gardes)).filter { !nas.contains($0) }
         async let fiches = Self.series(idsSeries, client: tmdb)
         async let offres = Self.offres(referencesOu, client: tmdb)
 
-        episodes = await fiches.compactMap { serie in
+        var prochains = await fiches.compactMap { serie -> Episode? in
             let vus = (try? suivi.episodesVus(serie.reference)) ?? []
             guard let prochain = ProgressionSerie.suivant(vus: vus, saisons: serie.saisons, dernierDiffuse: serie.dernierEpisode),
                   prochain.disponible else { return nil }
             return Episode(serie: serie, cheminAffiche: series.first { $0.tmdbID == serie.id }?.cheminAffiche ?? serie.cheminAffiche,
                            numero: prochain.numero)
         }
+        // Le nom et la durée de l'épisode, pour les seules séries d'une soirée : une fiche de saison chacune.
+        let prevues = Set(seriesPrevues)
+        for (rang, episode) in prochains.enumerated() where prevues.contains(episode.id) {
+            guard let saison = try? await tmdb.saison(episode.numero.saison, serie: episode.serie.id),
+                  let detail = saison.episodes.first(where: { $0.numeroEpisode == episode.numero }) else { continue }
+            prochains[rang].nom = detail.nom.isEmpty ? nil : detail.nom
+            prochains[rang].minutes = detail.dureeMinutes ?? episode.serie.dureesEpisode.first
+        }
+        episodes = prochains
 
         // La même règle que « Regardable ce soir » dans Mes listes : NAS, abonnements, ou télé ce soir.
         let lesOffres = await offres
@@ -179,7 +200,7 @@ struct PropositionsSoiree: View {
                     entete("Épisodes à regarder", symbole: "play.tv.fill")
                     ForEach(episodes) { episode in
                         ligne(reference: episode.serie.reference, titre: episode.serie.nom, affiche: episode.cheminAffiche,
-                              detail: "Épisode \(episode.numero)")
+                              detail: "Épisode \(episode.numero)", episode: episode.numero)
                     }
                 }
             }
@@ -208,7 +229,17 @@ struct PropositionsSoiree: View {
             .minimumScaleFactor(0.8)
     }
 
-    private func ligne(reference: ReferenceTitre, titre: String, affiche: String?, detail: String) -> some View {
+    private func ligne(reference: ReferenceTitre, titre: String, affiche: String?, detail: String, episode: NumeroEpisode? = nil) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            enTeteLigne(reference: reference, titre: titre, affiche: affiche, detail: detail)
+            // Où le regarder, tout de suite : lire sur le NAS, ouvrir la plateforme, ou la chaîne et l'heure.
+            ActionsOuRegarder(reference: reference, titre: titre, episode: episode)
+        }
+        .padding(10)
+        .background(Theme.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+    }
+
+    private func enTeteLigne(reference: ReferenceTitre, titre: String, affiche: String?, detail: String) -> some View {
         HStack(spacing: 12) {
             NavigationLink(value: reference) {
                 HStack(spacing: 12) {
@@ -228,8 +259,6 @@ struct PropositionsSoiree: View {
                 try? ServiceSoiree(contexte: contexte).retenir(reference, titre: titre, cheminAffiche: affiche, soiree: soiree)
             }
         }
-        .padding(10)
-        .background(Theme.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
     }
 }
 

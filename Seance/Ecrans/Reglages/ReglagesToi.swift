@@ -9,6 +9,11 @@ import SwiftUI
 struct ReglagesPrenomView: View {
     @AppStorage(Prenom.cle) private var prenom = ""
     @AppStorage(NombreIdees.cle) private var nombreIdees = NombreIdees.parDefaut
+    @Environment(EtatApp.self) private var etat
+    @Environment(\.modelContext) private var contexte
+    /// « Je n'aime pas », « Jamais », « Ni VF ni sous-titres » : ce que Séance ne te propose plus.
+    @Query(filter: #Predicate<Suivi> { $0.statutBrut == "exclu" || $0.exclusionLangue }, sort: \Suivi.titre) private var ecartes: [Suivi]
+    @State private var confirmationToutReproposer = false
 
     var body: some View {
         Form {
@@ -37,6 +42,43 @@ struct ReglagesPrenomView: View {
                 Text("Idées pour ce soir")
             } footer: {
                 Text("Le nombre d'idées que « Idées pour ce soir » te montre à la fois. Celles que tu écartes sont remplacées par les suivantes.")
+            }
+
+            Section {
+                if ecartes.isEmpty {
+                    Label("Aucun titre écarté", systemImage: "hand.thumbsup").foregroundStyle(.secondary)
+                } else {
+                    ForEach(ecartes) { suivi in
+                        HStack {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(suivi.titre.isEmpty ? "Titre sans nom" : suivi.titre)
+                                Text(suivi.exclusionLangue ? "Ni VF ni sous-titres" : suivi.type == .film ? "Film" : "Série")
+                                    .font(.caption).foregroundStyle(.secondary)
+                            }
+                            Spacer()
+                            Button("Reproposer") {
+                                try? ServiceGouts(contexte: contexte).reproposer(suivi.reference)
+                            }
+                            .buttonStyle(.borderless)
+                            .accessibilityLabel("Reproposer \(suivi.titre)")
+                        }
+                    }
+                    Button("Tout reproposer (\(ecartes.count))", role: .destructive) { confirmationToutReproposer = true }
+                        .accessibilityIdentifier("toutReproposer")
+                }
+            } header: {
+                Text("Titres que tu as écartés")
+            } footer: {
+                Text("« Je n'aime pas » sur une idée, une affiche ou une fiche : le titre ne t'est plus proposé, ni dans les idées du soir, ni sur l'accueil, ni dans Explorer. « Tout reproposer » efface ces exclusions ; tes listes, tes notes et ce que tu as vu ne changent pas.")
+            }
+            .confirmationDialog("Reproposer les \(ecartes.count) titres écartés ?", isPresented: $confirmationToutReproposer, titleVisibility: .visible) {
+                Button("Tout reproposer", role: .destructive) {
+                    let nombre = (try? ServiceGouts(contexte: contexte).reproposerTout()) ?? 0
+                    etat.confirmer(nombre > 1 ? "\(nombre) titres de nouveau proposés" : "Titre de nouveau proposé", symbole: "hand.thumbsup.fill")
+                }
+                Button("Annuler", role: .cancel) {}
+            } message: {
+                Text("Ils pourront revenir dans les idées du soir, sur l'accueil et dans Explorer.")
             }
         }
         .pageReglages("Toi")

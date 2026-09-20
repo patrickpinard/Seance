@@ -132,13 +132,15 @@ final class EtatApp {
         let symbole: String
         /// Présent pour une action qu'on peut regretter : le message propose alors « Annuler ».
         let annuler: (@MainActor () -> Void)?
+        /// « Annuler » d'ordinaire ; « Encore un » quand le bouton propose une suite plutôt qu'un retour en arrière.
+        var libelleAction = "Annuler"
 
         static func == (a: Confirmation, b: Confirmation) -> Bool { a.id == b.id }
     }
 
     /// Affiche la confirmation deux secondes, ou cinq quand elle propose d'annuler.
-    func confirmer(_ texte: String, symbole: String, annuler: (@MainActor () -> Void)? = nil) {
-        let message = Confirmation(texte: texte, symbole: symbole, annuler: annuler)
+    func confirmer(_ texte: String, symbole: String, libelleAction: String = "Annuler", annuler: (@MainActor () -> Void)? = nil) {
+        let message = Confirmation(texte: texte, symbole: symbole, annuler: annuler, libelleAction: libelleAction)
         confirmation = message
         Task {
             try? await Task.sleep(for: .seconds(annuler == nil ? 2 : 5))
@@ -148,13 +150,15 @@ final class EtatApp {
 
     /// Annule l'action du message affiché, puis le retire.
     func annulerDerniereAction() {
-        guard let annuler = confirmation?.annuler else { return }
+        guard let message = confirmation, let annuler = message.annuler else { return }
         annuler()
-        confirmation = Confirmation(texte: "Annulé", symbole: "arrow.uturn.backward", annuler: nil)
-        let message = confirmation
+        // Une suite (« Encore un ») n'annule rien : le message s'efface simplement.
+        guard message.libelleAction == "Annuler" else { confirmation = nil; return }
+        let annule = Confirmation(texte: "Annulé", symbole: "arrow.uturn.backward", annuler: nil)
+        confirmation = annule
         Task {
             try? await Task.sleep(for: .seconds(1.5))
-            if confirmation == message { confirmation = nil }
+            if confirmation == annule { confirmation = nil }
         }
     }
 

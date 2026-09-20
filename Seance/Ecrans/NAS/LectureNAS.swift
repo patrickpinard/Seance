@@ -12,6 +12,8 @@ struct BoutonLectureNAS: View {
     var grand = false
     /// Une ligne entière (un épisode, une copie du film) : la toucher n'importe où lance la lecture.
     var ligne: (titre: String, detail: String)?
+    /// Une pastille « où regarder » (page Ce soir) : « Lire sur le NAS », du même dessin que les autres pastilles.
+    var pastille = false
 
     @Environment(EtatApp.self) private var etat
     @Environment(\.openURL) private var openURL
@@ -32,7 +34,9 @@ struct BoutonLectureNAS: View {
 
     @ViewBuilder
     private var etiquette: some View {
-        if let ligne {
+        if pastille {
+            PastilleOuRegarder(symbole: "play.fill", texte: libelle, principale: true)
+        } else if let ligne {
             HStack(spacing: 12) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(ligne.titre).font(.subheadline.weight(.semibold)).foregroundStyle(Color.primary)

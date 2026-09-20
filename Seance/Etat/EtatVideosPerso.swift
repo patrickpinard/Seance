@@ -92,17 +92,18 @@ final class EtatVideosPerso {
         }
     }
 
-    /// Une vidéo personnelle n'a pas de fiche TMDB : Infuse, qui n'ouvre par lien que les titres de sa bibliothèque, ne
-    /// sait pas la lire ainsi. Elle passe donc par VLC, qui lit le fichier à son adresse — seule exception au lecteur
-    /// unique. Sur le Mac, l'adresse SMB s'ouvre dans le lecteur du système.
-    func lien(pour video: VideoPerso, films: ReglagesNAS) -> URL? {
+    /// L'adresse à ouvrir, dans le lecteur choisi dans Réglages › Lecture. Une vidéo personnelle n'a pas de fiche
+    /// TMDB : Séance ne peut pas demander à Infuse de l'ouvrir dans sa bibliothèque comme elle le fait pour un film du
+    /// NAS. Elle lui passe donc le fichier à son adresse (`x-callback-url/play`), comme à VLC. Si Infuse refuse ce
+    /// chemin, l'écran le dit et propose VLC. Sur le Mac, l'adresse s'ouvre dans le lecteur du système.
+    func lien(pour video: VideoPerso, films: ReglagesNAS, lecteur: LecteurVideo) -> URL? {
         #if targetEnvironment(macCatalyst)
         let monte = URL(filePath: "/Volumes").appending(path: reglages.acces.partage).appending(path: video.chemin)
         if FileManager.default.fileExists(atPath: monte.path(percentEncoded: false)) { return monte }
         return reglages.acces.url(chemin: video.chemin)
         #else
         guard let motDePasse = motDePasse(films: films), let adresse = reglages.acces.url(chemin: video.chemin, motDePasse: motDePasse) else { return nil }
-        return LecteurVideo.vlc.lien(pour: adresse)
+        return lecteur.lien(pour: adresse)
         #endif
     }
 
