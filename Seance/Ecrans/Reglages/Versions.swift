@@ -20,6 +20,25 @@ struct NoteVersion: Identifiable {
 
     static let historique: [NoteVersion] = [
         NoteVersion(
+            numero: "4.8",
+            date: "20 septembre 2026",
+            resume: "L'Apple TV rattrape l'iPhone : fiche complète, fiche des acteurs, épisodes, pouces, note, idées du soir.",
+            fonctionnalites: [
+                Fonctionnalite(symbole: "person.2", titre: "Apple TV : le casting et la fiche des acteurs",
+                               detail: "Chaque visage du casting ouvre la fiche de la personne : portrait, biographie, « 12 films vus sur 38 », ses films et ses séries en étagères, et « Suivre ». Tes acteurs du Profil s'ouvrent de même."),
+                Fonctionnalite(symbole: "list.number", titre: "Apple TV : tous les épisodes",
+                               detail: "Saison par saison, avec le prochain à regarder. Choisir une ligne coche l'épisode ; « Lire » est à côté quand il est sur le NAS."),
+                Fonctionnalite(symbole: "play.tv", titre: "Apple TV : où regarder, en détail",
+                               detail: "Le NAS, tes plateformes — chacune s'ouvre sur le titre —, et les passages télé avec la chaîne, le jour et l'heure ; sinon, où louer ou acheter."),
+                Fonctionnalite(symbole: "hand.thumbsup", titre: "Apple TV : pouces, note, alertes, un autre soir",
+                               detail: "👍 et 👎 sans avoir vu, la note de 1 à 10 après, la cloche (c'est l'iPhone qui prévient), « Un autre soir… » avec ses sept tuiles de jours, et les bandes-annonces dans l'app YouTube."),
+                Fonctionnalite(symbole: "sparkles", titre: "Apple TV : des idées pour ce soir",
+                               detail: "Sous ta soirée, des titres regardables sur tes plateformes, classés selon tes goûts ; le Profil montre aussi tes pouces levés."),
+                Fonctionnalite(symbole: "macbook", titre: "Mac : tes vidéos personnelles dans Infuse",
+                               detail: "Le Mac faisait monter le partage par le Finder puis ouvrait le lecteur de macOS, d'où l'attente. Si Infuse est installé et choisi dans Réglages › Lecture, la vidéo lui est passée directement, comme sur l'Apple TV."),
+            ]
+        ),
+        NoteVersion(
             numero: "4.7",
             date: "20 septembre 2026",
             resume: "👍 👎 comme sur Netflix : dis ce qui te plaît sans l'avoir vu, et les idées du soir te ressemblent davantage.",

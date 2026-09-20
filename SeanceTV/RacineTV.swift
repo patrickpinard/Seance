@@ -19,6 +19,7 @@ struct RacineTV: View {
             Tab(value: OngletTV.accueil) {
                 NavigationStack(path: $cheminAccueil) {
                     AccueilTV().sousLaPastille().navigationDestination(for: ReferenceTitre.self) { FicheTV(reference: $0).pageOuverte() }
+                        .navigationDestination(for: PersonneTVRef.self) { PersonneTV(personne: $0).pageOuverte() }
                 }
             } label: { Text("Accueil") }
             Tab(value: OngletTV.ceSoir) { pile { CeSoirTV() } } label: { Text("Ce soir") }
@@ -94,6 +95,7 @@ struct RacineTV: View {
             contenu()
                 .sousLaPastille()
                 .navigationDestination(for: ReferenceTitre.self) { FicheTV(reference: $0).pageOuverte() }
+                .navigationDestination(for: PersonneTVRef.self) { PersonneTV(personne: $0).pageOuverte() }
                 .navigationDestination(for: DossierVideosTV.self) { VideosPersoTV(chemin: $0.chemin).pageOuverte() }
         }
     }

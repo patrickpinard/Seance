@@ -2,6 +2,7 @@ import Foundation
 import Observation
 import SeanceKit
 import SeanceNAS
+import UIKit
 
 /// Les vidéos personnelles (EF-157 à EF-163) : un second accès au NAS, facultatif, à part de la bibliothèque de films.
 /// Partagé par l'app de l'iPhone et celle de l'Apple TV. Rien ici ne parle à TMDB ni à aucun service : ces vidéos sont
@@ -98,13 +99,24 @@ final class EtatVideosPerso {
     /// chemin, l'écran le dit et propose VLC. Sur le Mac, l'adresse s'ouvre dans le lecteur du système.
     func lien(pour video: VideoPerso, films: ReglagesNAS, lecteur: LecteurVideo) -> URL? {
         #if targetEnvironment(macCatalyst)
+        // Infuse installé sur le Mac et choisi dans Réglages › Lecture : le même lien que sur l'Apple TV, qui démarre
+        // tout de suite. Sinon le Finder monte le partage (lent la première fois) et macOS ouvre son lecteur.
+        if lecteur == .infuse, let essai = URL(string: "infuse://"), UIApplication.shared.canOpenURL(essai),
+           let direct = lienDirect(pour: video, films: films, lecteur: lecteur) {
+            return direct
+        }
         let monte = URL(filePath: "/Volumes").appending(path: reglages.acces.partage).appending(path: video.chemin)
         if FileManager.default.fileExists(atPath: monte.path(percentEncoded: false)) { return monte }
         return reglages.acces.url(chemin: video.chemin)
         #else
+        return lienDirect(pour: video, films: films, lecteur: lecteur)
+        #endif
+    }
+
+    /// Le fichier à son adresse SMB, identifiants compris, passé au lecteur par `x-callback-url`.
+    private func lienDirect(pour video: VideoPerso, films: ReglagesNAS, lecteur: LecteurVideo) -> URL? {
         guard let motDePasse = motDePasse(films: films), let adresse = reglages.acces.url(chemin: video.chemin, motDePasse: motDePasse) else { return nil }
         return lecteur.lien(pour: adresse)
-        #endif
     }
 
     #if DEBUG

@@ -10,11 +10,13 @@ struct ProfilTV: View {
     @Query(sort: \ActeurSuivi.suiviLe, order: .reverse) private var acteurs: [ActeurSuivi]
     @Query(sort: \Interet.libelle) private var interets: [Interet]
     @Query private var visionnages: [Visionnage]
+    /// 👍 Tes « J'aime », le plus récent d'abord.
+    @Query(sort: \TitreAime.aimeLe, order: .reverse) private var aimes: [TitreAime]
 
     var body: some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 50) {
-                if notes.isEmpty, acteurs.isEmpty, interets.isEmpty {
+                if notes.isEmpty, acteurs.isEmpty, interets.isEmpty, aimes.isEmpty {
                     VideTV(symbole: "person.crop.circle", titre: "Ton profil se remplira tout seul",
                            message: "Tes notes, tes acteurs et tes goûts arrivent de ton iPhone, et de ce que tu marques vu ici.")
                 }
@@ -28,16 +30,23 @@ struct ProfilTV: View {
                         }
                     }
                 }
-                if !acteurs.isEmpty {
-                    EtagereTV(titre: "Tes acteurs", sousTitre: "Ceux dont tu suis les nouveaux films") {
-                        ForEach(acteurs, id: \.personneID) { acteur in
-                            VStack(spacing: 14) {
-                                ImageTV(url: ImageTMDB.url(acteur.cheminPortrait, .afficheGrande), symboleVide: "person.fill")
-                                    .frame(width: 200, height: 200).clipShape(Circle())
-                                Text(acteur.nom).font(.system(size: 24, weight: .semibold)).lineLimit(2).multilineTextAlignment(.center)
+                if !aimes.isEmpty {
+                    EtagereTV(titre: "👍 Tu aimes", sousTitre: "Tes pouces levés orientent les idées du soir") {
+                        ForEach(aimes.prefix(30), id: \.reference) { aime in
+                            NavigationLink(value: aime.reference) {
+                                AfficheTV(titre: aime.titre, sousTitre: aime.reference.type == .film ? "Film" : "Série", cheminAffiche: aime.cheminAffiche)
                             }
-                            .frame(width: 220)
-                            .focusable()
+                            .buttonStyle(.card)
+                        }
+                    }
+                }
+                if !acteurs.isEmpty {
+                    EtagereTV(titre: "Tes acteurs", sousTitre: "Ceux dont tu suis les nouveaux films — choisis-en un pour voir ses films") {
+                        ForEach(acteurs, id: \.personneID) { acteur in
+                            NavigationLink(value: PersonneTVRef(id: acteur.personneID, nom: acteur.nom)) {
+                                AfficheTV(titre: acteur.nom, sousTitre: nil, cheminAffiche: acteur.cheminPortrait)
+                            }
+                            .buttonStyle(.card)
                         }
                     }
                 }
