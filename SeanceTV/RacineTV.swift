@@ -18,7 +18,7 @@ struct RacineTV: View {
             // Des noms seuls, sans icône, comme Netflix : les huit entrées tiennent ainsi sur une ligne, sans défiler.
             Tab(value: OngletTV.accueil) {
                 NavigationStack(path: $cheminAccueil) {
-                    AccueilTV().sousLaPastille().navigationDestination(for: ReferenceTitre.self) { FicheTV(reference: $0).pageOuverte() }
+                    AccueilTV().sousLaPastille().background { FondTV() }.navigationDestination(for: ReferenceTitre.self) { FicheTV(reference: $0).pageOuverte() }
                         .navigationDestination(for: PersonneTVRef.self) { PersonneTV(personne: $0).pageOuverte() }
                 }
             } label: { Text("Accueil") }
@@ -28,7 +28,11 @@ struct RacineTV: View {
             Tab(value: OngletTV.tele) { pile { TeleTV() } } label: { Text("TV") }
             Tab(value: OngletTV.nas) { pile { NASTV() } } label: { Text("NAS") }
             Tab(value: OngletTV.profil) { pile { ProfilTV() } } label: { Text("Profil") }
-            Tab(value: OngletTV.reglages) { pile { ReglagesTV() } } label: { Text("Réglages") }
+            // Les réglages : une roue dentée tout à droite, plutôt qu'un mot de plus dans le menu. Elle reste dans la barre :
+            // un bouton posé par-dessus flotterait quand la barre se replie, et la télécommande s'y perdrait.
+            Tab(value: OngletTV.reglages) { pile { ReglagesTV() } } label: {
+                Image(systemName: "gearshape.fill").accessibilityLabel("Réglages")
+            }
         }
         // Le menu en haut, à l'horizontale, comme Netflix (demande de Patrick, 20 septembre 2026) : la barre d'onglets
         // de tvOS, qui se replie quand on descend dans la page et revient quand on remonte.
@@ -94,6 +98,7 @@ struct RacineTV: View {
         NavigationStack {
             contenu()
                 .sousLaPastille()
+                .background { FondTV() }
                 .navigationDestination(for: ReferenceTitre.self) { FicheTV(reference: $0).pageOuverte() }
                 .navigationDestination(for: PersonneTVRef.self) { PersonneTV(personne: $0).pageOuverte() }
                 .navigationDestination(for: DossierVideosTV.self) { VideosPersoTV(chemin: $0.chemin).pageOuverte() }

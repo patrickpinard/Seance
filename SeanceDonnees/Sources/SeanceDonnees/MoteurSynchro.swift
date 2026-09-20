@@ -16,6 +16,8 @@ public struct MoteurSynchro {
         public let recus: [ServiceSynchro.Recu]
         /// Les données déposées, quand notre fichier a changé ; `nil` s'il était déjà à jour.
         public let deposees: Data?
+        /// Ce que le dossier contenait : l'app y cherche une demande d'alerte d'essai venue de la TV.
+        public let presents: [SynchroDossier.Fichier]
     }
 
     public let contexte: ModelContext
@@ -91,7 +93,7 @@ public struct MoteurSynchro {
         // Le point de comparaison de la prochaine synchronisation.
         try? FileManager.default.createDirectory(at: fichierEtat.deletingLastPathComponent(), withIntermediateDirectories: true)
         try? aDeposer.encoder().write(to: fichierEtat, options: .atomic)
-        return Bilan(recus: resultat.recus.filter { !$0.estVide }, deposees: deposees)
+        return Bilan(recus: resultat.recus.filter { !$0.estVide }, deposees: deposees, presents: presents)
     }
 
     /// L'empreinte du contenu, hors date de création : deux exports des mêmes données ont la même.

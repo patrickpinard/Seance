@@ -196,11 +196,14 @@ final class EtatAlertes {
     }
 
     /// EF-84 : une alerte d'essai dans 5 secondes, pour vérifier l'affichage.
-    func envoyerEssai() async {
+    /// `depuisLaTV` : l'essai a été demandé dans les réglages de l'Apple TV, et arrive ici par la synchronisation.
+    func envoyerEssai(depuisLaTV: Bool = false) async {
         if autorisation == .notDetermined { await demanderAutorisation() }
         let contenu = UNMutableNotificationContent()
-        contenu.title = "Séance"
-        contenu.body = "Les alertes fonctionnent : tu seras prévenu des nouveaux épisodes, des sorties et des passages à la TV."
+        contenu.title = depuisLaTV ? "Séance · essai depuis l'Apple TV" : "Séance"
+        contenu.body = depuisLaTV
+            ? "Reçu : les alertes réglées sur l'Apple TV arriveront ici, et sur ton Apple Watch."
+            : "Les alertes fonctionnent : tu seras prévenu des nouveaux épisodes, des sorties et des passages à la TV."
         contenu.sound = .default
         let declencheur = UNTimeIntervalNotificationTrigger(timeInterval: 5, repeats: false)
         try? await centre.add(UNNotificationRequest(identifier: "seance.essai", content: contenu, trigger: declencheur))

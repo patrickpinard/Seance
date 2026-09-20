@@ -32,3 +32,19 @@ struct SynchroDossierTests {
         #expect(SynchroDossier.aImporter(fichiers, propre: "Séance — Mac 0B9E.json", dejaImportes: [:]).map(\.nom) == ["Séance — iPad 77C1.json"])
     }
 }
+
+@Suite("Essai d'alerte demandé depuis l'Apple TV")
+struct EssaiAlerteTests {
+    @Test func uneDemandeRecenteNeSertQuUneFois() {
+        let maintenant = Date(timeIntervalSince1970: 1_800_000_000)
+        let demande = maintenant.addingTimeInterval(-600)
+        let fichiers = [SynchroDossier.Fichier(nom: "Séance — iPhone 3F2A.json", modifieLe: maintenant),
+                        SynchroDossier.Fichier(nom: SynchroDossier.fichierEssaiAlerte, modifieLe: demande)]
+        #expect(SynchroDossier.essaiAlerteDemande(fichiers, derniereTraitee: nil, maintenant: maintenant) == demande)
+        #expect(SynchroDossier.essaiAlerteDemande(fichiers, derniereTraitee: demande, maintenant: maintenant) == nil)
+        // Une vieille demande ne fait pas sonner un iPhone qui revient de vacances.
+        #expect(SynchroDossier.essaiAlerteDemande(fichiers, derniereTraitee: nil, maintenant: maintenant.addingTimeInterval(2 * 86_400)) == nil)
+        // Ce fichier n'est pas celui d'un appareil : la synchronisation ne l'importe pas.
+        #expect(SynchroDossier.aImporter(fichiers, propre: "Séance — Mac 0001.json", dejaImportes: [:]).map(\.nom) == ["Séance — iPhone 3F2A.json"])
+    }
+}

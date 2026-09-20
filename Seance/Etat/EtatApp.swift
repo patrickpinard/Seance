@@ -203,6 +203,8 @@ final class EtatApp {
     func rafraichirEnFond(conteneur: ModelContainer) async {
         await actualiserTele(contexte: conteneur.mainContext)
         await alertes.planifier(contexte: conteneur.mainContext, tmdb: tmdb)
+        // À la maison, le NAS répond : ce que la TV a changé (ou son essai d'alerte) arrive sans ouvrir l'app.
+        await synchro.synchroniser(etat: self, contexte: conteneur.mainContext, automatique: true)
     }
 
     /// Relit le guide TV si la dernière lecture a plus de 12 h ou si les chaînes cochées ont changé ;

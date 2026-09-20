@@ -225,7 +225,14 @@ final class EtatSynchro {
                 do {
                     let moteur = MoteurSynchro(contexte: contexte, transport: transport, appareil: appareil,
                                                espace: "synchro.nas", fichierEtat: Self.fichierEtat)
-                    noter(try await moteur.synchroniser(preferences: preferences, appliquer: appliquer))
+                    let bilan = try await moteur.synchroniser(preferences: preferences, appliquer: appliquer)
+                    noter(bilan)
+                    // « Tester une alerte » demandé depuis l'Apple TV : c'est cet appareil qui prévient (et l'Apple Watch avec lui).
+                    let cleEssai = "synchro.nas.essaiAlerte"
+                    if let demande = SynchroDossier.essaiAlerteDemande(bilan.presents, derniereTraitee: UserDefaults.standard.object(forKey: cleEssai) as? Date) {
+                        UserDefaults.standard.set(demande, forKey: cleEssai)
+                        await etat.alertes.envoyerEssai(depuisLaTV: true)
+                    }
                     derniereSynchroNAS = .now
                     UserDefaults.standard.set(Date.now, forKey: Cle.derniereNAS)
                     messageNAS = nil

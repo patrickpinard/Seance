@@ -4,6 +4,17 @@ import Foundation
 /// dépose **son** fichier, « Séance — iPhone 3F2A.json », et importe ceux des autres quand ils ont changé. Deux
 /// appareils n'écrivent jamais le même fichier : aucun conflit à arbitrer, et le service de fichiers fait le transport.
 public enum SynchroDossier {
+    /// « Tester une alerte » depuis l'Apple TV, qui n'affiche pas de notification : elle dépose ce fichier, et l'iPhone
+    /// qui le découvre à sa synchronisation prévient (l'Apple Watch suit l'iPhone). Hors des fichiers d'appareil.
+    public static let fichierEssaiAlerte = "essai-alerte.json"
+
+    /// Vrai si le dossier contient une demande d'essai plus récente que la dernière traitée, et de moins d'un jour.
+    public static func essaiAlerteDemande(_ fichiers: [Fichier], derniereTraitee: Date?, maintenant: Date = .now) -> Date? {
+        guard let demande = fichiers.first(where: { nomReel($0.nom) == fichierEssaiAlerte })?.modifieLe,
+              maintenant.timeIntervalSince(demande) < 86_400, demande > (derniereTraitee ?? .distantPast) else { return nil }
+        return demande
+    }
+
     public static let prefixe = "Séance — "
     public static let suffixe = ".json"
 

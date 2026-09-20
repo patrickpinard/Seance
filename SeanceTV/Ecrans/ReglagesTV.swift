@@ -37,6 +37,10 @@ struct ReglagesTV: View {
                                    detail: libelleSynchro, enOrdre: etat.nasPret && etat.erreurSynchro == nil && etat.derniereSynchro != nil,
                                    desactive: etat.synchroEnCours,
                                    action: { Task { await etat.synchroniser(contexte: contexte, bavard: true) } })
+                    LigneTVReglage(titre: "Tester une alerte sur l'iPhone et l'Apple Watch",
+                                   detail: "L'Apple TV n'affiche pas d'alerte : ton iPhone prévient, par le NAS, à sa prochaine ouverture de Séance",
+                                   symbole: "bell.badge.fill", desactive: !etat.nasPret,
+                                   action: { Task { await etat.demanderEssaiAlerte() } })
                 }
                 SectionTV(titre: "Toi") {
                     ligne(.gouts, "Tes goûts", interets.isEmpty ? "Genres à choisir" : interets.map(\.libelle).sorted().joined(separator: ", "), nil, symbole: "heart.fill")

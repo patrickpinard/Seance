@@ -231,7 +231,9 @@ struct FicheTV: View {
             }
         }
         .frame(maxWidth: 1500, alignment: .leading)
-        .focusSection()
+        // Une section de focus sans rien à choisir (un film du NAS ou de la TV : que des étiquettes) arrêtait la
+        // télécommande : on ne descendait plus jusqu'au casting. Elle n'existe que s'il y a des plateformes à ouvrir.
+        .sectionDeFocus(si: !plateformesIncluses.isEmpty)
     }
 
     // MARK: Épisodes (EF-11 à EF-13)

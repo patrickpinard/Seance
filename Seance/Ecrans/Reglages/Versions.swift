@@ -20,6 +20,21 @@ struct NoteVersion: Identifiable {
 
     static let historique: [NoteVersion] = [
         NoteVersion(
+            numero: "4.8.2",
+            date: "20 septembre 2026",
+            resume: "Apple TV : les acteurs se choisissent partout, une image de fond sur les pages, les réglages en roue dentée.",
+            fonctionnalites: [
+                Fonctionnalite(symbole: "person.2", titre: "Apple TV : le casting enfin à portée",
+                               detail: "Sur la fiche d'un film du NAS ou de la TV, la télécommande ne descendait pas jusqu'aux acteurs : la section « Où regarder », sans rien à choisir, l'arrêtait. On descend maintenant jusqu'au casting, et chaque visage ouvre sa fiche, où on peut le suivre."),
+                Fonctionnalite(symbole: "photo", titre: "Apple TV : une image de fond",
+                               detail: "Derrière chaque page, une grande image d'un de tes titres, floutée et fondue dans le noir ; elle change chaque jour."),
+                Fonctionnalite(symbole: "gearshape", titre: "Apple TV : les réglages en roue dentée",
+                               detail: "Tout à droite du menu, une icône au lieu d'un mot : le menu est plus court, et les réglages se trouvent d'un coup d'œil."),
+                Fonctionnalite(symbole: "bell.badge", titre: "Tester une alerte depuis l'Apple TV",
+                               detail: "L'Apple TV n'affiche pas de notification. Réglages de la TV › « Tester une alerte » dépose une demande sur le NAS : ton iPhone la découvre à sa prochaine synchronisation et prévient, l'Apple Watch avec lui. Sur l'iPhone, l'essai de Réglages › Alertes se voit sur la montre quand l'iPhone est verrouillé."),
+            ]
+        ),
+        NoteVersion(
             numero: "4.8.1",
             date: "20 septembre 2026",
             resume: "Sur le Mac, « Lire » lance vraiment le film ; et « Télé » s'appelle maintenant « TV ».",

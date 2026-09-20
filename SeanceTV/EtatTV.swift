@@ -173,6 +173,19 @@ final class EtatTV {
         }
     }
 
+    /// « Tester une alerte » : l'Apple TV n'affiche pas de notification. Elle dépose une demande dans le dossier du NAS ;
+    /// l'iPhone qui la découvre à sa prochaine synchronisation prévient, et l'Apple Watch avec lui.
+    func demanderEssaiAlerte() async {
+        guard nasPret, let motDePasse = (try? coffre.lire(.nas)) ?? nil else { return dire("Règle d'abord le NAS : l'essai passe par lui.") }
+        do {
+            let demande = Data(#"{"de":"\#(appareilSynchro)","le":"\#(Date.now.ISO8601Format())"}"#.utf8)
+            try await DossierSynchroSMB(reglages: nas, motDePasse: motDePasse).ecrire(demande, nom: SynchroDossier.fichierEssaiAlerte)
+            dire("Demande déposée : ouvre Séance sur ton iPhone, l'alerte arrive sur lui et sur ta montre.")
+        } catch {
+            dire("L'essai n'a pas pu être déposé : \(ErreurNAS.message(error))")
+        }
+    }
+
     private func explorateur() -> ExplorateurSMB? {
         guard let motDePasse = (try? coffre.lire(.nas)) ?? nil else { return nil }
         return ExplorateurSMB(reglages: nas, motDePasse: motDePasse)
