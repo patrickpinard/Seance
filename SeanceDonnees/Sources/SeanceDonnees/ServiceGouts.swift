@@ -214,6 +214,43 @@ public struct ServiceGouts {
         try contexte.save()
     }
 
+    /// Les titres écartés à la main (« Je n'aime pas », « Jamais », ni VF ni sous-titres) : ils ne sont plus proposés nulle part.
+    public func ecartes() throws -> [Suivi] {
+        let exclu = StatutSuivi.exclu.rawValue
+        return try contexte.fetch(FetchDescriptor<Suivi>(predicate: #Predicate { $0.statutBrut == exclu || $0.exclusionLangue },
+                                                        sortBy: [SortDescriptor(\.titre)]))
+    }
+
+    /// Un titre écarté peut de nouveau être proposé. S'il a été regardé ou noté, il retourne dans « Terminés » ;
+    /// sinon sa trace disparaît : il n'avait été noté nulle part ailleurs.
+    public func reproposer(_ reference: ReferenceTitre) throws {
+        guard let suivi = try ServiceSuivi(contexte: contexte).suivi(reference) else { return }
+        reintegrer(suivi)
+        try contexte.save()
+    }
+
+    /// Réglages › « Tout reproposer » : toutes les exclusions sont levées d'un coup ; renvoie leur nombre.
+    @discardableResult
+    public func reproposerTout() throws -> Int {
+        let tous = try ecartes()
+        tous.forEach(reintegrer)
+        try contexte.save()
+        return tous.count
+    }
+
+    private func reintegrer(_ suivi: Suivi) {
+        suivi.exclusionLangue = false
+        guard suivi.statut == .exclu else { return }
+        let id = suivi.tmdbID
+        let type = suivi.typeBrut
+        let vus = (try? contexte.fetchCount(FetchDescriptor<Visionnage>(predicate: #Predicate { $0.tmdbID == id && $0.typeBrut == type }))) ?? 0
+        if vus > 0 || suivi.note != nil {
+            suivi.statut = .termine
+        } else {
+            contexte.delete(suivi)
+        }
+    }
+
     private func report(_ reference: ReferenceTitre) throws -> SuggestionReportee? {
         let id = reference.tmdbID
         let type = reference.type.rawValue

@@ -534,6 +534,41 @@ struct PremierLancementTests {
     }
 }
 
+@Suite("Titres écartés")
+@MainActor
+struct TitresEcartesTests {
+    @Test func ecarterPuisToutReproposer() throws {
+        let conteneur = try EntrepotSeance.conteneur(.memoire)
+        let contexte = conteneur.mainContext
+        let gouts = ServiceGouts(contexte: contexte)
+        let suivi = ServiceSuivi(contexte: contexte)
+        let inconnu = ReferenceTitre(type: .film, tmdbID: 11)
+        let film = try TMDB.film()
+
+        // Un titre jamais suivi, un film vu puis écarté, une série écartée faute de version française.
+        try gouts.jamais(inconnu, titre: "Inconnu")
+        try suivi.marquerVu(film: film)
+        try gouts.jamais(film.reference, titre: film.titre)
+        let serie = try TMDB.serie()
+        try suivi.exclureLangue(serie.reference, titre: serie.nom)
+        #expect(try gouts.ecartes().count == 3)
+        #expect(try gouts.contexteCandidats().exclus.count == 3)
+
+        // Un seul titre revient : les autres restent écartés.
+        try gouts.reproposer(inconnu)
+        #expect(try gouts.ecartes().count == 2)
+        #expect(try suivi.suivi(inconnu) == nil)
+
+        // Tout revient : le film vu retrouve « Terminés », rien n'est plus exclu des propositions.
+        #expect(try gouts.reproposerTout() == 2)
+        #expect(try gouts.ecartes().isEmpty)
+        #expect(try gouts.contexteCandidats().exclus.isEmpty)
+        #expect(try suivi.suivi(film.reference)?.statut == .termine)
+        #expect(try suivi.suivi(serie.reference) == nil)
+        #expect(try gouts.reproposerTout() == 0)
+    }
+}
+
 @Suite("Statistiques et bilan")
 @MainActor
 struct ServiceStatistiquesTests {

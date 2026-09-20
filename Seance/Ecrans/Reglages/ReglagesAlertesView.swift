@@ -159,7 +159,7 @@ struct BandeauAlertesCoupees: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
-                    Button(autorisation == .denied ? "Ouvrir les réglages des notifications" : "Activer les notifications") {
+                    Button {
                         if autorisation == .denied {
                             if let url = URL(string: UIApplication.openNotificationSettingsURLString) { openURL(url) }
                         } else {
@@ -168,6 +168,9 @@ struct BandeauAlertesCoupees: View {
                                 await etat.alertes.planifier(contexte: contexte, tmdb: etat.tmdb)
                             }
                         }
+                    } label: {
+                        // Un lien d'une ligne : il répond sur 44 points de haut (audit d'accessibilité).
+                        Text(autorisation == .denied ? "Ouvrir les réglages des notifications" : "Activer les notifications").zoneDeToucher()
                     }
                     .font(.subheadline.weight(.semibold))
                     .tint(Theme.accentClair)

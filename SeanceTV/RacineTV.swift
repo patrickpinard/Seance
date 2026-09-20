@@ -15,21 +15,23 @@ struct RacineTV: View {
 
     var body: some View {
         TabView(selection: $onglet) {
-            Tab("Accueil", systemImage: "house.fill", value: OngletTV.accueil) {
+            // Des noms seuls, sans icône, comme Netflix : les huit entrées tiennent ainsi sur une ligne, sans défiler.
+            Tab(value: OngletTV.accueil) {
                 NavigationStack(path: $cheminAccueil) {
                     AccueilTV().sousLaPastille().navigationDestination(for: ReferenceTitre.self) { FicheTV(reference: $0).pageOuverte() }
                 }
-            }
-            Tab("Ce soir", systemImage: "moon.stars.fill", value: OngletTV.ceSoir) { pile { CeSoirTV() } }
-            Tab("Mes listes", systemImage: "bookmark.fill", value: OngletTV.listes) { pile { ListesTV() } }
-            Tab("Explorer", systemImage: "sparkle.magnifyingglass", value: OngletTV.explorer) { pile { ExplorerTV() } }
-            Tab("Télé", systemImage: "tv.fill", value: OngletTV.tele) { pile { TeleTV() } }
-            Tab("NAS", systemImage: "externaldrive.fill", value: OngletTV.nas) { pile { NASTV() } }
-            Tab("Profil", systemImage: "person.crop.circle.fill", value: OngletTV.profil) { pile { ProfilTV() } }
-            Tab("Réglages", systemImage: "gearshape.fill", value: OngletTV.reglages) { pile { ReglagesTV() } }
+            } label: { Text("Accueil") }
+            Tab(value: OngletTV.ceSoir) { pile { CeSoirTV() } } label: { Text("Ce soir") }
+            Tab(value: OngletTV.listes) { pile { ListesTV() } } label: { Text("Mes listes") }
+            Tab(value: OngletTV.explorer) { pile { ExplorerTV() } } label: { Text("Explorer") }
+            Tab(value: OngletTV.tele) { pile { TeleTV() } } label: { Text("Télé") }
+            Tab(value: OngletTV.nas) { pile { NASTV() } } label: { Text("NAS") }
+            Tab(value: OngletTV.profil) { pile { ProfilTV() } } label: { Text("Profil") }
+            Tab(value: OngletTV.reglages) { pile { ReglagesTV() } } label: { Text("Réglages") }
         }
-        // Huit onglets débordent d'une barre en haut d'écran : la barre latérale de tvOS les montre tous, comme l'app Apple TV.
-        .tabViewStyle(.sidebarAdaptable)
+        // Le menu en haut, à l'horizontale, comme Netflix (demande de Patrick, 20 septembre 2026) : la barre d'onglets
+        // de tvOS, qui se replie quand on descend dans la page et revient quand on remonte.
+        .tabViewStyle(.tabBarOnly)
         .background(Theme.fond.ignoresSafeArea())
         .overlay(alignment: .bottom) {
             if let message = etat.message {
@@ -144,9 +146,9 @@ enum DepartTV {
 }
 
 extension View {
-    /// Repliée, la barre latérale de tvOS laisse en haut à gauche une pastille au nom de l'onglet : les pages
-    /// commencent dessous, pour qu'elle ne chevauche pas leur premier titre.
+    /// Le menu est en haut de l'écran : les pages
+    /// commencent un peu plus bas, pour que leur premier titre respire sous la barre.
     func sousLaPastille() -> some View {
-        safeAreaPadding(.top, 130)
+        safeAreaPadding(.top, 40)
     }
 }

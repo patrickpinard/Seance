@@ -126,6 +126,8 @@ struct LigneTV: ButtonStyle {
 
         var body: some View {
             configuration.label
+                // Le focus pose un fond blanc : le texte passe au noir, sinon il disparaît (blanc sur blanc).
+                .foregroundStyle(aLeFocus ? Color.black : Color.white)
                 .background(aLeFocus ? AnyShapeStyle(.white) : AnyShapeStyle(.clear), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
                 .scaleEffect(aLeFocus ? 1.02 : 1)
                 .animation(.easeOut(duration: 0.15), value: aLeFocus)

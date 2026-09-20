@@ -446,6 +446,15 @@ struct ExplorerView: View {
             ])
             .frame(maxWidth: 560)
             .padding(.horizontal, 20)
+            // Deux façons de regarder qui ne se ressemblent pas : quand on veut, ou à une date et une heure fixes.
+            if let explication = Self.explicationSource(modele.filtres.source) {
+                Text(explication)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.horizontal, 20)
+                    .transition(.opacity)
+            }
             if modele.filtres.source == .tele {
                 HStack(spacing: 8) {
                     puceTele(.ceSoir, "Ce soir")
@@ -454,6 +463,16 @@ struct ExplorerView: View {
                 .padding(.horizontal, 20)
                 .transition(.opacity)
             }
+        }
+    }
+
+    /// Streaming : la vidéo à la demande de tes abonnements (Netflix, Prime Video, le catalogue à la demande de
+    /// blue TV…). Télé : le direct de tes chaînes, à heure fixe, sans replay.
+    private static func explicationSource(_ source: FiltresExplorer.Source) -> String? {
+        switch source {
+        case .streaming: "À la demande, sur tes plateformes (Netflix, Prime Video, le catalogue de blue TV…) : tu regardes quand tu veux."
+        case .tele: "En direct sur tes chaînes : à une date et une heure fixes, sans replay."
+        default: nil
         }
     }
 

@@ -20,6 +20,27 @@ struct NoteVersion: Identifiable {
 
     static let historique: [NoteVersion] = [
         NoteVersion(
+            numero: "4.5",
+            date: "20 septembre 2026",
+            resume: "Ta soirée en quelques touchers : où regarder chaque titre tout de suite, l'épisode 1 d'une série jamais commencée, et « Je n'aime pas ».",
+            fonctionnalites: [
+                Fonctionnalite(symbole: "play.tv", titre: "Où regarder, tout de suite",
+                               detail: "Sur chaque titre de ta soirée, sur les idées et dans la recherche : « Lire sur le NAS » lance la vidéo, « Netflix », « Prime Video » ou « Apple TV » ouvrent la plateforme sur le titre, et la télé donne la chaîne, le jour et l'heure. Seules tes plateformes cochées comptent ; sinon Séance dit « Dans aucun de tes abonnements »."),
+                Fonctionnalite(symbole: "1.circle", titre: "Le premier épisode d'une série",
+                               detail: "Une série jamais commencée, ajoutée à ta soirée, disait « Aucun nouvel épisode disponible ». Elle propose maintenant « S01E01 · son titre », avec sa durée et le bouton « Regardé »."),
+                Fonctionnalite(symbole: "moon.stars", titre: "Un épisode, pas toute la série",
+                               detail: "L'épisode regardé, la série quitte ta soirée — depuis « Ce soir » comme depuis sa fiche. « Encore un » la remet pour enchaîner. La durée de la soirée compte le film et un épisode par série."),
+                Fonctionnalite(symbole: "magnifyingglass", titre: "Chercher sans quitter la soirée",
+                               detail: "« Ajouter à ma soirée » a son champ de recherche : films et séries mêlés, où les regarder, et « + » sur chaque ligne. Au-dessus des idées, tu choisis films, séries ou les deux."),
+                Fonctionnalite(symbole: "moon.fill", titre: "🌙 sur la fiche",
+                               detail: "« Ce soir » a son bouton dans la rangée d'actions de la fiche, plus derrière « Plus », et un message confirme l'ajout, avec Annuler."),
+                Fonctionnalite(symbole: "hand.thumbsdown", titre: "Je n'aime pas",
+                               detail: "Sur une idée, une affiche (appui long) ou une fiche : le titre ne t'est plus proposé, ni dans les idées, ni sur l'accueil, ni dans Explorer. Un film que tu viens de regarder ne revient plus non plus dans les idées. Réglages › Prénom et idées liste ce que tu as écarté et permet de tout reproposer."),
+                Fonctionnalite(symbole: "appletv", titre: "Apple TV : le menu en haut",
+                               detail: "Le menu passe en haut de l'écran, à l'horizontale, comme Netflix. Et une ligne sélectionnée (tes vidéos personnelles, les réglages) garde son texte lisible : il passait au blanc sur blanc."),
+            ]
+        ),
+        NoteVersion(
             numero: "4.4.1",
             date: "20 septembre 2026",
             resume: "Tes vidéos personnelles s'ouvrent dans le lecteur que tu as choisi, Infuse compris.",

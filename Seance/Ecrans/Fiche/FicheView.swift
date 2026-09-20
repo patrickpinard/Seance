@@ -312,7 +312,7 @@ private struct ContenuFiche: View {
     }
 
     private var blocOuRegarder: some View {
-        BlocOuRegarder(etat: etatDisponibilite, sortie: sortie, diffusion: diffusion,
+        BlocOuRegarder(reference: fiche.reference, offres: fiche.offres, etat: etatDisponibilite, sortie: sortie, diffusion: diffusion,
                        alertesActives: suivi?.alertesActives == true && suivi?.masque != true) {
             reglerAlertes(.episodes)
         }
@@ -634,6 +634,8 @@ private struct ContenuFiche: View {
 
 /// EF-73 : l'état de disponibilité en tête du bloc « Où regarder ».
 private struct BlocOuRegarder: View {
+    let reference: ReferenceTitre
+    let offres: OffresRegion?
     let etat: EtatDisponibilite
     /// Pour un film introuvable : au cinéma, bientôt, ou pas encore en streaming.
     let sortie: EtatSortie?
@@ -641,6 +643,45 @@ private struct BlocOuRegarder: View {
     let diffusion: EtatDiffusionSerie?
     let alertesActives: Bool
     let prevenir: () -> Void
+
+    @Query private var passages: [Diffusion]
+    @Query private var chaines: [Chaine]
+
+    init(reference: ReferenceTitre, offres: OffresRegion?, etat: EtatDisponibilite, sortie: EtatSortie?, diffusion: EtatDiffusionSerie?,
+         alertesActives: Bool, prevenir: @escaping () -> Void) {
+        self.reference = reference
+        self.offres = offres
+        self.etat = etat
+        self.sortie = sortie
+        self.diffusion = diffusion
+        self.alertesActives = alertesActives
+        self.prevenir = prevenir
+        let id: Int? = reference.tmdbID
+        let type = reference.type.rawValue
+        let maintenant = Date.now
+        _passages = Query(filter: #Predicate<Diffusion> { $0.tmdbID == id && $0.typeBrut == type && $0.fin > maintenant }, sort: \Diffusion.debut)
+    }
+
+    /// Les plateformes où le titre se regarde **quand on veut** (vidéo à la demande), parmi celles que TMDB liste.
+    /// blue TV y figure pour son catalogue à la demande ; son direct, lui, est dans « À la télé », à heure fixe.
+    private var aLaDemandeSurBlueTV: Bool {
+        guard let offres else { return false }
+        return (offres.abonnement + offres.gratuit + offres.avecPublicite).contains { $0.nom.localizedCaseInsensitiveContains("blue") }
+    }
+
+    /// « TF1 · jeudi 24 sept. à 20:55 » : les trois prochains passages connus du guide.
+    private var prochainsPassages: [String] {
+        let noms = Dictionary(chaines.map { ($0.identifiantGuide, $0.nom) }, uniquingKeysWith: { premier, _ in premier })
+        let calendrier = Calendar.current
+        return passages.prefix(3).map { passage in
+            let heure = passage.debut.formatted(.dateTime.hour().minute().locale(Locale(identifier: "fr_CH")))
+            let jour = passage.debut <= .now ? "en ce moment, depuis"
+                : calendrier.isDateInToday(passage.debut) ? "aujourd'hui à"
+                : calendrier.isDateInTomorrow(passage.debut) ? "demain à"
+                : passage.debut.formatted(.dateTime.weekday(.wide).day().month(.abbreviated).locale(Locale(identifier: "fr_CH"))) + " à"
+            return "\(noms[passage.chaine] ?? passage.chaine) · \(jour) \(heure)"
+        }
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -653,6 +694,20 @@ private struct BlocOuRegarder: View {
                         if let detail { Text(detail).font(.caption).foregroundStyle(.secondary) }
                     }
                     Spacer()
+                }
+                // Deux façons de regarder, bien séparées : à la demande (quand tu veux) et à la télé (date et heure fixes).
+                if aLaDemandeSurBlueTV {
+                    Label("blue TV, à la demande : tu le regardes quand tu veux.", systemImage: "play.tv")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+                if !prochainsPassages.isEmpty {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Label("À la télé · en direct, à heure fixe", systemImage: "tv")
+                            .font(.caption.weight(.bold)).foregroundStyle(Theme.accentClair)
+                        ForEach(prochainsPassages, id: \.self) { Text($0).font(.subheadline) }
+                        Text("Sur tes chaînes (blue TV, antenne…) ; pas de replay.").font(.caption2).foregroundStyle(.secondary)
+                    }
+                    .accessibilityElement(children: .combine)
                 }
                 // Pas encore regardable chez soi : se faire prévenir de l'arrivée en streaming ou des épisodes.
                 if case .introuvable = etat, sortie != nil || diffusion != nil {

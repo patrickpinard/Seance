@@ -55,7 +55,8 @@ struct ChampRechercheSoiree: View {
                 .focused($actif)
                 .accessibilityIdentifier("rechercheSoiree")
             if !modele.texte.isEmpty {
-                Button { modele.texte = "" } label: {
+                // Effacer, c'est revenir aux propositions : le clavier s'en va, il les cachait.
+                Button { modele.texte = ""; actif = false } label: {
                     Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary).zoneDeToucher(largeur: 44)
                 }
                 .buttonStyle(.plain)

@@ -1,7 +1,8 @@
 import XCTest
 
 /// Le parcours d'une personne qui organise sa soirée : un film, puis le premier épisode d'une série qu'elle n'a jamais
-/// commencée. Il part d'une app vide et laisse une capture à chaque étape, pour juger de la fluidité du chemin.
+/// commencée. Il part d'une app vide, vérifie ce qui a été corrigé en 4.5 (série jamais commencée, soirée qui se vide,
+/// « Je n'aime pas » et sa remise à zéro) et laisse une capture à chaque étape.
 @MainActor
 final class ParcoursSoireeTests: XCTestCase {
     private var app = XCUIApplication()
@@ -16,25 +17,8 @@ final class ParcoursSoireeTests: XCTestCase {
         add(piece)
     }
 
-    /// Ce que l'accessibilité voit de l'écran : boutons et textes, pour relire le parcours sans l'image.
-    private func releve(_ nom: String) {
-        let boutons = app.buttons.allElementsBoundByIndex.prefix(60).map(\.label).filter { !$0.isEmpty }
-        let textes = app.staticTexts.allElementsBoundByIndex.prefix(60).map(\.label).filter { !$0.isEmpty }
-        print("RELEVE \(nom) BOUTONS \(boutons)")
-        print("RELEVE \(nom) TEXTES \(textes)")
-    }
-
-    private func ajouterParLaFiche(_ nom: String) {
-        let plus = app.buttons["Plus d'actions"].firstMatch
-        XCTAssertTrue(plus.waitForExistence(timeout: 15), "\(nom) : la fiche ne s'ouvre pas")
-        capture("fiche-\(nom)", attente: 3)
-        releve("fiche-\(nom)")
-        plus.tap()
-        capture("fiche-\(nom)-menu", attente: 1)
-        let ajouter = app.buttons["Ajouter à ma soirée"].firstMatch
-        XCTAssertTrue(ajouter.waitForExistence(timeout: 5), "\(nom) : « Ajouter à ma soirée » absent du menu")
-        ajouter.tap()
-        capture("fiche-\(nom)-ajoute", attente: 1.5)
+    private func bouton(_ format: String) -> XCUIElement {
+        app.buttons.matching(NSPredicate(format: format)).firstMatch
     }
 
     func testFilmPuisPremierEpisode() throws {
@@ -44,97 +28,109 @@ final class ParcoursSoireeTests: XCTestCase {
         app.launchArguments += ["-apparence", "sombre"]
         app.launch()
         let plusTard = app.buttons["Plus tard"].firstMatch
-        if plusTard.waitForExistence(timeout: 15) {
-            capture("bienvenue", attente: 1)
-            plusTard.tap()
-        }
+        if plusTard.waitForExistence(timeout: 15) { plusTard.tap() }
         XCTAssertTrue(app.tabBars.buttons["Accueil"].firstMatch.waitForExistence(timeout: 15))
-        capture("accueil", attente: 5)
 
-        // 1. Ce soir, vide : que propose la page ?
+        // 1. La feuille d'ajout : la recherche est sur place, sans détour par Explorer.
         app.tabBars.buttons["Ce soir"].firstMatch.tap()
-        capture("ce-soir-vide", attente: 3)
-        releve("ce-soir-vide")
         app.buttons["Choisir quoi regarder"].firstMatch.tap()
-        capture("ajouter-feuille", attente: 5)
-        releve("ajouter-feuille")
+        let champ = app.textFields["rechercheSoiree"].firstMatch
+        XCTAssertTrue(champ.waitForExistence(timeout: 10), "Pas de recherche dans « Ajouter à ma soirée »")
+        capture("feuille", attente: 5)
+
+        // 2. Le film : cherché, ajouté d'un « + ».
+        champ.tap()
+        champ.typeText("fight")
+        let ajouterFilm = app.buttons["Ajouter Fight Club à la soirée"].firstMatch
+        XCTAssertTrue(ajouterFilm.waitForExistence(timeout: 15), "La recherche ne trouve pas le film")
+        capture("recherche-resultats")
+        ajouterFilm.tap()
+        XCTAssertTrue(app.buttons["Retirer Fight Club de la soirée"].firstMatch.waitForExistence(timeout: 5), "Le « + » ne dit pas que le film est ajouté")
+        app.buttons["Effacer la recherche"].firstMatch.tap()
+
+        // 3. La série, jamais commencée : les idées se limitent aux séries, « Je regarde ».
+        // « Je n'aime pas » sur la première idée (un film) : elle laisse sa place, et se retrouvera dans Réglages › Toi.
+        let jeNAimePas = app.buttons["Je n'aime pas"].firstMatch
+        XCTAssertTrue(jeNAimePas.waitForExistence(timeout: 20), "Pas de « Je n'aime pas » sur les idées")
+        jeNAimePas.tap()
+        let series = app.buttons["Séries"].firstMatch
+        XCTAssertTrue(series.waitForExistence(timeout: 10), "Pas de choix Films / Séries au-dessus des idées")
+        series.tap()
+        let jeRegarde = app.buttons["Je regarde"].firstMatch
+        XCTAssertTrue(jeRegarde.waitForExistence(timeout: 20), "Aucune idée de série")
+        capture("idees-series", attente: 3)
+        XCTAssertTrue(app.amener(jeRegarde))
+        jeRegarde.tap()
+        app.buttons["OK"].firstMatch.tap()
+
+        // 4. La soirée : la série propose son premier épisode, avec « Regardé ».
+        let carteSerie = bouton("label CONTAINS 'série' AND label CONTAINS 'S01E01'")
+        XCTAssertTrue(carteSerie.waitForExistence(timeout: 20), "Une série jamais commencée ne propose pas son premier épisode")
+        XCTAssertFalse(app.staticTexts["Aucun nouvel épisode disponible"].exists)
+        capture("soiree-remplie", attente: 4)
         app.swipeUp()
-        capture("ajouter-feuille-bas")
-        releve("ajouter-feuille-bas")
+        capture("soiree-remplie-bas")
 
-        // 2. Chercher un film : la feuille renvoie à Explorer.
-        let chercher = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Chercher un titre'")).firstMatch
-        XCTAssertTrue(app.amener(chercher), "« Chercher un titre » introuvable")
-        chercher.tap()
-        capture("explorer-arrivee", attente: 4)
-        releve("explorer-arrivee")
+        // 5. Un épisode, pas la série : « Regardé » la retire de la soirée.
+        let regardes = app.buttons.matching(identifier: "Regardé")
+        XCTAssertEqual(regardes.count, 2, "Le film et l'épisode doivent pouvoir se marquer regardés")
+        regardes.element(boundBy: 1).tap()
+        XCTAssertTrue(carteSerie.waitForNonExistence(timeout: 15), "L'épisode regardé, la série reste dans la soirée")
+        capture("episode-regarde", attente: 1)
 
-        // 3. Le film : sa fiche, puis « Ajouter à ma soirée ».
-        app.buttons.matching(NSPredicate(format: "label CONTAINS 'John Wick: Chapter 4'")).firstMatch.tap()
-        ajouterParLaFiche("film")
-        app.navigationBars.buttons.firstMatch.tap()
-        capture("explorer-retour", attente: 2)
-        releve("explorer-retour")
-
-        // 4. La série, jamais commencée : sa fiche, l'ajout, puis ses épisodes.
-        app.buttons["Séries"].firstMatch.tap()
-        capture("explorer-series", attente: 4)
-        releve("explorer-series")
-        let serie = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'note '")).firstMatch
-        XCTAssertTrue(serie.waitForExistence(timeout: 10), "Aucune série dans Explorer")
-        serie.tap()
-        ajouterParLaFiche("serie")
-        app.swipeUp()
-        capture("fiche-serie-episodes", attente: 2)
-        releve("fiche-serie-episodes")
-        app.swipeUp()
-        capture("fiche-serie-episodes-2", attente: 2)
-        releve("fiche-serie-episodes-2")
-        app.navigationBars.buttons.firstMatch.tap()
-
-        // 5. Retour à la soirée : que disent les deux cartes ?
-        // En recherche, la barre d'onglets a disparu : le bouton 🌙 « Ce soir » ramène à la soirée.
-        capture("explorer-avant-retour", attente: 2)
-        app.buttons["Ce soir"].firstMatch.tap()
-        capture("ce-soir-rempli", attente: 5)
-        releve("ce-soir-rempli")
-        app.swipeUp()
-        capture("ce-soir-rempli-bas", attente: 2)
-        releve("ce-soir-rempli-bas")
-
-        // 6. La soirée se vit : l'épisode 1 se coche-t-il depuis la carte ? Sinon, par la fiche.
-        app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Game of Thrones'")).firstMatch.tap()
-        let cocher = app.buttons["Marquer S01E01 comme vu"].firstMatch
-        XCTAssertTrue(app.amener(cocher), "Le prochain épisode ne se coche pas depuis la fiche")
-        cocher.tap()
-        capture("fiche-serie-episode-coche", attente: 2)
-        releve("fiche-serie-episode-coche")
-        app.navigationBars.buttons.firstMatch.tap()
-        capture("ce-soir-apres-episode", attente: 5)
-        releve("ce-soir-apres-episode")
-
-        // 7. Le film : « Regardé », puis la note.
+        // 6. Le film : regardé, noté.
         app.swipeDown()
         app.buttons["Regardé"].firstMatch.tap()
-        capture("ce-soir-film-regarde", attente: 3)
-        releve("ce-soir-film-regarde")
         let note = app.buttons["Note 8 sur 10"].firstMatch
-        if note.waitForExistence(timeout: 5) { note.tap() }
-        capture("ce-soir-fin", attente: 3)
-        releve("ce-soir-fin")
+        XCTAssertTrue(note.waitForExistence(timeout: 10))
+        note.tap()
+        capture("soiree-finie", attente: 3)
 
-        // 8. Les raccourcis : « Je regarde » sur une idée, puis l'appui long sur une affiche d'Explorer.
-        app.buttons["Ajouter"].firstMatch.tap()
-        let jeRegarde = app.buttons["Je regarde"].firstMatch
-        if jeRegarde.waitForExistence(timeout: 15) { jeRegarde.tap() }
-        capture("idee-je-regarde", attente: 2)
-        releve("idee-je-regarde")
-        app.buttons["OK"].firstMatch.tap()
-        capture("ce-soir-apres-idee", attente: 3)
+        // 7. Réglages › Toi : l'idée écartée y figure, « Tout reproposer » lève les exclusions.
+        app.tabBars.buttons["Profil"].firstMatch.tap()
+        app.navigationBars.buttons["Réglages"].firstMatch.tap()
+        let toi = bouton("label BEGINSWITH 'Prénom et idées'")
+        XCTAssertTrue(app.amener(toi), "Tuile « Prénom et idées » introuvable")
+        toi.tap()
+        let tout = app.buttons["toutReproposer"].firstMatch
+        XCTAssertTrue(app.amener(tout), "Pas de « Tout reproposer » dans Réglages › Toi")
+        capture("reglages-ecartes", attente: 1)
+        tout.tap()
+        app.buttons["Tout reproposer"].firstMatch.tap()
+        XCTAssertTrue(app.staticTexts["Aucun titre écarté"].firstMatch.waitForExistence(timeout: 5), "Les exclusions ne sont pas levées")
+        capture("reglages-ecartes-leves", attente: 1)
+
+        // 8. Explorer en dernier (sa barre d'onglets se replie) : la fiche dit l'ajout à la soirée ; « Je n'aime pas » fait sortir le titre d'Explorer.
         app.tabBars.buttons["Explorer"].firstMatch.tap()
-        let affiche = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'note '")).firstMatch
-        if affiche.waitForExistence(timeout: 15) { affiche.press(forDuration: 1.2) }
-        capture("explorer-appui-long", attente: 1.5)
-        releve("explorer-appui-long")
+        let affiche = bouton("label CONTAINS 'Creed III'")
+        XCTAssertTrue(affiche.waitForExistence(timeout: 20))
+        affiche.tap()
+        let ceSoir = app.buttons["Ajouter à ma soirée"].firstMatch
+        XCTAssertTrue(ceSoir.waitForExistence(timeout: 15), "Pas de bouton 🌙 dans la rangée d'actions de la fiche")
+        ceSoir.tap()
+        XCTAssertTrue(app.buttons["Retirer de ma soirée"].firstMatch.waitForExistence(timeout: 5))
+        capture("fiche-ce-soir", attente: 1)
+        app.buttons["Plus d'actions"].firstMatch.tap()
+        capture("fiche-menu", attente: 1)
+        app.buttons["Je n'aime pas : ne plus me le proposer"].firstMatch.tap()
+        app.navigationBars.buttons.firstMatch.tap()
+        XCTAssertTrue(affiche.waitForNonExistence(timeout: 10), "Un titre écarté reste proposé dans Explorer")
+        capture("explorer-sans-le-titre")
+    }
+
+    /// La fiche d'un titre qui passe à la télé dit la chaîne, le jour et l'heure dans sa carte « Où regarder ».
+    func testLaFicheDonneLePassageTele() throws {
+        Lancement.demonstration(app)
+        app.launchArguments += ["-apparence", "sombre"]
+        app.launch()
+        app.tabBars.buttons["Ce soir"].firstMatch.tap()
+        let reacher = bouton("label BEGINSWITH 'Reacher'")
+        XCTAssertTrue(reacher.waitForExistence(timeout: 20))
+        XCTAssertTrue(bouton("label BEGINSWITH 'À la télé : RTS 1'").waitForExistence(timeout: 10), "La carte de soirée ne dit pas la chaîne et l'heure")
+        reacher.tap()
+        XCTAssertTrue(app.staticTexts["Où regarder"].firstMatch.waitForExistence(timeout: 20))
+        let passage = app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS 'À la télé · en direct' AND label CONTAINS 'RTS 1 ·'")).firstMatch
+        XCTAssertTrue(passage.waitForExistence(timeout: 10), "La carte « Où regarder » ne donne pas la chaîne, la date et l'heure")
+        capture("fiche-passage-tele", attente: 2)
     }
 }

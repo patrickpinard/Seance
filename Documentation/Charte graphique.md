@@ -66,6 +66,8 @@ d'un passage télé, un code).
 | Un titre de section | `TitreSection` | `Seance/Design/Composants.swift` |
 | Une image distante | `ImageDistante` | idem |
 | Un filtre qu'on allume | `PuceFiltre` | idem |
+| **Où regarder** un titre, tout de suite (soirée, idées, recherche, propositions) | `ActionsOuRegarder` : pastilles qui agissent — « Lire sur le NAS », la plateforme (ouvre sa recherche sur le titre), la chaîne avec le jour et l'heure ; `PastilleOuRegarder` pour le dessin | `Seance/Design/OuRegarder.swift` |
+| Où regarder, en coin d'affiche et en tête de fiche | `BadgeOu`, `RangeeOu` | `Seance/Etat/EtatOu.swift` |
 | Apple TV : bouton d'action | `BoutonTV` (orange = action principale ; blanc à texte noir quand il a le focus) | `SeanceTV/Design/ComposantsTV.swift` |
 | Apple TV : affiche, grande carte, étagère, page vide | `AfficheTV`, `CarteLargeTV`, `EtagereTV`, `VideTV` | idem |
 | Apple TV : tuile et ligne qui se choisit | `TuileTV`, `LigneTV` | `SeanceTV/Ecrans/ReglagesTV.swift` |
@@ -88,6 +90,9 @@ Règles :
   précédente se lit au travers) et leurs lignes passent au blanc sans changer la couleur d'un texte secondaire, qui
   devient blanc sur blanc. Une page se construit avec `PageTV` (fond opaque) et `SectionTV`, et **chaque état de
   couleur au focus est explicite** : texte noir, secondaire noir à 65 %.
+- **« Où regarder » se montre avant tout le reste** : c'est la raison d'être de Séance. Partout où un titre est proposé
+  pour être regardé, `ActionsOuRegarder` dit où — selon les seules plateformes cochées — et permet d'y aller d'un toucher.
+- **Sur l'Apple TV, le menu est en haut, à l'horizontale, en noms seuls** (comme Netflix) : huit entrées au plus, sans icône.
 - **Les listes de dates et les agendas mensuels sont proscrits** : un jour se choisit dans une rangée de tuiles.
 
 ## 6. Navigation

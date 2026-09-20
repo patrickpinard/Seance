@@ -187,8 +187,8 @@ struct SectionIdees: View {
 
             if let resultat = modele.resultat, !idees.isEmpty {
                 Text(resultat.origine == .claude
-                     ? "Choisies par Claude parmi \(modele.nombreCandidats) titres disponibles sur tes plateformes."
-                     : "Classées sur cet appareil selon tes goûts, parmi \(modele.nombreCandidats) titres disponibles sur tes plateformes.")
+                     ? "Choisies par Claude parmi \(modele.nombreCandidats) \(modele.nombreCandidats > 1 ? "titres disponibles" : "titre disponible") sur tes plateformes."
+                     : "Classées sur cet appareil selon tes goûts, parmi \(modele.nombreCandidats) \(modele.nombreCandidats > 1 ? "titres disponibles" : "titre disponible") sur tes plateformes.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
