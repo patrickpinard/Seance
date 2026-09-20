@@ -18,8 +18,8 @@ settings:
     # Équipe personnelle de Patrick (compte Apple gratuit).
     DEVELOPMENT_TEAM: GATK475J3P
     # Version affichée dans À propos › Versions ; à changer avec Seance/Ecrans/Reglages/Versions.swift.
-    MARKETING_VERSION: "3.2.1"
-    CURRENT_PROJECT_VERSION: "24"
+    MARKETING_VERSION: "4.0"
+    CURRENT_PROJECT_VERSION: "25"
 
 packages:
   SeanceKit:
@@ -99,7 +99,9 @@ targets:
           - ch.patrick.seance.rafraichissement
           - ch.patrick.seance.programmes-tv
         ITSAppUsesNonExemptEncryption: false
-        NSLocalNetworkUsageDescription: Séance lit la liste des films et séries de ton NAS, sur le réseau de la maison.
+        NSLocalNetworkUsageDescription: Séance lit ton NAS et met en route ton Apple TV, sur le réseau de la maison.
+        NSBonjourServices:
+          - _seance-config._tcp
         # Apps de lecture qui ouvrent les vidéos du NAS (EF-74).
         LSApplicationQueriesSchemes:
           - infuse
@@ -143,7 +145,9 @@ targets:
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         UIUserInterfaceStyle: Dark
-        NSLocalNetworkUsageDescription: Séance lit la liste des films et séries de ton NAS, sur le réseau de la maison.
+        NSLocalNetworkUsageDescription: Séance lit ton NAS et met en route ton Apple TV, sur le réseau de la maison.
+        NSBonjourServices:
+          - _seance-config._tcp
         # Apps de lecture que Séance sait ouvrir sur l'Apple TV.
         LSApplicationQueriesSchemes:
           - infuse

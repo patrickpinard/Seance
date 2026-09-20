@@ -10,6 +10,7 @@ struct RacineTV: View {
 
     @State private var onglet = DepartTV.onglet
     @State private var cheminAccueil = DepartTV.fiche.map { [$0] } ?? []
+    @State private var configuration = DepartTV.configurer
 
     var body: some View {
         TabView(selection: $onglet) {
@@ -36,6 +37,7 @@ struct RacineTV: View {
             }
         }
         .animation(.snappy, value: etat.message)
+        .fullScreenCover(isPresented: $configuration) { ConfigurationTV() }
         // La bibliothèque du NAS se relit au lancement : le magasin de la TV est un cache (EF-145).
         .task {
             if etat.nasPret, !etat.enDemonstration { await etat.analyserNAS(contexte: contexte) }
@@ -64,6 +66,24 @@ enum DepartTV {
         if let demande = ProcessInfo.processInfo.environment["SEANCE_TV_ONGLET"], let onglet = OngletTV(rawValue: demande) { return onglet }
         #endif
         return .accueil
+    }
+
+    /// `SEANCE_TV_CONFIGURER=1` ouvre l'écran du code au lancement, `SEANCE_TV_CODE=424242` impose le code : pour le test
+    /// de bout en bout avec le simulateur d'iPhone (`EnvoiAppleTVTests`).
+    static var configurer: Bool {
+        #if DEBUG
+        return ProcessInfo.processInfo.environment["SEANCE_TV_CONFIGURER"] != nil
+        #else
+        return false
+        #endif
+    }
+
+    static var codeImpose: String? {
+        #if DEBUG
+        return ProcessInfo.processInfo.environment["SEANCE_TV_CODE"]
+        #else
+        return nil
+        #endif
     }
 
     static var fiche: ReferenceTitre? {

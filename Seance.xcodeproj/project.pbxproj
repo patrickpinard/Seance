@@ -27,6 +27,7 @@
 		2052DE94C65ACC142FD3C13F /* Enregistrement.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B1700F8E822A4D474EC18A2 /* Enregistrement.swift */; };
 		20FA4ABD083DC6765765CA01 /* SeanceDonnees in Frameworks */ = {isa = PBXBuildFile; productRef = 2CAE51A8CC0DF6130D32359E /* SeanceDonnees */; };
 		235FD4AE7A62D4B74525FB9D /* ProgrammeTeleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EAE8B788413B4185E79D6B4 /* ProgrammeTeleTests.swift */; };
+		2A5AA594AC154FF6E7492533 /* EnvoiAppleTVTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0EDD37B39A84ADA0B97BEB0F /* EnvoiAppleTVTests.swift */; };
 		31EF6B7567FA50350F574204 /* LectureNAS.swift in Sources */ = {isa = PBXBuildFile; fileRef = 562FA0BC92C87B80E5980C1F /* LectureNAS.swift */; };
 		32056F493FAD69C4C9128FA0 /* CeSoirTV.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3FE25142805AA50B481B3069 /* CeSoirTV.swift */; };
 		38494C6BBA699EBC23E52D0A /* ClavierTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6BF050FFB31533A9C659BB48 /* ClavierTests.swift */; };
@@ -67,9 +68,11 @@
 		92876E82089F7847852065E2 /* Preferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27A875186D1EBB3CF86647AE /* Preferences.swift */; };
 		93199CD505BB89136E582D70 /* ComposantsTV.swift in Sources */ = {isa = PBXBuildFile; fileRef = 540314EE6294B3465B1CB83B /* ComposantsTV.swift */; };
 		9465DF498AFBE22D12E9EC5E /* FicheView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 003B43F4A3CFECED924F22EE /* FicheView.swift */; };
+		9B9A908F82B4C7E4F5A1F7D2 /* ConfigurationTV.swift in Sources */ = {isa = PBXBuildFile; fileRef = A683B780160AA62BE42AD9C1 /* ConfigurationTV.swift */; };
 		9B9D518CBB779E2321545F3B /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6507C62249A2769DB1E60E0 /* Theme.swift */; };
 		9D5E919DE0559CD12DD8AB23 /* SeanceTVApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDABBFFE0299F9E2180E680B /* SeanceTVApp.swift */; };
 		9D65549B7C3237C021D34BED /* CocherEpisodeIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F6CA7E0DFEDE70FAE64BAE2 /* CocherEpisodeIntent.swift */; };
+		9DDAFDDF85296549D7D3853B /* EnvoiAppleTV.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B0BBB17CE85F8FC16F4470B /* EnvoiAppleTV.swift */; };
 		A052334119F82E47D0C04940 /* BienvenueView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A651E64C91DB8A9F75E0C3FD /* BienvenueView.swift */; };
 		A2EBCE47BF0A1E849E8CF303 /* LecteurWidgets.swift in Sources */ = {isa = PBXBuildFile; fileRef = C53B59D1B4297910EB9B20FA /* LecteurWidgets.swift */; };
 		A9536F4C9B5ABE97BDFE231D /* EtatDecors.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7706567EB9521978C37DCC4 /* EtatDecors.swift */; };
@@ -154,6 +157,7 @@
 		003B43F4A3CFECED924F22EE /* FicheView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FicheView.swift; sourceTree = "<group>"; };
 		0638E7609742B2A07A76BE89 /* Seance.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Seance.entitlements; sourceTree = "<group>"; };
 		0661326CD01844A8F4B22D2B /* LienProfond.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LienProfond.swift; sourceTree = "<group>"; };
+		0EDD37B39A84ADA0B97BEB0F /* EnvoiAppleTVTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnvoiAppleTVTests.swift; sourceTree = "<group>"; };
 		0F0A5CECA4CE808ED4DF352C /* IdeesCeSoir.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IdeesCeSoir.swift; sourceTree = "<group>"; };
 		0FF991D92C556A3C1303E019 /* EpisodesSerie.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EpisodesSerie.swift; sourceTree = "<group>"; };
 		10CC0E2C253A873F99B0EBDA /* AccueilTV.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccueilTV.swift; sourceTree = "<group>"; };
@@ -204,6 +208,7 @@
 		701BB30E177402C310C6B51C /* ProfilView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfilView.swift; sourceTree = "<group>"; };
 		70E5C0C6A6037BEC6D806F5F /* SeanceWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeanceWidget.swift; sourceTree = "<group>"; };
 		7788E5AF973E89FC76F574C6 /* SeanceUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = SeanceUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		7B0BBB17CE85F8FC16F4470B /* EnvoiAppleTV.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnvoiAppleTV.swift; sourceTree = "<group>"; };
 		7F2F9E228CF6FD8AD2ABB788 /* ListesTV.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ListesTV.swift; sourceTree = "<group>"; };
 		7FFB9E32172B78024002EFD3 /* ActionsRapides.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActionsRapides.swift; sourceTree = "<group>"; };
 		82DF1E28A7384E4722FD7B71 /* CartesSoiree.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartesSoiree.swift; sourceTree = "<group>"; };
@@ -219,6 +224,7 @@
 		A2AC1B40272C1294A203DA5B /* ReglagesComptes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReglagesComptes.swift; sourceTree = "<group>"; };
 		A33739359CBDF876AD2F1B6E /* MaSoiree.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MaSoiree.swift; sourceTree = "<group>"; };
 		A651E64C91DB8A9F75E0C3FD /* BienvenueView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BienvenueView.swift; sourceTree = "<group>"; };
+		A683B780160AA62BE42AD9C1 /* ConfigurationTV.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfigurationTV.swift; sourceTree = "<group>"; };
 		A6B582A9631F77D0CF1A0AD1 /* Journal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Journal.swift; sourceTree = "<group>"; };
 		AA40A3FCA8C52858D6BEB5F7 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		AA553B0B30B7023CD901CBEC /* EtatOu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EtatOu.swift; sourceTree = "<group>"; };
@@ -376,6 +382,7 @@
 			children = (
 				5D9CD2AC426EAC55F2E18D92 /* ApercuWidgets.swift */,
 				EA30C09730EC83C1DD2B3771 /* AProposView.swift */,
+				7B0BBB17CE85F8FC16F4470B /* EnvoiAppleTV.swift */,
 				FF2549F1AAD117B2DFF94C9B /* JournalView.swift */,
 				C008722D573D7286070E193D /* ReglagesAlertesView.swift */,
 				A2AC1B40272C1294A203DA5B /* ReglagesComptes.swift */,
@@ -510,6 +517,7 @@
 				26AEBE9171098B73D122BD0B /* AccessibiliteTests.swift */,
 				37C7B9F1A78F1017567D37D0 /* BandeAnnonceTests.swift */,
 				6BF050FFB31533A9C659BB48 /* ClavierTests.swift */,
+				0EDD37B39A84ADA0B97BEB0F /* EnvoiAppleTVTests.swift */,
 				F81E03F245BE8E927674F9DD /* EtatsVidesTests.swift */,
 				3FAD0B3B3AE70CDCB3242DF4 /* ExplorerTests.swift */,
 				8C27D46355FD45FE0B6BCD9F /* FicheDefilementTests.swift */,
@@ -554,6 +562,7 @@
 			children = (
 				10CC0E2C253A873F99B0EBDA /* AccueilTV.swift */,
 				3FE25142805AA50B481B3069 /* CeSoirTV.swift */,
+				A683B780160AA62BE42AD9C1 /* ConfigurationTV.swift */,
 				EC28EF8C6F8FD3DBA038A6B1 /* FicheTV.swift */,
 				7F2F9E228CF6FD8AD2ABB788 /* ListesTV.swift */,
 				2DE009439CA55CCDE58B6A92 /* NASTV.swift */,
@@ -760,6 +769,7 @@
 				D27C1FC5A3614E1EDF282F6F /* AccueilTV.swift in Sources */,
 				32056F493FAD69C4C9128FA0 /* CeSoirTV.swift in Sources */,
 				93199CD505BB89136E582D70 /* ComposantsTV.swift in Sources */,
+				9B9A908F82B4C7E4F5A1F7D2 /* ConfigurationTV.swift in Sources */,
 				50762ED1A79B5815F5A6B883 /* Demonstration.swift in Sources */,
 				2052DE94C65ACC142FD3C13F /* Enregistrement.swift in Sources */,
 				E73943D3F2FC9A1C1C9E15AB /* EtatTV.swift in Sources */,
@@ -808,6 +818,7 @@
 				FE7576C913266B279565E431 /* Composants.swift in Sources */,
 				541D879467869F9C53C59BCB /* ConteneurApp.swift in Sources */,
 				AE3C6E517C3A52185389FEB3 /* Demonstration.swift in Sources */,
+				9DDAFDDF85296549D7D3853B /* EnvoiAppleTV.swift in Sources */,
 				5A5CCACF177BB9999D6A1FA1 /* EpisodesSerie.swift in Sources */,
 				B45CC8D1AEDA64C277298D8A /* EtatAlertes.swift in Sources */,
 				030A7DD55F9553A369D2C6EB /* EtatApp.swift in Sources */,
@@ -866,6 +877,7 @@
 				6542DC8491A92B42DBBFBE12 /* AccessibiliteTests.swift in Sources */,
 				58E3413AD4CBC28D1ED802AB /* BandeAnnonceTests.swift in Sources */,
 				38494C6BBA699EBC23E52D0A /* ClavierTests.swift in Sources */,
+				2A5AA594AC154FF6E7492533 /* EnvoiAppleTVTests.swift in Sources */,
 				DB78148DCA732B30059925A7 /* EtatsVidesTests.swift in Sources */,
 				C660FE50BC091499DE585220 /* ExplorerTests.swift in Sources */,
 				54F323CA789B8DA3749B81CB /* FicheDefilementTests.swift in Sources */,
@@ -1027,7 +1039,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 24;
+				CURRENT_PROJECT_VERSION = 25;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = GATK475J3P;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -1047,7 +1059,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 3.2.1;
+				MARKETING_VERSION = 4.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -1131,7 +1143,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 24;
+				CURRENT_PROJECT_VERSION = 25;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = GATK475J3P;
 				ENABLE_NS_ASSERTIONS = NO;
@@ -1145,7 +1157,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 3.2.1;
+				MARKETING_VERSION = 4.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";

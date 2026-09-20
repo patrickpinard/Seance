@@ -13,13 +13,20 @@ struct AccueilTV: View {
 
     @State private var duMoment: [ApercuTV] = []
     @State private var top: [ApercuTV] = []
+    @State private var configuration = false
 
     var body: some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 50) {
                 if etat.tmdb == nil {
-                    VideTV(symbole: "key.fill", titre: "Il manque la clé TMDB",
-                           message: "Ouvre l'onglet Réglages pour la saisir : le clavier de ton iPhone se propose tout seul. Sans elle, Séance ne connaît ni les affiches ni les fiches.")
+                    VStack(spacing: 10) {
+                        VideTV(symbole: "iphone.and.arrow.forward", titre: "Séance n'est pas encore configurée sur cette TV",
+                               message: "Le plus simple : envoie tout depuis ton iPhone — la clé TMDB, ton NAS et tes listes — avec un code à six chiffres.")
+                            .padding(.bottom, -90)
+                        Button { configuration = true } label: { Label("Configurer depuis mon iPhone", systemImage: "iphone.and.arrow.forward") }
+                            .buttonStyle(BoutonTV(principal: true))
+                    }
+                    .frame(maxWidth: .infinity)
                 }
                 if !ceSoir.isEmpty {
                     EtagereTV(titre: "Ce soir", sousTitre: "Ce que tu as prévu de regarder") {
@@ -58,6 +65,7 @@ struct AccueilTV: View {
             }
             .padding(.vertical, 40)
         }
+        .fullScreenCover(isPresented: $configuration) { ConfigurationTV() }
         .task(id: etat.tmdb == nil) { await charger() }
     }
 

@@ -20,14 +20,20 @@ struct ReglagesTV: View {
     @State private var motDePasse = ""
     @State private var etatNAS: String?
     @State private var test = false
+    @State private var configuration = false
 
     var body: some View {
         Form {
             Section {
                 etatLigne("Clé TMDB", pret: etat.tmdb != nil, detail: etat.tmdb != nil ? "Enregistrée dans le trousseau de cette Apple TV" : "À saisir : affiches, fiches et plateformes en dépendent")
                 etatLigne("NAS", pret: etat.nasPret, detail: etat.nasPret ? "\(etat.nas.hote) · partage « \(etat.nas.partage) »" : "À configurer pour lire tes films et tes séries")
+                Button { configuration = true } label: {
+                    Label("Configurer depuis mon iPhone", systemImage: "iphone.and.arrow.forward")
+                }
             } header: {
                 Text("État de Séance sur cette TV")
+            } footer: {
+                Text("Le plus simple : la TV affiche un code, ton iPhone envoie la clé, le NAS et tes listes. Sinon, saisis-les ci-dessous.")
             }
 
             Section {
@@ -68,12 +74,21 @@ struct ReglagesTV: View {
                 Text("À propos")
             }
         }
+        .fullScreenCover(isPresented: $configuration, onDismiss: relire) { ConfigurationTV() }
         .onAppear {
             hote = etat.nas.hote
             partage = etat.nas.partage
             dossiers = etat.nas.dossiers.joined(separator: ", ")
             utilisateur = etat.nas.utilisateur
         }
+    }
+
+    /// Après une configuration reçue, les champs montrent ce qui est arrivé.
+    private func relire() {
+        hote = etat.nas.hote
+        partage = etat.nas.partage
+        dossiers = etat.nas.dossiers.joined(separator: ", ")
+        utilisateur = etat.nas.utilisateur
     }
 
     private func etatLigne(_ titre: String, pret: Bool, detail: String) -> some View {

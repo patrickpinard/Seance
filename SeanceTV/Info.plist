@@ -29,8 +29,12 @@
 		<string>infuse</string>
 		<string>vlc-x-callback</string>
 	</array>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_seance-config._tcp</string>
+	</array>
 	<key>NSLocalNetworkUsageDescription</key>
-	<string>Séance lit la liste des films et séries de ton NAS, sur le réseau de la maison.</string>
+	<string>Séance lit ton NAS et met en route ton Apple TV, sur le réseau de la maison.</string>
 	<key>UIUserInterfaceStyle</key>
 	<string>Dark</string>
 </dict>

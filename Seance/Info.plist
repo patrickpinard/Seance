@@ -79,8 +79,12 @@
 	</array>
 	<key>LSSupportsOpeningDocumentsInPlace</key>
 	<true/>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_seance-config._tcp</string>
+	</array>
 	<key>NSLocalNetworkUsageDescription</key>
-	<string>Séance lit la liste des films et séries de ton NAS, sur le réseau de la maison.</string>
+	<string>Séance lit ton NAS et met en route ton Apple TV, sur le réseau de la maison.</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>fetch</string>

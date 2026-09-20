@@ -126,6 +126,7 @@ struct ReglagesView: View {
     @AppStorage("accueil.sources") private var sourcesBrutes = Data()
     @State private var accueil = false
     @State private var nouvelAppareil = false
+    @State private var envoiAppleTV = false
 
     private static let colonnes = [GridItem(.adaptive(minimum: 300, maximum: 560), spacing: 12, alignment: .top)]
 
@@ -181,6 +182,11 @@ struct ReglagesView: View {
                                          valeur: "Reprendre tes données, ta clé et ton NAS")
                         }
                         .buttonStyle(.plain)
+                        Button { envoiAppleTV = true } label: {
+                            CarteReglage(titre: "Configurer mon Apple TV", symbole: "appletv.fill", couleur: .gray,
+                                         valeur: "Un code sur la TV, et tout y arrive")
+                        }
+                        .buttonStyle(.plain)
                     }
                     .padding(.horizontal, 20)
                 }
@@ -193,6 +199,9 @@ struct ReglagesView: View {
         .background(Theme.fond)
         .navigationTitle("Réglages")
         .task { await etat.alertes.actualiserAutorisation() }
+        .sheet(isPresented: $envoiAppleTV) {
+            EnvoiAppleTVView { envoiAppleTV = false }
+        }
         .sheet(isPresented: $nouvelAppareil) {
             NouvelAppareilView { nouvelAppareil = false }
         }

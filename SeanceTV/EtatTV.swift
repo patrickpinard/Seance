@@ -75,6 +75,28 @@ final class EtatTV {
         return nil
     }
 
+    // MARK: Configuration reçue d'un iPhone
+
+    /// Range ce qu'un iPhone vient d'envoyer : les clés au trousseau, le NAS dans les réglages, les données dans le
+    /// magasin — l'import complète sans rien effacer. Rend une phrase qui dit ce qui est arrivé.
+    func appliquer(_ configuration: ConfigurationTransferee, contexte: ModelContext) -> String {
+        var recus: [String] = []
+        if let cle = configuration.cleTMDB, !cle.isEmpty, (try? coffre.enregistrer(cle, pour: .tmdb)) != nil {
+            rechargerTMDB()
+            recus.append("la clé TMDB")
+        }
+        if let reglages = configuration.nas {
+            enregistrerNAS(reglages, motDePasse: configuration.motDePasseNAS ?? "")
+            recus.append(motDePasseNAS ? "le NAS" : "le NAS, sans son mot de passe")
+        }
+        if let donnees = configuration.sauvegarde, let sauvegarde = try? Sauvegarde.decoder(donnees),
+           let plan = try? ServiceSauvegarde(contexte: contexte).importer(sauvegarde) {
+            recus.append(plan.estVide ? "tes données (déjà à jour)" : "tes listes et tes soirées")
+        }
+        guard !recus.isEmpty else { return "« \(configuration.expediteur) » n'avait rien à envoyer." }
+        return "Reçu de « \(configuration.expediteur) » : " + recus.joined(separator: ", ") + "."
+    }
+
     // MARK: NAS
 
     func enregistrerNAS(_ reglages: ReglagesNAS, motDePasse: String) {

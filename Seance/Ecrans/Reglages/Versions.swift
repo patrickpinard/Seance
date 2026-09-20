@@ -20,6 +20,19 @@ struct NoteVersion: Identifiable {
 
     static let historique: [NoteVersion] = [
         NoteVersion(
+            numero: "4.0",
+            date: "20 septembre 2026",
+            resume: "Séance arrive sur l'Apple TV, et ton iPhone la met en route avec un simple code.",
+            fonctionnalites: [
+                Fonctionnalite(symbole: "appletv.fill", titre: "Séance sur Apple TV",
+                               detail: "Une app à part, faite pour la télécommande : accueil, Ce soir, Mes listes, ta bibliothèque du NAS en grandes affiches, et la fiche d'un titre avec « Lire avec Infuse », Ce soir, À voir, Marquer vu."),
+                Fonctionnalite(symbole: "iphone.and.arrow.forward", titre: "Configurer mon Apple TV",
+                               detail: "Réglages › Tes données. La TV affiche un code à six chiffres, tu le tapes ici, et tout y arrive par le Wi-Fi de la maison : ta clé TMDB, ton NAS et son mot de passe, tes listes, tes soirées, ce que tu as vu, tes plateformes. Chiffré avec le code, jamais écrit dans un fichier, jamais par internet."),
+                Fonctionnalite(symbole: "arrow.triangle.2.circlepath", titre: "Pour mettre la TV à jour",
+                               detail: "Refais la même manœuvre : l'envoi complète ce que la TV connaît déjà, sans rien effacer. La synchronisation automatique par le NAS viendra ensuite."),
+            ]
+        ),
+        NoteVersion(
             numero: "3.2.1",
             date: "19 septembre 2026",
             resume: "Sur l'iPad, la barre latérale s'ouvre aussi quand tu tournes la tablette.",
