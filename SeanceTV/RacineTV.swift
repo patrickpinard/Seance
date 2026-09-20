@@ -54,7 +54,12 @@ struct RacineTV: View {
         }
         // Retour de l'app de lecture : « Tu l'as regardé ? » (EF-118, sur la TV).
         .onChange(of: phase) { _, nouvelle in
-            if nouvelle == .active { etat.revenir() }
+            if nouvelle == .active {
+                etat.revenir()
+                Task { await etat.synchroniser(contexte: contexte) }
+            }
+            // En quittant l'app : ce qui a été fait ici part vers les autres appareils.
+            if nouvelle == .background { Task { await etat.synchroniser(contexte: contexte) } }
             // En quittant l'app : l'étagère du haut reflète la soirée et le NAS du moment.
             if nouvelle == .background { PublicationEtagere.publier(contexte: contexte) }
         }
@@ -67,6 +72,8 @@ struct RacineTV: View {
         }
         // La bibliothèque du NAS se relit au lancement : le magasin de la TV est un cache (EF-145).
         .task {
+            // Les listes d'abord (quelques secondes), la bibliothèque ensuite (plus longue).
+            await etat.synchroniser(contexte: contexte)
             if etat.nasPret, !etat.enDemonstration { await etat.analyserNAS(contexte: contexte) }
             PublicationEtagere.publier(contexte: contexte)
         }

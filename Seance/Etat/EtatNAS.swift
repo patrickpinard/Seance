@@ -208,6 +208,12 @@ final class EtatNAS {
         return texte.contains("no route to host") || texte.contains("timed out") || texte.contains("host is down")
     }
 
+    /// Le dossier « Séance » du NAS, pour la synchronisation (EF-144) ; `nil` tant que le NAS n'est pas réglé.
+    func dossierSynchro() -> DossierSynchroSMB? {
+        guard reglages.estComplet, let motDePasse = (try? coffre.lire(.nas)) ?? nil, !motDePasse.isEmpty else { return nil }
+        return DossierSynchroSMB(reglages: reglages, motDePasse: motDePasse)
+    }
+
     private func explorateur() throws -> ExplorateurSMB {
         guard let motDePasse = try coffre.lire(.nas) else { throw ErreurNAS.motDePasseManquant }
         return ExplorateurSMB(reglages: reglages, motDePasse: motDePasse)

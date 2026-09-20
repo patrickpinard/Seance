@@ -12,6 +12,7 @@ enum ReglageTV: Hashable {
 /// pas. Tout se modifie à la télécommande ; le plus simple reste de tout recevoir de l'iPhone.
 struct ReglagesTV: View {
     @Environment(EtatTV.self) private var etat
+    @Environment(\.modelContext) private var contexte
     @Query(filter: #Predicate<Abonnement> { $0.actif }, sort: \Abonnement.nom) private var abonnements: [Abonnement]
     @Query(filter: #Predicate<Chaine> { $0.active }) private var chaines: [Chaine]
     @Query private var interets: [Interet]
@@ -31,6 +32,11 @@ struct ReglagesTV: View {
                     ligne(.nas, "NAS", etat.nasPret ? "\(etat.nas.hote) · partage « \(etat.nas.partage) »" : "Tes films déjà téléchargés", etat.nasPret)
                     ligne(.videosPerso, "Vidéos personnelles", libelleVideos, !etat.videosPerso.aConfigurer(films: etat.nas))
                     ligne(.lecture, "Lecture", "Tes vidéos du NAS s'ouvrent dans \(etat.lecteur.nom)", true)
+                    // Les listes arrivent de l'iPhone, de l'iPad et du Mac par le dossier « Séance » du NAS (EF-144).
+                    LigneTVReglage(titre: etat.synchroEnCours ? "Synchronisation…" : "Synchronisation avec tes appareils",
+                                   detail: libelleSynchro, enOrdre: etat.nasPret && etat.erreurSynchro == nil && etat.derniereSynchro != nil,
+                                   desactive: etat.synchroEnCours,
+                                   action: { Task { await etat.synchroniser(contexte: contexte, bavard: true) } })
                 }
                 SectionTV(titre: "Toi") {
                     ligne(.gouts, "Tes goûts", interets.isEmpty ? "Genres à choisir" : interets.map(\.libelle).sorted().joined(separator: ", "), nil, symbole: "heart.fill")
@@ -60,6 +66,13 @@ struct ReglagesTV: View {
 
     private var libelleGuide: String {
         etat.derniereLectureTele.map { "guide lu \($0.formatted(.relative(presentation: .named)))" } ?? "guide jamais lu"
+    }
+
+    private var libelleSynchro: String {
+        if !etat.nasPret { return "Passe par le NAS : règle-le d'abord" }
+        if let erreur = etat.erreurSynchro { return erreur }
+        return etat.derniereSynchro.map { "Par le NAS · \($0.formatted(.relative(presentation: .named))). Active « Par le NAS » sur l'iPhone." }
+            ?? "Par le NAS · jamais faite. Active « Par le NAS » sur l'iPhone, dans Réglages › Sauvegarde."
     }
 
     private var libelleVideos: String {

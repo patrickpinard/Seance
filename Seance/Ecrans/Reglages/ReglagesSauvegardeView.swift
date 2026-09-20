@@ -61,6 +61,40 @@ struct ReglagesSauvegardeView: View {
             }
 
             Section {
+                Toggle("Par le NAS", isOn: $synchro.parLeNAS).tint(Theme.accent)
+                    .accessibilityIdentifier("synchroParLeNAS")
+                if etat.synchro.parLeNAS {
+                    if let derniere = etat.synchro.derniereSynchroNAS {
+                        LabeledContent("Dernier passage par le NAS") { Text(derniere, format: .relative(presentation: .named)) }
+                    }
+                    if let message = etat.synchro.messageNAS {
+                        Label(message, systemImage: "exclamationmark.triangle").font(.footnote).foregroundStyle(.orange)
+                    }
+                    if etat.synchro.nomDossier == nil {
+                        Button {
+                            Task { await etat.synchro.synchroniser(etat: etat, contexte: contexte) }
+                        } label: {
+                            HStack {
+                                Label("Synchroniser maintenant", systemImage: "arrow.triangle.2.circlepath")
+                                if etat.synchro.enCours { Spacer(); ProgressView() }
+                            }
+                        }
+                        .disabled(etat.synchro.enCours)
+                        if let recu = etat.synchro.dernierMessage {
+                            Text(recu).font(.footnote).foregroundStyle(.secondary)
+                        }
+                    }
+                }
+            } header: {
+                Text("Apple TV et appareils de la maison")
+            } footer: {
+                Text("Séance dépose aussi son fichier dans un dossier « Séance » de ton NAS, et y lit ceux des autres. C'est par là que tes listes, ta soirée et tes plateformes arrivent sur l'Apple TV, qui n'a pas iCloud Drive — et que ce que tu fais sur la TV revient ici. Cela marche à la maison, quand le NAS répond ; ailleurs, rien ne se perd, tout se rattrape au retour. Le compte du NAS doit pouvoir écrire dans le partage. Active-le sur chaque appareil.")
+            }
+            .onChange(of: etat.synchro.parLeNAS) { _, actif in
+                if actif { Task { await etat.synchro.synchroniser(etat: etat, contexte: contexte) } }
+            }
+
+            Section {
                 if let fichierAPartager {
                     ShareLink(item: fichierAPartager, preview: SharePreview("Sauvegarde de Séance", image: Image(systemName: "externaldrive"))) {
                         Label("Envoyer à un autre appareil…", systemImage: "airplayaudio")

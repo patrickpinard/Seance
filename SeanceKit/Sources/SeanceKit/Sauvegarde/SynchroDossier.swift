@@ -44,3 +44,14 @@ public enum SynchroDossier {
             .sorted { ($0.modifieLe, $0.nom) < ($1.modifieLe, $1.nom) }
     }
 }
+
+/// Le dossier où les appareils déposent leurs fichiers, quel qu'il soit : un dossier d'iCloud Drive ou de Fichiers
+/// (iPhone, iPad, Mac), ou un dossier du NAS lu en SMB (EF-144) — le seul que l'Apple TV puisse atteindre, elle qui
+/// n'a ni Fichiers ni iCloud Drive. Le moteur de synchronisation ne connaît que ces trois gestes.
+public protocol TransportSynchro: Sendable {
+    /// Les fichiers à la racine du dossier, avec leur date de modification. Un dossier absent se lit comme vide.
+    func lister() async throws -> [SynchroDossier.Fichier]
+    func lire(_ nom: String) async throws -> Data
+    /// Écrit, ou remplace, le fichier de ce nom ; crée le dossier s'il manque.
+    func ecrire(_ donnees: Data, nom: String) async throws
+}

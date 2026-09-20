@@ -80,7 +80,7 @@ final class EtatOu {
             let heure = diffusion.debut.formatted(.dateTime.hour().minute().locale(Locale(identifier: "fr_CH")))
             let quand = diffusion.debut <= maintenant ? "en ce moment"
                 : ceSoir[reference] != nil ? "ce soir à \(heure)"
-                : diffusion.debut.formatted(.dateTime.weekday(.wide).day().month(.abbreviated).locale(Locale(identifier: "fr_CH"))) + " à \(heure)"
+                : diffusion.debut.formatted(.dateTime.weekday(.abbreviated).day().month(.abbreviated).locale(Locale(identifier: "fr_CH"))) + " à \(heure)"
             semaine[reference] = (chaines[diffusion.chaine] ?? diffusion.chaine, quand)
         }
         teleSemaine = semaine

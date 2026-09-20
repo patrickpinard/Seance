@@ -1,7 +1,7 @@
-import CryptoKit
 import Foundation
 import SeanceDonnees
 import SeanceKit
+import SeanceNAS
 import SwiftData
 import SwiftUI
 import UIKit
@@ -87,6 +87,18 @@ final class EtatSynchro {
         didSet { UserDefaults.standard.set(automatique, forKey: Cle.automatique) }
     }
 
+    /// Synchroniser aussi par le dossier « Séance » du NAS (EF-144) : le seul chemin jusqu'à l'Apple TV.
+    var parLeNAS: Bool {
+        didSet {
+            UserDefaults.standard.set(parLeNAS, forKey: Cle.parLeNAS)
+            // Éteint puis rallumé, le NAS se relit en entier.
+            if !parLeNAS { ["synchro.nas.importes", "synchro.nas.empreinte", Cle.derniereNAS].forEach(UserDefaults.standard.removeObject); derniereSynchroNAS = nil; messageNAS = nil }
+        }
+    }
+    private(set) var derniereSynchroNAS: Date?
+    /// Pourquoi le NAS n'a pas répondu à la dernière tentative ; `nil` quand tout va bien.
+    private(set) var messageNAS: String?
+
     private enum Cle {
         static let signet = "synchro.dossier"
         static let nomDossier = "synchro.nomDossier"
@@ -95,6 +107,8 @@ final class EtatSynchro {
         static let importes = "synchro.importes"
         static let empreinte = "synchro.empreinte"
         static let derniere = "synchro.derniere"
+        static let parLeNAS = "synchro.nas.actif"
+        static let derniereNAS = "synchro.nas.derniere"
     }
 
     /// Pas plus d'une synchronisation automatique toutes les deux minutes.
@@ -105,6 +119,8 @@ final class EtatSynchro {
         nomDossier = defauts.data(forKey: Cle.signet) == nil ? nil : defauts.string(forKey: Cle.nomDossier)
         automatique = defauts.object(forKey: Cle.automatique) == nil ? true : defauts.bool(forKey: Cle.automatique)
         derniereSynchro = defauts.object(forKey: Cle.derniere) as? Date
+        parLeNAS = defauts.bool(forKey: Cle.parLeNAS)
+        derniereSynchroNAS = defauts.object(forKey: Cle.derniereNAS) as? Date
         #if DEBUG
         // Tests d'interface : le dossier est imposé au lancement, sans sélecteur de fichiers ni iCloud Drive.
         if let chemin = ProcessInfo.processInfo.environment["SEANCE_SYNCHRO_DOSSIER"] {
@@ -113,7 +129,7 @@ final class EtatSynchro {
         #endif
     }
 
-    var estConfiguree: Bool { nomDossier != nil }
+    var estConfiguree: Bool { nomDossier != nil || parLeNAS }
 
     /// « iPhone 3F2A » : le genre d'appareil et quatre caractères tirés une fois pour toutes.
     private var appareil: String {
@@ -149,10 +165,12 @@ final class EtatSynchro {
         dernierMessage = nil
     }
 
-    /// Importe les fichiers des autres appareils qui ont changé, puis dépose le nôtre s'il a changé.
+    /// Importe les fichiers des autres appareils qui ont changé, puis dépose le nôtre s'il a changé — dans le dossier
+    /// choisi (iCloud Drive, Fichiers), puis dans celui du NAS s'il est activé : c'est par lui que l'Apple TV reçoit tout.
     /// `automatique` : au retour dans l'app ; silencieuse s'il n'y a rien, et pas plus d'une fois toutes les deux minutes.
     func synchroniser(etat: EtatApp, contexte: ModelContext, automatique declenchementAuto: Bool = false) async {
-        guard !enCours, let signet = UserDefaults.standard.data(forKey: Cle.signet) else { return }
+        let signet = UserDefaults.standard.data(forKey: Cle.signet)
+        guard !enCours, signet != nil || parLeNAS else { return }
         if declenchementAuto {
             guard automatique else { return }
             if let derniere = derniereSynchro, Date.now.timeIntervalSince(derniere) < Self.intervalleMinimal { return }
@@ -160,79 +178,84 @@ final class EtatSynchro {
         enCours = true
         defer { enCours = false }
 
-        do {
-            var perime = false
-            let dossier = try URL(resolvingBookmarkData: signet, options: [], relativeTo: nil, bookmarkDataIsStale: &perime)
-            let acces = dossier.startAccessingSecurityScopedResource()
-            defer { if acces { dossier.stopAccessingSecurityScopedResource() } }
-            if perime, let neuf = try? dossier.bookmarkData(options: [], includingResourceValuesForKeys: nil, relativeTo: nil) {
-                UserDefaults.standard.set(neuf, forKey: Cle.signet)
-            }
-
-            // 1. Les fichiers des autres qui ont changé depuis leur dernier import.
-            let propre = SynchroDossier.nomFichier(appareil: appareil)
-            var importes = (UserDefaults.standard.dictionary(forKey: Cle.importes) as? [String: Date]) ?? [:]
-            let presents = try await Task.detached { try Self.lister(dossier) }.value
-            var recues: [(nom: String, sauvegarde: Sauvegarde)] = []
-            var datesLues: [String: Date] = [:]
-            for fichier in SynchroDossier.aImporter(presents, propre: propre, dejaImportes: importes) {
-                let url = dossier.appendingPathComponent(fichier.nom)
-                // Un fichier illisible (en cours d'écriture ailleurs) sera relu la prochaine fois.
-                guard let donnees = try? await Task.detached(operation: { try Self.lire(url) }).value,
-                      let sauvegarde = try? Sauvegarde.decoder(donnees) else { continue }
-                recues.append((fichier.nom, sauvegarde))
-                datesLues[fichier.nom] = fichier.modifieLe
-            }
-
-            // 2. La fusion : suppressions et retours en arrière compris, le plus récent l'emporte.
-            let resultat = try ServiceSynchro(contexte: contexte)
-                .fusionner(recues: recues, precedente: etatPrecedent(), preferences: PreferencesSauvegardees.lire())
-            _ = PreferencesSauvegardees.appliquer(resultat.preferencesRemplacees, etat: etat, remplacer: true)
+        var recus: [String] = []
+        var depose = false
+        var echecs: [String] = []
+        let preferences = { PreferencesSauvegardees.lire() }
+        let appliquer: ([String: Sauvegarde.Preference], [[String: Sauvegarde.Preference]]) -> Void = { remplacees, recues in
+            _ = PreferencesSauvegardees.appliquer(remplacees, etat: etat, remplacer: true)
             // Les réglages jamais touchés ici se reprennent aussi, comme à l'import d'un fichier.
-            for (_, sauvegarde) in recues { _ = PreferencesSauvegardees.appliquer(sauvegarde.preferences ?? [:], etat: etat) }
-            importes.merge(datesLues) { _, recente in recente }
-            UserDefaults.standard.set(importes, forKey: Cle.importes)
-            var recus: [String] = []
-            for recu in resultat.recus where !recu.estVide {
-                recus.append("\(ImportSauvegarde.phrase(recu)) (\(Self.nomAppareil(recu.nom)))")
-            }
-            if !recus.isEmpty {
-                etat.ou.actualiserLocal(contexte: contexte)
-                Task { await etat.alertes.planifier(contexte: contexte, tmdb: etat.tmdb) }
-            }
+            for reglages in recues { _ = PreferencesSauvegardees.appliquer(reglages, etat: etat) }
+        }
+        func noter(_ bilan: MoteurSynchro.Bilan) {
+            for recu in bilan.recus { recus.append("\(ImportSauvegarde.phrase(recu)) (\(Self.nomAppareil(recu.nom)))") }
+            if bilan.deposees != nil { depose = true }
+        }
 
-            // 3. Notre fichier, seulement s'il a changé : y toucher pour rien réveillerait les autres appareils.
-            //    Il devient aussi le point de comparaison de la prochaine synchronisation.
-            var aDeposer = resultat.aDeposer
-            aDeposer.preferences = PreferencesSauvegardees.lire()
-            let empreinte = try Self.empreinte(aDeposer)
-            var depose = false
-            if empreinte != UserDefaults.standard.string(forKey: Cle.empreinte) {
-                let donnees = try aDeposer.encoder()
-                let cible = dossier.appendingPathComponent(propre)
-                try await Task.detached { try Self.ecrire(donnees, cible) }.value
-                UserDefaults.standard.set(empreinte, forKey: Cle.empreinte)
-                depose = true
+        // 1. Le dossier d'iCloud Drive ou de Fichiers.
+        if let signet {
+            do {
+                var perime = false
+                let dossier = try URL(resolvingBookmarkData: signet, options: [], relativeTo: nil, bookmarkDataIsStale: &perime)
+                let acces = dossier.startAccessingSecurityScopedResource()
+                defer { if acces { dossier.stopAccessingSecurityScopedResource() } }
+                if perime, let neuf = try? dossier.bookmarkData(options: [], includingResourceValuesForKeys: nil, relativeTo: nil) {
+                    UserDefaults.standard.set(neuf, forKey: Cle.signet)
+                }
+                let moteur = MoteurSynchro(contexte: contexte, transport: DossierLocal(dossier: dossier), appareil: appareil,
+                                           espace: "synchro", fichierEtat: Self.fichierEtat)
+                let bilan = try await moteur.synchroniser(preferences: preferences, appliquer: appliquer)
+                noter(bilan)
                 // Un filet de sécurité : l'état du jour, daté, à côté ; les cinq derniers de cet appareil sont gardés.
-                let nomAppareil = appareil
-                let jour = DateTMDB(.now).description
-                try? await Task.detached { try Self.archiver(donnees, dossier: dossier, appareil: nomAppareil, jour: jour) }.value
+                if let donnees = bilan.deposees {
+                    let nomAppareil = appareil
+                    let jour = DateTMDB(.now).description
+                    try? await Task.detached { try Self.archiver(donnees, dossier: dossier, appareil: nomAppareil, jour: jour) }.value
+                }
+            } catch {
+                echecs.append("le dossier est-il toujours là, et iCloud Drive disponible ?")
+                etat.journal.noter(.general, "La synchronisation par le dossier n'a pas abouti.", erreur: error)
             }
-            enregistrerEtat(aDeposer)
+        }
 
-            derniereSynchro = .now
-            UserDefaults.standard.set(Date.now, forKey: Cle.derniere)
-            if !recus.isEmpty {
-                dernierMessage = "Reçu : \(recus.joined(separator: " ; "))."
-                etat.confirmer("Synchronisé : \(recus.joined(separator: " ; "))", symbole: "arrow.triangle.2.circlepath")
-                AccessibilityNotification.Announcement("Synchronisé : \(recus.joined(separator: ", "))").post()
-            } else if !declenchementAuto {
-                dernierMessage = depose ? "Tes données ont été déposées dans le dossier. Rien de nouveau des autres appareils."
-                                        : "Tout est à jour."
+        // 2. Le dossier « Séance » du NAS (EF-144), à la maison seulement : ailleurs, le NAS ne répond pas et ce n'est
+        //    pas une panne — la synchronisation automatique se tait, la prochaine à la maison rattrapera.
+        if parLeNAS {
+            if let transport = etat.nas.dossierSynchro() {
+                do {
+                    let moteur = MoteurSynchro(contexte: contexte, transport: transport, appareil: appareil,
+                                               espace: "synchro.nas", fichierEtat: Self.fichierEtat)
+                    noter(try await moteur.synchroniser(preferences: preferences, appliquer: appliquer))
+                    derniereSynchroNAS = .now
+                    UserDefaults.standard.set(Date.now, forKey: Cle.derniereNAS)
+                    messageNAS = nil
+                } catch {
+                    messageNAS = ErreurNAS.message(error)
+                    if !declenchementAuto { echecs.append("NAS : \(ErreurNAS.message(error))") }
+                    if !EtatNAS.injoignable(error) {
+                        etat.journal.noter(.nas, "La synchronisation par le NAS n'a pas abouti.", erreur: error,
+                                           conseil: "Le compte du NAS doit pouvoir écrire dans le partage : Séance y crée le dossier « \(DossierSynchroSMB.dossierParDefaut) ».")
+                    }
+                }
+            } else {
+                messageNAS = "Complète d'abord Réglages › NAS (adresse, partage, mot de passe)."
             }
-        } catch {
-            dernierMessage = "La synchronisation n'a pas abouti : le dossier est-il toujours là, et iCloud Drive disponible ?"
-            etat.journal.noter(.general, "La synchronisation par le dossier n'a pas abouti.", erreur: error)
+        }
+
+        if !recus.isEmpty {
+            etat.ou.actualiserLocal(contexte: contexte)
+            Task { await etat.alertes.planifier(contexte: contexte, tmdb: etat.tmdb) }
+        }
+        derniereSynchro = .now
+        UserDefaults.standard.set(Date.now, forKey: Cle.derniere)
+        if !recus.isEmpty {
+            dernierMessage = "Reçu : \(recus.joined(separator: " ; "))."
+            etat.confirmer("Synchronisé : \(recus.joined(separator: " ; "))", symbole: "arrow.triangle.2.circlepath")
+            AccessibilityNotification.Announcement("Synchronisé : \(recus.joined(separator: ", "))").post()
+        } else if !echecs.isEmpty {
+            dernierMessage = "La synchronisation n'a pas abouti : \(echecs.joined(separator: " ; "))"
+        } else if !declenchementAuto {
+            dernierMessage = depose ? "Tes données ont été déposées. Rien de nouveau des autres appareils." : "Tout est à jour."
         }
     }
 
@@ -244,25 +267,29 @@ final class EtatSynchro {
         return dossier.appendingPathComponent("synchro-etat.json")
     }
 
-    private func etatPrecedent() -> Sauvegarde? {
-        (try? Data(contentsOf: Self.fichierEtat)).flatMap { try? Sauvegarde.decoder($0) }
-    }
-
-    private func enregistrerEtat(_ sauvegarde: Sauvegarde) {
-        try? sauvegarde.encoder().write(to: Self.fichierEtat, options: .atomic)
-    }
-
     /// « Séance — iPad 77C1.json » → « iPad ».
     private static func nomAppareil(_ fichier: String) -> String {
         let nom = fichier.dropFirst(SynchroDossier.prefixe.count).dropLast(SynchroDossier.suffixe.count)
         return nom.split(separator: " ").first.map(String.init) ?? String(nom)
     }
 
-    /// L'empreinte du contenu, hors date de création : deux exports des mêmes données ont la même.
-    private static func empreinte(_ sauvegarde: Sauvegarde) throws -> String {
-        var stable = sauvegarde
-        stable.creeeLe = Date(timeIntervalSince1970: 0)
-        return SHA256.hash(data: try stable.encoder()).map { String(format: "%02x", $0) }.joined()
+    /// Le dossier choisi dans Fichiers, vu comme un transport : lecture et écriture coordonnées, hors du fil principal.
+    private struct DossierLocal: TransportSynchro {
+        let dossier: URL
+
+        func lister() async throws -> [SynchroDossier.Fichier] {
+            try await Task.detached { try EtatSynchro.lister(dossier) }.value
+        }
+
+        func lire(_ nom: String) async throws -> Data {
+            let url = dossier.appendingPathComponent(nom)
+            return try await Task.detached { try EtatSynchro.lire(url) }.value
+        }
+
+        func ecrire(_ donnees: Data, nom: String) async throws {
+            let url = dossier.appendingPathComponent(nom)
+            try await Task.detached { try EtatSynchro.ecrire(donnees, url) }.value
+        }
     }
 
     // MARK: Fichiers, hors du fil principal — iCloud Drive peut faire attendre un téléchargement.

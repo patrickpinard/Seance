@@ -67,3 +67,25 @@ Ouvre Séance une fois après l'installation, attends une minute, puis :
    rien ne le recouvre ; le bouton en haut à gauche ouvre la barre.
 4. Explorer : taper un titre de ta liste — la section « Dans tes listes » apparaît avant les résultats de TMDB.
 
+## Synchronisation par le NAS (4.6, EF-144)
+
+Rien de ceci n'a pu être essayé sans ton NAS : le moteur est testé de bout en bout entre deux appareils fictifs
+(`MoteurSynchroTests`), pas le transport SMB. Pour l'essayer depuis le Mac, avec un compte qui **écrit** dans le partage :
+
+```sh
+SEANCE_NAS_HOTE=… SEANCE_NAS_PARTAGE=Films SEANCE_NAS_UTILISATEUR=… SEANCE_NAS_MOT_DE_PASSE=… \
+  swift test --package-path SeanceNAS --filter DossierSynchroSMB
+```
+
+1. iPhone, à la maison : Réglages › Sauvegarde › **Par le NAS**. Attendu : « Tes données ont été déposées », et sur le NAS
+   un dossier `Séance` à la racine du partage, avec `Séance — iPhone XXXX.json`.
+   - « Le NAS refuse… » ou une erreur d'écriture : le compte n'a que la lecture. Lui donner l'écriture sur le partage.
+2. Apple TV : ouvrir Séance. Attendu, en bas de l'écran : « Synchronisé avec tes appareils : N changements » ; Mes listes
+   et Ce soir sont remplis. Le dossier du NAS contient maintenant `Séance — Apple TV XXXX.json`.
+3. Sur la TV, garder un titre « à voir » depuis sa fiche ; quitter l'app. Sur l'iPhone, rouvrir Séance (deux minutes au
+   moins après la dernière synchronisation) : le titre arrive dans À voir.
+4. Sur l'iPhone, retirer ce titre ; rouvrir Séance sur la TV : il disparaît aussi.
+5. Hors de la maison : ouvrir Séance sur l'iPhone. Attendu : aucun message d'erreur ; Réglages › Sauvegarde montre
+   discrètement que le NAS n'a pas répondu.
+6. iPad et Mac : activer « Par le NAS » aussi, si tu veux qu'ils passent par lui en plus d'iCloud Drive.
+

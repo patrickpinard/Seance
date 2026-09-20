@@ -125,6 +125,54 @@ final class EtatTV {
         if !motDePasse.isEmpty, (try? coffre.enregistrer(motDePasse, pour: .nas)) != nil { motDePasseNAS = true }
     }
 
+    // MARK: Synchronisation par le NAS (EF-144)
+
+    private(set) var synchroEnCours = false
+    private(set) var derniereSynchro = UserDefaults.standard.object(forKey: "synchro.nas.derniere") as? Date
+    /// Pourquoi la dernière synchronisation n'a pas abouti ; `nil` quand tout va bien.
+    private(set) var erreurSynchro: String?
+
+    /// « Apple TV 9C01 » : le nom du fichier que cette TV dépose sur le NAS.
+    private var appareilSynchro: String {
+        if let connu = UserDefaults.standard.string(forKey: "synchro.appareil") { return connu }
+        let nom = "Apple TV \(UUID().uuidString.prefix(4))"
+        UserDefaults.standard.set(nom, forKey: "synchro.appareil")
+        return nom
+    }
+
+    /// Lit dans le dossier « Séance » du NAS ce que l'iPhone, l'iPad et le Mac y ont déposé — listes, soirées,
+    /// plateformes, chaînes, goûts — et y dépose ce qui a été fait ici. Au lancement et à chaque retour dans l'app ;
+    /// `bavard` : demandé depuis les Réglages, le résultat se dit même quand il n'y a rien.
+    func synchroniser(contexte: ModelContext, bavard: Bool = false) async {
+        guard !enDemonstration, !synchroEnCours, nasPret, let motDePasse = (try? coffre.lire(.nas)) ?? nil else {
+            if bavard { dire("Règle d'abord le NAS : la synchronisation passe par lui.") }
+            return
+        }
+        synchroEnCours = true
+        defer { synchroEnCours = false }
+        // L'état de la synchronisation précédente vit à côté du magasin, dans le cache : si tvOS a fait le ménage,
+        // les deux sont partis ensemble, et tout le dossier se relit.
+        let fichierEtat = URL.cachesDirectory.appending(path: "Seance/synchro-etat.json")
+        let moteur = MoteurSynchro(contexte: contexte, transport: DossierSynchroSMB(reglages: nas, motDePasse: motDePasse),
+                                   appareil: appareilSynchro, espace: "synchro.nas", fichierEtat: fichierEtat)
+        if !FileManager.default.fileExists(atPath: fichierEtat.path(percentEncoded: false)) { moteur.oublier() }
+        do {
+            let bilan = try await moteur.synchroniser()
+            derniereSynchro = .now
+            UserDefaults.standard.set(Date.now, forKey: "synchro.nas.derniere")
+            erreurSynchro = nil
+            let titres = bilan.recus.reduce(0) { $0 + $1.ajouts.suivis.count + $1.ajouts.soirees.count + $1.misAJour + $1.supprimes }
+            if !bilan.recus.isEmpty {
+                dire(titres > 0 ? "Synchronisé avec tes appareils : \(titres) changement\(titres > 1 ? "s" : "")" : "Synchronisé avec tes appareils")
+            } else if bavard {
+                dire("Tout est à jour.")
+            }
+        } catch {
+            erreurSynchro = ErreurNAS.message(error)
+            if bavard { dire("La synchronisation n'a pas abouti : \(ErreurNAS.message(error))") }
+        }
+    }
+
     private func explorateur() -> ExplorateurSMB? {
         guard let motDePasse = (try? coffre.lire(.nas)) ?? nil else { return nil }
         return ExplorateurSMB(reglages: nas, motDePasse: motDePasse)

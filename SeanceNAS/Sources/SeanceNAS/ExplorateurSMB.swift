@@ -157,7 +157,8 @@ public struct ExplorateurSMB: ExplorateurFichiers {
         return presents.first { cle($0) == voulu }
     }
 
-    private func avecPartage<Resultat: Sendable>(_ travail: (SMB2Manager) async throws -> Resultat) async throws -> Resultat {
+    /// Ouvre le partage, fait le travail, referme. Sert aussi au dossier de synchronisation (`DossierSynchroSMB`).
+    func avecPartage<Resultat: Sendable>(_ travail: (SMB2Manager) async throws -> Resultat) async throws -> Resultat {
         guard let url = URL(string: "smb://\(reglages.hote)"),
               let client = SMB2Manager(
                   url: url,

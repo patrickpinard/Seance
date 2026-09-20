@@ -20,6 +20,21 @@ struct NoteVersion: Identifiable {
 
     static let historique: [NoteVersion] = [
         NoteVersion(
+            numero: "4.6",
+            date: "20 septembre 2026",
+            resume: "Tes listes arrivent sur l'Apple TV, toutes seules : la synchronisation passe aussi par le NAS.",
+            fonctionnalites: [
+                Fonctionnalite(symbole: "externaldrive.connected.to.line.below", titre: "Synchroniser par le NAS",
+                               detail: "Réglages › Sauvegarde › « Par le NAS » : Séance dépose son fichier dans un dossier « Séance » du NAS et y lit ceux des autres, en plus du dossier d'iCloud Drive. À la maison seulement ; ailleurs rien ne se perd, tout se rattrape au retour. Le compte du NAS doit pouvoir écrire dans le partage."),
+                Fonctionnalite(symbole: "appletv", titre: "L'Apple TV reçoit tes listes",
+                               detail: "À voir, en cours, soirées prévues, plateformes, chaînes et goûts arrivent sur la TV au lancement et à chaque retour dans l'app ; ce que tu fais sur la TV — garder un titre, marquer un film vu — revient sur l'iPhone. Suppressions et retours en arrière compris, le plus récent l'emportant."),
+                Fonctionnalite(symbole: "arrow.left.and.right", titre: "Fiches recadrées sur l'iPhone",
+                               detail: "Une pastille « où regarder » un peu longue élargissait toute la fiche d'un film ou d'une série, qui se retrouvait décalée et rognée à gauche. La fiche garde maintenant la largeur de l'écran."),
+                Fonctionnalite(symbole: "iphone.and.arrow.forward", titre: "Activée après l'envoi par code",
+                               detail: "Quand l'iPhone configure une TV par son code à six chiffres, « Par le NAS » s'active dans la foulée : plus besoin de renvoyer un code pour mettre la TV à jour. Réglages de la TV › « Synchronisation avec tes appareils » dit quand le dernier passage a eu lieu, et le relance."),
+            ]
+        ),
+        NoteVersion(
             numero: "4.5",
             date: "20 septembre 2026",
             resume: "Ta soirée en quelques touchers : où regarder chaque titre tout de suite, l'épisode 1 d'une série jamais commencée, et « Je n'aime pas ».",

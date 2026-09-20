@@ -122,6 +122,12 @@ struct EnvoiAppleTVView: View {
                 try await EmetteurConfig.envoyer(configuration, a: tv, code: code)
                 reussi = true
                 message = "« \(tv.nom) » a tout reçu."
+                // L'appareil configuré a maintenant le NAS : la suite passe par lui, sans nouveau code (EF-144).
+                if etat.nas.estConfigure, !etat.synchro.parLeNAS {
+                    etat.synchro.parLeNAS = true
+                    message = "« \(tv.nom) » a tout reçu. La suite se synchronise toute seule, par le NAS."
+                    Task { await etat.synchro.synchroniser(etat: etat, contexte: contexte) }
+                }
                 etat.journal.noter(.general, "Configuration envoyée à « \(tv.nom) ».")
             } catch EmetteurConfig.Erreur.codeIncorrect {
                 message = "Ce n'est pas le code affiché sur l'autre appareil. Vérifie-le et recommence."

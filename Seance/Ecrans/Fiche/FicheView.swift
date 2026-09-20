@@ -147,7 +147,10 @@ private struct ContenuFiche: View {
                 if largeur == .regular, largeurDisponible >= 900 {
                     deuxColonnes
                 } else {
+                    // La colonne prend la largeur de l'écran, jamais celle de son élément le plus large : une pastille
+                    // ou un passage télé un peu long élargissait toute la fiche, qui se retrouvait rognée à gauche.
                     uneColonne
+                        .frame(width: largeurDisponible < 1200 ? largeurDisponible : nil, alignment: .leading)
                 }
             }
             .padding(.bottom, 40)
