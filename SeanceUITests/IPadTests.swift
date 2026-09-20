@@ -24,7 +24,7 @@ final class IPadTests: XCTestCase {
         let fenetre = app.windows.firstMatch
         XCTAssertTrue(fenetre.waitForExistence(timeout: 15))
         try XCTSkipUnless(min(fenetre.frame.width, fenetre.frame.height) > 700, "Test réservé à l'iPad")
-        XCTAssertTrue(app.staticTexts["Du moment"].firstMatch.waitForExistence(timeout: 15) || app.buttons["Accueil"].firstMatch.waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Nouveautés"].firstMatch.waitForExistence(timeout: 15) || app.buttons["Accueil"].firstMatch.waitForExistence(timeout: 5))
         // La barre s'ouvre 400 ms après le montage de la fenêtre.
         Thread.sleep(forTimeInterval: 1.5)
     }

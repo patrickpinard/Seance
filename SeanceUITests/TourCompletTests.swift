@@ -43,7 +43,7 @@ final class TourCompletTests: XCTestCase {
                                 "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityL"]
         app.launch()
         prefixe = "grand-"
-        XCTAssertTrue(app.staticTexts["Du moment"].firstMatch.waitForExistence(timeout: 20))
+        XCTAssertTrue(app.staticTexts["Nouveautés"].firstMatch.waitForExistence(timeout: 20))
         capture("01-accueil", attente: 5)
         app.swipeUp()
         capture("02-accueil-tele")
@@ -69,8 +69,8 @@ final class TourCompletTests: XCTestCase {
         app.launch()
         self.prefixe = prefixe
 
-        // Accueil : le faux TMDB remplit le Top et « Du moment » ; la démonstration, la télé et le NAS.
-        XCTAssertTrue(app.staticTexts["Du moment"].firstMatch.waitForExistence(timeout: 20), "L'accueil ne charge pas « Du moment »")
+        // Accueil : le faux TMDB remplit le Top et « Nouveautés » ; la démonstration, la télé et le NAS.
+        XCTAssertTrue(app.staticTexts["Nouveautés"].firstMatch.waitForExistence(timeout: 20), "L'accueil ne charge pas « Nouveautés »")
         XCTAssertTrue(app.staticTexts["Regardable ce soir, dans ta liste"].firstMatch.waitForExistence(timeout: 10),
                       "L'accueil ne montre pas ce qui est regardable ce soir dans la liste")
         capture("01-accueil", attente: 5)
@@ -128,6 +128,7 @@ final class TourCompletTests: XCTestCase {
 
         // La page NAS, depuis l'accueil.
         onglet("Accueil")
+        XCTAssertTrue(app.amener(app.buttons["boutonNAS"].firstMatch), "L'étagère « Sur ton NAS » n'a pas de « Tout voir »")
         app.buttons["boutonNAS"].firstMatch.tap()
         XCTAssertTrue(app.staticTexts["Nouveaux sur ton NAS"].firstMatch.waitForExistence(timeout: 10), "Les nouveautés du NAS sont absentes")
         capture("14-nas", attente: 4)
@@ -193,12 +194,19 @@ final class TourCompletTests: XCTestCase {
 
         // Explorer : les sources.
         onglet("Explorer")
-        XCTAssertTrue(app.buttons["Source : NAS"].firstMatch.waitForExistence(timeout: 15), "Le sélecteur de source est absent")
+        XCTAssertTrue(app.buttons["NAS"].firstMatch.waitForExistence(timeout: 15), "Le sélecteur de source est absent")
         capture("11-explorer", attente: 5)
-        app.buttons["Source : Télé"].firstMatch.tap()
+        app.buttons["Télé"].firstMatch.tap()
         XCTAssertTrue(app.buttons["Cette semaine"].firstMatch.waitForExistence(timeout: 5))
         capture("12-explorer-tele", attente: 5)
-        app.buttons["Source : NAS"].firstMatch.tap()
+        // Source Télé : seulement ce qui passe sur ses chaînes. Le guide de la démonstration compte cinq films à venir,
+        // et chaque affiche dit sur quelle chaîne et quand.
+        let surLaTele = app.buttons.matching(NSPredicate(format: "label CONTAINS 'RTS' OR label CONTAINS 'TF1' OR label CONTAINS 'M6' OR label CONTAINS 'W9' OR label CONTAINS 'France' OR label CONTAINS 'Arte' OR label CONTAINS 'TMC'"))
+        XCTAssertTrue(surLaTele.firstMatch.waitForExistence(timeout: 10), "Les résultats de la source Télé ne disent pas sur quelle chaîne")
+        // « John Wick » (le premier) est sur le NAS de la démonstration mais sur aucune chaîne : il ne doit pas être là.
+        let intrus = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'John Wick,' OR label CONTAINS ', John Wick,'"))
+        XCTAssertEqual(intrus.count, 0, "La source Télé liste un titre qui ne passe sur aucune chaîne")
+        app.buttons["NAS"].firstMatch.tap()
         XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH '0 films'")).firstMatch.exists == false,
                       "La source NAS ne trouve aucun film alors que le NAS de démonstration en a")
         capture("13-explorer-nas", attente: 5)

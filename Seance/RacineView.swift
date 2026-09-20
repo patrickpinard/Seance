@@ -220,5 +220,8 @@ extension View {
         .navigationDestination(for: DestinationReglage.self) { destination in
             PageReglage(destination: destination)
         }
+        .navigationDestination(for: DossierVideosPerso.self) { dossier in
+            VideosPersoView(dossier: dossier)
+        }
     }
 }

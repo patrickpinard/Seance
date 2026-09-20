@@ -4,7 +4,7 @@ import SwiftData
 import SwiftUI
 
 enum ReglageTV: Hashable {
-    case cle, plateformes, tele, nas, lecture, gouts, aPropos
+    case cle, plateformes, tele, nas, videosPerso, lecture, gouts, aPropos
 }
 
 /// Les Réglages de la TV, sur le modèle de l'iPhone (piste B, EF-169) : en tête, l'état — ce qui est en ordre en vert,
@@ -16,101 +16,103 @@ struct ReglagesTV: View {
     @Query(filter: #Predicate<Chaine> { $0.active }) private var chaines: [Chaine]
     @Query private var interets: [Interet]
     @State private var configuration = false
+    @State private var chemin: [ReglageTV] = DepartTV.reglage.flatMap { nom in
+        ["cle": ReglageTV.cle, "plateformes": .plateformes, "tele": .tele, "nas": .nas, "videosPerso": .videosPerso,
+         "lecture": .lecture, "gouts": .gouts, "aPropos": .aPropos][nom].map { [$0] }
+    } ?? []
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 40) {
-                etatDeSeance
-                rubrique("Toi") {
-                    tuile(.gouts, "Tes goûts", "heart.fill", interets.isEmpty ? "Genres à choisir" : interets.map(\.libelle).sorted().prefix(3).joined(separator: ", "))
+        NavigationStack(path: $chemin) {
+            PageTV(titre: "Réglages", sousTitre: sousTitre) {
+                SectionTV(titre: "État de Séance sur cette TV") {
+                    ligne(.cle, "TMDB", etat.tmdb != nil ? "Fiches, affiches et plateformes" : "Les fiches et les affiches en viennent", etat.tmdb != nil)
+                    ligne(.plateformes, "Plateformes", abonnements.isEmpty ? "Pour savoir ce que tu peux regarder" : abonnements.map(\.nom).joined(separator: ", "), !abonnements.isEmpty)
+                    ligne(.tele, "Télévision", chaines.isEmpty ? "Choisis tes chaînes" : "\(chaines.count) chaînes · \(libelleGuide)", !chaines.isEmpty)
+                    ligne(.nas, "NAS", etat.nasPret ? "\(etat.nas.hote) · partage « \(etat.nas.partage) »" : "Tes films déjà téléchargés", etat.nasPret)
+                    ligne(.videosPerso, "Vidéos personnelles", libelleVideos, !etat.videosPerso.aConfigurer(films: etat.nas))
+                    ligne(.lecture, "Lecture", "Tes vidéos du NAS s'ouvrent dans \(etat.lecteur.nom)", true)
                 }
-                rubrique("Cet appareil") {
-                    Button { configuration = true } label: {
-                        TuileTV(titre: "Configurer depuis mon iPhone", symbole: "iphone.and.arrow.forward", valeur: "Un code ici, et tout arrive : clé, NAS, listes")
-                    }
-                    .buttonStyle(.card)
+                SectionTV(titre: "Toi") {
+                    ligne(.gouts, "Tes goûts", interets.isEmpty ? "Genres à choisir" : interets.map(\.libelle).sorted().joined(separator: ", "), nil, symbole: "heart.fill")
                 }
-                rubrique("L'app") {
-                    tuile(.aPropos, "À propos", "info.circle.fill", "Version \(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "—")")
+                SectionTV(titre: "Cet appareil",
+                          explication: "Le plus simple : ton iPhone envoie la clé, le NAS et tes listes d'un coup, avec un code à six chiffres.") {
+                    LigneTVReglage(titre: "Configurer depuis mon iPhone", detail: "Un code ici, et tout arrive",
+                                   symbole: "iphone.and.arrow.forward", action: { configuration = true }) { BoutTV(forme: .chevron) }
+                    ligne(.aPropos, "À propos", "Version \(Self.version)", nil, symbole: "info.circle.fill")
                 }
             }
-            .padding(.horizontal, MargesTV.bord)
-            .padding(.vertical, 40)
+            .navigationDestination(for: ReglageTV.self) { PageReglageTV(reglage: $0).pageOuverte() }
         }
-        .navigationDestination(for: ReglageTV.self) { PageReglageTV(reglage: $0) }
         .fullScreenCover(isPresented: $configuration) { ConfigurationTV() }
     }
 
-    private var etatDeSeance: some View {
-        let manques = [etat.tmdb == nil, abonnements.isEmpty, chaines.isEmpty, !etat.nasPret].filter { $0 }.count
-        return VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 18) {
-                Image(systemName: manques == 0 ? "checkmark.seal.fill" : "wrench.adjustable.fill").font(.system(size: 44))
-                    .foregroundStyle(manques == 0 ? AnyShapeStyle(Color.green) : AnyShapeStyle(Theme.accentClair))
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(manques == 0 ? "Séance est prête sur cette TV" : manques > 1 ? "\(manques) réglages à compléter" : "1 réglage à compléter")
-                        .font(.system(size: 36, weight: .bold))
-                    Text("Choisis une ligne pour l'ouvrir ; les orange restent à régler.").font(.system(size: 24)).foregroundStyle(.secondary)
-                }
-            }
-            .padding(.bottom, 10)
-            ligne(.cle, "TMDB", etat.tmdb != nil ? "Fiches, affiches et plateformes" : "Les fiches et les affiches en viennent", etat.tmdb != nil)
-            ligne(.plateformes, "Plateformes", abonnements.isEmpty ? "Pour savoir ce que tu peux regarder" : abonnements.map(\.nom).joined(separator: ", "), !abonnements.isEmpty)
-            ligne(.tele, "Télévision", chaines.isEmpty ? "Choisis tes chaînes" : "\(chaines.count) chaînes · \(etat.derniereLectureTele.map { "guide lu \($0.formatted(.relative(presentation: .named)))" } ?? "guide jamais lu")", !chaines.isEmpty)
-            ligne(.nas, "NAS", etat.nasPret ? "\(etat.nas.hote) · partage « \(etat.nas.partage) »" : "Tes films déjà téléchargés", etat.nasPret)
-            ligne(.lecture, "Lecture", "Tes vidéos du NAS s'ouvrent dans \(etat.lecteur.nom)", true)
-        }
-        .padding(30)
-        .background(Theme.surface, in: RoundedRectangle(cornerRadius: 30, style: .continuous))
-        .focusSection()
+    static var version: String { Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "—" }
+
+    private var manques: Int {
+        [etat.tmdb == nil, abonnements.isEmpty, chaines.isEmpty, !etat.nasPret, etat.videosPerso.aConfigurer(films: etat.nas)].filter { $0 }.count
     }
 
-    private func ligne(_ reglage: ReglageTV, _ titre: String, _ detail: String, _ enOrdre: Bool) -> some View {
+    private var sousTitre: String {
+        manques == 0 ? "Tout est branché. Choisis une ligne pour l'ouvrir."
+                     : "\(manques) réglage\(manques > 1 ? "s" : "") à compléter — les lignes orange. Choisis-en une pour l'ouvrir."
+    }
+
+    private var libelleGuide: String {
+        etat.derniereLectureTele.map { "guide lu \($0.formatted(.relative(presentation: .named)))" } ?? "guide jamais lu"
+    }
+
+    private var libelleVideos: String {
+        if !etat.videosPerso.actif { return "Désactivées" }
+        if etat.videosPerso.aConfigurer(films: etat.nas) { return "Accès à terminer" }
+        return etat.videosPerso.videos.isEmpty ? "Partage « \(etat.videosPerso.reglages.acces.partage) », pas encore lu"
+                                               : "\(etat.videosPerso.videos.count) vidéos"
+    }
+
+    private func ligne(_ reglage: ReglageTV, _ titre: String, _ detail: String, _ enOrdre: Bool?, symbole: String? = nil) -> some View {
         NavigationLink(value: reglage) {
-            HStack(spacing: 20) {
-                Image(systemName: enOrdre ? "checkmark.circle.fill" : "exclamationmark.circle.fill").font(.system(size: 32))
-                    .foregroundStyle(enOrdre ? Color.green : Color.orange)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(titre).font(.system(size: 30, weight: .semibold))
-                    Text(detail).font(.system(size: 23)).opacity(0.7).lineLimit(1)
-                }
-                Spacer()
-                Text(enOrdre ? "›" : "À régler").font(.system(size: enOrdre ? 36 : 24, weight: .bold)).foregroundStyle(enOrdre ? AnyShapeStyle(.tertiary) : AnyShapeStyle(Color.orange))
-            }
-            .padding(.horizontal, 24)
-            .frame(maxWidth: .infinity, minHeight: 92, alignment: .leading)
+            LigneTVReglage.Contenu(titre: titre, detail: detail, symbole: symbole, enOrdre: enOrdre)
         }
         .buttonStyle(LigneTV())
     }
-
-    private func rubrique(_ titre: String, @ViewBuilder _ tuiles: () -> some View) -> some View {
-        VStack(alignment: .leading, spacing: 18) {
-            Text(titre).font(.system(size: 38, weight: .bold))
-            HStack(spacing: 40) { tuiles() }.padding(.vertical, 20)
-        }
-        .focusSection()
-    }
-
-    private func tuile(_ reglage: ReglageTV, _ titre: String, _ symbole: String, _ valeur: String) -> some View {
-        NavigationLink(value: reglage) { TuileTV(titre: titre, symbole: symbole, valeur: valeur) }.buttonStyle(.card)
-    }
 }
 
-/// Une tuile de réglage : le symbole dans l'orange de Séance, le titre, l'état courant.
-struct TuileTV: View {
-    let titre: String
-    let symbole: String
-    let valeur: String
+extension LigneTVReglage where Accessoire == EmptyView {
+    /// Le contenu seul, pour un `NavigationLink` (qui fournit lui-même le bouton).
+    struct Contenu: View {
+        let titre: String
+        var detail: String?
+        var symbole: String?
+        var enOrdre: Bool?
+        @Environment(\.isFocused) private var aLeFocus
 
-    var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Image(systemName: symbole).font(.system(size: 40, weight: .semibold)).foregroundStyle(Theme.accentClair)
-            Text(titre).font(.system(size: 28, weight: .semibold)).lineLimit(2)
-            Text(valeur).font(.system(size: 22)).foregroundStyle(.secondary).lineLimit(2, reservesSpace: true)
+        var body: some View {
+            HStack(spacing: 20) {
+                if let enOrdre {
+                    Image(systemName: enOrdre ? "checkmark.circle.fill" : "exclamationmark.circle.fill")
+                        .font(.system(size: 32)).foregroundStyle(enOrdre ? Color.green : Color.orange)
+                } else if let symbole {
+                    Image(systemName: symbole).font(.system(size: 30))
+                        .foregroundStyle(aLeFocus ? AnyShapeStyle(Color.black) : AnyShapeStyle(Theme.accentClair)).frame(width: 44)
+                }
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(titre).font(.system(size: 30, weight: .semibold))
+                    if let detail {
+                        Text(detail).font(.system(size: 23))
+                            .foregroundStyle(aLeFocus ? Color.black.opacity(0.65) : Color.white.opacity(0.65)).lineLimit(1)
+                    }
+                }
+                Spacer(minLength: 12)
+                if enOrdre == false {
+                    Text("À régler").font(.system(size: 24, weight: .bold)).foregroundStyle(Color.orange)
+                } else {
+                    Image(systemName: "chevron.right").font(.system(size: 26, weight: .bold)).opacity(0.45)
+                }
+            }
+            .foregroundStyle(aLeFocus ? .black : .white)
+            .padding(.horizontal, 24)
+            .frame(maxWidth: .infinity, minHeight: 88, alignment: .leading)
         }
-        .frame(width: 420, alignment: .leading)
-        .padding(28)
-        .background(Theme.surface)
     }
 }
 
@@ -124,11 +126,34 @@ struct LigneTV: ButtonStyle {
 
         var body: some View {
             configuration.label
-                .foregroundStyle(aLeFocus ? .black : .white)
                 .background(aLeFocus ? AnyShapeStyle(.white) : AnyShapeStyle(.clear), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
                 .scaleEffect(aLeFocus ? 1.02 : 1)
                 .animation(.easeOut(duration: 0.15), value: aLeFocus)
         }
+    }
+}
+
+/// Une tuile de réglage : le symbole dans l'orange de Séance, le titre, l'état courant.
+struct TuileTV: View {
+    let titre: String
+    let symbole: String
+    let valeur: String
+
+    @Environment(\.isFocused) private var aLeFocus
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Image(systemName: symbole).font(.system(size: 40, weight: .semibold))
+                .foregroundStyle(aLeFocus ? AnyShapeStyle(Color.black) : AnyShapeStyle(Theme.accentClair))
+            Text(titre).font(.system(size: 28, weight: .semibold)).lineLimit(2)
+            Text(valeur).font(.system(size: 22))
+                .foregroundStyle(aLeFocus ? Color.black.opacity(0.65) : Color.white.opacity(0.65))
+                .lineLimit(2, reservesSpace: true)
+        }
+        .foregroundStyle(aLeFocus ? .black : .white)
+        .frame(width: 420, alignment: .leading)
+        .padding(28)
+        .background(Theme.surface)
     }
 }
 
@@ -143,6 +168,7 @@ struct PageReglageTV: View {
         case .plateformes: PagePlateformesTV()
         case .tele: PageChainesTV()
         case .nas: PageNASTV()
+        case .videosPerso: PageVideosPersoTV()
         case .lecture: PageLectureTV()
         case .gouts: PageGoutsTV()
         case .aPropos: PageAProposTV()
@@ -157,27 +183,24 @@ private struct PageCleTV: View {
     @State private var verification = false
 
     var body: some View {
-        Form {
-            Section {
-                SecureField("Clé d'API ou jeton de lecture TMDB", text: $cle)
-                Button(verification ? "Vérification…" : "Enregistrer et tester") {
-                    verification = true
-                    Task {
-                        let erreur = await etat.enregistrerCleTMDB(cle)
-                        verification = false
-                        message = erreur ?? "Clé acceptée par TMDB et enregistrée."
-                        if erreur == nil { cle = "" }
-                    }
-                }
-                .disabled(cle.isEmpty || verification)
-                if let message { Text(message).foregroundStyle(.secondary) }
-            } header: {
-                Text(etat.tmdb != nil ? "Clé TMDB — enregistrée" : "Clé TMDB")
-            } footer: {
-                Text("La même que sur ton iPhone ; elle reste dans le trousseau de cette Apple TV. Plus simple : Réglages › « Configurer depuis mon iPhone ».")
+        PageTV(titre: "Clé TMDB", sousTitre: etat.tmdb != nil ? "Enregistrée dans le trousseau de cette Apple TV." : "Les fiches, les affiches et les plateformes en viennent.") {
+            SectionTV(explication: "La même que sur ton iPhone ; elle ne voyage dans aucun fichier. Tu la retrouves sur themoviedb.org, dans Paramètres › API. Plus simple : Réglages › « Configurer depuis mon iPhone ».") {
+                ChampTV(titre: "Clé d'API ou jeton de lecture", secret: true, texte: $cle)
+                LigneTVReglage(titre: verification ? "Vérification…" : "Enregistrer et tester", symbole: "checkmark.seal.fill",
+                               desactive: cle.isEmpty || verification, action: enregistrer)
+                if let message { LigneTVReglage(titre: message, symbole: "info.circle") }
             }
         }
-        .navigationTitle("TMDB")
+    }
+
+    private func enregistrer() {
+        verification = true
+        Task {
+            let erreur = await etat.enregistrerCleTMDB(cle)
+            verification = false
+            message = erreur ?? "Clé acceptée par TMDB et enregistrée."
+            if erreur == nil { cle = "" }
+        }
     }
 }
 
@@ -189,30 +212,30 @@ private struct PagePlateformesTV: View {
     @State private var catalogue: [FournisseurCatalogue] = []
 
     var body: some View {
-        Form {
-            Section {
-                if catalogue.isEmpty { Text(etat.tmdb == nil ? "Il faut d'abord la clé TMDB." : "Lecture du catalogue…").foregroundStyle(.secondary) }
-                ForEach(catalogue) { plateforme in
-                    Toggle(plateforme.nom, isOn: Binding { abonnements.contains { $0.providerID == plateforme.id && $0.actif } } set: { coche in
-                        if let existant = abonnements.first(where: { $0.providerID == plateforme.id }) {
-                            existant.actif = coche
-                        } else if coche {
-                            contexte.insert(Abonnement(providerID: plateforme.id, nom: plateforme.nom, cheminLogo: plateforme.cheminLogo))
-                        }
-                        contexte.sauver()
-                    })
+        PageTV(titre: "Plateformes", sousTitre: "Coche tes abonnements : Séance ne dira « dans tes abonnements » que pour ceux-là.") {
+            SectionTV(explication: "Disponibilités en Suisse fournies par JustWatch, via TMDB.") {
+                if catalogue.isEmpty {
+                    LigneTVReglage(titre: etat.tmdb == nil ? "Il faut d'abord la clé TMDB" : "Lecture du catalogue…", symbole: "hourglass")
                 }
-            } header: {
-                Text("Tes abonnements, en Suisse")
-            } footer: {
-                Text("Séance ne montre « dans tes abonnements » que les plateformes cochées. Disponibilités fournies par JustWatch, via TMDB.")
+                ForEach(catalogue) { plateforme in
+                    let coche = abonnements.contains { $0.providerID == plateforme.id && $0.actif }
+                    LigneTVReglage(titre: plateforme.nom, action: { basculer(plateforme, coche: !coche) }) { BoutTV(forme: .coche(coche)) }
+                }
             }
         }
-        .navigationTitle("Plateformes")
         .task {
             let lues = (try? await etat.tmdb?.catalogueFournisseurs(.film)) ?? []
             catalogue = lues.sorted { ($0.priorites["CH"] ?? 999, $0.nom) < ($1.priorites["CH"] ?? 999, $1.nom) }.prefix(40).map { $0 }
         }
+    }
+
+    private func basculer(_ plateforme: FournisseurCatalogue, coche: Bool) {
+        if let existant = abonnements.first(where: { $0.providerID == plateforme.id }) {
+            existant.actif = coche
+        } else if coche {
+            contexte.insert(Abonnement(providerID: plateforme.id, nom: plateforme.nom, cheminLogo: plateforme.cheminLogo))
+        }
+        contexte.sauver()
     }
 }
 
@@ -222,22 +245,19 @@ private struct PageChainesTV: View {
     @Query(sort: \Chaine.nom) private var chaines: [Chaine]
 
     var body: some View {
-        Form {
-            Section {
+        PageTV(titre: "Télévision", sousTitre: "Les chaînes que tu reçois : leur programme alimente « Ce soir à la télé » et l'onglet Télé.") {
+            SectionTV(titre: "Tes chaînes") {
                 ForEach(chaines) { chaine in
-                    Toggle(chaine.nom.isEmpty ? chaine.identifiantGuide : chaine.nom, isOn: Binding { chaine.active } set: { chaine.active = $0; contexte.sauver() })
+                    LigneTVReglage(titre: chaine.nom.isEmpty ? chaine.identifiantGuide : chaine.nom,
+                                   action: { chaine.active.toggle(); contexte.sauver() }) { BoutTV(forme: .coche(chaine.active)) }
                 }
-            } header: {
-                Text("Tes chaînes")
             }
-            Section {
-                Button(etat.teleEnCours ? "Lecture du guide…" : "Relire le programme maintenant") { Task { await etat.actualiserTele(contexte: contexte, force: true) } }
-                    .disabled(etat.teleEnCours)
-            } footer: {
-                Text(etat.derniereLectureTele.map { "Guide lu \($0.formatted(.relative(presentation: .named))). Séance le relit deux fois par jour." } ?? "Le guide n'a pas encore été lu sur cette TV.")
+            SectionTV(explication: etat.derniereLectureTele.map { "Guide lu \($0.formatted(.relative(presentation: .named))). Séance le relit deux fois par jour." }
+                      ?? "Le guide n'a pas encore été lu sur cette TV.") {
+                LigneTVReglage(titre: etat.teleEnCours ? "Lecture du guide…" : "Relire le programme maintenant", symbole: "arrow.clockwise",
+                               desactive: etat.teleEnCours, action: { Task { await etat.actualiserTele(contexte: contexte, force: true) } })
             }
         }
-        .navigationTitle("Télévision")
         .task { _ = try? ServiceProgrammesTV.preparerChaines(contexte) }
     }
 }
@@ -254,25 +274,25 @@ private struct PageNASTV: View {
     @State private var test = false
 
     var body: some View {
-        Form {
-            Section {
-                TextField("Adresse du NAS (192.168.1.220)", text: $hote)
-                TextField("Partage (Films)", text: $partage)
-                TextField("Dossiers, séparés par des virgules", text: $dossiers)
-                TextField("Compte", text: $utilisateur)
-                SecureField(etat.motDePasseNAS ? "Mot de passe (déjà enregistré)" : "Mot de passe", text: $motDePasse)
-                Button(test ? "Connexion au NAS…" : "Enregistrer, tester et lire le NAS") { enregistrer() }
-                    .disabled(test || hote.isEmpty || partage.isEmpty || utilisateur.isEmpty)
-                if let message { Text(message).foregroundStyle(.secondary) }
-                if etat.analyseEnCours { Label("Lecture de la bibliothèque…", systemImage: "arrow.triangle.2.circlepath") }
+        PageTV(titre: "NAS", sousTitre: "Tes films et tes séries déjà téléchargés, lus directement sur le disque de la maison.") {
+            SectionTV(titre: "Connexion") {
+                ChampTV(titre: "Adresse du NAS", invite: "192.168.1.220", texte: $hote)
+                ChampTV(titre: "Partage", invite: "Films", texte: $partage)
+                ChampTV(titre: "Dossiers", invite: "Dossiers, séparés par des virgules", texte: $dossiers)
+                ChampTV(titre: "Compte", texte: $utilisateur)
+                ChampTV(titre: "Mot de passe", invite: etat.motDePasseNAS ? "Mot de passe (déjà enregistré)" : "Mot de passe", secret: true, texte: $motDePasse)
+            }
+            SectionTV(explication: "Pour lire avec Infuse, ajoute aussi ce partage dans Infuse sur cette Apple TV : Séance lui demande d'ouvrir le titre dans sa bibliothèque.") {
+                LigneTVReglage(titre: test ? "Connexion au NAS…" : "Enregistrer, tester et lire le NAS", symbole: "externaldrive.fill",
+                               desactive: test || hote.isEmpty || partage.isEmpty || utilisateur.isEmpty, action: enregistrer)
+                if let message { LigneTVReglage(titre: message, symbole: "info.circle") }
+                if etat.analyseEnCours { LigneTVReglage(titre: "Lecture de la bibliothèque…", symbole: "arrow.triangle.2.circlepath") }
                 if let rapport = etat.rapport {
-                    Text("\(rapport.filmsReconnus) films et \(rapport.seriesReconnues) séries reconnus, sur \(rapport.videosLues) vidéos lues.").foregroundStyle(.secondary)
+                    LigneTVReglage(titre: "\(rapport.filmsReconnus) films et \(rapport.seriesReconnues) séries",
+                                   detail: "sur \(rapport.videosLues) vidéos lues", symbole: "film.stack")
                 }
-            } footer: {
-                Text("Pour lire avec Infuse, ajoute aussi ce partage dans Infuse sur cette Apple TV : Séance lui demande d'ouvrir le titre dans sa bibliothèque.")
             }
         }
-        .navigationTitle("NAS")
         .onAppear {
             hote = etat.nas.hote; partage = etat.nas.partage
             dossiers = etat.nas.dossiers.joined(separator: ", "); utilisateur = etat.nas.utilisateur
@@ -304,24 +324,13 @@ private struct PageLectureTV: View {
     @Environment(EtatTV.self) private var etat
 
     var body: some View {
-        Form {
-            Section {
+        PageTV(titre: "Lecture", sousTitre: "L'app qui lit tes vidéos du NAS. « Lire » n'ouvre que celle-là.") {
+            SectionTV(explication: "Infuse ouvre le titre dans sa bibliothèque : le partage du NAS doit y être ajouté, sur cette Apple TV. VLC lit le fichier directement sur le NAS, avec ton compte et ton mot de passe. Tes vidéos personnelles passent toujours par VLC.") {
                 ForEach(LecteurVideo.allCases) { lecteur in
-                    Button { etat.choisir(lecteur) } label: {
-                        HStack {
-                            Text(lecteur.nom)
-                            Spacer()
-                            if etat.lecteur == lecteur { Image(systemName: "checkmark").foregroundStyle(Theme.accentClair) }
-                        }
-                    }
+                    LigneTVReglage(titre: lecteur.nom, action: { etat.choisir(lecteur) }) { BoutTV(forme: .coche(etat.lecteur == lecteur)) }
                 }
-            } header: {
-                Text("L'app qui lit tes vidéos")
-            } footer: {
-                Text("Infuse ouvre le titre dans sa bibliothèque : le partage du NAS doit y être ajouté, sur cette Apple TV. VLC lit le fichier directement sur le NAS, avec ton compte et ton mot de passe.")
             }
         }
-        .navigationTitle("Lecture")
     }
 }
 
@@ -332,46 +341,44 @@ private struct PageGoutsTV: View {
     @State private var genres: [Genre] = []
 
     var body: some View {
-        Form {
-            Section {
-                if genres.isEmpty { Text(etat.tmdb == nil ? "Il faut d'abord la clé TMDB." : "Lecture des genres…").foregroundStyle(.secondary) }
-                ForEach(genres) { genre in
-                    Toggle(genre.nom, isOn: Binding { interets.contains { $0.genreID == genre.id } } set: { coche in
-                        if coche {
-                            contexte.insert(Interet(libelle: genre.nom, genreID: genre.id))
-                        } else {
-                            interets.filter { $0.genreID == genre.id }.forEach(contexte.delete)
-                        }
-                        contexte.sauver()
-                    })
+        PageTV(titre: "Tes goûts", sousTitre: "Les genres que tu aimes : ils orientent les idées du soir, ici comme sur ton iPhone.") {
+            SectionTV {
+                if genres.isEmpty {
+                    LigneTVReglage(titre: etat.tmdb == nil ? "Il faut d'abord la clé TMDB" : "Lecture des genres…", symbole: "hourglass")
                 }
-            } header: {
-                Text("Les genres que tu aimes")
-            } footer: {
-                Text("Ils orientent les idées du soir, ici comme sur ton iPhone.")
+                ForEach(genres) { genre in
+                    let coche = interets.contains { $0.genreID == genre.id }
+                    LigneTVReglage(titre: genre.nom, action: { basculer(genre, coche: !coche) }) { BoutTV(forme: .coche(coche)) }
+                }
             }
         }
-        .navigationTitle("Tes goûts")
         .task {
             let films = (try? await etat.tmdb?.genres(.film)) ?? []
             genres = films.filter { ![99, 10770].contains($0.id) }.sorted { $0.nom < $1.nom }
         }
     }
+
+    private func basculer(_ genre: Genre, coche: Bool) {
+        if coche {
+            contexte.insert(Interet(libelle: genre.nom, genreID: genre.id))
+        } else {
+            interets.filter { $0.genreID == genre.id }.forEach(contexte.delete)
+        }
+        contexte.sauver()
+    }
 }
 
 private struct PageAProposTV: View {
+    @Environment(\.dismiss) private var fermer
+
     var body: some View {
-        Form {
-            Section {
-                LabeledContent("Version", value: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "—")
-                Text("Avec un compte Apple gratuit, l'app cesse de s'ouvrir au bout de sept jours : relance l'installation depuis le Mac, tes réglages restent.")
-                    .foregroundStyle(.secondary)
+        PageTV(titre: "À propos", sousTitre: "Séance \(ReglagesTV.version) sur cette Apple TV.") {
+            SectionTV(explication: "Avec un compte Apple gratuit, l'app cesse de s'ouvrir au bout de sept jours : relance l'installation depuis le Mac, tes réglages restent.") {
+                LigneTVReglage(titre: "Version", symbole: "number") { BoutTV(forme: .valeur(ReglagesTV.version)) }
             }
-            Section {
-                Text("Ce produit utilise l'API TMDB mais n'est ni approuvé ni certifié par TMDB. Disponibilités en Suisse fournies par JustWatch, via TMDB. Programme TV : XML TV Fr.")
-                    .font(.footnote).foregroundStyle(.secondary)
+            SectionTV(explication: "Ce produit utilise l'API TMDB mais n'est ni approuvé ni certifié par TMDB. Disponibilités en Suisse fournies par JustWatch, via TMDB. Programme TV : XML TV Fr.") {
+                LigneTVReglage(titre: "Retour aux réglages", symbole: "chevron.left", action: { fermer() })
             }
         }
-        .navigationTitle("À propos")
     }
 }

@@ -13,15 +13,20 @@ public struct ConfigurationTransferee: Codable, Sendable, Equatable {
     public var sauvegarde: Data?
     /// L'app de lecture choisie sur l'expéditeur : la TV la reprend, et reste libre d'en changer.
     public var lecteur: LecteurVideo?
+    /// Le second accès au NAS, celui des vidéos personnelles, et son mot de passe s'il a le sien.
+    public var videosPerso: ReglagesVideosPerso?
+    public var motDePasseVideos: String?
 
     public init(expediteur: String, cleTMDB: String? = nil, nas: ReglagesNAS? = nil, motDePasseNAS: String? = nil, sauvegarde: Data? = nil,
-                lecteur: LecteurVideo? = nil) {
+                lecteur: LecteurVideo? = nil, videosPerso: ReglagesVideosPerso? = nil, motDePasseVideos: String? = nil) {
         self.expediteur = expediteur
         self.cleTMDB = cleTMDB
         self.nas = nas
         self.motDePasseNAS = motDePasseNAS
         self.sauvegarde = sauvegarde
         self.lecteur = lecteur
+        self.videosPerso = videosPerso
+        self.motDePasseVideos = motDePasseVideos
     }
 }
 

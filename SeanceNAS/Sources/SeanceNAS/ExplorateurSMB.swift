@@ -75,6 +75,19 @@ public struct ExplorateurSMB: ExplorateurFichiers {
         }
     }
 
+    /// Les vidéos personnelles : les dossiers donnés, ou tout le partage s'il n'y en a aucun, avec la date de chaque fichier.
+    public func listerVideosPerso(dossiers: [String]) async throws -> [VideoPerso] {
+        try await avecPartage { client in
+            var fichiers: [FichierDistant] = []
+            if dossiers.isEmpty {
+                fichiers = try await Self.parcourir("", client: client)
+            } else {
+                for dossier in try await Self.resoudre(dossiers, client: client) { fichiers += try await Self.parcourir(dossier, client: client) }
+            }
+            return fichiers.map { VideoPerso(chemin: $0.chemin, taille: $0.taille, modifieLe: $0.modifieLe) }
+        }
+    }
+
     /// Profondeur maximale : `Séries/Nom/Saison 01` en demande trois ; au-delà, sans doute une boucle.
     static let profondeurMax = 6
 
@@ -86,7 +99,7 @@ public struct ExplorateurSMB: ExplorateurFichiers {
         var fichiers: [FichierDistant] = []
         for element in try await client.contentsOfDirectory(atPath: dossier) {
             guard let nom = element[.nameKey] as? String, retenu(nom) else { continue }
-            let chemin = dossier + "/" + nom
+            let chemin = dossier.isEmpty ? nom : dossier + "/" + nom   // la racine du partage n'a pas de nom
             if (element[.isDirectoryKey] as? Bool) == true {
                 guard profondeur < profondeurMax else { continue }
                 do {
@@ -96,7 +109,7 @@ public struct ExplorateurSMB: ExplorateurFichiers {
                 }
             } else if AnalyseNomFichier.extensionsVideo.contains((nom as NSString).pathExtension.lowercased()) {
                 let taille = (element[.fileSizeKey] as? Int64) ?? Int64((element[.fileSizeKey] as? Int) ?? 0)
-                fichiers.append(FichierDistant(chemin: chemin, taille: taille))
+                fichiers.append(FichierDistant(chemin: chemin, taille: taille, modifieLe: element[.contentModificationDateKey] as? Date))
             }
         }
         return fichiers

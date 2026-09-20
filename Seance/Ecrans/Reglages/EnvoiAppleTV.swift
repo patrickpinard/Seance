@@ -113,7 +113,9 @@ struct EnvoiAppleTVView: View {
             nas: etat.nas.estConfigure ? etat.nas.reglages : nil,
             motDePasseNAS: (try? coffre.lire(.nas)) ?? nil,
             sauvegarde: sauvegarde,
-            lecteur: etat.nas.lecteur
+            lecteur: etat.nas.lecteur,
+            videosPerso: etat.videosPerso.actif ? etat.videosPerso.reglages : nil,
+            motDePasseVideos: etat.videosPerso.actif ? ((try? coffre.lire(.nasVideos)) ?? nil) : nil
         )
         Task {
             do {

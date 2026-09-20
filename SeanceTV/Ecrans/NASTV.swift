@@ -12,6 +12,15 @@ struct NASTV: View {
     var body: some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 50) {
+                if etat.videosPerso.actif {
+                    NavigationLink(value: DossierVideosTV()) {
+                        TuileTV(titre: "Vidéos personnelles", symbole: "video.fill",
+                                valeur: etat.videosPerso.videos.isEmpty ? "Tes films de famille" : "\(etat.videosPerso.videos.count) vidéos")
+                    }
+                    .buttonStyle(.card)
+                    .padding(.horizontal, MargesTV.bord)
+                    .focusSection()
+                }
                 if !etat.nasPret, fichiers.isEmpty {
                     VideTV(symbole: "externaldrive.badge.questionmark", titre: "NAS à configurer",
                            message: "Dans l'onglet Réglages : l'adresse, le partage, les dossiers, ton compte et son mot de passe. Séance lira alors tes films et tes séries.")

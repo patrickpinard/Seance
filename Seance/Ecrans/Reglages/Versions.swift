@@ -20,6 +20,34 @@ struct NoteVersion: Identifiable {
 
     static let historique: [NoteVersion] = [
         NoteVersion(
+            numero: "4.4",
+            date: "20 septembre 2026",
+            resume: "L'Apple TV refaite : une grande image d'accueil, des réglages enfin lisibles, et les écrans de l'iPhone.",
+            fonctionnalites: [
+                Fonctionnalite(symbole: "rectangle.on.rectangle", titre: "Apple TV : l'accueil en grand",
+                               detail: "Ta soirée s'affiche en pleine largeur, titre et boutons posés dessus, les étagères en dessous — comme les apps de télévision."),
+                Fonctionnalite(symbole: "eye", titre: "Apple TV : des réglages lisibles",
+                               detail: "Les pages de réglage étaient transparentes : le texte de la page précédente se lisait au travers, et un libellé pouvait tourner au blanc sur blanc. Elles sont refaites avec les composants de Séance, chaque couleur maîtrisée."),
+                Fonctionnalite(symbole: "square.grid.2x2", titre: "Apple TV : les écrans de l'iPhone",
+                               detail: "« Ce soir » a sa rangée de jours, « Mes listes » ses onglets À voir, En cours, Terminés et Listes, et les réglages se modifient tous à la télécommande."),
+            ]
+        ),
+        NoteVersion(
+            numero: "4.3",
+            date: "20 septembre 2026",
+            resume: "Où regarder chaque titre d'un coup d'œil, tes vidéos personnelles sur le NAS, et une app d'un seul style.",
+            fonctionnalites: [
+                Fonctionnalite(symbole: "rectangle.stack.badge.play", titre: "Où regarder, sur l'affiche et sur la fiche",
+                               detail: "Une affiche porte maintenant toutes ses sources à la fois : ton NAS, les logos de tes plateformes, et la télé avec la chaîne et l'heure du prochain passage. En tête de fiche, la même chose en toutes lettres."),
+                Fonctionnalite(symbole: "video.fill", titre: "Tes vidéos personnelles",
+                               detail: "Réglages › Vidéos personnelles : coche l'option, et Séance lit un second partage de ton NAS — un autre serveur si tu veux. Tes films de famille se parcourent par dossier, sur tous tes appareils. Ils restent privés : leurs noms ne partent vers aucun service, et ils n'entrent ni dans tes statistiques ni dans tes goûts."),
+                Fonctionnalite(symbole: "square.grid.2x2", titre: "Un seul style",
+                               detail: "Les cases d'Explorer servent partout : Mes listes, le NAS, le programme télé, la page d'un acteur. « Du moment » s'appelle « Nouveautés ». La charte graphique de l'app est écrite dans Documentation."),
+                Fonctionnalite(symbole: "appletv.fill", titre: "Apple TV : on ressort de chaque page",
+                               detail: "La touche Retour refermait l'app depuis « À propos » : chaque page la traite maintenant elle-même."),
+            ]
+        ),
+        NoteVersion(
             numero: "4.2",
             date: "20 septembre 2026",
             resume: "Un nouvel iPad ou un Mac se configure comme l'Apple TV, par un code ; et ta soirée s'affiche sur l'écran d'accueil de la TV.",

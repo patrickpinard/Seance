@@ -16,6 +16,16 @@ struct MesListesView: View {
 
         var id: String { rawValue }
 
+        var symbole: String {
+            switch self {
+            case .aVenir: "calendar.badge.clock"
+            case .aVoir: "bookmark.fill"
+            case .enCours: "play.circle.fill"
+            case .termines: "checkmark.circle.fill"
+            case .listes: "rectangle.stack.fill"
+            }
+        }
+
         var statut: StatutSuivi? {
             switch self {
             case .aVenir, .listes: nil
@@ -66,13 +76,9 @@ struct MesListesView: View {
         onglet == .aVenir || (onglet.statut != nil && enGrille)
     }
 
+    /// Les mêmes cases que le sélecteur de source d'Explorer (charte graphique).
     private var choixOnglet: some View {
-        Picker("Liste", selection: $onglet) {
-            ForEach(Onglet.allCases) { onglet in
-                Text(onglet.rawValue).tag(onglet)
-            }
-        }
-        .pickerStyle(.segmented)
+        SelecteurCases(selection: $onglet, cases: Onglet.allCases.map { .init(valeur: $0, nom: $0.rawValue, symbole: $0.symbole) })
     }
 
     var body: some View {

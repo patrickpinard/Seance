@@ -166,6 +166,7 @@ private struct ContenuFiche: View {
     private var uneColonne: some View {
         VStack(alignment: .leading, spacing: 24) {
             enTete
+            RangeeOu(reference: fiche.reference)
             actions
             bandeauAlertes
             NoteTitre(fiche: fiche)
@@ -187,6 +188,7 @@ private struct ContenuFiche: View {
             enTete
             HStack(alignment: .top, spacing: 8) {
                 VStack(alignment: .leading, spacing: 24) {
+                    RangeeOu(reference: fiche.reference)
                     actions
                     bandeauAlertes
                     NoteTitre(fiche: fiche)

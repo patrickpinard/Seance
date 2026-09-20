@@ -442,13 +442,10 @@ struct ProgrammeTeleView: View {
         let marques = MarqueListe.marques(suivis)
         return ScrollView {
             VStack(alignment: .leading, spacing: 18) {
-                Picker("Type", selection: $type) {
-                    Text("Films").tag(TypeTitre?.some(.film))
-                    Text("Séries").tag(TypeTitre?.some(.serie))
-                    Text("Tout").tag(TypeTitre?.none)
-                }
-                .pickerStyle(.segmented)
-                .padding(.horizontal, 20)
+                SelecteurCases(selection: $type, cases: [.init(valeur: TypeTitre?.some(.film), nom: "Films"),
+                                                         .init(valeur: TypeTitre?.some(.serie), nom: "Séries"), .init(valeur: TypeTitre?.none, nom: "Tout")])
+                    .frame(maxWidth: 560)
+                    .padding(.horizontal, 20)
 
                 if let jour {
                     choixDuJour(jours, choisi: jour, parJour: parJour, maintenant: maintenant)

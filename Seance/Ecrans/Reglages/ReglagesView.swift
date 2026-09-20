@@ -7,7 +7,7 @@ import SwiftUI
 /// Un lien « par vue » vers Réglages, depuis la barre d'outils de Profil, figeait l'iPhone : SwiftUI remettait
 /// la destination à jour à chaque rendu, sans fin, jusqu'à ce qu'iOS tue l'app.
 enum DestinationReglage: Hashable {
-    case reglages, prenom, apparence, tmdb, claude, plateformes, tele, nas, lecture, alertes, sauvegarde, aPropos, apercuWidgets
+    case reglages, prenom, apparence, tmdb, claude, plateformes, tele, nas, videosPerso, lecture, alertes, sauvegarde, aPropos, apercuWidgets
 }
 
 struct PageReglage: View {
@@ -23,6 +23,7 @@ struct PageReglage: View {
         case .plateformes: ReglagesPlateformesView()
         case .tele: ReglagesTeleView()
         case .nas: ReglagesNASView()
+        case .videosPerso: ReglagesVideosPersoView()
         case .lecture: ReglagesLectureView()
         case .alertes: ReglagesAlertesView()
         case .sauvegarde: ReglagesSauvegardeView()
@@ -231,6 +232,11 @@ struct ReglagesView: View {
             ligne(.tele, "Télévision", chaines.isEmpty ? "Choisis tes chaînes" : "\(chaines.count) chaînes · \(libelleLecture)", !chaines.isEmpty, "Choisir")
             ligne(.nas, "NAS", etat.nas.estConfigure ? libelleNAS.prefix(1).uppercased() + libelleNAS.dropFirst() : "Tes films déjà téléchargés",
                   etat.nas.estConfigure, "Configurer")
+            // Facultatives : décochées, la ligne le dit sans rien réclamer.
+            ligne(.videosPerso, "Vidéos personnelles",
+                  !etat.videosPerso.actif ? "Désactivées" : etat.videosPerso.aConfigurer(films: etat.nas.reglages) ? "Accès à terminer"
+                  : etat.videosPerso.videos.isEmpty ? "Partage « \(etat.videosPerso.reglages.acces.partage) », pas encore lu" : Format.pluriel(etat.videosPerso.videos.count, "vidéo"),
+                  !etat.videosPerso.aConfigurer(films: etat.nas.reglages), "Terminer")
             #if !targetEnvironment(macCatalyst)
             // Un seul lecteur : « Lire » n'ouvre que celui-ci, partout dans l'app.
             ligne(.lecture, "Lecture", "Tes vidéos du NAS s'ouvrent dans \(etat.nas.lecteur.nom)", true, nil)

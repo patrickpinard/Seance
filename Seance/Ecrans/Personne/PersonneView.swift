@@ -105,12 +105,9 @@ struct PersonneView: View {
                 }
 
                 VStack(alignment: .leading, spacing: 12) {
-                    Picker("Type", selection: $filtres.type) {
-                        Text("Films").tag(TypeTitre.film)
-                        Text("Séries").tag(TypeTitre.serie)
-                    }
-                    .pickerStyle(.segmented)
-                    .padding(.horizontal, 20)
+                    SelecteurCases(selection: $filtres.type, cases: [.init(valeur: TypeTitre.film, nom: "Films"), .init(valeur: TypeTitre.serie, nom: "Séries")])
+                        .frame(maxWidth: 560)
+                        .padding(.horizontal, 20)
 
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 8) {

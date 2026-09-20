@@ -20,7 +20,7 @@ extension Sauvegarde {
 
     /// Les réglages qui suivent l'utilisateur d'un appareil à l'autre. L'apparence, le tri ou la grille restent propres
     /// à chaque appareil : ils ne sont repris que sur un appareil où ils n'ont jamais été touchés.
-    public static let preferencesPartagees: Set<String> = ["profil.prenom", "cesoir.nombreIdees", "alertes.reglages", "nas.reglages"]
+    public static let preferencesPartagees: Set<String> = ["profil.prenom", "cesoir.nombreIdees", "alertes.reglages", "nas.reglages", "videos.reglages"]
 
     /// Les suppressions plus vieilles que cela sont oubliées : tous les appareils les ont vues depuis longtemps.
     static let memoireDesSuppressions: TimeInterval = 180 * 86_400

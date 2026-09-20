@@ -14,6 +14,8 @@ final class EtatTV {
     private static let cacheTMDB = CacheTMDB(dossier: URL.cachesDirectory.appending(path: "Seance-TMDB"))
 
     private(set) var tmdb: TMDBClient?
+    /// Le second accès au NAS, facultatif : les vidéos personnelles (EF-157).
+    let videosPerso: EtatVideosPerso
     private(set) var nas: ReglagesNAS
     private(set) var motDePasseNAS = false
     private(set) var analyseEnCours = false
@@ -38,6 +40,7 @@ final class EtatTV {
     }
 
     init() {
+        videosPerso = EtatVideosPerso(coffre: coffre)
         if let donnees = UserDefaults.standard.data(forKey: Cle.nas), let lus = try? JSONDecoder().decode(ReglagesNAS.self, from: donnees) {
             nas = lus
         } else {
@@ -102,6 +105,10 @@ final class EtatTV {
             recus.append(motDePasseNAS ? "le NAS" : "le NAS, sans son mot de passe")
         }
         if let choisi = configuration.lecteur { choisir(choisi) }
+        if let videos = configuration.videosPerso {
+            videosPerso.enregistrer(videos, motDePasse: configuration.motDePasseVideos ?? "")
+            recus.append("l'accès à tes vidéos personnelles")
+        }
         if let donnees = configuration.sauvegarde, let sauvegarde = try? Sauvegarde.decoder(donnees),
            let plan = try? ServiceSauvegarde(contexte: contexte).importer(sauvegarde) {
             recus.append(plan.estVide ? "tes données (déjà à jour)" : "tes listes et tes soirées")

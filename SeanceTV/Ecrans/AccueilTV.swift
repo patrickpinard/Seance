@@ -32,7 +32,7 @@ struct AccueilTV: View {
                     }
                     .frame(maxWidth: .infinity)
                 }
-                if let vedette { enTete(vedette) }
+                if let vedette { enTete(vedette) } else { Color.clear.frame(height: 40) }
                 if !ceSoir.isEmpty {
                     EtagereTV(titre: "Ce soir", sousTitre: "Ce que tu as prévu de regarder") {
                         ForEach(ceSoir, id: \.reference) { selection in
@@ -79,11 +79,12 @@ struct AccueilTV: View {
                         }
                     }
                 }
-                etagere("Du moment", "Sorties et nouveaux épisodes du mois, les plus populaires d'abord", duMoment)
+                etagere("Nouveautés", "Sorties et nouveaux épisodes du mois, les plus populaires d'abord", duMoment)
                 etagere("Top de l'année", "Les mieux notés sur TMDB depuis un an", top)
             }
-            .padding(.vertical, 40)
+            .padding(.bottom, 40)
         }
+        .ignoresSafeArea(edges: .top)
         .fullScreenCover(isPresented: $configuration) { ConfigurationTV() }
         .task(id: etat.tmdb == nil) { await charger() }
     }
@@ -104,23 +105,39 @@ struct AccueilTV: View {
 
     /// La grande image de tête : ta soirée si tu en as prévu une, sinon le titre du moment.
     private func enTete(_ vedette: Vedette) -> some View {
-        NavigationLink(value: vedette.reference) {
+        ZStack(alignment: .bottomLeading) {
             ImageTV(url: ImageTMDB.url(vedette.cheminImage, vedette.large ? .fondGrand : .afficheGrande), symboleVide: "")
                 .frame(maxWidth: .infinity)
-                .frame(height: 620)
-                .overlay { LinearGradient(colors: [.clear, .black.opacity(0.35), .black.opacity(0.9)], startPoint: .top, endPoint: .bottom) }
-                .overlay(alignment: .bottomLeading) {
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text(vedette.surtitre).font(.system(size: 28, weight: .heavy)).foregroundStyle(Theme.accentClair)
-                        Text(vedette.titre).font(.system(size: 72, weight: .heavy)).lineLimit(2)
-                        if let detail = vedette.detail { Text(detail).font(.system(size: 30)).foregroundStyle(.white.opacity(0.8)) }
+                .frame(height: 760)
+                .overlay {
+                    // Deux dégradés : du bas vers le titre, et de la gauche vers le texte.
+                    ZStack {
+                        LinearGradient(stops: [.init(color: .clear, location: 0), .init(color: .black.opacity(0.45), location: 0.55),
+                                               .init(color: Theme.fond, location: 1)], startPoint: .top, endPoint: .bottom)
+                        LinearGradient(colors: [.black.opacity(0.75), .clear], startPoint: .leading, endPoint: .center)
                     }
-                    .foregroundStyle(.white)
-                    .padding(50)
                 }
+            VStack(alignment: .leading, spacing: 14) {
+                Text(vedette.surtitre).font(.system(size: 26, weight: .heavy)).foregroundStyle(Theme.accentClair)
+                Text(vedette.titre).font(.system(size: 76, weight: .heavy)).lineLimit(2)
+                HStack(spacing: 20) {
+                    NavigationLink(value: vedette.reference) { Label("Voir la fiche", systemImage: "play.fill") }
+                        .buttonStyle(BoutonTV(principal: true))
+                    if vedette.surLeNAS {
+                        Label("Sur ton NAS", systemImage: "externaldrive.fill")
+                            .font(.system(size: 26, weight: .semibold))
+                            .foregroundStyle(Theme.accentClair)
+                            .padding(.horizontal, 24).frame(height: 76)
+                            .background(Color.white.opacity(0.12), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+                    }
+                }
+                .padding(.top, 8)
+            }
+            .foregroundStyle(.white)
+            .frame(maxWidth: 1100, alignment: .leading)
+            .padding(.horizontal, MargesTV.bord)
+            .padding(.bottom, 50)
         }
-        .buttonStyle(.card)
-        .padding(.horizontal, MargesTV.bord)
         .focusSection()
     }
 
@@ -131,17 +148,18 @@ struct AccueilTV: View {
         let detail: String?
         let cheminImage: String?
         let large: Bool
+        var surLeNAS = false
     }
 
     private var vedette: Vedette? {
         if let prevu = ceSoir.first {
             let fond = fichiers.first { $0.reference == prevu.reference }?.cheminFond ?? fonds[prevu.reference]
             return Vedette(reference: prevu.reference, surtitre: ceSoir.count > 1 ? "CE SOIR · \(ceSoir.count) TITRES PRÉVUS" : "CE SOIR",
-                           titre: prevu.titre, detail: surLeNAS(prevu.reference) ? "Sur ton NAS, prêt à lire" : nil,
-                           cheminImage: fond ?? prevu.cheminAffiche, large: fond != nil)
+                           titre: prevu.titre, detail: nil, cheminImage: fond ?? prevu.cheminAffiche, large: fond != nil,
+                           surLeNAS: surLeNAS(prevu.reference))
         }
         guard let premier = duMoment.first else { return nil }
-        return Vedette(reference: premier.reference, surtitre: "DU MOMENT", titre: premier.titre, detail: premier.sousTitre,
+        return Vedette(reference: premier.reference, surtitre: "NOUVEAUTÉS", titre: premier.titre, detail: premier.sousTitre,
                        cheminImage: premier.cheminFond ?? premier.cheminAffiche, large: premier.cheminFond != nil)
     }
 

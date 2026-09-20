@@ -17,7 +17,7 @@ struct RacineTV: View {
         TabView(selection: $onglet) {
             Tab("Accueil", systemImage: "house.fill", value: OngletTV.accueil) {
                 NavigationStack(path: $cheminAccueil) {
-                    AccueilTV().sousLaPastille().navigationDestination(for: ReferenceTitre.self) { FicheTV(reference: $0) }
+                    AccueilTV().sousLaPastille().navigationDestination(for: ReferenceTitre.self) { FicheTV(reference: $0).pageOuverte() }
                 }
             }
             Tab("Ce soir", systemImage: "moon.stars.fill", value: OngletTV.ceSoir) { pile { CeSoirTV() } }
@@ -84,7 +84,8 @@ struct RacineTV: View {
         NavigationStack {
             contenu()
                 .sousLaPastille()
-                .navigationDestination(for: ReferenceTitre.self) { FicheTV(reference: $0) }
+                .navigationDestination(for: ReferenceTitre.self) { FicheTV(reference: $0).pageOuverte() }
+                .navigationDestination(for: DossierVideosTV.self) { VideosPersoTV(chemin: $0.chemin).pageOuverte() }
         }
     }
 }
@@ -122,6 +123,15 @@ enum DepartTV {
         #endif
     }
 
+    /// `SEANCE_TV_REGLAGE=nas` ouvre droit une page de réglage, pour la relire en capture.
+    static var reglage: String? {
+        #if DEBUG
+        return ProcessInfo.processInfo.environment["SEANCE_TV_REGLAGE"]
+        #else
+        return nil
+        #endif
+    }
+
     static var fiche: ReferenceTitre? {
         #if DEBUG
         let morceaux = (ProcessInfo.processInfo.environment["SEANCE_TV_FICHE"] ?? "").split(separator: ":")
@@ -137,6 +147,6 @@ extension View {
     /// Repliée, la barre latérale de tvOS laisse en haut à gauche une pastille au nom de l'onglet : les pages
     /// commencent dessous, pour qu'elle ne chevauche pas leur premier titre.
     func sousLaPastille() -> some View {
-        safeAreaPadding(.top, 90)
+        safeAreaPadding(.top, 130)
     }
 }

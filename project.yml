@@ -18,8 +18,8 @@ settings:
     # Équipe personnelle de Patrick (compte Apple gratuit).
     DEVELOPMENT_TEAM: GATK475J3P
     # Version affichée dans À propos › Versions ; à changer avec Seance/Ecrans/Reglages/Versions.swift.
-    MARKETING_VERSION: "4.2"
-    CURRENT_PROJECT_VERSION: "27"
+    MARKETING_VERSION: "4.4"
+    CURRENT_PROJECT_VERSION: "29"
 
 packages:
   SeanceKit:
@@ -131,6 +131,8 @@ targets:
       # Données fictives et faux TMDB, pour relire les écrans dans le simulateur sans clé.
       - path: Seance/Etat/Demonstration.swift
       - path: Seance/Etat/FauxTMDB.swift
+      # Les vidéos personnelles : le même état sur l'iPhone et sur la TV.
+      - path: Seance/Etat/EtatVideosPerso.swift
     dependencies:
       - package: SeanceKit
       - package: SeanceDonnees

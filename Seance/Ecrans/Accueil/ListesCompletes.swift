@@ -3,9 +3,9 @@ import SeanceKit
 import SwiftData
 import SwiftUI
 
-// Page « Tout voir » de « Du moment » ; le programme télé est dans ProgrammeTele.swift.
+// Page « Tout voir » de « Nouveautés » ; le programme télé est dans ProgrammeTele.swift.
 
-/// « Du moment » en entier : sorties et nouveaux épisodes du mois, les plus populaires d'abord.
+/// « Nouveautés » en entier : sorties et nouveaux épisodes du mois, les plus populaires d'abord.
 struct DuMomentView: View {
     var plateformes: [Int]?
     @State private var type: TypeTitre?
@@ -15,16 +15,12 @@ struct DuMomentView: View {
 
     var body: some View {
         GrillePaginee(liste: liste, sousTitre: sousTitre) {
-            Picker("Type", selection: $type) {
-                Text("Tout").tag(TypeTitre?.none)
-                Text("Films").tag(TypeTitre?.some(.film))
-                Text("Séries et épisodes").tag(TypeTitre?.some(.serie))
-            }
-            .pickerStyle(.segmented)
+            SelecteurCases(selection: $type, cases: [.init(valeur: TypeTitre?.none, nom: "Tout"), .init(valeur: TypeTitre?.some(.film), nom: "Films"),
+                                                     .init(valeur: TypeTitre?.some(.serie), nom: "Séries et épisodes")])
         } chargerSuite: {
             await chargerSuite()
         }
-        .navigationTitle(plateformes == nil ? "Du moment" : "Du moment sur tes plateformes")
+        .navigationTitle(plateformes == nil ? "Nouveautés" : "Nouveautés sur tes plateformes")
         .navigationBarTitleDisplayMode(.inline)
         .task(id: type) {
             liste = ListePaginee()

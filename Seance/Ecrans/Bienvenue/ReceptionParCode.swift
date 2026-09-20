@@ -75,6 +75,10 @@ struct ReceptionParCode: View {
             recus.append("le NAS")
         }
         if let lecteur = configuration.lecteur { etat.nas.choisir(lecteur) }
+        if let videos = configuration.videosPerso {
+            etat.videosPerso.enregistrer(videos, motDePasse: configuration.motDePasseVideos ?? "")
+            recus.append("l'accès à tes vidéos personnelles")
+        }
         if let donnees = configuration.sauvegarde, let bilan = try? ImportSauvegarde.importer(donnees, etat: etat, contexte: contexte) {
             recus.append(bilan.estVide ? "tes données (déjà à jour)" : bilan.phrase)
         }

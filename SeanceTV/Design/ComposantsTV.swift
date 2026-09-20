@@ -157,6 +157,8 @@ struct VideTV: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 120)
+        // Focalisable : une page qui n'a que ce message doit garder la télécommande en main (touche Retour).
+        .focusable()
     }
 }
 
@@ -199,5 +201,58 @@ struct BoutonTV: ButtonStyle {
                 .opacity(actif ? 1 : 0.4)
                 .animation(.easeOut(duration: 0.15), value: aLeFocus)
         }
+    }
+}
+
+/// Une page ouverte depuis une autre doit toujours pouvoir se refermer à la télécommande. tvOS n'envoie la touche
+/// Retour (Menu) à une page que si un de ses éléments a le focus : une page faite seulement de texte — « À propos » —
+/// laissait la touche partir au système, qui quittait l'app. Ici la page la traite elle-même.
+private struct PageOuverte: ViewModifier {
+    @Environment(\.dismiss) private var fermer
+
+    func body(content: Content) -> some View {
+        content.onExitCommand { fermer() }
+    }
+}
+
+extension View {
+    func pageOuverte() -> some View { modifier(PageOuverte()) }
+}
+
+/// Le sélecteur de Séance, version télécommande : des cases de même largeur, l'active en orange à texte noir.
+/// Le même geste que sur l'iPhone (charte graphique), avec les tailles de la TV.
+struct SelecteurTV<Valeur: Hashable>: View {
+    @Binding var selection: Valeur
+    let cases: [(valeur: Valeur, nom: String)]
+
+    var body: some View {
+        ScrollView(.horizontal) {
+            HStack(spacing: 18) {
+                ForEach(cases, id: \.valeur) { element in
+                    Button { selection = element.valeur } label: { Text(element.nom) }
+                        .buttonStyle(BoutonTV(principal: selection == element.valeur))
+                }
+            }
+            .padding(.horizontal, MargesTV.bord)
+            .padding(.vertical, 14)
+        }
+        .scrollClipDisabled()
+        .focusSection()
+    }
+}
+
+/// Une tuile de jour, comme la rangée de jours de l'iPhone : nom, quantième, et ce qu'il y a ce jour-là.
+struct TuileJourTV: View {
+    let nom: String
+    let numero: Int
+    let detail: String
+
+    var body: some View {
+        VStack(spacing: 4) {
+            Text(nom).font(.system(size: 24, weight: .bold))
+            Text("\(numero)").font(.system(size: 46, weight: .heavy))
+            Text(detail).font(.system(size: 20)).opacity(0.75)
+        }
+        .frame(width: 170, height: 150)
     }
 }

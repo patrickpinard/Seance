@@ -40,10 +40,13 @@ public struct ReglagesNAS: Codable, Sendable, Hashable {
 public struct FichierDistant: Sendable, Hashable {
     public var chemin: String
     public var taille: Int64
+    /// Lue seulement là où elle sert : les vidéos personnelles se rangent par date.
+    public var modifieLe: Date?
 
-    public init(chemin: String, taille: Int64) {
+    public init(chemin: String, taille: Int64, modifieLe: Date? = nil) {
         self.chemin = chemin
         self.taille = taille
+        self.modifieLe = modifieLe
     }
 }
 

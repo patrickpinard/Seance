@@ -58,7 +58,7 @@ enum PreferencesSauvegardees {
         for cle in textes { if let valeur = defauts.string(forKey: cle), !valeur.isEmpty { resultat[cle] = .texte(valeur) } }
         for cle in entiers where defauts.object(forKey: cle) != nil { resultat[cle] = .entier(defauts.integer(forKey: cle)) }
         for cle in booleens where defauts.object(forKey: cle) != nil { resultat[cle] = .booleen(defauts.bool(forKey: cle)) }
-        for cle in donnees + [cleAlertes, cleNAS] { if let valeur = defauts.data(forKey: cle) { resultat[cle] = .donnees(valeur) } }
+        for cle in donnees + [cleAlertes, cleNAS, EtatVideosPerso.cleReglages] { if let valeur = defauts.data(forKey: cle) { resultat[cle] = .donnees(valeur) } }
         return resultat
     }
 
@@ -76,6 +76,9 @@ enum PreferencesSauvegardees {
             case (cleNAS, .donnees(let brut)):
                 guard let reglages = try? JSONDecoder().decode(ReglagesNAS.self, from: brut) else { continue }
                 etat.nas.enregistrer(reglages)
+            case (EtatVideosPerso.cleReglages, .donnees(let brut)):
+                guard let reglages = try? JSONDecoder().decode(ReglagesVideosPerso.self, from: brut) else { continue }
+                etat.videosPerso.enregistrer(reglages)
             case (_, .texte(let texte)) where textes.contains(cle): defauts.set(texte, forKey: cle)
             case (_, .entier(let entier)) where entiers.contains(cle): defauts.set(entier, forKey: cle)
             case (_, .booleen(let booleen)) where booleens.contains(cle): defauts.set(booleen, forKey: cle)

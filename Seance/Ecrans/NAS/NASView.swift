@@ -120,16 +120,36 @@ struct NASView: View {
         }
     }
 
+    /// Les vidéos personnelles ont leur propre accès (EF-157) : l'entrée n'existe que si l'option est cochée.
+    @ViewBuilder
+    private var lienVideosPerso: some View {
+        if etat.videosPerso.actif {
+            NavigationLink(value: DossierVideosPerso()) {
+                HStack(spacing: 12) {
+                    Image(systemName: "video.fill").font(.title3).foregroundStyle(Theme.accentClair)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Vidéos personnelles").font(.subheadline.weight(.semibold))
+                        Text(etat.videosPerso.videos.isEmpty ? "Tes films de famille" : Format.pluriel(etat.videosPerso.videos.count, "vidéo"))
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    Image(systemName: "chevron.right").font(.caption.weight(.bold)).foregroundStyle(.tertiary)
+                }
+                .padding(12)
+                .frame(minHeight: 44)
+                .background(Theme.surface, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
     private var bibliotheque: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                Picker("Rayon", selection: $rayon) {
-                    ForEach(Rayon.allCases) { rayon in
-                        Text(libelle(rayon)).tag(rayon)
-                    }
-                }
-                .pickerStyle(.segmented)
+                SelecteurCases(selection: $rayon, cases: Rayon.allCases.map { .init(valeur: $0, nom: libelle($0)) })
 
+                lienVideosPerso
                 resume
                 if let erreur = etat.nas.erreur {
                     MessageEtat(texte: erreur, ton: .probleme, libelleAction: "Réessayer") { analyser() }

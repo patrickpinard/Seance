@@ -14,7 +14,8 @@ final class EtatOu {
     enum Badge: Hashable {
         case nas
         case plateforme(nom: String, logo: String?)
-        case tele(chaine: String)
+        /// `quand` : « ce soir », ou le jour et l'heure du prochain passage de la semaine.
+        case tele(chaine: String, quand: String)
     }
 
     private struct Plateforme: Codable {
@@ -32,6 +33,8 @@ final class EtatOu {
     private var entrees: [String: Entree] = [:]
     private var nas: Set<ReferenceTitre> = []
     private var tele: [ReferenceTitre: String] = [:]
+    /// Le prochain passage de chaque titre dans le guide (sept jours) : chaîne, et quand.
+    private var teleSemaine: [ReferenceTitre: (chaine: String, quand: String)] = [:]
     private var abonnements: Set<Int> = []
 
     @ObservationIgnored private var demandes: Set<ReferenceTitre> = []
@@ -66,6 +69,28 @@ final class EtatOu {
             if ceSoir[reference] == nil { ceSoir[reference] = chaines[diffusion.chaine] ?? diffusion.chaine }
         }
         tele = ceSoir
+        // Toute la semaine du guide, pas seulement ce soir : un film d'Explorer › Télé qui passe jeudi doit le dire.
+        let aVenir = (try? contexte.fetch(FetchDescriptor<Diffusion>(predicate: #Predicate { $0.fin > maintenant }, sortBy: [SortDescriptor(\.debut)]))) ?? []
+        var semaine: [ReferenceTitre: (chaine: String, quand: String)] = [:]
+        for diffusion in aVenir {
+            guard let id = diffusion.tmdbID else { continue }
+            let reference = ReferenceTitre(type: TypeTitre(rawValue: diffusion.typeBrut) ?? .film, tmdbID: id)
+            guard semaine[reference] == nil else { continue }
+            let quand = ceSoir[reference] != nil ? "ce soir" : diffusion.debut.formatted(.dateTime.weekday(.abbreviated).hour().minute().locale(Locale(identifier: "fr_CH")))
+            semaine[reference] = (chaines[diffusion.chaine] ?? diffusion.chaine, quand)
+        }
+        teleSemaine = semaine
+    }
+
+    /// Tous les endroits où regarder ce titre, dans l'ordre où on y pense : le NAS, tes plateformes (deux au plus),
+    /// la télé. Une affiche d'Explorer › Télé qui est aussi sur Netflix porte les deux : on ne la croit plus « de streaming ».
+    func badges(_ reference: ReferenceTitre) -> [Badge] {
+        var resultat: [Badge] = []
+        if nas.contains(reference) { resultat.append(.nas) }
+        let plateformes = (entrees[Self.cle(reference)]?.plateformes ?? []).filter { abonnements.contains($0.id) }.sorted { $0.priorite < $1.priorite }
+        resultat += plateformes.prefix(2).map { .plateforme(nom: $0.nom, logo: $0.logo) }
+        if let passage = teleSemaine[reference] { resultat.append(.tele(chaine: passage.chaine, quand: passage.quand)) }
+        return resultat
     }
 
     /// Le badge d'une affiche : le NAS d'abord, puis la première plateforme cochée, puis la télé de ce soir.
@@ -74,13 +99,13 @@ final class EtatOu {
         if let plateforme = entrees[Self.cle(reference)]?.plateformes.filter({ abonnements.contains($0.id) }).min(by: { $0.priorite < $1.priorite }) {
             return .plateforme(nom: plateforme.nom, logo: plateforme.logo)
         }
-        if let chaine = tele[reference] { return .tele(chaine: chaine) }
+        if let chaine = tele[reference] { return .tele(chaine: chaine, quand: "ce soir") }
         return nil
     }
 
     /// Demande les plateformes d'un titre affiché, s'il n'est pas déjà connu ; sans abonnement coché, rien à chercher.
     func demander(_ reference: ReferenceTitre, client: TMDBClient?) {
-        guard let client, !abonnements.isEmpty, !nas.contains(reference), !demandes.contains(reference) else { return }
+        guard let client, !abonnements.isEmpty, !demandes.contains(reference) else { return }
         if let entree = entrees[Self.cle(reference)], entree.lueLe > Date.now.addingTimeInterval(-Self.validite) { return }
         demandes.insert(reference)
         attente.append(reference)
@@ -124,20 +149,37 @@ struct BadgeOu: View {
     @Environment(EtatApp.self) private var etat
 
     var body: some View {
-        switch etat.ou.badge(reference) {
-        case .nas:
-            pastille("externaldrive.fill").accessibilityLabel("Sur le NAS")
-        case .plateforme(let nom, let logo):
-            ImageDistante(url: ImageTMDB.url(logo, .logo), coins: 6)
-                .frame(width: 24, height: 24)
-                .overlay(RoundedRectangle(cornerRadius: 6, style: .continuous).strokeBorder(.white.opacity(0.35), lineWidth: 1))
-                .shadow(color: .black.opacity(0.5), radius: 3)
-                .accessibilityLabel("Sur \(nom)")
-        case .tele(let chaine):
-            pastille("tv.fill").accessibilityLabel("Ce soir sur \(chaine)")
-        case nil:
-            EmptyView()
+        let badges = etat.ou.badges(reference)
+        HStack(spacing: 4) {
+            ForEach(badges, id: \.self) { badge in
+                switch badge {
+                case .nas: pastille("externaldrive.fill")
+                case .plateforme(_, let logo): BadgeOu.logo(logo)
+                case .tele: pastille("tv.fill")
+                }
+            }
         }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(badges.map(BadgeOu.libelle).joined(separator: ", "))
+        .accessibilityHidden(badges.isEmpty)
+        // Dans une cellule qui assemble son libellé (une grille d'affiches), le titre s'annonce avant l'endroit où
+        // regarder : « John Wick, sur ton NAS » et non l'inverse.
+        .accessibilitySortPriority(-1)
+    }
+
+    static func libelle(_ badge: EtatOu.Badge) -> String {
+        switch badge {
+        case .nas: "Sur ton NAS"
+        case .plateforme(let nom, _): nom
+        case .tele(let chaine, let quand): "\(chaine), \(quand)"
+        }
+    }
+
+    static func logo(_ chemin: String?) -> some View {
+        ImageDistante(url: ImageTMDB.url(chemin, .logo), coins: 6)
+            .frame(width: 24, height: 24)
+            .overlay(RoundedRectangle(cornerRadius: 6, style: .continuous).strokeBorder(.white.opacity(0.35), lineWidth: 1))
+            .shadow(color: .black.opacity(0.5), radius: 3)
     }
 
     private func pastille(_ symbole: String) -> some View {
@@ -147,5 +189,39 @@ struct BadgeOu: View {
             .frame(width: 24, height: 24)
             .background(.black.opacity(0.75), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: 6, style: .continuous).strokeBorder(.white.opacity(0.25), lineWidth: 1))
+    }
+}
+
+/// En tête de fiche : où regarder ce titre, d'un coup d'œil — les mêmes pastilles que sur les affiches, avec leur nom.
+/// Le détail (location, achat, prochaines diffusions) reste dans le bloc « Où regarder », plus bas.
+struct RangeeOu: View {
+    let reference: ReferenceTitre
+
+    @Environment(EtatApp.self) private var etat
+
+    var body: some View {
+        let badges = etat.ou.badges(reference)
+        if !badges.isEmpty {
+            Flux(espacement: 8) {
+                ForEach(badges, id: \.self) { badge in
+                    HStack(spacing: 6) {
+                        switch badge {
+                        case .nas: Image(systemName: "externaldrive.fill").foregroundStyle(Theme.accentClair)
+                        case .plateforme(_, let logo): BadgeOu.logo(logo).frame(width: 20, height: 20)
+                        case .tele: Image(systemName: "tv.fill").foregroundStyle(Theme.accentClair)
+                        }
+                        Text(BadgeOu.libelle(badge)).font(.caption.weight(.semibold)).lineLimit(1)
+                    }
+                    .padding(.horizontal, 10)
+                    .frame(minHeight: 30)
+                    .background(Theme.surface, in: Capsule())
+                    .overlay(Capsule().strokeBorder(Theme.trait))
+                }
+            }
+            .padding(.horizontal, 20)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("Où regarder : " + badges.map(BadgeOu.libelle).joined(separator: ", "))
+            .task(id: reference) { etat.ou.demander(reference, client: etat.tmdb) }
+        }
     }
 }

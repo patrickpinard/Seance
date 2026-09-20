@@ -393,12 +393,10 @@ struct ExplorerView: View {
     private var decouverte: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
-                Picker("Type", selection: Binding { modele.filtres.type } set: { changerType($0) }) {
-                    Text("Films").tag(TypeTitre.film)
-                    Text("Séries").tag(TypeTitre.serie)
-                }
-                .pickerStyle(.segmented)
-                .padding(.horizontal, 20)
+                SelecteurCases(selection: Binding { modele.filtres.type } set: { changerType($0) },
+                               cases: [.init(valeur: TypeTitre.film, nom: "Films"), .init(valeur: TypeTitre.serie, nom: "Séries")])
+                    .frame(maxWidth: 560)
+                    .padding(.horizontal, 20)
 
                 selecteurSource
 
@@ -434,14 +432,12 @@ struct ExplorerView: View {
     /// (aucune plateforme cochée, NAS vide) reste visible mais ne se choisit pas.
     private var selecteurSource: some View {
         VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 8) {
-                puceSource(.toutes, "Toutes", symbole: "square.grid.2x2")
-                puceSource(.streaming, "Streaming", symbole: "play.tv", disponible: !abonnements.isEmpty,
-                           aide: "Coche tes plateformes dans Réglages › Plateformes.")
-                puceSource(.nas, "NAS", symbole: "externaldrive.fill", disponible: !fichiersNAS.isEmpty,
-                           aide: "Aucun titre reconnu sur ton NAS pour l'instant.")
-                puceSource(.tele, "Télé", symbole: "tv")
-            }
+            SelecteurCases(selection: Binding { modele.filtres.source } set: { modele.filtres.source = $0 }, cases: [
+                .init(valeur: FiltresExplorer.Source.toutes, nom: "Toutes", symbole: "square.grid.2x2"),
+                .init(valeur: .streaming, nom: "Streaming", symbole: "play.tv", disponible: !abonnements.isEmpty, aide: "Coche tes plateformes dans Réglages › Plateformes."),
+                .init(valeur: .nas, nom: "NAS", symbole: "externaldrive.fill", disponible: !fichiersNAS.isEmpty, aide: "Aucun titre reconnu sur ton NAS pour l'instant."),
+                .init(valeur: .tele, nom: "Télé", symbole: "tv"),
+            ])
             .frame(maxWidth: 560)
             .padding(.horizontal, 20)
             if modele.filtres.source == .tele {
@@ -453,33 +449,6 @@ struct ExplorerView: View {
                 .transition(.opacity)
             }
         }
-    }
-
-    private func puceSource(_ source: FiltresExplorer.Source, _ nom: String, symbole: String, disponible: Bool = true, aide: String? = nil) -> some View {
-        let active = modele.filtres.source == source
-        return Button {
-            withAnimation(.snappy) { modele.filtres.source = source }
-        } label: {
-            // Quatre cases de même largeur, l'icône au-dessus du nom : elles tiennent sur l'iPhone sans défiler.
-            VStack(spacing: 3) {
-                Image(systemName: symbole).font(.subheadline.weight(.semibold))
-                Text(nom).font(.caption.weight(.bold)).lineLimit(1).minimumScaleFactor(0.8)
-            }
-            .frame(maxWidth: .infinity)
-            .frame(height: 50)
-            .foregroundStyle(active ? Color.black : Color.primary)
-            .background(active ? AnyShapeStyle(Theme.degradeAccent) : AnyShapeStyle(Theme.surface),
-                        in: RoundedRectangle(cornerRadius: 13, style: .continuous))
-            .contentShape(RoundedRectangle(cornerRadius: 13, style: .continuous))
-            .texteContenu()
-        }
-        .buttonStyle(.plain)
-        .disabled(!disponible)
-        .opacity(disponible ? 1 : 0.4)
-        .help(disponible ? "Idées venant de : \(nom.lowercased())" : aide ?? "")
-        .accessibilityLabel("Source : \(nom)")
-        .accessibilityHint(disponible ? "" : aide ?? "")
-        .accessibilityAddTraits(active ? .isSelected : [])
     }
 
     private func puceTele(_ quand: FiltresLocaux.Tele, _ nom: String) -> some View {

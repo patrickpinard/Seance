@@ -41,6 +41,8 @@ final class EtatApp {
     var listeDemandee: MesListesView.Onglet?
     let depot = DepotCles()
     let nas: EtatNAS
+    /// Le second accès au NAS, facultatif : les vidéos personnelles (EF-157).
+    let videosPerso: EtatVideosPerso
     let alertes = EtatAlertes()
     /// Badges « où regarder » des affiches.
     static let cacheTMDB = CacheTMDB(dossier: DossiersSeance.reponsesTMDB)
@@ -80,6 +82,7 @@ final class EtatApp {
         }
         #endif
         nas = EtatNAS(coffre: depot.coffre)
+        videosPerso = EtatVideosPerso(coffre: depot.coffre)
         nas.journal = journal
         alertes.journal = journal
         let delegue = DelegueNotifications { [weak self] url in

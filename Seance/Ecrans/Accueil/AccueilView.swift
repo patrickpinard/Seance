@@ -17,7 +17,7 @@ struct SourcesAccueil: Codable, Hashable {
     var regardable = true
     /// Films et séries du classement, chacun : 3, 5 ou 10.
     var nombreTop = 5
-    /// Titres de « Du moment » : 10, 20 ou 30.
+    /// Titres de « Nouveautés » : 10, 20 ou 30.
     var nombreDuMoment = 20
     /// Titres du bandeau : 3, 5 ou 8.
     var nombreBandeau = 5
@@ -65,7 +65,7 @@ struct SourcesAccueil: Codable, Hashable {
 @MainActor
 @Observable
 final class AccueilModele {
-    /// « Du moment » : sorties et nouveaux épisodes des trente derniers jours, les plus populaires d'abord.
+    /// « Nouveautés » : sorties et nouveaux épisodes des trente derniers jours, les plus populaires d'abord.
     var duMoment: [TitreResume] = []
     /// Pour chaque série du moment : l'épisode diffusé dans le mois, ou sa première diffusion.
     var datesSeries: [ReferenceTitre: String] = [:]
@@ -107,7 +107,7 @@ final class AccueilModele {
         topSeries = premiers((try? await series.resultats.map(\.titreResume)) ?? [])
     }
 
-    /// « Du moment » (EF-01) : films et séries entrelacés, sur tes plateformes ; les 10, 20 ou 30 premiers.
+    /// « Nouveautés » (EF-01) : films et séries entrelacés, sur tes plateformes ; les 10, 20 ou 30 premiers.
     func charger(client: TMDBClient, plateformes: [Int]?, nombre: Int) async {
         erreur = nil
         do {
@@ -236,13 +236,6 @@ struct AccueilView: View {
                     }
                     .help("Choisir les sections de l'accueil et le nombre de titres")
                     .accessibilityIdentifier("boutonSources")
-                    if sources.nas {
-                        Button { chemin.append(DestinationAccueil.nas) } label: {
-                            Label("NAS", systemImage: "externaldrive.fill")
-                        }
-                        .help("Ouvrir la bibliothèque du NAS")
-                        .accessibilityIdentifier("boutonNAS")
-                    }
                 }
             }
             .sheet(isPresented: $reglageSources) {
@@ -345,7 +338,7 @@ struct AccueilView: View {
 
                 if sources.duMoment, !modele.duMoment.isEmpty {
                     VStack(alignment: .leading, spacing: 12) {
-                        TitreSection(titre: "Du moment") {
+                        TitreSection(titre: "Nouveautés") {
                             BoutonToutVoir { chemin.append(DestinationAccueil.duMoment(plateformes: plateformes)) }
                         }
                         Text(plateformes.map { "Sorties et nouveaux épisodes du mois, les plus populaires d'abord · sur \(nomsPlateformes($0))" }
@@ -397,7 +390,7 @@ struct ReglageSourcesAccueil: View {
                     if abonnements.isEmpty {
                         Text("Coche d'abord tes abonnements dans Réglages › Plateformes : l'accueil montre tout le catalogue en attendant.")
                     } else if sources.mesPlateformes {
-                        Text("Le bandeau, le Top et « Du moment » ne montrent que ce qui est disponible sur \(abonnements.map(\.nom).formatted(.list(type: .and).locale(Locale(identifier: "fr_CH")))). Tes plateformes se cochent dans Réglages › Plateformes.")
+                        Text("Le bandeau, le Top et « Nouveautés » ne montrent que ce qui est disponible sur \(abonnements.map(\.nom).formatted(.list(type: .and).locale(Locale(identifier: "fr_CH")))). Tes plateformes se cochent dans Réglages › Plateformes.")
                     } else {
                         Text("L'accueil montre tout le catalogue ; le badge en coin d'affiche dit ce qui est sur tes plateformes.")
                     }
@@ -407,7 +400,7 @@ struct ReglageSourcesAccueil: View {
                     Toggle("Regardable ce soir, dans ta liste", isOn: $sources.regardable).tint(Theme.accent)
                     Toggle("Top de l'année", isOn: $sources.top10).tint(Theme.accent)
                     Toggle("Ce soir à la télé", isOn: $sources.tele).tint(Theme.accent)
-                    Toggle("Du moment", isOn: $sources.duMoment).tint(Theme.accent)
+                    Toggle("Nouveautés", isOn: $sources.duMoment).tint(Theme.accent)
                     Toggle("Sur ton NAS", isOn: $sources.nas).tint(Theme.accent)
                 } header: {
                     Text("Sections de l'accueil")
@@ -419,7 +412,7 @@ struct ReglageSourcesAccueil: View {
                         choix("Top : films et séries, chacun", valeur: $sources.nombreTop, parmi: SourcesAccueil.choixTop)
                     }
                     if sources.duMoment {
-                        choix("Du moment", valeur: $sources.nombreDuMoment, parmi: SourcesAccueil.choixDuMoment)
+                        choix("Nouveautés", valeur: $sources.nombreDuMoment, parmi: SourcesAccueil.choixDuMoment)
                     }
                     if sources.tele {
                         Toggle("Les séries aussi, à la télé", isOn: $sources.seriesTele).tint(Theme.accent)
@@ -450,7 +443,7 @@ struct ReglageSourcesAccueil: View {
         .presentationBackground(Theme.fond)
     }
 
-    /// « Du moment   10 | 20 | 30 » : le libellé à gauche, les valeurs en segments à droite.
+    /// « Nouveautés   10 | 20 | 30 » : le libellé à gauche, les valeurs en segments à droite.
     private func choix(_ libelle: String, valeur: Binding<Int>, parmi valeurs: [Int]) -> some View {
         LabeledContent(libelle) {
             Picker(libelle, selection: valeur) {
@@ -655,8 +648,9 @@ private struct SectionNAS: View {
         let apercu = Array((oeuvres.filter(\.nouveaute) + oeuvres.filter { !$0.nouveaute }).prefix(15))
         if !apercu.isEmpty {
             VStack(alignment: .leading, spacing: 12) {
+                // La seule porte vers la bibliothèque depuis l'accueil : le bouton NAS de la barre a été retiré.
                 TitreSection(titre: "Sur ton NAS") {
-                    BoutonToutVoir(action: toutVoir)
+                    BoutonToutVoir(action: toutVoir).accessibilityIdentifier("boutonNAS")
                 }
                 DefilementHorizontal {
                     LazyHStack(alignment: .top, spacing: 12) {

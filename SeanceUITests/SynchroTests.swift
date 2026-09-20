@@ -47,8 +47,9 @@ final class SynchroTests: XCTestCase {
         // La page de réglages dit où en est la synchronisation.
         app.tabBars.buttons["Profil"].firstMatch.tap()
         app.navigationBars.buttons["Réglages"].firstMatch.tap()
-        app.swipeUp()
-        app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Sauvegarde'")).firstMatch.tap()
+        let sauvegarde = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Sauvegarde'")).firstMatch
+        XCTAssertTrue(app.amener(sauvegarde), "La ligne « Sauvegarde et synchronisation » est absente de l'état")
+        sauvegarde.tap()
         XCTAssertTrue(app.buttons["Synchroniser maintenant"].firstMatch.waitForExistence(timeout: 10))
         let piece = XCTAttachment(screenshot: app.screenshot())
         piece.name = "synchro-reglages"

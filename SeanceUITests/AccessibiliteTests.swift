@@ -26,7 +26,7 @@ final class AccessibiliteTests: XCTestCase {
         continueAfterFailure = true
         Lancement.demonstration(app)
         app.launch()
-        XCTAssertTrue(app.staticTexts["Du moment"].firstMatch.waitForExistence(timeout: 20))
+        XCTAssertTrue(app.staticTexts["Nouveautés"].firstMatch.waitForExistence(timeout: 20))
         Thread.sleep(forTimeInterval: 3)
         auditer("Accueil")
         app.tabBars.buttons["Ce soir"].firstMatch.tap()
