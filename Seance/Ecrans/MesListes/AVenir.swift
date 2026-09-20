@@ -3,7 +3,7 @@ import SeanceKit
 import SwiftData
 import SwiftUI
 
-// « À venir » dans l'esprit du programme télé : une rangée de jours, et chaque rendez-vous en grande carte.
+// « À venir » dans l'esprit du programme TV : une rangée de jours, et chaque rendez-vous en grande carte.
 
 /// « ÉPISODE », « SAISON », « SORTIE », « TÉLÉ » : ce qui arrive, lisible sur une image.
 private struct PastilleNature: View {
@@ -36,7 +36,7 @@ private struct PastilleNature: View {
     }
 }
 
-/// Un rendez-vous : l'image du titre, ce qui arrive, et sa date en grand comme l'heure d'un passage télé.
+/// Un rendez-vous : l'image du titre, ce qui arrive, et sa date en grand comme l'heure d'un passage TV.
 struct CarteEcheance: View {
     let echeance: Echeance
     let decor: EtatDecors.Decor?

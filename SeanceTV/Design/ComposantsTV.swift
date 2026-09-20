@@ -80,7 +80,7 @@ struct AfficheTV: View {
     }
 }
 
-/// Une grande carte 16/9, image plein cadre et texte dessus : la soirée, un passage télé.
+/// Une grande carte 16/9, image plein cadre et texte dessus : la soirée, un passage TV.
 struct CarteLargeTV: View {
     let surtitre: String?
     let titre: String

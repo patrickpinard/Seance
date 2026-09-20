@@ -121,7 +121,7 @@ enum Demonstration {
         let hier = ServiceSoiree.soiree(Date.now.addingTimeInterval(-86_400))
         contexte.insert(SelectionSoir(reference: ReferenceTitre(type: .film, tmdbID: 949), titre: "Heat", cheminAffiche: "/umSVjVdbVwtx5ryCA2QXL44Durm.jpg", soiree: hier))
 
-        // Programme télé : un film en cours, la soirée, le reste de la journée et les jours suivants.
+        // Programme TV : un film en cours, la soirée, le reste de la journée et les jours suivants.
         let aujourdhui = DateTMDB(.now)
         func passage(_ titre: Titre, chaine: String, debut: Date, episode: (Int, Int)? = nil) {
             let programme = ProgrammeTV(chaine: chaine, debut: debut, fin: debut.addingTimeInterval(TimeInterval(titre.duree * 60)), titre: titre.nom)
@@ -152,7 +152,7 @@ enum Demonstration {
         passage(films[1], chaine: "TF1.fr", debut: a(21, 10, dans: 2))
         passage(films[4], chaine: "M6.fr", debut: a(21, 10, dans: 3))
 
-        // À venir : un épisode ce soir, une saison la semaine prochaine, une sortie dans un mois, un passage télé demain.
+        // À venir : un épisode ce soir, une saison la semaine prochaine, une sortie dans un mois, un passage TV demain.
         func rendezVous(_ titre: Titre, dans jours: Int, _ libelle: String, _ nature: EcheancePrevue.Nature) {
             let date = a(20, 0, dans: jours)
             contexte.insert(Echeance(EcheancePrevue(reference: titre.reference, titre: titre.nom, date: date, libelle: libelle, nature: nature),

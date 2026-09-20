@@ -33,7 +33,7 @@ final class EtatApp {
     var ficheDemandee: ReferenceTitre?
     /// Demandé depuis une fiche acteur : Explorer s'ouvre filtré sur cette personne.
     var filtreExplorerDemande: PersonneFiltre?
-    /// `seance://tele` : l'accueil ouvre le programme télé puis remet la demande à zéro.
+    /// `seance://tele` : l'accueil ouvre le programme TV puis remet la demande à zéro.
     var programmeTeleDemande = false
     /// Onglet à ouvrir, demandé depuis un autre écran (Ce soir vers Explorer).
     var ongletDemande: OngletRacine?
@@ -189,7 +189,7 @@ final class EtatApp {
         _ = try? ServiceProgrammesTV.preparerChaines(contexte)
         await actualiserTele(contexte: contexte)
         await nas.analyser(contexte: contexte, tmdb: tmdb, automatique: true)
-        // Après la télé : les passages des titres suivis entrent dans les alertes.
+        // Après la TV : les passages des titres suivis entrent dans les alertes.
         await alertes.planifier(contexte: contexte, tmdb: tmdb)
     }
 

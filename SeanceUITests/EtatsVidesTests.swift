@@ -1,6 +1,6 @@
 import XCTest
 
-/// Ce que voit quelqu'un qui vient d'installer Séance : aucun titre, aucune soirée, pas de NAS, pas de guide télé.
+/// Ce que voit quelqu'un qui vient d'installer Séance : aucun titre, aucune soirée, pas de NAS, pas de guide TV.
 /// Chaque écran doit dire ce qu'il montrera et comment le remplir — jamais une page blanche. Captures à relire.
 @MainActor
 final class EtatsVidesTests: XCTestCase {
@@ -56,12 +56,12 @@ final class EtatsVidesTests: XCTestCase {
         capture("12-tele", attente: 3)
         // Le programme vide mène aux réglages des chaînes, et on en revient.
         let chaines = app.buttons["Choisir mes chaînes"].firstMatch
-        XCTAssertTrue(chaines.waitForExistence(timeout: 5), "Le programme télé vide ne propose pas de choisir ses chaînes")
+        XCTAssertTrue(chaines.waitForExistence(timeout: 5), "Le programme TV vide ne propose pas de choisir ses chaînes")
         chaines.tap()
         XCTAssertTrue(app.navigationBars["Télévision"].waitForExistence(timeout: 8), "« Choisir mes chaînes » n'ouvre pas les réglages de télévision")
         capture("12b-tele-reglages", attente: 1)
         app.navigationBars.buttons.firstMatch.tap()
-        if app.navigationBars["Programme télé"].waitForExistence(timeout: 5) { app.navigationBars.buttons.firstMatch.tap() }
+        if app.navigationBars["Programme TV"].waitForExistence(timeout: 5) { app.navigationBars.buttons.firstMatch.tap() }
 
         // La page NAS, depuis l'accueil — si son bouton existe quand aucun NAS n'est configuré.
         app.tabBars.buttons["Accueil"].firstMatch.tap()

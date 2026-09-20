@@ -295,7 +295,7 @@ struct NASView: View {
 struct CarteOeuvreNAS: View {
     let oeuvre: OeuvreNAS
     var largeur: CGFloat?
-    /// Dans ta liste (liseré orange) ou déjà vu (œil) : les mêmes marques que dans le programme télé.
+    /// Dans ta liste (liseré orange) ou déjà vu (œil) : les mêmes marques que dans le programme TV.
     var marque: MarqueListe?
 
     var body: some View {

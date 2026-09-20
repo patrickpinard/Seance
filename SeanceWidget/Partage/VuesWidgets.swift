@@ -370,7 +370,7 @@ struct VueAVenir: View {
         return VStack(alignment: .leading, spacing: famille == .systemLarge ? 10 : 6) {
             EnteteWidget(titre: "À venir", symbole: "bell.fill")
             if entree.echeances.isEmpty {
-                VideWidget(titre: "Rien d'annoncé", texte: "Touche 🔔 sur une fiche pour suivre ses prochains épisodes, ses sorties et ses passages à la télé.")
+                VideWidget(titre: "Rien d'annoncé", texte: "Touche 🔔 sur une fiche pour suivre ses prochains épisodes, ses sorties et ses passages à la TV.")
             }
             ForEach(entree.echeances.prefix(limite)) { echeance in
                 Link(destination: LiensWidget.fiche(echeance.reference)) {

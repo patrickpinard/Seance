@@ -148,7 +148,7 @@ private struct ContenuFiche: View {
                     deuxColonnes
                 } else {
                     // La colonne prend la largeur de l'écran, jamais celle de son élément le plus large : une pastille
-                    // ou un passage télé un peu long élargissait toute la fiche, qui se retrouvait rognée à gauche.
+                    // ou un passage TV un peu long élargissait toute la fiche, qui se retrouvait rognée à gauche.
                     uneColonne
                         .containerRelativeFrame(.horizontal, alignment: .leading)
                 }
@@ -171,7 +171,7 @@ private struct ContenuFiche: View {
     private var uneColonne: some View {
         VStack(alignment: .leading, spacing: 24) {
             enTete
-            RangeeOu(reference: fiche.reference)
+            ouEnTete
             actions
             pouces
             bandeauAlertes
@@ -194,7 +194,7 @@ private struct ContenuFiche: View {
             enTete
             HStack(alignment: .top, spacing: 8) {
                 VStack(alignment: .leading, spacing: 24) {
-                    RangeeOu(reference: fiche.reference)
+                    ouEnTete
                     actions
                     pouces
                     bandeauAlertes
@@ -321,6 +321,19 @@ private struct ContenuFiche: View {
                        alertesActives: suivi?.alertesActives == true && suivi?.masque != true) {
             reglerAlertes(.episodes)
         }
+    }
+
+    /// En tête de fiche : où regarder, et y aller d'un toucher. « Lire sur le NAS » lance le film (ou le prochain épisode
+    /// de la série) ; avant, la pastille « Sur ton NAS » n'était qu'une étiquette, qu'on touchait pour rien.
+    private var ouEnTete: some View {
+        ActionsOuRegarder(reference: fiche.reference, titre: fiche.titre, episode: prochainEpisode)
+            .padding(.horizontal, 20)
+    }
+
+    private var prochainEpisode: NumeroEpisode? {
+        guard let serie = fiche.serie else { return nil }
+        let vus = (try? ServiceSuivi(contexte: contexte).episodesVus(serie.reference)) ?? []
+        return ProgressionSerie.suivant(vus: vus, saisons: serie.saisons, dernierDiffuse: serie.dernierEpisode)?.numero
     }
 
     /// 👍 👎 : dire si le titre te plaît sans l'avoir vu ; la note de 1 à 10 vient après l'avoir regardé.
@@ -472,7 +485,7 @@ private struct ContenuFiche: View {
             } label: {
                 RondIcone(symbole: actives ? "bell.fill" : "bell", actif: actives)
             }
-            .help("Alertes : nouvelles saisons, veille et jour des épisodes, arrivée sur tes plateformes, passages à la télé")
+            .help("Alertes : nouvelles saisons, veille et jour des épisodes, arrivée sur tes plateformes, passages à la TV")
             .accessibilityLabel(actives ? "Alertes activées" : "Me prévenir")
         } else {
             BoutonIcone(symbole: actives ? "bell.fill" : "bell", libelle: actives ? "Alertes activées" : "Me prévenir de la sortie", actif: actives,
@@ -650,7 +663,7 @@ private struct BlocOuRegarder: View {
     }
 
     /// Les plateformes où le titre se regarde **quand on veut** (vidéo à la demande), parmi celles que TMDB liste.
-    /// blue TV y figure pour son catalogue à la demande ; son direct, lui, est dans « À la télé », à heure fixe.
+    /// blue TV y figure pour son catalogue à la demande ; son direct, lui, est dans « À la TV », à heure fixe.
     private var aLaDemandeSurBlueTV: Bool {
         guard let offres else { return false }
         return (offres.abonnement + offres.gratuit + offres.avecPublicite).contains { $0.nom.localizedCaseInsensitiveContains("blue") }
@@ -682,14 +695,14 @@ private struct BlocOuRegarder: View {
                     }
                     Spacer()
                 }
-                // Deux façons de regarder, bien séparées : à la demande (quand tu veux) et à la télé (date et heure fixes).
+                // Deux façons de regarder, bien séparées : à la demande (quand tu veux) et à la TV (date et heure fixes).
                 if aLaDemandeSurBlueTV {
                     Label("blue TV, à la demande : tu le regardes quand tu veux.", systemImage: "play.tv")
                         .font(.caption).foregroundStyle(.secondary)
                 }
                 if !prochainsPassages.isEmpty {
                     VStack(alignment: .leading, spacing: 4) {
-                        Label("À la télé · en direct, à heure fixe", systemImage: "tv")
+                        Label("À la TV · en direct, à heure fixe", systemImage: "tv")
                             .font(.caption.weight(.bold)).foregroundStyle(Theme.accentClair)
                         ForEach(prochainsPassages, id: \.self) { Text($0).font(.subheadline) }
                         Text("Sur tes chaînes (blue TV, antenne…) ; pas de replay.").font(.caption2).foregroundStyle(.secondary)
@@ -750,7 +763,7 @@ private struct BlocOuRegarder: View {
         switch etat {
         case .surNAS: return "Sur le NAS"
         case .dansAbonnements: return "Dans tes abonnements"
-        case .aLaTeleBientot: return "À la télé bientôt"
+        case .aLaTeleBientot: return "À la TV bientôt"
         case .aLouerOuAcheter: return "À louer ou acheter"
         case .introuvable:
             switch diffusion {

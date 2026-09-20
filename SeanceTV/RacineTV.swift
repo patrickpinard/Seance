@@ -25,7 +25,7 @@ struct RacineTV: View {
             Tab(value: OngletTV.ceSoir) { pile { CeSoirTV() } } label: { Text("Ce soir") }
             Tab(value: OngletTV.listes) { pile { ListesTV() } } label: { Text("Mes listes") }
             Tab(value: OngletTV.explorer) { pile { ExplorerTV() } } label: { Text("Explorer") }
-            Tab(value: OngletTV.tele) { pile { TeleTV() } } label: { Text("Télé") }
+            Tab(value: OngletTV.tele) { pile { TeleTV() } } label: { Text("TV") }
             Tab(value: OngletTV.nas) { pile { NASTV() } } label: { Text("NAS") }
             Tab(value: OngletTV.profil) { pile { ProfilTV() } } label: { Text("Profil") }
             Tab(value: OngletTV.reglages) { pile { ReglagesTV() } } label: { Text("Réglages") }

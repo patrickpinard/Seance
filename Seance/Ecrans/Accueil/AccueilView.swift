@@ -13,7 +13,7 @@ struct SourcesAccueil: Codable, Hashable {
     var tele = true
     var duMoment = true
     var nas = true
-    /// « Dans ta liste, regardable ce soir » : ce que tu voulais voir et qui est sur le NAS, tes plateformes ou la télé.
+    /// « Dans ta liste, regardable ce soir » : ce que tu voulais voir et qui est sur le NAS, tes plateformes ou la TV.
     var regardable = true
     /// Films et séries du classement, chacun : 3, 5 ou 10.
     var nombreTop = 5
@@ -21,7 +21,7 @@ struct SourcesAccueil: Codable, Hashable {
     var nombreDuMoment = 20
     /// Titres du bandeau : 3, 5 ou 8.
     var nombreBandeau = 5
-    /// « Ce soir à la télé » montre aussi les séries ; sinon, seulement les films.
+    /// « Ce soir à la TV » montre aussi les séries ; sinon, seulement les films.
     var seriesTele = true
 
     static let choixTop = [3, 5, 10]
@@ -327,7 +327,7 @@ struct AccueilView: View {
                 }
 
                 if sources.regardable {
-                    // Sur le NAS, sur tes plateformes ou à la télé ce soir : le badge « où regarder » le sait déjà.
+                    // Sur le NAS, sur tes plateformes ou à la TV ce soir : le badge « où regarder » le sait déjà.
                     let regardables = candidatsRegardables.filter { etat.ou.badge($0.reference) != nil }
                     if !regardables.isEmpty {
                         SectionRegardable(suivis: regardables)
@@ -409,7 +409,7 @@ struct ReglageSourcesAccueil: View {
                 Section {
                     Toggle("Regardable ce soir, dans ta liste", isOn: $sources.regardable).tint(Theme.accent)
                     Toggle("Top de l'année", isOn: $sources.top10).tint(Theme.accent)
-                    Toggle("Ce soir à la télé", isOn: $sources.tele).tint(Theme.accent)
+                    Toggle("Ce soir à la TV", isOn: $sources.tele).tint(Theme.accent)
                     Toggle("Nouveautés", isOn: $sources.duMoment).tint(Theme.accent)
                     Toggle("Sur ton NAS", isOn: $sources.nas).tint(Theme.accent)
                 } header: {
@@ -425,7 +425,7 @@ struct ReglageSourcesAccueil: View {
                         choix("Nouveautés", valeur: $sources.nombreDuMoment, parmi: SourcesAccueil.choixDuMoment)
                     }
                     if sources.tele {
-                        Toggle("Les séries aussi, à la télé", isOn: $sources.seriesTele).tint(Theme.accent)
+                        Toggle("Les séries aussi, à la TV", isOn: $sources.seriesTele).tint(Theme.accent)
                     }
                 } header: {
                     Text("Combien de titres")
@@ -476,7 +476,7 @@ private struct SectionRegardable: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             TitreSection("Regardable ce soir, dans ta liste")
-            Text("Sur ton NAS, sur tes plateformes ou à la télé ce soir")
+            Text("Sur ton NAS, sur tes plateformes ou à la TV ce soir")
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .padding(.horizontal, 20)
@@ -713,7 +713,7 @@ private struct SectionTele: View {
         let affichees = soir.isEmpty ? prochainement(blocs, maintenant: maintenant) : soir
         let marques = MarqueListe.marques(suivis)
         return VStack(alignment: .leading, spacing: 12) {
-            TitreSection(titre: soir.isEmpty ? "Prochainement à la télé" : "Ce soir à la télé") {
+            TitreSection(titre: soir.isEmpty ? "Prochainement à la TV" : "Ce soir à la TV") {
                 if lectureEnCours {
                     ProgressView().controlSize(.small)
                 }

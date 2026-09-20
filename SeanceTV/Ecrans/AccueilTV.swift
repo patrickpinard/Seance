@@ -55,7 +55,7 @@ struct AccueilTV: View {
                     }
                 }
                 if !teleCeSoir.isEmpty {
-                    EtagereTV(titre: "Ce soir à la télé", sousTitre: "Films et séries de tes chaînes, à partir de maintenant") {
+                    EtagereTV(titre: "Ce soir à la TV", sousTitre: "Films et séries de tes chaînes, à partir de maintenant") {
                         ForEach(teleCeSoir) { bloc in
                             let carte = CarteLargeTV(surtitre: bloc.debut <= .now ? "EN DIRECT" : bloc.debut.formatted(.dateTime.hour().minute().locale(Locale(identifier: "fr_CH"))),
                                                      titre: bloc.premiere.titreGuide, detail: nomChaine(bloc.premiere.chaine),
@@ -163,7 +163,7 @@ struct AccueilTV: View {
                        cheminImage: premier.cheminFond ?? premier.cheminAffiche, large: premier.cheminFond != nil)
     }
 
-    /// Ce soir à la télé : en cours ou à venir dans la journée télé d'aujourd'hui.
+    /// Ce soir à la TV : en cours ou à venir dans la journée TV d'aujourd'hui.
     private var teleCeSoir: [BlocDiffusion] {
         let maintenant = Date.now
         let aujourdhui = GrilleTele.jourTele(maintenant)

@@ -260,7 +260,7 @@ private struct PageChainesTV: View {
     @Query(sort: \Chaine.nom) private var chaines: [Chaine]
 
     var body: some View {
-        PageTV(titre: "Télévision", sousTitre: "Les chaînes que tu reçois : leur programme alimente « Ce soir à la télé » et l'onglet Télé.") {
+        PageTV(titre: "Télévision", sousTitre: "Les chaînes que tu reçois : leur programme alimente « Ce soir à la TV » et l'onglet TV.") {
             SectionTV(titre: "Tes chaînes") {
                 ForEach(chaines) { chaine in
                     LigneTVReglage(titre: chaine.nom.isEmpty ? chaine.identifiantGuide : chaine.nom,

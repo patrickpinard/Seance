@@ -236,7 +236,7 @@ public actor RattachementNAS {
         return trouve
     }
 
-    /// Un identifiant TMDB écrit dans le nom l'emporte ; sinon titre et année, avec la règle de la télé.
+    /// Un identifiant TMDB écrit dans le nom l'emporte ; sinon titre et année, avec la règle de la TV.
     func choisirFilm(_ analyse: FichierVideoAnalyse, parmi resultats: [TitreResume]) -> TitreResume? {
         if let id = analyse.tmdbID, let exact = resultats.first(where: { $0.reference.tmdbID == id }) { return exact }
         let candidats = resultats.map {

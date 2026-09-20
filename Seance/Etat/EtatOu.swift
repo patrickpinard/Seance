@@ -5,8 +5,8 @@ import SeanceKit
 import SwiftData
 import SwiftUI
 
-/// Où regarder, en un coup d'œil sur les affiches : NAS, plateforme de tes abonnements, ou télé ce soir.
-/// Le NAS, la télé et les abonnements viennent du magasin ; les plateformes d'un titre viennent de TMDB, quatre
+/// Où regarder, en un coup d'œil sur les affiches : NAS, plateforme de tes abonnements, ou TV ce soir.
+/// Le NAS, la TV et les abonnements viennent du magasin ; les plateformes d'un titre viennent de TMDB, quatre
 /// appels à la fois, gardées douze heures sur disque pour ne pas relire tout l'accueil à chaque ouverture.
 @MainActor
 @Observable
@@ -70,7 +70,7 @@ final class EtatOu {
             if ceSoir[reference] == nil { ceSoir[reference] = chaines[diffusion.chaine] ?? diffusion.chaine }
         }
         tele = ceSoir
-        // Toute la semaine du guide, pas seulement ce soir : un film d'Explorer › Télé qui passe jeudi doit le dire.
+        // Toute la semaine du guide, pas seulement ce soir : un film d'Explorer › TV qui passe jeudi doit le dire.
         let aVenir = (try? contexte.fetch(FetchDescriptor<Diffusion>(predicate: #Predicate { $0.fin > maintenant }, sortBy: [SortDescriptor(\.debut)]))) ?? []
         var semaine: [ReferenceTitre: (chaine: String, quand: String)] = [:]
         for diffusion in aVenir {
@@ -87,7 +87,7 @@ final class EtatOu {
     }
 
     /// Tous les endroits où regarder ce titre, dans l'ordre où on y pense : le NAS, tes plateformes (deux au plus),
-    /// la télé. Une affiche d'Explorer › Télé qui est aussi sur Netflix porte les deux : on ne la croit plus « de streaming ».
+    /// la TV. Une affiche d'Explorer › TV qui est aussi sur Netflix porte les deux : on ne la croit plus « de streaming ».
     func badges(_ reference: ReferenceTitre) -> [Badge] {
         var resultat: [Badge] = []
         if nas.contains(reference) { resultat.append(.nas) }
@@ -104,7 +104,7 @@ final class EtatOu {
 
     var aDesAbonnements: Bool { !abonnements.isEmpty }
 
-    /// Le badge d'une affiche : le NAS d'abord, puis la première plateforme cochée, puis la télé de ce soir.
+    /// Le badge d'une affiche : le NAS d'abord, puis la première plateforme cochée, puis la TV de ce soir.
     func badge(_ reference: ReferenceTitre) -> Badge? {
         if nas.contains(reference) { return .nas }
         if let plateforme = entrees[Self.cle(reference)]?.plateformes.filter({ abonnements.contains($0.id) }).min(by: { $0.priorite < $1.priorite }) {

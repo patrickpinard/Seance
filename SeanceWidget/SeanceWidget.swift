@@ -134,7 +134,7 @@ struct AVenirWidget: Widget {
             VueEntreeAVenir(entree: entree)
         }
         .configurationDisplayName("À venir")
-        .description("Prochains épisodes, sorties et passages à la télé de tes titres suivis.")
+        .description("Prochains épisodes, sorties et passages à la TV de tes titres suivis.")
         .supportedFamilies(famillesEcran)
     }
 }

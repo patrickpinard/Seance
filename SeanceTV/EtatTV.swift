@@ -234,7 +234,7 @@ final class EtatTV {
         lectureLancee = nil
     }
 
-    // MARK: Programme télé
+    // MARK: Programme TV
 
     /// Relit le guide si la dernière lecture a plus de douze heures ou si les chaînes cochées ont changé.
     func actualiserTele(contexte: ModelContext, force: Bool = false) async {

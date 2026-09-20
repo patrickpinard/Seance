@@ -3,9 +3,9 @@ import SeanceKit
 import SwiftData
 import SwiftUI
 
-// Le programme télé : grandes cartes pour ce qui passe et pour la soirée, lignes à l'heure pour le reste.
+// Le programme TV : grandes cartes pour ce qui passe et pour la soirée, lignes à l'heure pour le reste.
 
-/// Ce que Patrick sait déjà d'un titre qui passe à la télé.
+/// Ce que Patrick sait déjà d'un titre qui passe à la TV.
 enum MarqueListe {
     case dansTaListe, dejaVu
 
@@ -103,7 +103,7 @@ private struct PastilleMarque: View {
     }
 }
 
-/// Actions d'un passage télé sans ouvrir la fiche : le prévoir pour ce soir-là, le ranger dans une liste.
+/// Actions d'un passage TV sans ouvrir la fiche : le prévoir pour ce soir-là, le ranger dans une liste.
 private struct MenuDiffusion: View {
     let bloc: BlocDiffusion
     let reference: ReferenceTitre
@@ -155,7 +155,7 @@ private extension BlocDiffusion {
     }
 }
 
-/// La cloche d'un passage télé : « me le rappeler un quart d'heure avant », pour n'importe quel titre du programme.
+/// La cloche d'un passage TV : « me le rappeler un quart d'heure avant », pour n'importe quel titre du programme.
 struct ClocheDiffusion: View {
     let bloc: BlocDiffusion
     let chaine: String
@@ -321,7 +321,7 @@ struct CarteDiffusion: View {
                 .surImage()
                 .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
                 .overlay {
-                    // Un titre de ta liste qui passe à la télé : le liseré le fait ressortir du lot.
+                    // Un titre de ta liste qui passe à la TV : le liseré le fait ressortir du lot.
                     RoundedRectangle(cornerRadius: 18, style: .continuous)
                         .strokeBorder(marque == .dansTaListe ? AnyShapeStyle(Theme.degradeAccent) : AnyShapeStyle(.white.opacity(0.1)),
                                       lineWidth: marque == .dansTaListe ? 2 : 1)
@@ -427,7 +427,7 @@ struct ProgrammeTeleView: View {
             contenu(maintenant: horloge.date)
         }
         .background(Theme.fond)
-        .navigationTitle("Programme télé")
+        .navigationTitle("Programme TV")
         .navigationBarTitleDisplayMode(.inline)
         .task { await etat.alertes.actualiserRappelsTele() }
         .toolbar {
@@ -480,7 +480,7 @@ struct ProgrammeTeleView: View {
         }
     }
 
-    /// Les passages pas encore finis, du type choisi, réunis en blocs et rangés par journée télé (de 6 h à 6 h).
+    /// Les passages pas encore finis, du type choisi, réunis en blocs et rangés par journée TV (de 6 h à 6 h).
     private func blocsParJour(maintenant: Date) -> [DateTMDB: [BlocDiffusion]] {
         let retenues = diffusions.filter {
             $0.fin > maintenant && (type == nil || $0.typeBrut == type?.rawValue) && (chainesChoisies.isEmpty || chainesChoisies.contains($0.chaine))

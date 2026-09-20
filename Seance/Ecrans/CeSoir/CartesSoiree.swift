@@ -2,7 +2,7 @@ import SeanceDonnees
 import SeanceKit
 import SwiftUI
 
-// Les cartes de la page Ce soir, dans l'esprit du programme télé : l'image en grand, l'essentiel dessus.
+// Les cartes de la page Ce soir, dans l'esprit du programme TV : l'image en grand, l'essentiel dessus.
 
 /// Un titre d'une soirée : son image en 16/9 avec ce qui se passe ce soir et où le regarder ; dessous, « Regardé »
 /// (ou « Ce soir » pour une soirée à venir), changer de soir, retirer.
@@ -23,7 +23,7 @@ struct CarteSoiree: View {
     let dater: () -> Void
     let retirer: () -> Void
 
-    /// Le passage télé dit déjà où regarder : pas de doublon.
+    /// Le passage TV dit déjà où regarder : pas de doublon.
     private var ouAffiche: String? {
         guard let ou, ou != rendezVous, !(rendezVous?.hasPrefix("Sur ") == true && ou.hasPrefix("Ce soir sur")) else { return nil }
         return ou

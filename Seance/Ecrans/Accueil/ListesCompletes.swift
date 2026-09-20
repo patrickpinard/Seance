@@ -3,7 +3,7 @@ import SeanceKit
 import SwiftData
 import SwiftUI
 
-// Page « Tout voir » de « Nouveautés » ; le programme télé est dans ProgrammeTele.swift.
+// Page « Tout voir » de « Nouveautés » ; le programme TV est dans ProgrammeTele.swift.
 
 /// « Nouveautés » en entier : sorties et nouveaux épisodes du mois, les plus populaires d'abord.
 struct DuMomentView: View {

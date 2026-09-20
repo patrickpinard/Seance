@@ -38,7 +38,7 @@ struct PastilleOuRegarder: View {
 }
 
 /// Où regarder ce titre, tout de suite et selon ce que tu as : « Lire sur le NAS » lance la vidéo, « Netflix » ouvre
-/// la plateforme sur le titre, « TF1 · ce soir à 20:55 » mène au programme télé. C'est la raison d'être de Séance :
+/// la plateforme sur le titre, « TF1 · ce soir à 20:55 » mène au programme TV. C'est la raison d'être de Séance :
 /// la soirée, les propositions et la recherche le montrent sans ouvrir la fiche.
 struct ActionsOuRegarder: View {
     let reference: ReferenceTitre
@@ -97,8 +97,8 @@ struct ActionsOuRegarder: View {
                         PastilleOuRegarder(symbole: "tv.fill", texte: "\(chaine) · \(quand)")
                     }
                     .buttonStyle(.plain)
-                    .accessibilityLabel("À la télé : \(chaine), \(quand)")
-                    .accessibilityHint("Ouvre le programme télé")
+                    .accessibilityLabel("À la TV : \(chaine), \(quand)")
+                    .accessibilityHint("Ouvre le programme TV")
                 }
             }
             if badges.isEmpty, let texte = secoursAffiche {

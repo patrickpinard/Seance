@@ -1,6 +1,6 @@
 import XCTest
 
-/// Le programme télé sur l'iPhone, avec le guide fictif de la démonstration : les jours, les moments de la journée,
+/// Le programme TV sur l'iPhone, avec le guide fictif de la démonstration : les jours, les moments de la journée,
 /// les épisodes réunis et le titre de ta liste mis en avant.
 @MainActor
 final class ProgrammeTeleTests: XCTestCase {
@@ -20,7 +20,7 @@ final class ProgrammeTeleTests: XCTestCase {
         app.launch()
         XCTAssertTrue(app.tabBars.buttons["Accueil"].firstMatch.waitForExistence(timeout: 10))
         app.open(URL(string: "seance://tele")!)
-        XCTAssertTrue(app.navigationBars["Programme télé"].waitForExistence(timeout: 10), "Le programme télé ne s'ouvre pas")
+        XCTAssertTrue(app.navigationBars["Programme TV"].waitForExistence(timeout: 10), "Le programme TV ne s'ouvre pas")
         XCTAssertTrue(app.staticTexts["En ce moment"].waitForExistence(timeout: 5), "Pas de section « En ce moment »")
         XCTAssertTrue(app.buttons["Filtrer par chaîne"].firstMatch.waitForExistence(timeout: 5), "Pas de filtre par chaîne")
         capture("tele-films", attente: 4)

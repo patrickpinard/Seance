@@ -19,7 +19,7 @@ public struct FiltresLocaux: Sendable, Hashable, Codable {
     public var dejaVu: DejaVu = .tous
     public var obtention: CritereObtention = .tous
     public var tele: Tele = .indifferent
-    /// Chaînes retenues pour le critère télé ; vide = toutes.
+    /// Chaînes retenues pour le critère TV ; vide = toutes.
     public var chaines: Set<String> = []
     /// Acteurs exigés pour une série : TMDB ne filtre pas les séries par personne.
     public var acteursSerie: Set<Int> = []

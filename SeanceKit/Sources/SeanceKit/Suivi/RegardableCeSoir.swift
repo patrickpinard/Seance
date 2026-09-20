@@ -2,7 +2,7 @@ import Foundation
 
 /// Mes listes, « Regardable ce soir » : ce qui se regarde sans rien acheter ni attendre.
 public enum RegardableCeSoir {
-    /// Sur le NAS, dans les abonnements (ou gratuit), ou à la télé avant la fin de la soirée (2 h du matin).
+    /// Sur le NAS, dans les abonnements (ou gratuit), ou à la TV avant la fin de la soirée (2 h du matin).
     public static func retient(_ etat: EtatDisponibilite, maintenant: Date, fuseau: TimeZone = .suisse) -> Bool {
         switch etat {
         case .surNAS, .dansAbonnements:

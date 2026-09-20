@@ -171,7 +171,13 @@ final class EtatNAS {
     /// Lien qui lance la vidéo dans l'app de lecture.
     func lien(pour fichier: FichierNAS, avec lecteur: LecteurVideo) -> Lien {
         #if targetEnvironment(macCatalyst)
-        // Sur Mac, le partage est souvent déjà monté : le fichier s'ouvre dans le lecteur par défaut.
+        // Infuse installé sur le Mac et choisi dans Réglages › Lecture : le titre s'ouvre dans sa bibliothèque et démarre
+        // aussitôt, comme sur l'iPhone et l'Apple TV. Monter le partage par le Finder, lui, n'ouvrait pas toujours le film.
+        if lecteur == .infuse, let essai = URL(string: "infuse://"), UIApplication.shared.canOpenURL(essai), let reference = fichier.reference {
+            let episode = fichier.saison.flatMap { saison in fichier.episode.map { NumeroEpisode(saison: saison, episode: $0) } }
+            if let lien = lecteur.lienBibliotheque(reference, episode: episode) { return .pret(lien) }
+        }
+        // Sinon, le partage est souvent déjà monté : le fichier s'ouvre dans le lecteur par défaut.
         // Sinon, le Finder monte le partage (identifiants demandés ou repris du trousseau de macOS).
         let monte = URL(filePath: "/Volumes").appending(path: reglages.partage).appending(path: fichier.chemin)
         if FileManager.default.fileExists(atPath: monte.path(percentEncoded: false)) { return .pret(monte) }

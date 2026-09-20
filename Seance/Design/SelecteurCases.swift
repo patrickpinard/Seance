@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// Le sélecteur de Séance : des cases de même largeur, l'active en dégradé orange à texte noir, les autres sur la surface
-/// du thème. Né dans Explorer (Toutes, Streaming, NAS, Télé), il sert partout où l'on choisit **ce que la page montre** :
+/// du thème. Né dans Explorer (Toutes, Streaming, NAS, TV), il sert partout où l'on choisit **ce que la page montre** :
 /// onglets de Mes listes, rayons du NAS, Films / Séries. Le contrôle segmenté d'iOS reste réservé aux formulaires de
 /// réglage. Voir `Documentation/Charte graphique.md`.
 struct SelecteurCases<Valeur: Hashable>: View {

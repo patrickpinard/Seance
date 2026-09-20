@@ -20,6 +20,19 @@ struct NoteVersion: Identifiable {
 
     static let historique: [NoteVersion] = [
         NoteVersion(
+            numero: "4.8.1",
+            date: "20 septembre 2026",
+            resume: "Sur le Mac, « Lire » lance vraiment le film ; et « Télé » s'appelle maintenant « TV ».",
+            fonctionnalites: [
+                Fonctionnalite(symbole: "macbook", titre: "Mac : le film démarre",
+                               detail: "Le Mac demandait au Finder de monter le partage du NAS, ce qui n'ouvrait pas toujours le film. Si Infuse est installé, le titre s'ouvre maintenant dans sa bibliothèque et démarre aussitôt, comme sur l'iPhone et l'Apple TV."),
+                Fonctionnalite(symbole: "play.fill", titre: "« Lire sur le NAS » en tête de fiche",
+                               detail: "La pastille « Sur ton NAS » du haut de la fiche n'était qu'une étiquette : on la touchait pour rien. Elle lance maintenant le film, ou le prochain épisode de la série ; les plateformes s'ouvrent sur le titre, la TV mène au programme."),
+                Fonctionnalite(symbole: "tv", titre: "« TV » au lieu de « Télé »",
+                               detail: "Partout dans l'app : l'onglet, la source d'Explorer, « Ce soir à la TV », « Programme TV »."),
+            ]
+        ),
+        NoteVersion(
             numero: "4.8",
             date: "20 septembre 2026",
             resume: "L'Apple TV rattrape l'iPhone : fiche complète, fiche des acteurs, épisodes, pouces, note, idées du soir.",

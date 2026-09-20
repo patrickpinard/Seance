@@ -119,7 +119,7 @@ struct PersonneView: View {
                     }
 
                     if filtres.ceSoir, !plateformesChargees {
-                        MessageEtat(texte: "Recherche sur tes plateformes, ton NAS et la télé…", ton: .attente)
+                        MessageEtat(texte: "Recherche sur tes plateformes, ton NAS et la TV…", ton: .attente)
                     } else if credits.isEmpty {
                         MessageEtat(texte: "Aucun titre ne correspond à ces filtres.", symbole: "line.3.horizontal.decrease")
                     }
@@ -346,7 +346,7 @@ struct PersonneView: View {
         Set(fichiersNAS.compactMap(\.reference))
     }
 
-    /// NAS, abonnements (chargés à la demande) et télé des prochaines heures.
+    /// NAS, abonnements (chargés à la demande) et TV des prochaines heures.
     private var regardables: Set<ReferenceTitre> {
         let maintenant = Date.now
         let finDeSoiree = Calendar.current.startOfDay(for: maintenant).addingTimeInterval(26 * 3600)

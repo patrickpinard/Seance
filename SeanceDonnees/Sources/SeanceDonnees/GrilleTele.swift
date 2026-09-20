@@ -46,7 +46,7 @@ public struct BlocDiffusion: Identifiable {
     }
 }
 
-/// Les moments d'une journée de télé, dans l'ordre où on les lit : ce qui passe, la soirée, puis le reste.
+/// Les moments d'une journée de TV, dans l'ordre où on les lit : ce qui passe, la soirée, puis le reste.
 public enum MomentTele: Int, CaseIterable, Sendable {
     case enCours, soiree, journee, nuit
 }
@@ -97,13 +97,13 @@ public enum GrilleTele {
         calendrier.component(.hour, from: instant) < 6 ? instant.addingTimeInterval(-86_400) : instant
     }
 
-    /// La journée télé va de 6 h à 6 h, comme une soirée : minuit dix se range à la fin de la veille, après 23 h 50.
+    /// La journée TV va de 6 h à 6 h, comme une soirée : minuit dix se range à la fin de la veille, après 23 h 50.
     public static func jourTele(_ instant: Date, calendrier: Calendar = .current) -> DateTMDB {
         DateTMDB(soir(instant, calendrier: calendrier))
     }
 
     /// Le jour sous lequel afficher un bloc. Une émission **en cours** se range dans la journée de maintenant : à
-    /// 6 h 20, un film commencé à 5 h 40 appartient encore à la journée télé de la veille, et le programme s'ouvrait
+    /// 6 h 20, un film commencé à 5 h 40 appartient encore à la journée TV de la veille, et le programme s'ouvrait
     /// sur « hier » avec ce seul film, celui d'aujourd'hui relégué sur la tuile suivante.
     public static func jourAffiche(_ bloc: BlocDiffusion, maintenant: Date, calendrier: Calendar = .current) -> DateTMDB {
         jourTele(max(bloc.debut, maintenant), calendrier: calendrier)

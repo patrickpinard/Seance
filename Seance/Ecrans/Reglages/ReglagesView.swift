@@ -140,7 +140,7 @@ struct ReglagesView: View {
             VStack(alignment: .leading, spacing: 24) {
                 etatDeSeance
 
-                // Piste B (EF-169) : l'état ci-dessus est l'unique entrée de ce qu'il surveille — TMDB, plateformes, télé,
+                // Piste B (EF-169) : l'état ci-dessus est l'unique entrée de ce qu'il surveille — TMDB, plateformes, TV,
                 // NAS, lecture, alertes, sauvegarde. Dessous, seulement le reste, en tuiles : plus aucun réglage en double.
                 rubrique("Toi") {
                     tuile(.prenom, "Prénom et idées", "person.fill",
@@ -241,7 +241,7 @@ struct ReglagesView: View {
             // Un seul lecteur : « Lire » n'ouvre que celui-ci, partout dans l'app.
             ligne(.lecture, "Lecture", "Tes vidéos du NAS s'ouvrent dans \(etat.nas.lecteur.nom)", true, nil)
             #endif
-            ligne(.alertes, "Alertes", alertesActives ? "Épisodes, sorties et passages à la télé" : "Rien ne te sera annoncé", alertesActives, "Activer")
+            ligne(.alertes, "Alertes", alertesActives ? "Épisodes, sorties et passages à la TV" : "Rien ne te sera annoncé", alertesActives, "Activer")
             ligne(.sauvegarde, "Sauvegarde et synchronisation", etat.synchro.nomDossier.map { "Dossier « \($0) »" } ?? "Fichier, AirDrop ou dossier iCloud Drive",
                   true, nil)
             if let expiration = etat.expirationInstallation {

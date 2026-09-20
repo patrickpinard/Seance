@@ -35,7 +35,7 @@ enum LibellesFiltres {
         case .plateformes: return ("Mes plateformes", nil)
         case .monetisation: return (f.monetisations.map(nom).joined(separator: ", "), nil)
         case .obtention: return (nom(f.locaux.obtention), nil)
-        case .tele: return (f.locaux.tele == .ceSoir ? "À la télé ce soir" : "À la télé cette semaine", nil)
+        case .tele: return (f.locaux.tele == .ceSoir ? "À la TV ce soir" : "À la TV cette semaine", nil)
         case .dejaVu: return (f.locaux.dejaVu == .vus ? "Déjà vus" : "Pas encore vus", nil)
         }
     }
@@ -386,7 +386,7 @@ struct FeuilleFiltres: View {
 
     private var surIPhone: some View {
         VStack(alignment: .leading, spacing: 12) {
-            entete("NAS, télé et historique", "filtrés par l'app")
+            entete("NAS, TV et historique", "filtrés par l'app")
             Flux {
                 ForEach([CritereObtention.tous, .surNAS, .pasSurNAS, .aObtenir], id: \.self) { obtention in
                     PuceCritere(libelle: LibellesFiltres.nom(obtention), etat: brouillon.locaux.obtention == obtention ? .retenu : .neutre) {
@@ -395,7 +395,7 @@ struct FeuilleFiltres: View {
                 }
             }
             Flux {
-                PuceCritere(libelle: "Télé : peu importe", etat: brouillon.locaux.tele == .indifferent ? .retenu : .neutre) { brouillon.locaux.tele = .indifferent }
+                PuceCritere(libelle: "TV : peu importe", etat: brouillon.locaux.tele == .indifferent ? .retenu : .neutre) { brouillon.locaux.tele = .indifferent }
                 PuceCritere(libelle: "Ce soir", etat: brouillon.locaux.tele == .ceSoir ? .retenu : .neutre) { brouillon.locaux.tele = .ceSoir }
                 PuceCritere(libelle: "Cette semaine", etat: brouillon.locaux.tele == .cetteSemaine ? .retenu : .neutre) { brouillon.locaux.tele = .cetteSemaine }
             }

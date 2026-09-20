@@ -226,7 +226,7 @@ struct CarteAffiche: View {
         VStack(alignment: .leading, spacing: 0) {
             ImageDistante(url: ImageTMDB.url(titre.cheminAffiche, .affiche))
                 .aspectRatio(2 / 3, contentMode: .fit)
-                // Où regarder, sans ouvrir la fiche : NAS, plateforme de tes abonnements, télé de ce soir.
+                // Où regarder, sans ouvrir la fiche : NAS, plateforme de tes abonnements, TV de ce soir.
                 .overlay(alignment: .topLeading) {
                     BadgeOu(reference: titre.reference).padding(5)
                 }

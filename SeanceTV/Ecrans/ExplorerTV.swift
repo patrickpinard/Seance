@@ -12,7 +12,7 @@ struct ExplorerTV: View {
     @Query(sort: \Diffusion.debut) private var diffusions: [Diffusion]
     @Query private var suivis: [Suivi]
 
-    enum Source: String, CaseIterable { case toutes = "Toutes", streaming = "Streaming", nas = "NAS", tele = "Télé" }
+    enum Source: String, CaseIterable { case toutes = "Toutes", streaming = "Streaming", nas = "NAS", tele = "TV" }
 
     @State private var type = TypeTitre.film
     @State private var source = Source.toutes

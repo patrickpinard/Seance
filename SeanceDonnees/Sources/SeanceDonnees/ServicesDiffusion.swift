@@ -30,7 +30,7 @@ public struct ServiceProgrammesTV {
     }
 
     /// Premier lancement : la RTS et les grandes chaînes françaises sont cochées d'office,
-    /// pour que « Ce soir à la télé » ne reste pas vide faute de réglage.
+    /// pour que « Ce soir à la TV » ne reste pas vide faute de réglage.
     @discardableResult
     public static func preparerChaines(_ contexte: ModelContext) throws -> Bool {
         guard try contexte.fetchCount(FetchDescriptor<Chaine>()) == 0 else { return false }

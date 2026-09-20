@@ -434,7 +434,7 @@ struct ExplorerView: View {
         .scrollDismissesKeyboard(.immediately)
     }
 
-    /// D'où viennent les idées : tout TMDB, tes plateformes, ton NAS ou la télé. Une source sans rien derrière
+    /// D'où viennent les idées : tout TMDB, tes plateformes, ton NAS ou la TV. Une source sans rien derrière
     /// (aucune plateforme cochée, NAS vide) reste visible mais ne se choisit pas.
     private var selecteurSource: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -442,7 +442,7 @@ struct ExplorerView: View {
                 .init(valeur: FiltresExplorer.Source.toutes, nom: "Toutes", symbole: "square.grid.2x2"),
                 .init(valeur: .streaming, nom: "Streaming", symbole: "play.tv", disponible: !abonnements.isEmpty, aide: "Coche tes plateformes dans Réglages › Plateformes."),
                 .init(valeur: .nas, nom: "NAS", symbole: "externaldrive.fill", disponible: !fichiersNAS.isEmpty, aide: "Aucun titre reconnu sur ton NAS pour l'instant."),
-                .init(valeur: .tele, nom: "Télé", symbole: "tv"),
+                .init(valeur: .tele, nom: "TV", symbole: "tv"),
             ])
             .frame(maxWidth: 560)
             .padding(.horizontal, 20)
@@ -467,7 +467,7 @@ struct ExplorerView: View {
     }
 
     /// Streaming : la vidéo à la demande de tes abonnements (Netflix, Prime Video, le catalogue à la demande de
-    /// blue TV…). Télé : le direct de tes chaînes, à heure fixe, sans replay.
+    /// blue TV…). TV : le direct de tes chaînes, à heure fixe, sans replay.
     private static func explicationSource(_ source: FiltresExplorer.Source) -> String? {
         switch source {
         case .streaming: "À la demande, sur tes plateformes (Netflix, Prime Video, le catalogue de blue TV…) : tu regardes quand tu veux."

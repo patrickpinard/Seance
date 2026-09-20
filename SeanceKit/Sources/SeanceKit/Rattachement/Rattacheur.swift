@@ -8,7 +8,7 @@ public struct CandidatRattachement: Sendable, Hashable {
     public let titreOriginal: String
     /// Année de sortie d'un film, ou de première diffusion d'une série.
     public let annee: Int?
-    /// Images TMDB, reprises par les cartes « Ce soir à la télé ».
+    /// Images TMDB, reprises par les cartes « Ce soir à la TV ».
     public var cheminAffiche: String?
     public var cheminFond: String?
 

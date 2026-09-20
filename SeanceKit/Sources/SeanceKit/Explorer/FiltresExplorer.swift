@@ -82,13 +82,13 @@ public struct FiltresExplorer: Sendable, Hashable, Codable {
         return filtres
     }
 
-    /// D'où viennent les titres proposés : tout TMDB, tes plateformes, ton NAS, ou les programmes télé.
+    /// D'où viennent les titres proposés : tout TMDB, tes plateformes, ton NAS, ou les programmes TV.
     public enum Source: String, Sendable, CaseIterable {
         case toutes, streaming, nas, tele
     }
 
     /// Un seul choix à la fois, lu et écrit dans les critères qui existent déjà : « sur mes plateformes », « sur le NAS »
-    /// et « à la télé ». Le NAS et la télé partent de leur liste locale : « sur mes plateformes » ne doit pas les vider.
+    /// et « à la TV ». Le NAS et la TV partent de leur liste locale : « sur mes plateformes » ne doit pas les vider.
     public var source: Source {
         get {
             if locaux.obtention == .surNAS { return .nas }

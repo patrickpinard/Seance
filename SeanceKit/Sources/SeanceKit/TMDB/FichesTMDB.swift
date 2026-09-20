@@ -329,7 +329,7 @@ public enum AnalyseFilmographie {
         public var type: TypeTitre = .film
         public var actionSeulement = false
         public var pasVus = false
-        /// Seulement ce qui est regardable ce soir : NAS, abonnements ou télé.
+        /// Seulement ce qui est regardable ce soir : NAS, abonnements ou TV.
         public var ceSoir = false
 
         public init() {}

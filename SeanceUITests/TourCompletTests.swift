@@ -69,7 +69,7 @@ final class TourCompletTests: XCTestCase {
         app.launch()
         self.prefixe = prefixe
 
-        // Accueil : le faux TMDB remplit le Top et « Nouveautés » ; la démonstration, la télé et le NAS.
+        // Accueil : le faux TMDB remplit le Top et « Nouveautés » ; la démonstration, la TV et le NAS.
         XCTAssertTrue(app.staticTexts["Nouveautés"].firstMatch.waitForExistence(timeout: 20), "L'accueil ne charge pas « Nouveautés »")
         XCTAssertTrue(app.staticTexts["Regardable ce soir, dans ta liste"].firstMatch.waitForExistence(timeout: 10),
                       "L'accueil ne montre pas ce qui est regardable ce soir dans la liste")
@@ -196,16 +196,16 @@ final class TourCompletTests: XCTestCase {
         onglet("Explorer")
         XCTAssertTrue(app.buttons["NAS"].firstMatch.waitForExistence(timeout: 15), "Le sélecteur de source est absent")
         capture("11-explorer", attente: 5)
-        app.buttons["Télé"].firstMatch.tap()
+        app.buttons["TV"].firstMatch.tap()
         XCTAssertTrue(app.buttons["Cette semaine"].firstMatch.waitForExistence(timeout: 5))
         capture("12-explorer-tele", attente: 5)
-        // Source Télé : seulement ce qui passe sur ses chaînes. Le guide de la démonstration compte cinq films à venir,
+        // Source TV : seulement ce qui passe sur ses chaînes. Le guide de la démonstration compte cinq films à venir,
         // et chaque affiche dit sur quelle chaîne et quand.
         let surLaTele = app.buttons.matching(NSPredicate(format: "label CONTAINS 'RTS' OR label CONTAINS 'TF1' OR label CONTAINS 'M6' OR label CONTAINS 'W9' OR label CONTAINS 'France' OR label CONTAINS 'Arte' OR label CONTAINS 'TMC'"))
-        XCTAssertTrue(surLaTele.firstMatch.waitForExistence(timeout: 10), "Les résultats de la source Télé ne disent pas sur quelle chaîne")
+        XCTAssertTrue(surLaTele.firstMatch.waitForExistence(timeout: 10), "Les résultats de la source TV ne disent pas sur quelle chaîne")
         // « John Wick » (le premier) est sur le NAS de la démonstration mais sur aucune chaîne : il ne doit pas être là.
         let intrus = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'John Wick,' OR label CONTAINS ', John Wick,'"))
-        XCTAssertEqual(intrus.count, 0, "La source Télé liste un titre qui ne passe sur aucune chaîne")
+        XCTAssertEqual(intrus.count, 0, "La source TV liste un titre qui ne passe sur aucune chaîne")
         app.buttons["NAS"].firstMatch.tap()
         XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH '0 films'")).firstMatch.exists == false,
                       "La source NAS ne trouve aucun film alors que le NAS de démonstration en a")

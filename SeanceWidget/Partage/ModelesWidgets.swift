@@ -103,7 +103,7 @@ struct EntreeAVenir: TimelineEntry {
     let echeances: [EcheanceWidget]
 
     static let exemple = EntreeAVenir(date: .now, echeances: [
-        EcheanceWidget(reference: .init(type: .film, tmdbID: 245891), titre: "John Wick", libelle: "À la télé sur RTS 1",
+        EcheanceWidget(reference: .init(type: .film, tmdbID: 245891), titre: "John Wick", libelle: "À la TV sur RTS 1",
                        date: .now.addingTimeInterval(3 * 3600), nature: .tele),
         EcheanceWidget(reference: .init(type: .serie, tmdbID: 108978), titre: "Reacher", libelle: "Saison 4, épisode 1",
                        date: .now.addingTimeInterval(86_400), nature: .saison),

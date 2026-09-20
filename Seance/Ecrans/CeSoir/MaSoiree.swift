@@ -80,7 +80,7 @@ final class SoireeModele {
         }
         episodes = prochains
 
-        // La même règle que « Regardable ce soir » dans Mes listes : NAS, abonnements, ou télé ce soir.
+        // La même règle que « Regardable ce soir » dans Mes listes : NAS, abonnements, ou TV ce soir.
         let lesOffres = await offres
         let disponibilite = ServiceDisponibilite(contexte: contexte)
         let maintenant = Date.now
@@ -159,7 +159,7 @@ struct PropositionsSoiree: View {
         return Set(selections.filter { $0.soiree == jour }.map(\.reference))
     }
 
-    /// Les rendez-vous de tes titres surveillés aujourd'hui : télé pas encore finie, épisodes et sorties du jour.
+    /// Les rendez-vous de tes titres surveillés aujourd'hui : TV pas encore finie, épisodes et sorties du jour.
     private var aNePasManquer: [Echeance] {
         guard soiree == nil else { return [] }
         let calendrier = Calendar.current

@@ -3,7 +3,7 @@ import SeanceKit
 import SwiftData
 import SwiftUI
 
-/// Le programme télé sur la TV (EF-115) : un jour à la fois, choisi dans une rangée de sept ; « En ce moment » et « En
+/// Le programme TV sur la TV (EF-115) : un jour à la fois, choisi dans une rangée de sept ; « En ce moment » et « En
 /// soirée » en grandes cartes. Pas de cloche ici : tvOS n'a pas de notifications, et celle qui préviendra l'iPhone
 /// attend la synchronisation — en attendant, un passage se prévoit pour la soirée depuis sa fiche.
 struct TeleTV: View {

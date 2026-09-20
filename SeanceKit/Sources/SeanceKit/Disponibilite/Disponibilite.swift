@@ -52,7 +52,7 @@ public struct CopieNAS: Sendable, Hashable {
     }
 }
 
-/// Un passage à la télé.
+/// Un passage à la TV.
 public struct DiffusionPrevue: Sendable, Hashable {
     public var chaine: String
     public var debut: Date
@@ -121,7 +121,7 @@ public enum CritereObtention: String, Sendable, Codable, CaseIterable {
 }
 
 public enum Disponibilite {
-    /// Ordre de priorité : NAS, abonnements (y compris offres gratuites), télé à venir, location ou achat.
+    /// Ordre de priorité : NAS, abonnements (y compris offres gratuites), TV à venir, location ou achat.
     public static func etat(_ sources: SourcesTitre, maintenant: Date) -> EtatDisponibilite {
         if !sources.nas.isEmpty {
             return .surNAS(qualite: sources.nas.compactMap(\.qualite).max())
@@ -141,7 +141,7 @@ public enum Disponibilite {
         return .introuvable
     }
 
-    /// Sources légales triées : télé (la plus proche d'abord), location, achat (EF-77).
+    /// Sources légales triées : TV (la plus proche d'abord), location, achat (EF-77).
     public static func sourcesAObtenir(_ sources: SourcesTitre, maintenant: Date) -> [SourceLegale] {
         let tele = diffusionsAVenir(sources.diffusions, maintenant: maintenant).map(SourceLegale.tele)
         let location = (sources.offres?.location ?? []).sorted { $0.priorite < $1.priorite }.map(SourceLegale.location)

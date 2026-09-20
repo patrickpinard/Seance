@@ -277,7 +277,7 @@ public final class ActeurSuivi {
     }
 }
 
-/// Une chaîne de télé reçue (EF-45).
+/// Une chaîne de TV reçue (EF-45).
 @Model
 public final class Chaine {
     public var identifiantGuide: String = ""

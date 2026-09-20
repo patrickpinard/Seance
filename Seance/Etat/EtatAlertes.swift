@@ -141,9 +141,9 @@ final class EtatAlertes {
         }
     }
 
-    // MARK: Rappels de passages télé
+    // MARK: Rappels de passages TV
 
-    /// Les passages télé dont tu as touché la cloche : « me le rappeler un quart d'heure avant ». Pour n'importe quel
+    /// Les passages TV dont tu as touché la cloche : « me le rappeler un quart d'heure avant ». Pour n'importe quel
     /// titre du programme, suivi ou non. Identifiants hors du préfixe des alertes : leur recalcul ne les efface pas.
     private(set) var rappelsTele: Set<String> = []
     private static let prefixeRappelTele = "seance.rappel.tele."
@@ -190,7 +190,7 @@ final class EtatAlertes {
             rappelsTele.insert(cle)
             return true
         } catch {
-            journal?.noter(.general, "Le rappel d'un passage télé n'a pas pu être programmé.", erreur: error)
+            journal?.noter(.general, "Le rappel d'un passage TV n'a pas pu être programmé.", erreur: error)
             return nil
         }
     }
@@ -200,7 +200,7 @@ final class EtatAlertes {
         if autorisation == .notDetermined { await demanderAutorisation() }
         let contenu = UNMutableNotificationContent()
         contenu.title = "Séance"
-        contenu.body = "Les alertes fonctionnent : tu seras prévenu des nouveaux épisodes, des sorties et des passages à la télé."
+        contenu.body = "Les alertes fonctionnent : tu seras prévenu des nouveaux épisodes, des sorties et des passages à la TV."
         contenu.sound = .default
         let declencheur = UNTimeIntervalNotificationTrigger(timeInterval: 5, repeats: false)
         try? await centre.add(UNNotificationRequest(identifier: "seance.essai", content: contenu, trigger: declencheur))

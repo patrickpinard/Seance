@@ -3,7 +3,7 @@ import SwiftData
 import SwiftUI
 import UserNotifications
 
-/// Réglages des alertes pop-up (EF-81 à EF-85) : autorisation, heure, types, rappel télé et essai.
+/// Réglages des alertes pop-up (EF-81 à EF-85) : autorisation, heure, types, rappel TV et essai.
 struct ReglagesAlertesView: View {
     @Environment(EtatApp.self) private var etat
     @Environment(\.modelContext) private var contexte
@@ -52,7 +52,7 @@ struct ReglagesAlertesView: View {
                     alertes.modifier { $0.heure = composants.hour ?? 18; $0.minute = composants.minute ?? 0 }
                 }, displayedComponents: .hourAndMinute)
             } footer: {
-                Text("Nouveaux épisodes, sorties et passages à la télé sont annoncés le jour même, à cette heure-là.")
+                Text("Nouveaux épisodes, sorties et passages à la TV sont annoncés le jour même, à cette heure-là.")
             }
 
             Section {
@@ -155,7 +155,7 @@ struct BandeauAlertesCoupees: View {
                 VStack(alignment: .leading, spacing: 6) {
                     Text("Les notifications de Séance sont coupées")
                         .font(.subheadline.weight(.semibold))
-                    Text("Aucune alerte ne partira : sorties, épisodes, passages à la télé et nouveaux films des acteurs suivis.")
+                    Text("Aucune alerte ne partira : sorties, épisodes, passages à la TV et nouveaux films des acteurs suivis.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)

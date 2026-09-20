@@ -92,7 +92,7 @@ struct AProposView: View {
     private var application: some View {
         Section("L'application") {
             Text("Séance est ton guide personnel des films et séries d'action. Elle te dit où regarder chaque titre en Suisse : sur tes plateformes, à la télévision ou sur ton NAS, ou comment l'obtenir légalement.")
-            Text("Elle suit tes séries épisode par épisode, garde la trace de ce que tu as vu et te prévient des nouvelles saisons, des sorties et des passages à la télé. « Idées pour ce soir » propose des titres regardables sur tes plateformes, choisis selon tes goûts, et « Ma soirée » réunit ce que tu gardes pour ce soir.")
+            Text("Elle suit tes séries épisode par épisode, garde la trace de ce que tu as vu et te prévient des nouvelles saisons, des sorties et des passages à la TV. « Idées pour ce soir » propose des titres regardables sur tes plateformes, choisis selon tes goûts, et « Ma soirée » réunit ce que tu gardes pour ce soir.")
             Text("Tes données restent sur ton appareil. Une sauvegarde dans un fichier, depuis Réglages › Sauvegarde, les protège et permet de les reprendre sur un autre appareil.")
         }
 
@@ -117,7 +117,7 @@ private struct EspaceUtilise: View {
             if let volumetrie {
                 LabeledContent("Application", value: Self.format(volumetrie.application))
                 LabeledContent("Tes données", value: Self.format(volumetrie.donnees))
-                LabeledContent("Fiches, télé et NAS en cache", value: Self.format(volumetrie.cache))
+                LabeledContent("Fiches, TV et NAS en cache", value: Self.format(volumetrie.cache))
                 LabeledContent("Affiches en cache", value: Self.format(volumetrie.images))
                 if volumetrie.divers > 0 {
                     LabeledContent("Widgets et journal", value: Self.format(volumetrie.divers))

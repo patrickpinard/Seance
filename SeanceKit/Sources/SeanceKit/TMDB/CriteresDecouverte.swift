@@ -1,7 +1,7 @@
 import Foundation
 
 /// Les critères d'Explorer que TMDB sait appliquer lui-même (EF-53).
-/// Les autres (télé, NAS, déjà vu, acteur pour une série) sont filtrés par l'app (EF-59).
+/// Les autres (TV, NAS, déjà vu, acteur pour une série) sont filtrés par l'app (EF-59).
 public struct CriteresDecouverte: Sendable, Hashable, Codable {
     public enum Combinaison: String, Sendable, Hashable, Codable {
         /// Tous les éléments doivent correspondre : TMDB les sépare par une virgule.
@@ -140,7 +140,7 @@ public struct CriteresDecouverte: Sendable, Hashable, Codable {
 }
 
 extension CriteresDecouverte {
-    /// Genres de télé sans intérêt pour des nouveautés : actualités, téléréalité, feuilletons, talk-shows.
+    /// Genres de TV sans intérêt pour des nouveautés : actualités, téléréalité, feuilletons, talk-shows.
     static let genresTeleEcartes = [10763, 10764, 10766, 10767]
 
     /// Top 10 de l'accueil, cinq films et cinq séries : les mieux notés sur TMDB parmi les films sortis dans

@@ -1,7 +1,7 @@
 import SeanceDonnees
 import SwiftUI
 
-/// La tuile d'un jour, la même dans le programme télé et dans Ce soir : « Auj. », le numéro en grand, et ce qu'il y a ce jour-là.
+/// La tuile d'un jour, la même dans le programme TV et dans Ce soir : « Auj. », le numéro en grand, et ce qu'il y a ce jour-là.
 struct TuileJour: View {
     let nom: String
     let numero: Int
@@ -31,7 +31,7 @@ struct TuileJour: View {
     }
 }
 
-/// Les soirées en rangée de jours, comme le programme télé : ce soir et les six jours suivants, puis les soirées plus
+/// Les soirées en rangée de jours, comme le programme TV : ce soir et les six jours suivants, puis les soirées plus
 /// lointaines où quelque chose est prévu. La dernière tuile ouvre un calendrier pour aller à une autre date.
 struct BandeSoirees: View {
     /// Le jour choisi, à minuit.

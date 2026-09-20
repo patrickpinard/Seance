@@ -124,7 +124,7 @@ final class ParcoursSoireeTests: XCTestCase {
         capture("explorer-sans-le-titre")
     }
 
-    /// La fiche d'un titre qui passe à la télé dit la chaîne, le jour et l'heure dans sa carte « Où regarder ».
+    /// La fiche d'un titre qui passe à la TV dit la chaîne, le jour et l'heure dans sa carte « Où regarder ».
     func testLaFicheDonneLePassageTele() throws {
         Lancement.demonstration(app)
         app.launchArguments += ["-apparence", "sombre"]
@@ -132,10 +132,10 @@ final class ParcoursSoireeTests: XCTestCase {
         app.tabBars.buttons["Ce soir"].firstMatch.tap()
         let reacher = bouton("label BEGINSWITH 'Reacher'")
         XCTAssertTrue(reacher.waitForExistence(timeout: 20))
-        XCTAssertTrue(bouton("label BEGINSWITH 'À la télé : RTS 1'").waitForExistence(timeout: 10), "La carte de soirée ne dit pas la chaîne et l'heure")
+        XCTAssertTrue(bouton("label BEGINSWITH 'À la TV : RTS 1'").waitForExistence(timeout: 10), "La carte de soirée ne dit pas la chaîne et l'heure")
         reacher.tap()
         XCTAssertTrue(app.staticTexts["Où regarder"].firstMatch.waitForExistence(timeout: 20))
-        let passage = app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS 'À la télé · en direct' AND label CONTAINS 'RTS 1 ·'")).firstMatch
+        let passage = app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS 'À la TV · en direct' AND label CONTAINS 'RTS 1 ·'")).firstMatch
         XCTAssertTrue(passage.waitForExistence(timeout: 10), "La carte « Où regarder » ne donne pas la chaîne, la date et l'heure")
         capture("fiche-passage-tele", attente: 2)
     }

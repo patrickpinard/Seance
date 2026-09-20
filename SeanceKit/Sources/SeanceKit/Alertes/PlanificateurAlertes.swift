@@ -148,7 +148,7 @@ extension TypeAlerte {
         case .arriveePlateforme: "Arrivée sur tes plateformes et en location"
         case .episode: "Nouveaux épisodes et saisons"
         case .sortieFilm: "Sorties de films"
-        case .diffusionTele: "Passages à la télé"
+        case .diffusionTele: "Passages à la TV"
         case .bandeAnnonce: "Nouvelles bandes-annonces"
         }
     }
@@ -347,7 +347,7 @@ public enum PlanificateurAlertes {
         return (alertes, tous.union(connus))
     }
 
-    /// EF-49 : un titre attendu passe à la télé dans les 5 jours ; alerte à 18 h le jour même, puis rappel.
+    /// EF-49 : un titre attendu passe à la TV dans les 5 jours ; alerte à 18 h le jour même, puis rappel.
     public static func diffusions(
         _ reference: ReferenceTitre, titre: String, diffusions: [DiffusionPrevue],
         maintenant: Date, reglages: ReglagesAlertes

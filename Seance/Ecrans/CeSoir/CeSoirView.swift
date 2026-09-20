@@ -4,7 +4,7 @@ import SwiftData
 import SwiftUI
 
 /// « Ce soir » : ce que tu as choisi de regarder ce soir, en grandes cartes, sous la rangée de tes soirées (la même que
-/// celle du programme télé) : un jour marqué a quelque chose de prévu, le toucher montre sa soirée. Pour choisir, « Ajouter » réunit les rendez-vous du
+/// celle du programme TV) : un jour marqué a quelque chose de prévu, le toucher montre sa soirée. Pour choisir, « Ajouter » réunit les rendez-vous du
 /// jour, tes épisodes, ta liste regardable et des idées selon tes goûts ; la page, elle, reste ta sélection.
 struct CeSoirView: View {
     @Environment(EtatApp.self) private var etat
@@ -297,7 +297,7 @@ struct CeSoirView: View {
         soiree.episodes.first { $0.id == reference }
     }
 
-    /// Ce qui se passe ce soir pour ce titre : passage télé ou sortie du jour, sinon l'épisode à regarder.
+    /// Ce qui se passe ce soir pour ce titre : passage TV ou sortie du jour, sinon l'épisode à regarder.
     private func rendezVous(_ reference: ReferenceTitre) -> String? {
         let calendrier = Calendar.current
         if let echeance = echeances.first(where: { $0.reference == reference && calendrier.isDateInToday($0.date) }) { return echeance.libelle }
@@ -439,7 +439,7 @@ private struct AjouterASoiree: View {
                                 .background(Theme.accent.opacity(0.15), in: Circle())
                             VStack(alignment: .leading, spacing: 2) {
                                 Text("Chercher dans Explorer").font(.headline)
-                                Text("Par genre, acteur, plateforme ou chaîne de télé.")
+                                Text("Par genre, acteur, plateforme ou chaîne de TV.")
                                     .font(.subheadline)
                                     .foregroundStyle(.secondary)
                                     .fixedSize(horizontal: false, vertical: true)

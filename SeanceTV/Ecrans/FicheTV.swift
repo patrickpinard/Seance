@@ -5,7 +5,7 @@ import SwiftUI
 
 /// La fiche d'un titre sur la TV (EF-143), aussi complète que celle de l'iPhone : l'image en grand, les actions à
 /// portée de télécommande — lire, ce soir, prévoir un autre soir, à voir, vu, être prévenu —, tes pouces et ta note,
-/// où regarder (NAS, plateformes, passages télé avec le jour et l'heure), les épisodes saison par saison, les
+/// où regarder (NAS, plateformes, passages TV avec le jour et l'heure), les épisodes saison par saison, les
 /// bandes-annonces et le casting, dont chaque visage ouvre la fiche de la personne.
 struct FicheTV: View {
     let reference: ReferenceTitre
@@ -218,13 +218,13 @@ struct FicheTV: View {
             }
             if !prochainsPassages.isEmpty {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("À la télé · en direct, à heure fixe").font(.system(size: 24, weight: .bold)).foregroundStyle(.secondary)
+                    Text("À la TV · en direct, à heure fixe").font(.system(size: 24, weight: .bold)).foregroundStyle(.secondary)
                     ForEach(prochainsPassages, id: \.self) { Label($0, systemImage: "tv").font(.system(size: 28, weight: .medium)) }
                 }
             }
             if siens.isEmpty, plateformesIncluses.isEmpty, prochainsPassages.isEmpty {
                 let aLouer = Array(Set((offres?.location ?? []) + (offres?.achat ?? [])).map(\.nom)).sorted()
-                Label(aLouer.isEmpty ? (abonnements.isEmpty ? "Coche tes plateformes dans Réglages › Plateformes pour le savoir." : "Dans aucun de tes abonnements, ni sur ton NAS, ni à la télé cette semaine.")
+                Label(aLouer.isEmpty ? (abonnements.isEmpty ? "Coche tes plateformes dans Réglages › Plateformes pour le savoir." : "Dans aucun de tes abonnements, ni sur ton NAS, ni à la TV cette semaine.")
                                      : "À louer ou acheter : " + aLouer.prefix(5).joined(separator: ", "),
                       systemImage: aLouer.isEmpty ? "questionmark.circle" : "cart")
                     .font(.system(size: 27)).foregroundStyle(.white.opacity(0.8))
@@ -492,7 +492,7 @@ struct FicheTV: View {
     private func basculerAlertes(_ suivi: Suivi) {
         suivi.alertesActives.toggle()
         try? contexte.save()
-        etat.dire(suivi.alertesActives ? "Ton iPhone te préviendra (sorties, épisodes, passages télé)" : "Plus d'alertes pour « \(titre) »")
+        etat.dire(suivi.alertesActives ? "Ton iPhone te préviendra (sorties, épisodes, passages TV)" : "Plus d'alertes pour « \(titre) »")
     }
 
     private func prevoir(_ jour: Date) {

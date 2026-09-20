@@ -248,7 +248,7 @@ enum InviteCeSoir {
         case .surNAS: return "sur ton NAS"
         case .dansAbonnements(let fournisseurs):
             return fournisseurs.isEmpty ? "dans tes abonnements" : "sur \(fournisseurs.map(\.nom).joined(separator: ", "))"
-        case .aLaTeleBientot(let diffusion): return "à la télé sur \(diffusion.chaine)"
+        case .aLaTeleBientot(let diffusion): return "à la TV sur \(diffusion.chaine)"
         case .aLouerOuAcheter: return "à louer ou à acheter"
         case .introuvable: return nil
         }

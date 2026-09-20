@@ -22,7 +22,7 @@ public final class TitreCache {
     }
 }
 
-/// Un passage à la télé, rattaché à TMDB quand la correspondance est sûre (EF-46 à EF-51).
+/// Un passage à la TV, rattaché à TMDB quand la correspondance est sûre (EF-46 à EF-51).
 @Model
 public final class Diffusion {
     public var chaine: String = ""
@@ -76,7 +76,7 @@ public final class EtatPlateformes {
     }
 }
 
-/// Un rendez-vous d'un titre surveillé (épisode, saison, sortie, télé), pour « À venir » et le widget.
+/// Un rendez-vous d'un titre surveillé (épisode, saison, sortie, TV), pour « À venir » et le widget.
 @Model
 public final class Echeance {
     public var tmdbID: Int = 0

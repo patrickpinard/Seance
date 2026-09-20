@@ -95,7 +95,7 @@ extension FiltresExplorer {
         }
     }
 
-    /// Les filtres dont la liste de départ est locale : NAS, télé, titres vus. Parcourir les pages
+    /// Les filtres dont la liste de départ est locale : NAS, TV, titres vus. Parcourir les pages
     /// de `discover` pour les retrouver serait long et incomplet.
     public var partDUneListeLocale: Bool {
         locaux.obtention == .surNAS || locaux.tele != .indifferent || locaux.dejaVu == .vus

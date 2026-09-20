@@ -39,7 +39,7 @@ extension DateTMDB {
 }
 
 /// Ce qu'on peut dire d'une série absente des plateformes suisses, plutôt que « introuvable » : elle passe
-/// peut-être à la télé ce soir, ou revient bientôt.
+/// peut-être à la TV ce soir, ou revient bientôt.
 public enum EtatDiffusionSerie: Sendable, Equatable {
     /// Un épisode diffusé aujourd'hui.
     case episodeAujourdhui(NumeroEpisode, reseau: String?)

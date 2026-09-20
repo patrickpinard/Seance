@@ -4,7 +4,7 @@ import SwiftData
 import SwiftUI
 
 /// Résultats d'Explorer par critères (EF-53 à EF-59) : pages TMDB chargées au fil du défilement,
-/// puis filtrées par l'app pour le NAS, la télé et le déjà-vu.
+/// puis filtrées par l'app pour le NAS, la TV et le déjà-vu.
 @MainActor
 @Observable
 final class ExplorerModele {
@@ -25,7 +25,7 @@ final class ExplorerModele {
     private var generation = 0
     /// Les filtres de l'app peuvent vider une page entière : au plus ce nombre de pages par chargement.
     private static let pagesParChargement = 5
-    /// Fiches déjà lues pour les listes locales (NAS, télé, vus) : changer un filtre ne relit rien.
+    /// Fiches déjà lues pour les listes locales (NAS, TV, vus) : changer un filtre ne relit rien.
     private var profils: [ReferenceTitre: ProfilTitre] = [:]
 
     func recharger(client: TMDBClient, contexte: ModelContext, abonnements: [Int]) async {
@@ -196,7 +196,7 @@ final class ExplorerModele {
         return filtres.trier(retenus.map(\.titreResume))
     }
 
-    /// Applique les critères que TMDB ignore, avec ce que l'iPhone sait : NAS, télé, historique.
+    /// Applique les critères que TMDB ignore, avec ce que l'iPhone sait : NAS, TV, historique.
     private func retenir(_ titres: [TitreResume], filtres: FiltresExplorer, contexte: ModelContext) -> [TitreResume] {
         let locaux = filtres.locaux
         guard locaux.obtention != .tous || locaux.tele != .indifferent || locaux.dejaVu != .tous || locaux.regleLangue else {

@@ -4,7 +4,7 @@ import SwiftData
 import SwiftUI
 
 /// Mes listes (EF-16) : ce qui arrive pour les titres surveillés, puis à voir, en cours et terminés.
-/// « Regardable ce soir » ne garde que ce qui est sur le NAS, dans les abonnements ou à la télé ce soir ;
+/// « Regardable ce soir » ne garde que ce qui est sur le NAS, dans les abonnements ou à la TV ce soir ;
 /// la disponibilité et la durée sont lues sur TMDB seulement quand ce filtre ou le tri par durée le demande.
 struct MesListesView: View {
     enum Onglet: String, CaseIterable, Identifiable {
@@ -137,7 +137,7 @@ struct MesListesView: View {
 
     @ViewBuilder
     private var aVenir: some View {
-        // Un passage télé commencé depuis plus de trois heures est fini : il n'est plus « à venir ».
+        // Un passage TV commencé depuis plus de trois heures est fini : il n'est plus « à venir ».
         let finTele = Date.now.addingTimeInterval(-3 * 3600)
         let futures = echeances.filter {
             $0.date >= Calendar.current.startOfDay(for: .now) && !($0.nature == .tele && $0.date < finTele)
@@ -153,7 +153,7 @@ struct MesListesView: View {
             vide("Rien d'annoncé ne correspond à « \(recherche) ».")
         } else if futures.isEmpty {
             grandVide(EtatVide(symbole: "calendar.badge.clock", titre: "Rien d'annoncé pour l'instant",
-                               message: "Touche la cloche sur une fiche : ses prochains épisodes, ses sorties et ses passages à la télé se rangent ici, jour par jour."))
+                               message: "Touche la cloche sur une fiche : ses prochains épisodes, ses sorties et ses passages à la TV se rangent ici, jour par jour."))
         } else {
             SectionAVenir(echeances: futures)
         }
@@ -175,7 +175,7 @@ struct MesListesView: View {
         HStack(spacing: 10) {
             if statut != .termine {
                 PuceFiltre(libelle: "Regardable ce soir", active: ceSoirSeulement) { ceSoirSeulement.toggle() }
-                    .help("Sur le NAS, dans tes abonnements ou à la télé ce soir")
+                    .help("Sur le NAS, dans tes abonnements ou à la TV ce soir")
                 // Le filtre cache des titres : c'est dit, pour ne pas les croire disparus.
                 let masques = suivis.filter { $0.statut == statut && !$0.masque }.count - titresAffiches(statut).count
                 if ceSoirSeulement, !chargementInfos, masques > 0 {
@@ -308,8 +308,8 @@ struct MesListesView: View {
         let reperes = reperes
         if titres.isEmpty, ceSoirSeulement, statut != .termine, suivis.contains(where: { $0.statut == statut }) {
             vide(chargementInfos
-                 ? "Recherche sur tes plateformes, ton NAS et la télé…"
-                 : "Rien de regardable ce soir dans cette liste : ni sur tes plateformes, ni sur le NAS, ni à la télé.")
+                 ? "Recherche sur tes plateformes, ton NAS et la TV…"
+                 : "Rien de regardable ce soir dans cette liste : ni sur tes plateformes, ni sur le NAS, ni à la TV.")
         } else if titres.isEmpty, !recherche.isEmpty {
             vide("Aucun titre ne correspond à « \(recherche) ».")
         } else if titres.isEmpty {

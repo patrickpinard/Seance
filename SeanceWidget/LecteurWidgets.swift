@@ -62,7 +62,7 @@ enum LecteurWidgets {
         return resultat.map(\.0)
     }
 
-    /// Ce qui reste à venir à un instant donné : la télé jusqu'à deux heures après son début, le reste jusqu'à la fin du jour.
+    /// Ce qui reste à venir à un instant donné : la TV jusqu'à deux heures après son début, le reste jusqu'à la fin du jour.
     static func futures(_ echeances: [Echeance], maintenant: Date) -> [Echeance] {
         let debutJour = Calendar.current.startOfDay(for: maintenant)
         return echeances.filter { echeance in

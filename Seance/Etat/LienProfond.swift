@@ -10,7 +10,7 @@ enum LienProfond {
         case tele
     }
 
-    /// `seance://cesoir` et `seance://avenir`, touchés dans un widget ; `seance://tele` ouvre le programme télé.
+    /// `seance://cesoir` et `seance://avenir`, touchés dans un widget ; `seance://tele` ouvre le programme TV.
     static func onglet(_ url: URL) -> Onglet? {
         guard url.scheme == "seance" else { return nil }
         switch url.host() {

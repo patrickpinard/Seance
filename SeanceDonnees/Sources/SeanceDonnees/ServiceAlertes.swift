@@ -4,7 +4,7 @@ import SwiftData
 
 /// Calcule les alertes des titres surveillés (EF-17 à EF-20, EF-49, EF-81 à EF-85) : annonces de saison
 /// ou de sortie, veille et jour des épisodes et des sorties, arrivées sur les plateformes et en location,
-/// passages à la télé. Enregistre aussi les échéances de l'écran « À venir ».
+/// passages à la TV. Enregistre aussi les échéances de l'écran « À venir ».
 /// L'app confie ensuite les notifications obtenues au centre de notifications d'iOS.
 @MainActor
 public struct ServiceAlertes {
