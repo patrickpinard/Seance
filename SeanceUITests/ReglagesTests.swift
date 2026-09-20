@@ -20,7 +20,7 @@ final class ReglagesTests: XCTestCase {
         app.tabBars.buttons["Profil"].firstMatch.tap()
         XCTAssertTrue(app.navigationBars.buttons["Réglages"].firstMatch.waitForExistence(timeout: 10))
         app.navigationBars.buttons["Réglages"].firstMatch.tap()
-        XCTAssertTrue(app.staticTexts["Où regarder"].firstMatch.waitForExistence(timeout: 10), "Réglages ne s'ouvre pas")
+        XCTAssertTrue(app.staticTexts["Tes appareils"].firstMatch.waitForExistence(timeout: 10), "Réglages ne s'ouvre pas")
         capture("reglages")
 
         // Le prénom se saisit et se retrouve sur sa ligne.
@@ -57,7 +57,7 @@ final class ReglagesTests: XCTestCase {
             XCTAssertTrue(ouverte, "La page « \(page.ligne) » ne s'ouvre pas")
             capture("reglages-\(page.ligne)")
             app.navigationBars.buttons.firstMatch.tap()
-            XCTAssertTrue(app.staticTexts["Où regarder"].firstMatch.waitForExistence(timeout: 8)
+            XCTAssertTrue(app.staticTexts["Tes appareils"].firstMatch.waitForExistence(timeout: 8)
                           || app.staticTexts["L'app"].firstMatch.waitForExistence(timeout: 2),
                           "Retour à Réglages impossible depuis « \(page.ligne) »")
         }

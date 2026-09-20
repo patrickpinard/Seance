@@ -3,8 +3,9 @@ import SeanceKit
 import SwiftData
 import SwiftUI
 
-/// Bouton « Lire » (EF-74) : ouvre la vidéo dans l'app choisie dans Réglages › Lecture ; un appui long propose
-/// l'autre. Infuse et VLC lisent directement sur le NAS, sans copie sur l'iPhone.
+/// Bouton « Lire » (EF-74) : ouvre la vidéo dans l'app choisie dans Réglages › Lecture, et seulement dans celle-là —
+/// ni second bouton, ni menu, ni appui long (demande de Patrick, 20 septembre 2026). Infuse et VLC lisent directement
+/// sur le NAS, sans copie sur l'iPhone.
 struct BoutonLectureNAS: View {
     let fichier: FichierNAS
     var libelle = "Lire"
@@ -57,15 +58,7 @@ struct BoutonLectureNAS: View {
     }
 
     private var menu: some View {
-        Menu {
-            ForEach(LecteurVideo.allCases) { lecteur in
-                Button("Lire avec \(lecteur.nom)", systemImage: "play.fill") { lire(avec: lecteur) }
-            }
-        } label: {
-            etiquette
-        } primaryAction: {
-            lire(avec: etat.nas.lecteur)
-        }
+        Button { lire(avec: etat.nas.lecteur) } label: { etiquette }
         .buttonStyle(.plain)
         .accessibilityLabel(ligne.map { "Lire \($0.titre) avec \(etat.nas.lecteur.nom)" } ?? libelle)
         .alert("\(absent?.nom ?? "") n'est pas installée", isPresented: Binding { absent != nil } set: { if !$0 { absent = nil } }) {
@@ -82,10 +75,9 @@ struct BoutonLectureNAS: View {
             Text("VLC en a besoin pour lire sur le NAS. Enregistre-le dans Réglages › NAS.")
         }
         .alert("Infuse ne connaît pas ce fichier", isPresented: $inconnuDInfuse) {
-            Button("Lire avec VLC") { lire(avec: .vlc) }
-            Button("Annuler", role: .cancel) {}
+            Button("OK", role: .cancel) {}
         } message: {
-            Text("Infuse ne s'ouvre directement que sur un film ou un épisode reconnu. VLC peut lire le fichier tel quel.")
+            Text("Infuse ne s'ouvre directement que sur un film ou un épisode reconnu. VLC, lui, lit le fichier tel quel : tu peux le choisir dans Réglages › Lecture.")
         }
     }
 

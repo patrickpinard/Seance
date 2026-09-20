@@ -59,10 +59,14 @@ private struct LigneEtat: View {
             }
             Spacer(minLength: 4)
             if !tailleTexte.isAccessibilitySize { pastilleAction }
+            // Chaque ligne s'ouvre : celles qui sont en ordre le disent d'un chevron.
+            if enOrdre || action == nil { Image(systemName: "chevron.right").font(.caption.weight(.bold)).foregroundStyle(.tertiary).padding(.top, 3) }
         }
+        .frame(minHeight: 44)
         .contentShape(Rectangle())
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("État, \(titre) : \(detail)\(enOrdre ? "" : ", à régler")")
+        .accessibilityLabel("\(titre), \(detail), \(enOrdre ? "en ordre" : "à régler")")
+        .accessibilityAddTraits(.isButton)
     }
 
     @ViewBuilder
@@ -78,35 +82,34 @@ private struct LigneEtat: View {
     }
 }
 
-/// Une carte de réglage : icône colorée, titre, état courant.
-struct CarteReglage: View {
+/// Une tuile de réglage (EF-169) : le symbole dans l'orange de Séance, le titre, l'état courant. Les icônes aux sept
+/// couleurs, façon Réglages d'iOS, juraient avec le reste de l'app.
+struct TuileReglage: View {
     let titre: String
     let symbole: String
-    let couleur: Color
     let valeur: String
     /// L'état demande une action : il s'écrit en orange.
     var alerte = false
 
     var body: some View {
-        HStack(spacing: 12) {
+        VStack(alignment: .leading, spacing: 6) {
             Image(systemName: symbole)
-                .font(.system(size: 17, weight: .semibold))
-                .foregroundStyle(.white)
-                .frame(width: 38, height: 38)
-                .background(couleur.gradient, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-            VStack(alignment: .leading, spacing: 2) {
-                Text(titre).font(.subheadline.weight(.semibold))
-                Text(valeur)
-                    .font(.caption)
-                    .foregroundStyle(alerte ? AnyShapeStyle(Color.orange) : AnyShapeStyle(.secondary))
-                    .lineLimit(1)
-            }
-            Spacer(minLength: 0)
-            Image(systemName: "chevron.right").font(.caption.weight(.bold)).foregroundStyle(.tertiary)
+                .font(.title3.weight(.semibold))
+                .foregroundStyle(Theme.accentClair)
+                .frame(height: 26, alignment: .leading)
+                .accessibilityHidden(true)
+            Text(titre).font(.subheadline.weight(.semibold)).lineLimit(2)
+            Text(valeur)
+                .font(.caption)
+                .foregroundStyle(alerte ? AnyShapeStyle(Color.orange) : AnyShapeStyle(.secondary))
+                .lineLimit(2, reservesSpace: true)
+                .multilineTextAlignment(.leading)
         }
-        .padding(12)
-        .background(Theme.surface, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(14)
+        .background(Theme.surface, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).strokeBorder(Theme.trait))
+        .contentShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(titre), \(valeur)")
         .accessibilityAddTraits(.isButton)
@@ -114,7 +117,7 @@ struct CarteReglage: View {
 }
 
 /// Réglages en tableau de bord : en tête, ce qui est en ordre et ce qui manque, chaque point menant à son réglage ;
-/// puis une carte par réglage, rangée par thème (deux colonnes sur le Mac et l'iPad). Tes goûts et tes statistiques
+/// puis, en tuiles, seulement ce que l'état ne couvre pas (piste B, EF-169). Tes goûts et tes statistiques
 /// sont dans Profil. Sans pile de navigation : onglet à part sur le Mac, page ouverte depuis Profil sur l'iPhone.
 struct ReglagesView: View {
     @Environment(EtatApp.self) private var etat
@@ -128,69 +131,43 @@ struct ReglagesView: View {
     @State private var nouvelAppareil = false
     @State private var envoiAppleTV = false
 
-    private static let colonnes = [GridItem(.adaptive(minimum: 300, maximum: 560), spacing: 12, alignment: .top)]
-
-    private struct Carte: Identifiable {
-        let id: DestinationReglage
-        let titre: String
-        let symbole: String
-        let couleur: Color
-        let valeur: String
-        var alerte = false
-    }
+    /// Deux tuiles de front sur l'iPhone, davantage sur l'iPad et le Mac.
+    private static let colonnes = [GridItem(.adaptive(minimum: 158, maximum: 320), spacing: 12, alignment: .top)]
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
                 etatDeSeance
 
-                VStack(alignment: .leading, spacing: 10) {
-                    TitreSection("Toi")
-                    LazyVGrid(columns: Self.colonnes, spacing: 12) {
-                        lien(Carte(id: .prenom, titre: "Prénom et idées du soir", symbole: "person.fill", couleur: .pink,
-                                   valeur: "\(Prenom.lire(prenom) ?? "Prénom à saisir") · \(Format.pluriel(NombreIdees.lire(nombreIdees), "idée")) à la fois"))
-                        lien(Carte(id: .apparence, titre: "Apparence", symbole: Apparence.lire(apparence).symbole, couleur: .indigo,
-                                   valeur: Apparence.lire(apparence).nom))
-                        // L'accueil se personnalise dans sa feuille, la même que depuis l'accueil : un seul réglage, deux portes.
-                        Button { accueil = true } label: {
-                            CarteReglage(titre: "Accueil", symbole: "house.fill", couleur: .orange, valeur: libelleAccueil)
-                        }
+                // Piste B (EF-169) : l'état ci-dessus est l'unique entrée de ce qu'il surveille — TMDB, plateformes, télé,
+                // NAS, lecture, alertes, sauvegarde. Dessous, seulement le reste, en tuiles : plus aucun réglage en double.
+                rubrique("Toi") {
+                    tuile(.prenom, "Prénom et idées", "person.fill",
+                          "\(Prenom.lire(prenom) ?? "Prénom à saisir") · \(Format.pluriel(NombreIdees.lire(nombreIdees), "idée"))")
+                    tuile(.apparence, "Apparence", Apparence.lire(apparence).symbole, Apparence.lire(apparence).nom)
+                    // L'accueil se personnalise dans sa feuille, la même que depuis l'accueil : un seul réglage, deux portes.
+                    Button { accueil = true } label: { TuileReglage(titre: "Accueil", symbole: "house.fill", valeur: libelleAccueil) }
                         .buttonStyle(.plain)
-                    }
-                    .padding(.horizontal, 20)
                 }
-
-                section("Où regarder", [
-                    Carte(id: .plateformes, titre: "Plateformes", symbole: "play.rectangle.on.rectangle.fill", couleur: .red,
-                          valeur: abonnements.isEmpty ? "Aucune" : abonnements.map(\.nom).formatted(.list(type: .and, width: .narrow)), alerte: abonnements.isEmpty),
-                    Carte(id: .tele, titre: "Télévision", symbole: "tv.fill", couleur: .blue,
-                          valeur: chaines.isEmpty ? "Aucune chaîne" : "\(chaines.count) chaînes · \(libelleLecture)", alerte: chaines.isEmpty),
-                    Carte(id: .nas, titre: "NAS", symbole: "externaldrive.fill", couleur: .green,
-                          valeur: etat.nas.estConfigure ? libelleNAS.prefix(1).uppercased() + libelleNAS.dropFirst() : "À configurer", alerte: !etat.nas.estConfigure),
-                    Carte(id: .lecture, titre: "Lecture", symbole: "play.circle.fill", couleur: .mint, valeur: libelleLecteur),
-                ])
-                section("Me prévenir", [
-                    Carte(id: .alertes, titre: "Alertes", symbole: "bell.badge.fill", couleur: .orange, valeur: libelleAlertes, alerte: !alertesActives),
-                ])
-                VStack(alignment: .leading, spacing: 10) {
-                    TitreSection("Tes données")
-                    LazyVGrid(columns: Self.colonnes, spacing: 12) {
-                        lien(Carte(id: .sauvegarde, titre: "Sauvegarde et synchronisation", symbole: "arrow.triangle.2.circlepath", couleur: .indigo,
-                                   valeur: etat.synchro.nomDossier.map { "Dossier « \($0) »" } ?? "Fichier, AirDrop ou dossier iCloud Drive"))
-                        Button { nouvelAppareil = true } label: {
-                            CarteReglage(titre: "Nouvel appareil", symbole: "iphone.and.arrow.forward", couleur: .cyan,
-                                         valeur: "Reprendre tes données, ta clé et ton NAS")
-                        }
-                        .buttonStyle(.plain)
-                        Button { envoiAppleTV = true } label: {
-                            CarteReglage(titre: "Configurer mon Apple TV", symbole: "appletv.fill", couleur: .gray,
-                                         valeur: "Un code sur la TV, et tout y arrive")
-                        }
-                        .buttonStyle(.plain)
+                rubrique("Tes appareils") {
+                    Button { nouvelAppareil = true } label: {
+                        TuileReglage(titre: "Nouvel appareil", symbole: "iphone.and.arrow.forward", valeur: "Reprendre tes données, ta clé et ton NAS")
                     }
-                    .padding(.horizontal, 20)
+                    .buttonStyle(.plain)
+                    Button { envoiAppleTV = true } label: {
+                        TuileReglage(titre: "Mon Apple TV", symbole: "appletv.fill", valeur: "Un code sur la TV, et tout y arrive")
+                    }
+                    .buttonStyle(.plain)
                 }
-                section("L'app", cartesApp)
+                rubrique("L'app") {
+                    tuile(.claude, "Claude", "sparkles", etat.claude == nil ? "Facultatif" : "Connecté")
+                    tuile(.aPropos, "À propos", "info.circle.fill",
+                          expirationProche ?? (etat.journal.entrees.isEmpty ? "Versions, journal, espace utilisé" : "Journal : \(Format.pluriel(etat.journal.entrees.count, "entrée"))"),
+                          alerte: expirationProche != nil)
+                    #if DEBUG
+                    if ApercuWidgetsView.actif { tuile(.apercuWidgets, "Aperçu des widgets", "square.grid.2x2.fill", "Développement") }
+                    #endif
+                }
             }
             .padding(.vertical, 16)
             .frame(maxWidth: 1180, alignment: .leading)
@@ -214,36 +191,19 @@ struct ReglagesView: View {
         }
     }
 
-    private var cartesApp: [Carte] {
-        var cartes = [
-            Carte(id: .tmdb, titre: "TMDB", symbole: "film.stack", couleur: .teal, valeur: etat.tmdb == nil ? "Clé à saisir" : "Connecté", alerte: etat.tmdb == nil),
-            Carte(id: .claude, titre: "Claude", symbole: "sparkles", couleur: .purple, valeur: etat.claude == nil ? "Facultatif" : "Connecté"),
-            Carte(id: .aPropos, titre: "À propos", symbole: "info.circle.fill", couleur: .gray, valeur: expirationProche ?? (etat.journal.entrees.isEmpty ? "Versions, journal, espace utilisé" : "Journal : \(Format.pluriel(etat.journal.entrees.count, "entrée"))"),
-                  alerte: expirationProche != nil),
-        ]
-        #if DEBUG
-        if ApercuWidgetsView.actif {
-            cartes.append(Carte(id: .apercuWidgets, titre: "Aperçu des widgets", symbole: "square.grid.2x2.fill", couleur: .gray, valeur: "Développement"))
-        }
-        #endif
-        return cartes
-    }
-
-    private func lien(_ carte: Carte) -> some View {
-        NavigationLink(value: carte.id) {
-            CarteReglage(titre: carte.titre, symbole: carte.symbole, couleur: carte.couleur, valeur: carte.valeur, alerte: carte.alerte)
-        }
-        .buttonStyle(.plain)
-    }
-
-    private func section(_ titre: String, _ cartes: [Carte]) -> some View {
+    private func rubrique(_ titre: String, @ViewBuilder _ tuiles: () -> some View) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             TitreSection(titre)
-            LazyVGrid(columns: Self.colonnes, spacing: 12) {
-                ForEach(cartes) { lien($0) }
-            }
-            .padding(.horizontal, 20)
+            LazyVGrid(columns: Self.colonnes, spacing: 12) { tuiles() }
+                .padding(.horizontal, 20)
         }
+    }
+
+    private func tuile(_ destination: DestinationReglage, _ titre: String, _ symbole: String, _ valeur: String, alerte: Bool = false) -> some View {
+        NavigationLink(value: destination) {
+            TuileReglage(titre: titre, symbole: symbole, valeur: valeur, alerte: alerte)
+        }
+        .buttonStyle(.plain)
     }
 
     // MARK: État de Séance
@@ -258,7 +218,7 @@ struct ReglagesView: View {
                 VStack(alignment: .leading, spacing: 1) {
                     Text(manques == 0 ? "Séance est prête" : "\(Format.pluriel(manques, "réglage", "réglages")) à compléter")
                         .font(.headline)
-                    Text(manques == 0 ? "Plateformes, télé, NAS et alertes : tout est branché." : "Touche une ligne orange pour la régler.")
+                    Text(manques == 0 ? "Tout est branché. Touche une ligne pour l'ouvrir." : "Touche une ligne pour l'ouvrir ; les orange restent à régler.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -271,8 +231,12 @@ struct ReglagesView: View {
             ligne(.tele, "Télévision", chaines.isEmpty ? "Choisis tes chaînes" : "\(chaines.count) chaînes · \(libelleLecture)", !chaines.isEmpty, "Choisir")
             ligne(.nas, "NAS", etat.nas.estConfigure ? libelleNAS.prefix(1).uppercased() + libelleNAS.dropFirst() : "Tes films déjà téléchargés",
                   etat.nas.estConfigure, "Configurer")
+            #if !targetEnvironment(macCatalyst)
+            // Un seul lecteur : « Lire » n'ouvre que celui-ci, partout dans l'app.
+            ligne(.lecture, "Lecture", "Tes vidéos du NAS s'ouvrent dans \(etat.nas.lecteur.nom)", true, nil)
+            #endif
             ligne(.alertes, "Alertes", alertesActives ? "Épisodes, sorties et passages à la télé" : "Rien ne te sera annoncé", alertesActives, "Activer")
-            ligne(.sauvegarde, "Synchronisation", etat.synchro.nomDossier.map { "Dossier « \($0) »" } ?? "Facultative : iPhone, iPad et Mac à jour",
+            ligne(.sauvegarde, "Sauvegarde et synchronisation", etat.synchro.nomDossier.map { "Dossier « \($0) »" } ?? "Fichier, AirDrop ou dossier iCloud Drive",
                   true, nil)
             if let expiration = etat.expirationInstallation {
                 let libelle = ProfilInstallation.libelle(expiration: expiration)

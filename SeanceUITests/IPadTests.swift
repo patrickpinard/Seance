@@ -42,7 +42,7 @@ final class IPadTests: XCTestCase {
         // Et la page reste utilisable à côté : un onglet s'ouvre sans avoir à refermer quoi que ce soit.
         let reglages = app.cells.containing(.staticText, identifier: "Réglages").firstMatch
         if reglages.exists { reglages.tap() } else { app.buttons["Réglages"].firstMatch.tap() }
-        XCTAssertTrue(app.staticTexts["Où regarder"].firstMatch.waitForExistence(timeout: 8), "Réglages ne s'ouvre pas depuis la barre latérale")
+        XCTAssertTrue(app.staticTexts["Tes appareils"].firstMatch.waitForExistence(timeout: 8), "Réglages ne s'ouvre pas depuis la barre latérale")
         capture("ipad-paysage-reglages")
     }
 
@@ -52,7 +52,7 @@ final class IPadTests: XCTestCase {
         try lancer(.landscapeLeft, arguments: ["-apparence", "clair", "-profil.prenom", "Camille"])
         capture("ipad-clair-accueil")
         // Un parcours pour relire les captures, pas une vérification : on attend le repère sans en faire une condition.
-        for (onglet, repere) in [("Réglages", "Où regarder"), ("Ce soir", "Ce soir"), ("Mes listes", "Mes listes"), ("Profil", "Tes goûts")] {
+        for (onglet, repere) in [("Réglages", "Tes appareils"), ("Ce soir", "Ce soir"), ("Mes listes", "Mes listes"), ("Profil", "Tes goûts")] {
             let ligne = app.cells.containing(.staticText, identifier: onglet).firstMatch
             if ligne.exists { ligne.tap() } else { app.buttons[onglet].firstMatch.tap() }
             _ = app.staticTexts[repere].firstMatch.waitForExistence(timeout: 8)

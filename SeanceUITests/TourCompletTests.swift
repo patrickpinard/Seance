@@ -170,19 +170,22 @@ final class TourCompletTests: XCTestCase {
         capture("19-statistiques", attente: 3)
         app.navigationBars.buttons.firstMatch.tap()
         app.navigationBars.buttons["Réglages"].firstMatch.tap()
-        XCTAssertTrue(app.staticTexts["Où regarder"].firstMatch.waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["Tes appareils"].firstMatch.waitForExistence(timeout: 10))
         capture("20-reglages", attente: 3)
         app.swipeUp()
         capture("21-reglages-bas")
         XCTAssertTrue(app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Nouvel appareil'")).firstMatch.waitForExistence(timeout: 5),
                       "Le parcours « Nouvel appareil » n'est pas proposé dans les réglages")
-        // La grille des cartes est paresseuse : « Lecture » se touche tant qu'elle est à l'écran.
-        app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Lecture'")).firstMatch.tap()
+        // Piste B : « Lecture » est une ligne de l'état, en haut de la page.
+        let lecture = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Lecture'")).firstMatch
+        XCTAssertTrue(app.amener(lecture, versLeHaut: true), "La ligne « Lecture » est absente de l'état")
+        lecture.tap()
         XCTAssertTrue(app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'VLC'")).firstMatch.waitForExistence(timeout: 10), "Le choix du lecteur est absent")
         capture("21-lecture")
         app.navigationBars.buttons.firstMatch.tap()
-        app.swipeDown()
-        app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Apparence'")).firstMatch.tap()
+        let apparence = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Apparence'")).firstMatch
+        XCTAssertTrue(app.amener(apparence), "La tuile « Apparence » est absente")
+        apparence.tap()
         XCTAssertTrue(app.buttons["Apparence Clair"].firstMatch.waitForExistence(timeout: 10))
         capture("22-apparence")
         app.navigationBars.buttons.firstMatch.tap()
