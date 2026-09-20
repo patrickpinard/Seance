@@ -49,6 +49,12 @@ public struct ServiceSauvegarde {
             Sauvegarde.ActeurSuivi(personneID: $0.personneID, nom: $0.nom, cheminPortrait: $0.cheminPortrait, suiviLe: $0.suiviLe,
                                    filmsConnus: $0.filmsConnus.isEmpty ? nil : $0.filmsConnus, verifieLe: $0.verifieLe)
         }
+        let aimes = try contexte.fetch(FetchDescriptor<TitreAime>(sortBy: [SortDescriptor(\.aimeLe), SortDescriptor(\.tmdbID)])).map {
+            Sauvegarde.Aime(reference: $0.reference, titre: $0.titre, cheminAffiche: $0.cheminAffiche, genres: $0.genres,
+                            acteursIDs: $0.acteursIDs, acteurs: $0.acteurs, aimeLe: $0.aimeLe)
+        }
+        // Absente tant qu'il n'y en a pas : le fichier d'un appareil sans « J'aime » reste celui d'avant la 4.7.
+        s.aimes = aimes.isEmpty ? nil : aimes
         // Les soirées passées n'intéressent plus personne ; celles de ce soir et d'après voyagent.
         let ceSoir = ServiceSoiree.soiree(date)
         s.soirees = try contexte.fetch(FetchDescriptor<SelectionSoir>(sortBy: [SortDescriptor(\.soiree), SortDescriptor(\.ajouteLe)]))
@@ -136,6 +142,10 @@ public struct ServiceSauvegarde {
             let chaine = Chaine(identifiantGuide: c.identifiantGuide, nom: c.nom, source: SourceGuide(rawValue: c.source) ?? .xmltvfr)
             chaine.active = c.active
             contexte.insert(chaine)
+        }
+        for a in plan.aimes {
+            contexte.insert(TitreAime(reference: a.reference, titre: a.titre, cheminAffiche: a.cheminAffiche, genres: a.genres,
+                                      acteursIDs: a.acteursIDs, acteurs: a.acteurs, aimeLe: a.aimeLe))
         }
         for a in plan.acteursSuivis {
             let acteur = ActeurSuivi(personneID: a.personneID, nom: a.nom, cheminPortrait: a.cheminPortrait)

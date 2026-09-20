@@ -40,6 +40,20 @@ public enum SchemaSeanceV1: VersionedSchema {
 public enum SchemaSeanceV2: VersionedSchema {
     public static var versionIdentifier: Schema.Version { Schema.Version(2, 0, 0) }
 
+    /// Les modèles de la version 2 : ceux d'aujourd'hui, sans `TitreAime`, arrivé en version 3.
+    static var modelesUtilisateur: [any PersistentModel.Type] {
+        EntrepotSeance.modelesUtilisateur.filter { ObjectIdentifier($0) != ObjectIdentifier(TitreAime.self) }
+    }
+
+    public static var models: [any PersistentModel.Type] {
+        modelesUtilisateur + EntrepotSeance.modelesCache
+    }
+}
+
+/// Version 3 (Séance 4.7) : les « J'aime » (`TitreAime`), un modèle de plus.
+public enum SchemaSeanceV3: VersionedSchema {
+    public static var versionIdentifier: Schema.Version { Schema.Version(3, 0, 0) }
+
     public static var models: [any PersistentModel.Type] {
         EntrepotSeance.modelesUtilisateur + EntrepotSeance.modelesCache
     }
@@ -47,11 +61,13 @@ public enum SchemaSeanceV2: VersionedSchema {
 
 public enum PlanMigrationSeance: SchemaMigrationPlan {
     public static var schemas: [any VersionedSchema.Type] {
-        [SchemaSeanceV1.self, SchemaSeanceV2.self]
+        [SchemaSeanceV1.self, SchemaSeanceV2.self, SchemaSeanceV3.self]
     }
 
     public static var stages: [MigrationStage] {
         // Un champ ajouté avec sa valeur par défaut : migration légère.
-        [.lightweight(fromVersion: SchemaSeanceV1.self, toVersion: SchemaSeanceV2.self)]
+        // Un champ ajouté avec sa valeur par défaut, puis un modèle ajouté : migrations légères.
+        [.lightweight(fromVersion: SchemaSeanceV1.self, toVersion: SchemaSeanceV2.self),
+         .lightweight(fromVersion: SchemaSeanceV2.self, toVersion: SchemaSeanceV3.self)]
     }
 }

@@ -110,9 +110,15 @@ final class ParcoursSoireeTests: XCTestCase {
         ceSoir.tap()
         XCTAssertTrue(app.buttons["Retirer de ma soirée"].firstMatch.waitForExistence(timeout: 5))
         capture("fiche-ce-soir", attente: 1)
-        app.buttons["Plus d'actions"].firstMatch.tap()
-        capture("fiche-menu", attente: 1)
-        app.buttons["Je n'aime pas : ne plus me le proposer"].firstMatch.tap()
+        // 👍 puis 👎 : les pouces de la fiche. Le pouce baissé fait tomber le pouce levé et écarte le titre.
+        let jAime = app.buttons["J'aime"].firstMatch
+        XCTAssertTrue(jAime.waitForExistence(timeout: 5), "Pas de pouce 👍 sur la fiche")
+        jAime.tap()
+        XCTAssertTrue(app.buttons["J'aime ✓"].firstMatch.waitForExistence(timeout: 5), "Le pouce levé ne se marque pas")
+        capture("fiche-pouces", attente: 1)
+        app.buttons["Je n'aime pas"].firstMatch.tap()
+        XCTAssertTrue(app.buttons["Je n'aime pas ✓"].firstMatch.waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["J'aime"].firstMatch.exists, "Le pouce levé devait tomber")
         app.navigationBars.buttons.firstMatch.tap()
         XCTAssertTrue(affiche.waitForNonExistence(timeout: 10), "Un titre écarté reste proposé dans Explorer")
         capture("explorer-sans-le-titre")

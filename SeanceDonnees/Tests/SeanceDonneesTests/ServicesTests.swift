@@ -569,6 +569,42 @@ struct TitresEcartesTests {
     }
 }
 
+@Suite("J'aime")
+@MainActor
+struct JAimeTests {
+    @Test func lePouceOrienteLesGoutsEtVoyage() throws {
+        let conteneur = try EntrepotSeance.conteneur(.memoire)
+        let contexte = conteneur.mainContext
+        let gouts = ServiceGouts(contexte: contexte)
+        let raid = ReferenceTitre(type: .film, tmdbID: 94_329)
+
+        // 👍 sans l'avoir vu : rien dans les listes, mais le profil penche vers ses genres.
+        try gouts.aimer(raid, titre: "The Raid", cheminAffiche: "/raid.jpg", genres: [28, 53], acteursIDs: [1], acteurs: ["Iko Uwais"])
+        try gouts.aimer(raid, titre: "The Raid", cheminAffiche: nil, genres: [28])   // deux fois : un seul
+        #expect(try gouts.aimes().count == 1 && gouts.estAime(raid))
+        #expect(try ServiceSuivi(contexte: contexte).suivi(raid) == nil)
+        #expect(try gouts.profil().affinite(genre: 28) > 0)
+
+        // Il voyage dans la sauvegarde, et l'import ne le double pas.
+        let sauvegarde = try ServiceSauvegarde(contexte: contexte).exporter()
+        #expect(sauvegarde.aimes?.map(\.reference) == [raid])
+        let autre = try EntrepotSeance.conteneur(.memoire)
+        _ = try ServiceSauvegarde(contexte: autre.mainContext).importer(sauvegarde)
+        _ = try ServiceSauvegarde(contexte: autre.mainContext).importer(sauvegarde)
+        #expect(try ServiceGouts(contexte: autre.mainContext).aimes().map(\.titre) == ["The Raid"])
+
+        // 👎 : le pouce levé tombe, le titre est écarté, et le profil apprend le rejet par ses genres.
+        try gouts.jamais(raid, titre: "The Raid", genres: [28, 53])
+        #expect(try !gouts.estAime(raid) && gouts.ecartes().count == 1)
+        #expect(try gouts.profil().affinite(genre: 28) < 0)
+
+        // 👍 de nouveau : l'exclusion est levée.
+        try gouts.aimer(raid, titre: "The Raid", cheminAffiche: nil, genres: [28, 53])
+        #expect(try gouts.ecartes().isEmpty && gouts.estAime(raid))
+        #expect(try ServiceSauvegarde(contexte: contexte).exporter().aimes?.count == 1)
+    }
+}
+
 @Suite("Statistiques et bilan")
 @MainActor
 struct ServiceStatistiquesTests {

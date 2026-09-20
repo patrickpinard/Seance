@@ -14,6 +14,38 @@ public enum StatutSuivi: String, Codable, Sendable, CaseIterable {
     case exclu
 }
 
+/// 👍 « J'aime » : un titre qui te plaît, que tu l'aies vu ou non, sans l'ajouter à tes listes — comme le pouce de
+/// Netflix. Il oriente tes goûts, donc les idées du soir. Le pouce en bas, lui, est « Je n'aime pas » : un `Suivi`
+/// de statut `.exclu`, qui sort le titre des propositions. Modèle ajouté au schéma version 3 (Séance 4.7).
+@Model
+public final class TitreAime {
+    public var tmdbID: Int = 0
+    public var typeBrut: String = TypeTitre.film.rawValue
+    public var titre: String = ""
+    public var cheminAffiche: String?
+    /// Ce que le profil de goûts en retient.
+    public var genres: [Int] = []
+    public var acteursIDs: [Int] = []
+    public var acteurs: [String] = []
+    public var aimeLe: Date = Date.now
+
+    public var reference: ReferenceTitre {
+        ReferenceTitre(type: TypeTitre(rawValue: typeBrut) ?? .film, tmdbID: tmdbID)
+    }
+
+    public init(reference: ReferenceTitre, titre: String, cheminAffiche: String? = nil, genres: [Int] = [],
+                acteursIDs: [Int] = [], acteurs: [String] = [], aimeLe: Date = .now) {
+        tmdbID = reference.tmdbID
+        typeBrut = reference.type.rawValue
+        self.titre = titre
+        self.cheminAffiche = cheminAffiche
+        self.genres = genres
+        self.acteursIDs = acteursIDs
+        self.acteurs = acteurs
+        self.aimeLe = aimeLe
+    }
+}
+
 /// Un film ou une série dans les listes de Patrick.
 @Model
 public final class Suivi {

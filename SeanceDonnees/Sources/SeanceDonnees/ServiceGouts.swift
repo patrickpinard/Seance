@@ -58,6 +58,16 @@ public struct ServiceGouts {
             ))
         }
 
+        // 👍 « J'aime » : vaut une bonne note (8 sur 10), sauf si une vraie note ou un visionnage parle déjà du titre.
+        let notes = Set(suivis.filter { $0.note != nil }.map(\.reference))
+        for aime in try contexte.fetch(FetchDescriptor<TitreAime>()) where !titresCouverts.contains(aime.reference) && !notes.contains(aime.reference) {
+            observations.append(ObservationGout(
+                origine: .note(8), genres: aime.genres, acteurs: aime.acteursIDs,
+                nomsActeurs: Dictionary(zip(aime.acteursIDs, aime.acteurs), uniquingKeysWith: { premier, _ in premier }),
+                type: aime.reference.type, dureeMinutes: nil, date: aime.aimeLe, poids: 1
+            ))
+        }
+
         for suivi in suivis {
             // « Jamais » : un rejet en dit autant qu'une bonne note, dans l'autre sens.
             // Une exclusion de langue (EF-29) ne dit rien des goûts : elle reste dehors.
@@ -203,15 +213,60 @@ public struct ServiceGouts {
         }
     }
 
-    /// « Jamais » : le titre sort des suggestions pour de bon, et le profil l'apprend.
-    public func jamais(_ reference: ReferenceTitre, titre: String) throws {
+    /// 👎 « Je n'aime pas » (« Jamais ») : le titre sort des propositions pour de bon, et le profil l'apprend — à
+    /// condition de connaître ses genres, que l'appelant passe quand il les a. Un 👍 sur le même titre tombe.
+    public func jamais(_ reference: ReferenceTitre, titre: String, genres: [Int] = [], cheminAffiche: String? = nil) throws {
         let suivi = try ServiceSuivi(contexte: contexte).suivi(reference) ?? {
-            let nouveau = Suivi(reference: reference, titre: titre, statut: .exclu)
+            let nouveau = Suivi(reference: reference, titre: titre, statut: .exclu, cheminAffiche: cheminAffiche)
             contexte.insert(nouveau)
             return nouveau
         }()
         suivi.statut = .exclu
+        if suivi.genres.isEmpty { suivi.genres = genres }
+        if let aime = try aime(reference) { contexte.delete(aime) }
         try contexte.save()
+    }
+
+    // MARK: - 👍 J'aime
+
+    public func estAime(_ reference: ReferenceTitre) throws -> Bool {
+        try aime(reference) != nil
+    }
+
+    /// 👍 « J'aime » : le titre te plaît, vu ou non. Il n'entre dans aucune liste ; il oriente tes goûts. S'il avait été
+    /// écarté (👎), il ne l'est plus. Les acteurs viennent du suivi quand le titre est déjà dans tes listes.
+    public func aimer(_ reference: ReferenceTitre, titre: String, cheminAffiche: String?, genres: [Int],
+                      acteursIDs: [Int] = [], acteurs: [String] = []) throws {
+        let suivi = try ServiceSuivi(contexte: contexte).suivi(reference)
+        if let suivi, suivi.statut == .exclu || suivi.exclusionLangue { try reproposer(reference) }
+        guard try aime(reference) == nil else { return }
+        let connu = try ServiceSuivi(contexte: contexte).suivi(reference)
+        contexte.insert(TitreAime(
+            reference: reference, titre: titre, cheminAffiche: cheminAffiche,
+            genres: genres.isEmpty ? (connu?.genres ?? []) : genres,
+            acteursIDs: acteursIDs.isEmpty ? (connu?.acteursPrincipauxIDs ?? []) : acteursIDs,
+            acteurs: acteurs.isEmpty ? (connu?.acteursPrincipaux ?? []) : acteurs
+        ))
+        try contexte.save()
+    }
+
+    public func nePlusAimer(_ reference: ReferenceTitre) throws {
+        guard let aime = try aime(reference) else { return }
+        contexte.delete(aime)
+        try contexte.save()
+    }
+
+    /// Tes « J'aime », le plus récent d'abord.
+    public func aimes() throws -> [TitreAime] {
+        try contexte.fetch(FetchDescriptor<TitreAime>(sortBy: [SortDescriptor(\.aimeLe, order: .reverse)]))
+    }
+
+    private func aime(_ reference: ReferenceTitre) throws -> TitreAime? {
+        let id = reference.tmdbID
+        let type = reference.type.rawValue
+        var requete = FetchDescriptor<TitreAime>(predicate: #Predicate { $0.tmdbID == id && $0.typeBrut == type })
+        requete.fetchLimit = 1
+        return try contexte.fetch(requete).first
     }
 
     /// Les titres écartés à la main (« Je n'aime pas », « Jamais », ni VF ni sous-titres) : ils ne sont plus proposés nulle part.

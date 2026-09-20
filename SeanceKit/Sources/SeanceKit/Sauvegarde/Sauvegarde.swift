@@ -142,6 +142,27 @@ public struct Sauvegarde: Codable, Sendable, Equatable {
         }
     }
 
+    /// 👍 « J'aime » ; absent des sauvegardes antérieures à la version 4.7.
+    public struct Aime: Codable, Sendable, Equatable {
+        public var reference: ReferenceTitre
+        public var titre: String
+        public var cheminAffiche: String?
+        public var genres: [Int]
+        public var acteursIDs: [Int]
+        public var acteurs: [String]
+        public var aimeLe: Date
+
+        public init(reference: ReferenceTitre, titre: String, cheminAffiche: String?, genres: [Int], acteursIDs: [Int], acteurs: [String], aimeLe: Date) {
+            self.reference = reference
+            self.titre = titre
+            self.cheminAffiche = cheminAffiche
+            self.genres = genres
+            self.acteursIDs = acteursIDs
+            self.acteurs = acteurs
+            self.aimeLe = aimeLe
+        }
+    }
+
     /// « Suivre un acteur » ; absent des sauvegardes antérieures à la version 1.3.
     public struct ActeurSuivi: Codable, Sendable, Equatable {
         public var personneID: Int
@@ -229,6 +250,8 @@ public struct Sauvegarde: Codable, Sendable, Equatable {
     /// Soirées prévues, idées reportées et réglages : absents des sauvegardes antérieures à la version 2.7.
     public var soirees: [Soiree]?
     public var reports: [Report]?
+    /// 👍 Les « J'aime » ; absents des sauvegardes antérieures à la version 4.7.
+    public var aimes: [Aime]?
     public var preferences: [String: Preference]?
     /// Synchronisation entre appareils (voir FusionSynchro.swift) : quand chaque élément a changé pour la dernière
     /// fois, et ce qui a été supprimé. Absents d'une sauvegarde exportée à la main, qui ne fait qu'ajouter.
@@ -279,6 +302,7 @@ public struct PlanImport: Sendable, Equatable {
     public var acteursSuivis: [Sauvegarde.ActeurSuivi] = []
     public var soirees: [Sauvegarde.Soiree] = []
     public var reports: [Sauvegarde.Report] = []
+    public var aimes: [Sauvegarde.Aime] = []
     /// Titres déjà présents que le fichier complète : vu ou noté sur l'autre appareil, acteurs ou genres manquants.
     public var suivisCompletes: [Sauvegarde.Suivi] = []
     /// Plateformes déjà présentes dont le logo manquait.
@@ -328,6 +352,7 @@ public struct PlanImport: Sendable, Equatable {
         // Un titre n'est prévu que pour une soirée à la fois : celle de cet appareil l'emporte.
         soirees = nouveaux(importee.soirees ?? [], existante.soirees ?? [], cle: \.reference)
         reports = nouveaux(importee.reports ?? [], existante.reports ?? [], cle: \.reference)
+        aimes = nouveaux(importee.aimes ?? [], existante.aimes ?? [], cle: \.reference)
 
         let presents = Dictionary(existante.suivis.map { ($0.reference, $0) }, uniquingKeysWith: { premier, _ in premier })
         suivisCompletes = importee.suivis.compactMap { importe in presents[importe.reference].flatMap { Self.complement(importe, $0) } }

@@ -20,6 +20,21 @@ struct NoteVersion: Identifiable {
 
     static let historique: [NoteVersion] = [
         NoteVersion(
+            numero: "4.7",
+            date: "20 septembre 2026",
+            resume: "👍 👎 comme sur Netflix : dis ce qui te plaît sans l'avoir vu, et les idées du soir te ressemblent davantage.",
+            fonctionnalites: [
+                Fonctionnalite(symbole: "hand.thumbsup", titre: "J'aime",
+                               detail: "Un pouce levé sur la fiche, sur une idée du soir ou par appui long sur une affiche. Pas besoin d'avoir vu le titre, et il n'entre dans aucune liste : Séance en retient les genres et les acteurs pour tes prochaines idées. La note de 1 à 10 reste pour après avoir regardé."),
+                Fonctionnalite(symbole: "hand.thumbsdown", titre: "Je n'aime pas, à côté",
+                               detail: "Le pouce baissé est maintenant visible sur la fiche, plus dans le menu « Plus ». Le titre ne t'est plus proposé, et Séance apprend enfin de ce refus : elle en retient les genres, ce qu'elle ne faisait pas. Un pouce chasse l'autre."),
+                Fonctionnalite(symbole: "list.bullet", titre: "Tes pouces dans les Réglages",
+                               detail: "Réglages › Prénom et idées liste les titres que tu aimes et ceux que tu as écartés, pour retirer un pouce ou tout reproposer. Ils voyagent dans la sauvegarde et la synchronisation."),
+                Fonctionnalite(symbole: "arrow.left.and.right", titre: "Fiches recadrées sur l'iPhone",
+                               detail: "Depuis la 4.5, la rangée d'actions d'un film comptait six boutons : trop pour l'iPhone, toute la fiche s'élargissait et se retrouvait rognée à gauche. La bande-annonce n'entre plus dans la rangée que sur l'iPad et le Mac ; sur l'iPhone elle garde sa section, plus bas."),
+            ]
+        ),
+        NoteVersion(
             numero: "4.6",
             date: "20 septembre 2026",
             resume: "Tes listes arrivent sur l'Apple TV, toutes seules : la synchronisation passe aussi par le NAS.",
@@ -28,8 +43,6 @@ struct NoteVersion: Identifiable {
                                detail: "Réglages › Sauvegarde › « Par le NAS » : Séance dépose son fichier dans un dossier « Séance » du NAS et y lit ceux des autres, en plus du dossier d'iCloud Drive. À la maison seulement ; ailleurs rien ne se perd, tout se rattrape au retour. Le compte du NAS doit pouvoir écrire dans le partage."),
                 Fonctionnalite(symbole: "appletv", titre: "L'Apple TV reçoit tes listes",
                                detail: "À voir, en cours, soirées prévues, plateformes, chaînes et goûts arrivent sur la TV au lancement et à chaque retour dans l'app ; ce que tu fais sur la TV — garder un titre, marquer un film vu — revient sur l'iPhone. Suppressions et retours en arrière compris, le plus récent l'emportant."),
-                Fonctionnalite(symbole: "arrow.left.and.right", titre: "Fiches recadrées sur l'iPhone",
-                               detail: "Une pastille « où regarder » un peu longue élargissait toute la fiche d'un film ou d'une série, qui se retrouvait décalée et rognée à gauche. La fiche garde maintenant la largeur de l'écran."),
                 Fonctionnalite(symbole: "iphone.and.arrow.forward", titre: "Activée après l'envoi par code",
                                detail: "Quand l'iPhone configure une TV par son code à six chiffres, « Par le NAS » s'active dans la foulée : plus besoin de renvoyer un code pour mettre la TV à jour. Réglages de la TV › « Synchronisation avec tes appareils » dit quand le dernier passage a eu lieu, et le relance."),
             ]

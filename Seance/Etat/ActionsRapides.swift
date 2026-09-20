@@ -11,7 +11,7 @@ struct ActionsRapides {
     let contexte: ModelContext
 
     enum Action {
-        case aVoir, vuAujourdhui, dejaVuAvant, soiree, pasInteresse
+        case aVoir, vuAujourdhui, dejaVuAvant, soiree, pasInteresse, jAime
     }
 
     func executer(_ action: Action, sur titre: TitreResume) async {
@@ -77,10 +77,17 @@ struct ActionsRapides {
             try ServiceSoiree(contexte: contexte).retenir(reference, titre: titre.titre, cheminAffiche: titre.cheminAffiche)
             return ("Ajouté à ma soirée", "moon.stars.fill")
 
+        case .jAime:
+            let gouts = ServiceGouts(contexte: contexte)
+            if try gouts.estAime(reference) { return ("Tu l'aimes déjà", "hand.thumbsup.fill") }
+            try gouts.aimer(reference, titre: titre.titre, cheminAffiche: titre.cheminAffiche, genres: titre.genres)
+            annulation = { [contexte] in try? ServiceGouts(contexte: contexte).nePlusAimer(reference) }
+            return ("Noté : tes idées en tiendront compte", "hand.thumbsup.fill")
+
         case .pasInteresse:
             let avant = try suivi.suivi(reference)
             let statutAvant = avant?.statut
-            try ServiceGouts(contexte: contexte).jamais(reference, titre: titre.titre)
+            try ServiceGouts(contexte: contexte).jamais(reference, titre: titre.titre, genres: titre.genres, cheminAffiche: titre.cheminAffiche)
             annulation = { [contexte] in
                 AnnulationTitre.restaurer(reference, existait: avant != nil, statut: statutAvant, contexte: contexte)
             }
@@ -113,6 +120,7 @@ struct MenuActionsTitre: View {
         Button { etat.titreADater = choisi } label: { Label("Prévoir pour une soirée…", systemImage: "calendar") }
         Button { etat.titrePourListe = choisi } label: { Label("Ajouter à une liste…", systemImage: "list.bullet.rectangle.portrait") }
         Divider()
+        Button { lancer(.jAime) } label: { Label("J'aime", systemImage: "hand.thumbsup") }
         Button(role: .destructive) { lancer(.pasInteresse) } label: { Label("Je n'aime pas : ne plus me le proposer", systemImage: "hand.thumbsdown") }
     }
 

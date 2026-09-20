@@ -119,6 +119,8 @@ struct SectionIdees: View {
     /// Vus, écartés ou reportés depuis le calcul des idées : la liste est gardée pour la session, pas ce qu'elle exclut.
     /// Sans cela, le film marqué « Regardé » à l'instant revenait en tête des idées.
     @State private var ecartes: Set<ReferenceTitre> = []
+    /// 👍 Tes « J'aime » : le pouce d'une idée déjà aimée reste levé.
+    @Query private var aimes: [TitreAime]
 
     /// Trois, cinq ou dix idées à la fois (Réglages › Toi), parmi celles ni traitées ni déjà montrées plus haut.
     private var idees: [SuggestionClassee] {
@@ -171,7 +173,8 @@ struct SectionIdees: View {
             }
 
             ForEach(idees) { suggestion in
-                CarteIdee(suggestion: suggestion, ou: modele.libelleOu(suggestion.reference).flatMap { CarteSoiree.secours($0) }) { action in traiter(action, suggestion) }
+                CarteIdee(suggestion: suggestion, ou: modele.libelleOu(suggestion.reference).flatMap { CarteSoiree.secours($0) },
+                          aime: aimes.contains { $0.reference == suggestion.reference }) { action in traiter(action, suggestion) }
             }
 
             DisclosureGroup(isExpanded: $precisionOuverte) {
@@ -213,6 +216,17 @@ struct SectionIdees: View {
         let avant = try? ServiceSuivi(contexte: contexte).suivi(reference)
         let statutAvant = avant?.statut
         switch action {
+        case .jAime:
+            // 👍 L'idée reste dans la liste : aimer n'est pas choisir pour ce soir.
+            if (try? gouts.estAime(reference)) == true {
+                try? gouts.nePlusAimer(reference)
+            } else {
+                let candidat = suggestion.candidat
+                try? gouts.aimer(reference, titre: titre.titre, cheminAffiche: titre.cheminAffiche, genres: titre.genres,
+                                 acteursIDs: candidat.acteurs, acteurs: candidat.acteurs.compactMap { candidat.nomsActeurs[$0] })
+                etat.confirmer("Noté : tes idées en tiendront compte", symbole: "hand.thumbsup.fill")
+            }
+            return
         case .jeRegarde:
             _ = try? gouts.jeRegarde(suggestion.candidat)
             try? ServiceSoiree(contexte: contexte).retenir(reference, titre: titre.titre, cheminAffiche: titre.cheminAffiche, soiree: soiree)
@@ -225,7 +239,7 @@ struct SectionIdees: View {
                 modele.restaurer(reference)
             }
         case .jamais:
-            try? gouts.jamais(reference, titre: titre.titre)
+            try? gouts.jamais(reference, titre: titre.titre, genres: titre.genres, cheminAffiche: titre.cheminAffiche)
             etat.confirmer("Ne te sera plus proposé", symbole: "hand.thumbsdown.fill") { [modele, contexte] in
                 AnnulationTitre.restaurer(reference, existait: avant != nil, statut: statutAvant, contexte: contexte)
                 modele.restaurer(reference)
@@ -237,10 +251,11 @@ struct SectionIdees: View {
 
 /// Une idée : affiche, titre, où la regarder, raison en une phrase, et les trois gestes du soir.
 private struct CarteIdee: View {
-    enum Action { case jeRegarde, pasCeSoir, jamais }
+    enum Action { case jeRegarde, pasCeSoir, jamais, jAime }
 
     let suggestion: SuggestionClassee
     let ou: String?
+    var aime = false
     let action: (Action) -> Void
 
     var body: some View {
@@ -282,6 +297,8 @@ private struct CarteIdee: View {
             // Compact sur l'iPhone : deux icônes rondes (nom à l'appui long) et un seul bouton écrit, sur une ligne.
             HStack(spacing: 10) {
                 Spacer()
+                BoutonIcone(symbole: aime ? "hand.thumbsup.fill" : "hand.thumbsup", libelle: aime ? "J'aime, noté" : "J'aime", actif: aime, taille: 36,
+                            explication: "Ce titre te plaît, même sans l'avoir vu : Séance te proposera davantage de titres de ce genre.") { action(.jAime) }
                 BoutonIcone(symbole: "hand.thumbsdown", libelle: "Je n'aime pas", taille: 36,
                             explication: "Ne plus jamais proposer ce titre. Séance en tient compte pour tes goûts ; Réglages › Toi permet de tout reproposer.") { action(.jamais) }
                 BoutonIcone(symbole: "clock.arrow.circlepath", libelle: "Pas ce soir", taille: 36,

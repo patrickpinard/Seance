@@ -14,6 +14,8 @@ struct ReglagesPrenomView: View {
     /// « Je n'aime pas », « Jamais », « Ni VF ni sous-titres » : ce que Séance ne te propose plus.
     @Query(filter: #Predicate<Suivi> { $0.statutBrut == "exclu" || $0.exclusionLangue }, sort: \Suivi.titre) private var ecartes: [Suivi]
     @State private var confirmationToutReproposer = false
+    /// 👍 Ce que tu as dit aimer, le plus récent d'abord.
+    @Query(sort: \TitreAime.aimeLe, order: .reverse) private var aimes: [TitreAime]
 
     var body: some View {
         Form {
@@ -42,6 +44,29 @@ struct ReglagesPrenomView: View {
                 Text("Idées pour ce soir")
             } footer: {
                 Text("Le nombre d'idées que « Idées pour ce soir » te montre à la fois. Celles que tu écartes sont remplacées par les suivantes.")
+            }
+
+            Section {
+                if aimes.isEmpty {
+                    Label("Aucun pouce levé pour l'instant", systemImage: "hand.thumbsup").foregroundStyle(.secondary)
+                } else {
+                    ForEach(aimes) { aime in
+                        HStack {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(aime.titre.isEmpty ? "Titre sans nom" : aime.titre)
+                                Text(aime.reference.type == .film ? "Film" : "Série").font(.caption).foregroundStyle(.secondary)
+                            }
+                            Spacer()
+                            Button("Retirer") { try? ServiceGouts(contexte: contexte).nePlusAimer(aime.reference) }
+                                .buttonStyle(.borderless)
+                                .accessibilityLabel("Retirer le pouce de \(aime.titre)")
+                        }
+                    }
+                }
+            } header: {
+                Text("👍 Titres que tu aimes")
+            } footer: {
+                Text("Le pouce levé d'une fiche, d'une idée ou d'une affiche : pas besoin d'avoir vu le titre. Séance s'en sert pour tes goûts, donc pour les idées du soir ; il n'ajoute rien à tes listes. La note de 1 à 10, elle, se donne après avoir regardé.")
             }
 
             Section {

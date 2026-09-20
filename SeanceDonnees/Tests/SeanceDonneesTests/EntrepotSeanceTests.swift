@@ -39,6 +39,33 @@ struct EntrepotSeanceTests {
         try contexte.save()
     }
 
+    /// Une base de la 4.6 (schéma version 2) : la 4.7 l'ouvre par son plan, garde tout, et accueille les « J'aime ».
+    @Test func migreUneBaseDeLaVersion2() throws {
+        let dossier = FileManager.default.temporaryDirectory.appending(path: "seance-migration-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: dossier, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dossier) }
+        let heat = ReferenceTitre(type: .film, tmdbID: 949)
+
+        do {
+            let ancien = try EntrepotSeance.conteneurV2(dossier: dossier)
+            ancien.mainContext.insert(Suivi(reference: heat, titre: "Heat"))
+            let liste = ListePerso(nom: "Soirées Statham")
+            liste.titres = [heat]
+            ancien.mainContext.insert(liste)
+            try ancien.mainContext.save()
+        }
+
+        EntrepotSeance.derniereErreurDuPlan = nil
+        let conteneur = try EntrepotSeance.conteneur(.dossier(dossier))
+        #expect(EntrepotSeance.derniereErreurDuPlan == nil, "le plan de migration a échoué, l'ouverture de secours a servi")
+        let contexte = conteneur.mainContext
+        #expect(try contexte.fetch(FetchDescriptor<Suivi>()).map(\.titre) == ["Heat"])
+        #expect(try contexte.fetch(FetchDescriptor<ListePerso>()).first?.titres == [heat])
+        contexte.insert(TitreAime(reference: heat, titre: "Heat", genres: [80, 53]))
+        try contexte.save()
+        #expect(try contexte.fetchCount(FetchDescriptor<TitreAime>()) == 1)
+    }
+
     /// Vérification à la demande sur la copie d'une vraie base : `TEST_RUNNER_SEANCE_BASE_REELLE=/dossier xcodebuild test …`.
     @Test(.enabled(if: ProcessInfo.processInfo.environment["SEANCE_BASE_REELLE"] != nil))
     func ouvreLaCopieDUneVraieBase() throws {

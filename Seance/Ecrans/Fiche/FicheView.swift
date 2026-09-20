@@ -150,7 +150,7 @@ private struct ContenuFiche: View {
                     // La colonne prend la largeur de l'écran, jamais celle de son élément le plus large : une pastille
                     // ou un passage télé un peu long élargissait toute la fiche, qui se retrouvait rognée à gauche.
                     uneColonne
-                        .frame(width: largeurDisponible < 1200 ? largeurDisponible : nil, alignment: .leading)
+                        .containerRelativeFrame(.horizontal, alignment: .leading)
                 }
             }
             .padding(.bottom, 40)
@@ -173,6 +173,7 @@ private struct ContenuFiche: View {
             enTete
             RangeeOu(reference: fiche.reference)
             actions
+            pouces
             bandeauAlertes
             NoteTitre(fiche: fiche)
             blocOuRegarder
@@ -195,6 +196,7 @@ private struct ContenuFiche: View {
                 VStack(alignment: .leading, spacing: 24) {
                     RangeeOu(reference: fiche.reference)
                     actions
+                    pouces
                     bandeauAlertes
                     NoteTitre(fiche: fiche)
                     synopsis
@@ -321,6 +323,13 @@ private struct ContenuFiche: View {
         }
     }
 
+    /// 👍 👎 : dire si le titre te plaît sans l'avoir vu ; la note de 1 à 10 vient après l'avoir regardé.
+    private var pouces: some View {
+        PoucesTitre(reference: fiche.reference, titre: fiche.titre, cheminAffiche: fiche.cheminAffiche,
+                    genres: fiche.film?.genres.map(\.id) ?? fiche.serie?.genres.map(\.id) ?? [],
+                    acteursIDs: fiche.casting.prefix(5).map(\.id), acteurs: fiche.casting.prefix(5).map(\.nom))
+    }
+
     /// Un bouton d'action et son nom en dessous : les icônes seules ne se comprenaient qu'au survol.
     /// Largeur fixe, sur deux lignes au besoin : avec des libellés à leur taille naturelle, cinq boutons dépassaient
     /// la largeur de l'iPhone et toute la fiche s'élargissait avec eux, coupée des deux côtés.
@@ -385,8 +394,9 @@ private struct ContenuFiche: View {
                 boutonAlertes
             }
 
-            // Six boutons ne tiennent pas sur un iPhone : la bande-annonce garde sa section, plus bas dans la fiche.
-            if largeurDisponible >= 440, let video = fiche.videos.first {
+            // Six boutons ne tiennent pas sur un iPhone (ils élargissaient la fiche, rognée à gauche) : la bande-annonce
+            // n'entre dans la rangée que sur l'iPad et le Mac ; sa section reste plus bas dans la fiche.
+            if largeur == .regular, let video = fiche.videos.first {
                 legende("Bande-annonce") {
                     BoutonIcone(symbole: "play.rectangle.fill", libelle: "Bande-annonce",
                                 explication: "Voir la bande-annonce, lue en streaming : rien n'est enregistré sur l'appareil.") {
@@ -503,23 +513,10 @@ private struct ContenuFiche: View {
                     Label("Ni VF ni sous-titres FR", systemImage: "captions.bubble")
                 }
             }
-            if suivi?.statut != .exclu {
-                Button(role: .destructive) { nePlusProposer() } label: {
-                    Label("Je n'aime pas : ne plus me le proposer", systemImage: "hand.thumbsdown")
-                }
-            } else {
-                Button {
-                    try? ServiceGouts(contexte: contexte).reproposer(fiche.reference)
-                    rafraichir()
-                    etat.confirmer("« \(fiche.titre) » pourra de nouveau t'être proposé", symbole: "hand.thumbsup")
-                } label: {
-                    Label("Me le reproposer", systemImage: "hand.thumbsup")
-                }
-            }
         } label: {
             RondIcone(symbole: "ellipsis", taille: 40)
         }
-        .help("Prévoir une soirée, listes, partager, voir sur TMDB, écarter : pas de version française, ou je n'aime pas")
+        .help("Prévoir une soirée, listes, partager, voir sur TMDB, écarter faute de version française")
         .accessibilityLabel("Plus d'actions")
     }
 
@@ -541,19 +538,6 @@ private struct ContenuFiche: View {
             }
         }
         rafraichir()
-    }
-
-    /// « Je n'aime pas » : le titre ne revient plus dans les idées, l'accueil ni Explorer ; Réglages › Toi permet de tout reproposer.
-    private func nePlusProposer() {
-        let reference = fiche.reference
-        let avant = suivi
-        let statutAvant = avant?.statut
-        try? ServiceGouts(contexte: contexte).jamais(reference, titre: fiche.titre)
-        try? ServiceSoiree(contexte: contexte).retirer(reference)
-        rafraichir()
-        etat.confirmer("Ne te sera plus proposé", symbole: "hand.thumbsdown.fill") { [contexte] in
-            AnnulationTitre.restaurer(reference, existait: avant != nil, statut: statutAvant, contexte: contexte)
-        }
     }
 
     private func reglerAlertes(_ mode: ModeAlerteSerie?) {
