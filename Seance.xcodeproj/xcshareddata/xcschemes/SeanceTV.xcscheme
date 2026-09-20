@@ -21,6 +21,20 @@
                ReferencedContainer = "container:Seance.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "AD94E5CF69BD9EBAFBECDB21"
+               BuildableName = "SeanceTVEtagere.appex"
+               BlueprintName = "SeanceTVEtagere"
+               ReferencedContainer = "container:Seance.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
       </BuildActionEntries>
    </BuildAction>
    <TestAction

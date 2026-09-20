@@ -20,6 +20,17 @@ struct NoteVersion: Identifiable {
 
     static let historique: [NoteVersion] = [
         NoteVersion(
+            numero: "4.2",
+            date: "20 septembre 2026",
+            resume: "Un nouvel iPad ou un Mac se configure comme l'Apple TV, par un code ; et ta soirée s'affiche sur l'écran d'accueil de la TV.",
+            fonctionnalites: [
+                Fonctionnalite(symbole: "iphone.and.arrow.forward", titre: "Tout recevoir par un code",
+                               detail: "« Nouvel appareil » propose d'abord le plus simple : cet appareil affiche un code, et un autre — Réglages › Tes appareils › « Envoyer à un appareil » — lui envoie tout d'un coup, clé TMDB et NAS compris, ce qu'aucun fichier de sauvegarde ne porte."),
+                Fonctionnalite(symbole: "appletv", titre: "Apple TV : l'étagère du haut",
+                               detail: "Place Séance dans la rangée du haut de l'écran d'accueil de l'Apple TV : ta soirée et les nouveautés de ton NAS s'y affichent en affiches, et en choisir une ouvre sa fiche."),
+            ]
+        ),
+        NoteVersion(
             numero: "4.1",
             date: "20 septembre 2026",
             resume: "Des Réglages refaits, un seul lecteur pour « Lire », et une Apple TV presque aussi complète que l'iPhone.",

@@ -44,9 +44,17 @@ struct RacineTV: View {
         }
         .animation(.snappy, value: etat.message)
         .fullScreenCover(isPresented: $configuration) { ConfigurationTV() }
+        // Une affiche de l'étagère du haut : `seance://film/603` ouvre sa fiche.
+        .onOpenURL { url in
+            guard url.scheme == "seance", let hote = url.host(), let type = TypeTitre(rawValue: hote), let id = Int(url.lastPathComponent) else { return }
+            onglet = .accueil
+            cheminAccueil = [ReferenceTitre(type: type, tmdbID: id)]
+        }
         // Retour de l'app de lecture : « Tu l'as regardé ? » (EF-118, sur la TV).
         .onChange(of: phase) { _, nouvelle in
             if nouvelle == .active { etat.revenir() }
+            // En quittant l'app : l'étagère du haut reflète la soirée et le NAS du moment.
+            if nouvelle == .background { PublicationEtagere.publier(contexte: contexte) }
         }
         .alert("Tu l'as regardé ?", isPresented: Binding { etat.lectureAConfirmer != nil } set: { if !$0 { etat.lectureAConfirmer = nil } },
                presenting: etat.lectureAConfirmer) { reference in
@@ -58,6 +66,7 @@ struct RacineTV: View {
         // La bibliothèque du NAS se relit au lancement : le magasin de la TV est un cache (EF-145).
         .task {
             if etat.nasPret, !etat.enDemonstration { await etat.analyserNAS(contexte: contexte) }
+            PublicationEtagere.publier(contexte: contexte)
         }
     }
 

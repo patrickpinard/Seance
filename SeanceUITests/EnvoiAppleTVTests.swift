@@ -12,23 +12,23 @@ final class EnvoiAppleTVTests: XCTestCase {
         XCTAssertTrue(app.tabBars.buttons["Profil"].firstMatch.waitForExistence(timeout: 20))
         app.tabBars.buttons["Profil"].firstMatch.tap()
         app.navigationBars.buttons["Réglages"].firstMatch.tap()
-        let carte = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Mon Apple TV'")).firstMatch
-        XCTAssertTrue(app.amener(carte), "La tuile « Mon Apple TV » est absente des Réglages")
+        let carte = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Envoyer à un appareil'")).firstMatch
+        XCTAssertTrue(app.amener(carte), "La tuile « Envoyer à un appareil » est absente des Réglages")
         carte.tap()
 
         let tv = app.buttons.matching(NSPredicate(format: "label CONTAINS 'Apple TV'")).firstMatch
         XCTAssertTrue(tv.waitForExistence(timeout: 30), "Aucune Apple TV trouvée sur le réseau")
-        let champ = app.textFields["Code affiché sur la TV"]
+        let champ = app.textFields["Code affiché sur l'autre appareil"]
         XCTAssertTrue(champ.waitForExistence(timeout: 5))
         champ.tap()
         champ.typeText("111111")
-        app.buttons["Envoyer à l'Apple TV"].firstMatch.tap()
+        app.buttons["Envoyer"].firstMatch.tap()
         XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH 'Ce n’est pas le code' OR label BEGINSWITH \"Ce n'est pas le code\"")).firstMatch
             .waitForExistence(timeout: 20), "Un mauvais code doit être refusé, et dit")
 
         champ.tap()
         champ.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 6) + "424242")
-        app.buttons["Envoyer à l'Apple TV"].firstMatch.tap()
+        app.buttons["Envoyer"].firstMatch.tap()
         XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label CONTAINS 'a tout reçu'")).firstMatch.waitForExistence(timeout: 30),
                       "L'envoi avec le bon code n'a pas abouti")
         let piece = XCTAttachment(screenshot: app.screenshot()); piece.name = "envoi-apple-tv"; piece.lifetime = .keepAlways; add(piece)

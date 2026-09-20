@@ -4,7 +4,8 @@ import SwiftData
 import SwiftUI
 import UIKit
 
-/// Met en route l'Apple TV depuis cet appareil : la TV affiche un code, on le tape ici, et tout part par le réseau de la
+/// Met en route un autre appareil depuis celui-ci — l'Apple TV, ou un iPhone, un iPad, un Mac (« Nouvel appareil ») :
+/// il affiche un code, on le tape ici, et tout part par le réseau de la
 /// maison — la clé TMDB, le NAS et son mot de passe, les listes, les soirées, ce qui est vu, les plateformes cochées.
 /// Rien n'est écrit dans un fichier ni ne passe par internet (EF-86, EF-145).
 struct EnvoiAppleTVView: View {
@@ -25,20 +26,20 @@ struct EnvoiAppleTVView: View {
         NavigationStack {
             Form {
                 Section {
-                    etape(1, "Sur l'Apple TV", "Ouvre Séance, onglet Réglages, puis « Configurer depuis mon iPhone ». Un code à six chiffres s'affiche.")
-                    etape(2, "Ici", "Choisis la TV, tape le code, envoie. C'est tout.")
+                    etape(1, "Sur l'autre appareil", "Apple TV : Séance › Réglages › « Configurer depuis mon iPhone ». iPhone, iPad ou Mac : « Nouvel appareil » › « Tout recevoir… ». Un code à six chiffres s'affiche.")
+                    etape(2, "Ici", "Choisis l'appareil, tape le code, envoie. C'est tout.")
                 }
-                Section("Apple TV trouvées sur ton réseau") {
+                Section("Appareils qui attendent, sur ton réseau") {
                     if televiseurs.isEmpty {
                         HStack(spacing: 12) {
                             ProgressView()
-                            Text("Recherche… La TV doit afficher son code, sur le même Wi-Fi.").font(.subheadline).foregroundStyle(.secondary)
+                            Text("Recherche… L'autre appareil doit afficher son code, sur le même Wi-Fi.").font(.subheadline).foregroundStyle(.secondary)
                         }
                     }
                     ForEach(televiseurs) { tv in
                         Button { choisie = tv } label: {
                             HStack {
-                                Label(tv.nom, systemImage: "appletv.fill")
+                                Label(tv.nom, systemImage: tv.nom.localizedCaseInsensitiveContains("tv") ? "appletv.fill" : "iphone")
                                 Spacer()
                                 if (choisie ?? televiseurs.first) == tv { Image(systemName: "checkmark").foregroundStyle(Theme.accent) }
                             }
@@ -47,14 +48,14 @@ struct EnvoiAppleTVView: View {
                     }
                 }
                 Section {
-                    TextField("Code affiché sur la TV", text: $code)
+                    TextField("Code affiché sur l'autre appareil", text: $code)
                         .keyboardType(.numberPad)
                         .font(.title2.monospacedDigit().weight(.semibold))
                         .focused($saisie)
                         .onChange(of: code) { _, nouveau in code = String(nouveau.filter(\.isNumber).prefix(6)) }
                     Button { envoyer() } label: {
                         HStack {
-                            Text(envoi ? "Envoi…" : "Envoyer à l'Apple TV").fontWeight(.semibold)
+                            Text(envoi ? "Envoi…" : "Envoyer").fontWeight(.semibold)
                             if envoi { Spacer(); ProgressView() }
                         }
                     }
@@ -71,7 +72,7 @@ struct EnvoiAppleTVView: View {
                     Text("Ce qui est envoyé")
                 }
             }
-            .titreDeFeuille("Configurer mon Apple TV")
+            .titreDeFeuille("Envoyer à un appareil")
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button(reussi ? "Terminé" : "Fermer", action: fermer) } }
             .task {
                 for await trouvees in EmetteurConfig.chercher() { televiseurs = trouvees }
@@ -94,7 +95,7 @@ struct EnvoiAppleTVView: View {
         morceaux.append(etat.tmdb != nil ? "ta clé TMDB" : "pas de clé TMDB (aucune n'est enregistrée ici)")
         morceaux.append(etat.nas.estConfigure ? "l'adresse de ton NAS et son mot de passe" : "pas de NAS (il n'est pas configuré ici)")
         morceaux.append("tes listes, tes soirées, ce que tu as vu et noté, tes plateformes et tes chaînes")
-        return "Par le Wi-Fi de la maison, chiffré avec le code de la TV : " + morceaux.joined(separator: " ; ") + ". La clé Claude reste ici : la TV ne s'en sert pas."
+        return "Par le Wi-Fi de la maison, chiffré avec le code : " + morceaux.joined(separator: " ; ") + ". La clé Claude reste ici."
     }
 
     private func envoyer() {
@@ -103,7 +104,9 @@ struct EnvoiAppleTVView: View {
         envoi = true
         message = nil
         let coffre = etat.depot.coffre
-        let sauvegarde = try? ServiceSauvegarde(contexte: contexte).exporter().encoder()
+        var complete = try? ServiceSauvegarde(contexte: contexte).exporter()
+        complete?.preferences = PreferencesSauvegardees.lire()
+        let sauvegarde = try? complete?.encoder()
         let configuration = ConfigurationTransferee(
             expediteur: UIDevice.current.name,
             cleTMDB: (try? coffre.lire(.tmdb)) ?? nil,
@@ -116,12 +119,12 @@ struct EnvoiAppleTVView: View {
             do {
                 try await EmetteurConfig.envoyer(configuration, a: tv, code: code)
                 reussi = true
-                message = "« \(tv.nom) » a tout reçu. Elle lit maintenant ton NAS."
-                etat.journal.noter(.general, "Configuration envoyée à l'Apple TV « \(tv.nom) ».")
+                message = "« \(tv.nom) » a tout reçu."
+                etat.journal.noter(.general, "Configuration envoyée à « \(tv.nom) ».")
             } catch EmetteurConfig.Erreur.codeIncorrect {
-                message = "Ce n'est pas le code affiché sur la TV. Vérifie-le et recommence."
+                message = "Ce n'est pas le code affiché sur l'autre appareil. Vérifie-le et recommence."
             } catch {
-                message = "La TV ne répond pas. Vérifie qu'elle affiche toujours son code et qu'elle est sur le même Wi-Fi."
+                message = "L'appareil ne répond pas. Vérifie qu'il affiche toujours son code et qu'il est sur le même Wi-Fi."
             }
             envoi = false
         }

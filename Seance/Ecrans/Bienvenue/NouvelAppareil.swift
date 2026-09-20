@@ -21,6 +21,7 @@ struct NouvelAppareilView: View {
     @State private var messageCle: String?
     @State private var motDePasseNAS = ""
     @State private var messageNAS: String?
+    @State private var messageCode: String?
 
     private enum Selection { case dossier, fichier }
 
@@ -31,6 +32,17 @@ struct NouvelAppareilView: View {
     var body: some View {
         NavigationStack {
             Form {
+                Section {
+                    if let messageCode {
+                        Label(messageCode, systemImage: "checkmark.circle.fill").foregroundStyle(.green)
+                    } else {
+                        ReceptionParCode { messageCode = $0 }
+                    }
+                } header: {
+                    Text("Le plus simple")
+                } footer: {
+                    Text("Tu as Séance sur un autre appareil, à côté de toi ? Il envoie tout d'un coup — données, clé TMDB et NAS — par le Wi-Fi de la maison. Sinon, fais les trois étapes ci-dessous.")
+                }
                 Section {
                     if let dossier = etat.synchro.nomDossier {
                         Label("Synchronisé avec le dossier « \(dossier) »", systemImage: "checkmark.circle.fill")

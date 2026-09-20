@@ -18,8 +18,8 @@ settings:
     # Équipe personnelle de Patrick (compte Apple gratuit).
     DEVELOPMENT_TEAM: GATK475J3P
     # Version affichée dans À propos › Versions ; à changer avec Seance/Ecrans/Reglages/Versions.swift.
-    MARKETING_VERSION: "4.1"
-    CURRENT_PROJECT_VERSION: "26"
+    MARKETING_VERSION: "4.2"
+    CURRENT_PROJECT_VERSION: "27"
 
 packages:
   SeanceKit:
@@ -135,6 +135,13 @@ targets:
       - package: SeanceKit
       - package: SeanceDonnees
       - package: SeanceNAS
+      - target: SeanceTVEtagere
+    entitlements:
+      path: SeanceTV/SeanceTV.entitlements
+      properties:
+        # Espace partagé avec l'étagère du haut (EF-146).
+        com.apple.security.application-groups:
+          - group.ch.patrick.seance.tv
     info:
       path: SeanceTV/Info.plist
       properties:
@@ -152,12 +159,42 @@ targets:
         LSApplicationQueriesSchemes:
           - infuse
           - vlc-x-callback
+        # seance://film/603 : une affiche de l'étagère du haut ouvre sa fiche.
+        CFBundleURLTypes:
+          - CFBundleURLName: ch.patrick.seance.tv
+            CFBundleURLSchemes:
+              - seance
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: ch.patrick.seance.tv
         TARGETED_DEVICE_FAMILY: "3"
         ASSETCATALOG_COMPILER_APPICON_NAME: "App Icon & Top Shelf Image"
 
+  # L'étagère du haut de l'écran d'accueil de l'Apple TV (EF-146).
+  SeanceTVEtagere:
+    type: tv-app-extension
+    platform: tvOS
+    sources:
+      - SeanceTVEtagere
+      - SeanceTV/Partage
+    entitlements:
+      path: SeanceTVEtagere/SeanceTVEtagere.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.ch.patrick.seance.tv
+    info:
+      path: SeanceTVEtagere/Info.plist
+      properties:
+        CFBundleDisplayName: Séance
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.tv-services
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).ContentProvider
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: ch.patrick.seance.tv.etagere
+        TARGETED_DEVICE_FAMILY: "3"
   SeanceWidget:
     type: app-extension
     platform: iOS
@@ -205,6 +242,7 @@ schemes:
     build:
       targets:
         SeanceTV: all
+        SeanceTVEtagere: all
     run:
       config: Debug
   Seance:

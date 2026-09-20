@@ -155,7 +155,7 @@ struct ReglagesView: View {
                     }
                     .buttonStyle(.plain)
                     Button { envoiAppleTV = true } label: {
-                        TuileReglage(titre: "Mon Apple TV", symbole: "appletv.fill", valeur: "Un code sur la TV, et tout y arrive")
+                        TuileReglage(titre: "Envoyer à un appareil", symbole: "appletv.fill", valeur: "Apple TV, iPad, Mac : un code, et tout y arrive")
                     }
                     .buttonStyle(.plain)
                 }
