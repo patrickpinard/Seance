@@ -66,6 +66,65 @@ struct EntrepotSeanceTests {
         #expect(try contexte.fetchCount(FetchDescriptor<TitreAime>()) == 1)
     }
 
+    /// Une base écrite par la 5.1, dont les modèles n'ont pas d'index : la 5.2, qui en pose cinq, la rouvre
+    /// et relit tout. SwiftData ne compte pas les index dans la version du schéma — d'où ce test plutôt qu'une
+    /// version de plus au plan de migration.
+    @Test func rouvreUneBaseEcriteSansIndex() throws {
+        let dossier = FileManager.default.temporaryDirectory.appending(path: "seance-index-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: dossier, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dossier) }
+        let heat = ReferenceTitre(type: .film, tmdbID: 949)
+
+        do {
+            let ancien = try ModelesSansIndex.conteneur(dossier: dossier)
+            ancien.mainContext.insert(ModelesSansIndex.Suivi(reference: heat, titre: "Heat"))
+            ancien.mainContext.insert(ModelesSansIndex.FichierNAS(chemin: "Films/Heat.1995.mkv"))
+            ancien.mainContext.insert(ModelesSansIndex.Echeance(reference: heat, titre: "Heat", date: .now))
+            try ancien.mainContext.save()
+        }
+
+        EntrepotSeance.derniereErreurDuPlan = nil
+        let conteneur = try EntrepotSeance.conteneur(.dossier(dossier))
+        #expect(EntrepotSeance.derniereErreurDuPlan == nil, "le plan de migration a échoué, l'ouverture de secours a servi")
+        let contexte = conteneur.mainContext
+        #expect(try contexte.fetch(FetchDescriptor<Suivi>()).map(\.titre) == ["Heat"])
+        #expect(try contexte.fetch(FetchDescriptor<FichierNAS>()).map(\.chemin) == ["Films/Heat.1995.mkv"])
+        #expect(try contexte.fetchCount(FetchDescriptor<Echeance>()) == 1)
+
+        // La requête que pose chaque affiche : par identifiant, désormais indexée.
+        let id = heat.tmdbID
+        #expect(try contexte.fetchCount(FetchDescriptor<Suivi>(predicate: #Predicate { $0.tmdbID == id })) == 1)
+    }
+
+    /// Une base de la 5.2 (schéma version 3) : la 5.3 l'ouvre par son plan, garde tout, et accueille les favoris.
+    @Test func migreUneBaseDeLaVersion3() throws {
+        let dossier = FileManager.default.temporaryDirectory.appending(path: "seance-migration-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: dossier, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dossier) }
+        let heat = ReferenceTitre(type: .film, tmdbID: 949)
+
+        do {
+            let ancien = try EntrepotSeance.conteneurV3(dossier: dossier)
+            ancien.mainContext.insert(Suivi(reference: heat, titre: "Heat"))
+            ancien.mainContext.insert(TitreAime(reference: heat, titre: "Heat", genres: [80]))
+            try ancien.mainContext.save()
+        }
+
+        EntrepotSeance.derniereErreurDuPlan = nil
+        let conteneur = try EntrepotSeance.conteneur(.dossier(dossier))
+        #expect(EntrepotSeance.derniereErreurDuPlan == nil, "le plan de migration a échoué, l'ouverture de secours a servi")
+        let contexte = conteneur.mainContext
+        #expect(try contexte.fetch(FetchDescriptor<Suivi>()).map(\.titre) == ["Heat"])
+        #expect(try contexte.fetchCount(FetchDescriptor<TitreAime>()) == 1)
+        #expect(try contexte.fetchCount(FetchDescriptor<Favori>()) == 0)
+
+        let favoris = ServiceFavoris(contexte: contexte)
+        #expect(try favoris.basculer(heat, titre: "Heat", annee: 1995))
+        #expect(try favoris.estFavori(heat))
+        #expect(try !favoris.basculer(heat, titre: "Heat"))
+        #expect(try favoris.tous().isEmpty)
+    }
+
     /// Vérification à la demande sur la copie d'une vraie base : `TEST_RUNNER_SEANCE_BASE_REELLE=/dossier xcodebuild test …`.
     @Test(.enabled(if: ProcessInfo.processInfo.environment["SEANCE_BASE_REELLE"] != nil))
     func ouvreLaCopieDUneVraieBase() throws {

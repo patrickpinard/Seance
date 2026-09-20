@@ -53,25 +53,26 @@ final class EtatOu {
 
     /// Ce que le magasin sait sans réseau : fichiers du NAS rattachés, diffusions de ce soir, plateformes cochées.
     func actualiserLocal(contexte: ModelContext) {
-        nas = Set(((try? contexte.fetch(FetchDescriptor<FichierNAS>(predicate: #Predicate { $0.tmdbID != nil }))) ?? []).compactMap(\.reference))
+        // Seuls l'identifiant et le type servent ici : les charger seuls évite de matérialiser toute la vidéothèque.
+        var fichiers = FetchDescriptor<FichierNAS>(predicate: #Predicate { $0.tmdbID != nil })
+        fichiers.propertiesToFetch = [\.tmdbID, \.typeBrut]
+        nas = Set(((try? contexte.fetch(fichiers)) ?? []).compactMap(\.reference))
         abonnements = Set(((try? contexte.fetch(FetchDescriptor<Abonnement>(predicate: #Predicate { $0.actif }))) ?? []).map(\.providerID))
         let maintenant = Date.now
         // La soirée en cours se termine à 2 h du matin, comme « Regardable ce soir ».
         let finDeSoiree = Calendar.current.startOfDay(for: maintenant.addingTimeInterval(-2 * 3600)).addingTimeInterval(26 * 3600)
-        let diffusions = (try? contexte.fetch(FetchDescriptor<Diffusion>(
-            predicate: #Predicate { $0.fin > maintenant && $0.debut < finDeSoiree }, sortBy: [SortDescriptor(\.debut)]
-        ))) ?? []
         let chaines = Dictionary(((try? contexte.fetch(FetchDescriptor<Chaine>())) ?? []).map { ($0.identifiantGuide, $0.nom) },
                                  uniquingKeysWith: { premier, _ in premier })
+        // Un seul passage sur le guide : la semaine entière — un film d'Explorer › TV qui passe jeudi doit le dire —,
+        // dont on tire au passage ce qui tient dans la soirée en cours.
+        let aVenir = (try? contexte.fetch(FetchDescriptor<Diffusion>(predicate: #Predicate { $0.fin > maintenant }, sortBy: [SortDescriptor(\.debut)]))) ?? []
         var ceSoir: [ReferenceTitre: String] = [:]
-        for diffusion in diffusions {
+        for diffusion in aVenir where diffusion.debut < finDeSoiree {
             guard let id = diffusion.tmdbID else { continue }
             let reference = ReferenceTitre(type: TypeTitre(rawValue: diffusion.typeBrut) ?? .film, tmdbID: id)
             if ceSoir[reference] == nil { ceSoir[reference] = chaines[diffusion.chaine] ?? diffusion.chaine }
         }
         tele = ceSoir
-        // Toute la semaine du guide, pas seulement ce soir : un film d'Explorer › TV qui passe jeudi doit le dire.
-        let aVenir = (try? contexte.fetch(FetchDescriptor<Diffusion>(predicate: #Predicate { $0.fin > maintenant }, sortBy: [SortDescriptor(\.debut)]))) ?? []
         var semaine: [ReferenceTitre: (chaine: String, quand: String)] = [:]
         for diffusion in aVenir {
             guard let id = diffusion.tmdbID else { continue }

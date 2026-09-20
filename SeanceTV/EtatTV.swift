@@ -143,6 +143,9 @@ final class EtatTV {
     /// Lit dans le dossier « Séance » du NAS ce que l'iPhone, l'iPad et le Mac y ont déposé — listes, soirées,
     /// plateformes, chaînes, goûts — et y dépose ce qui a été fait ici. Au lancement et à chaque retour dans l'app ;
     /// `bavard` : demandé depuis les Réglages, le résultat se dit même quand il n'y a rien.
+    @ObservationIgnored private var derniereAVenir: Date?
+    @ObservationIgnored private var aVenirEnCours = false
+
     func synchroniser(contexte: ModelContext, bavard: Bool = false) async {
         guard !enDemonstration, !synchroEnCours, nasPret, let motDePasse = (try? coffre.lire(.nas)) ?? nil else {
             if bavard { dire("Règle d'abord le NAS : la synchronisation passe par lui.") }
@@ -171,6 +174,17 @@ final class EtatTV {
             erreurSynchro = ErreurNAS.message(error)
             if bavard { dire("La synchronisation n'a pas abouti : \(ErreurNAS.message(error))") }
         }
+    }
+
+    /// « À venir » sur la TV (EF-142) : les rendez-vous de tes titres — nouvel épisode, sortie, passage télé — sont
+    /// calculés ici comme sur l'iPhone, mais sans notification : tvOS n'en a pas. Une fois par heure suffit.
+    func actualiserAVenir(contexte: ModelContext) async {
+        guard !enDemonstration, let tmdb, !aVenirEnCours else { return }
+        if let derniere = derniereAVenir, Date.now.timeIntervalSince(derniere) < 3600 { return }
+        aVenirEnCours = true
+        defer { aVenirEnCours = false }
+        _ = try? await ServiceAlertes(contexte: contexte).calculer(source: tmdb, reglages: ReglagesAlertes())
+        derniereAVenir = .now
     }
 
     /// « Tester une alerte » : l'Apple TV n'affiche pas de notification. Elle dépose une demande dans le dossier du NAS ;

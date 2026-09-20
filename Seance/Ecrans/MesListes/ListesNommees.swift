@@ -148,7 +148,10 @@ struct ListePersoView: View {
                         .contextMenu {
                             Button {
                                 try? ServiceSoiree(contexte: contexte).retenir(apercu.reference, titre: apercu.titre, cheminAffiche: apercu.cheminAffiche)
-                                etat.confirmer("« \(apercu.titre) » ajouté à ta soirée", symbole: "moon.stars.fill")
+                                let reference = apercu.reference
+                                etat.confirmer("« \(apercu.titre) » ajouté à ta soirée", symbole: "moon.stars.fill") { [contexte] in
+                                    try? ServiceSoiree(contexte: contexte).retirer(reference)
+                                }
                             } label: { Label("Ajouter à ma soirée", systemImage: "moon.stars") }
                             Button {
                                 etat.titreADater = TitreChoisi(reference: apercu.reference, titre: apercu.titre, cheminAffiche: apercu.cheminAffiche)

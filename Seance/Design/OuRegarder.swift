@@ -41,22 +41,32 @@ struct PastilleOuRegarder: View {
 /// la plateforme sur le titre, « TF1 · ce soir à 20:55 » mène au programme TV. C'est la raison d'être de Séance :
 /// la soirée, les propositions et la recherche le montrent sans ouvrir la fiche.
 struct ActionsOuRegarder: View {
+    /// Comment les accès se présentent : toutes les pastilles côte à côte, ou un seul bouton qui choisit
+    /// pour toi — le NAS d'abord, puis une plateforme de tes abonnements, puis la chaîne qui le passe.
+    enum Presentation {
+        case pastilles
+        case boutonUnique
+    }
+
     let reference: ReferenceTitre
     let titre: String
     /// Pour une série : l'épisode à regarder, cherché sur le NAS.
     var episode: NumeroEpisode?
     /// Ce que la page sait déjà quand aucune pastille ne s'applique : « À louer ou acheter », « Introuvable ».
     var secours: String?
+    var presentation: Presentation = .pastilles
 
     @Environment(EtatApp.self) private var etat
     @Environment(\.openURL) private var openURL
     @Query private var fichiers: [FichierNAS]
 
-    init(reference: ReferenceTitre, titre: String, episode: NumeroEpisode? = nil, secours: String? = nil) {
+    init(reference: ReferenceTitre, titre: String, episode: NumeroEpisode? = nil, secours: String? = nil,
+         presentation: Presentation = .pastilles) {
         self.reference = reference
         self.titre = titre
         self.episode = episode
         self.secours = secours
+        self.presentation = presentation
         let id: Int? = reference.tmdbID
         let type = reference.type.rawValue
         _fichiers = Query(filter: #Predicate<FichierNAS> { $0.tmdbID == id && $0.typeBrut == type }, sort: \FichierNAS.chemin)
@@ -71,6 +81,65 @@ struct ActionsOuRegarder: View {
 
     var body: some View {
         let badges = etat.ou.badges(reference)
+        Group {
+            if presentation == .boutonUnique, let principal = badges.first {
+                VStack(alignment: .leading, spacing: 8) {
+                    boutonPrincipal(principal)
+                    // Les autres accès restent dits, en petit : le bouton a choisi, il n'a rien caché.
+                    if badges.count > 1 {
+                        Text("Aussi : " + badges.dropFirst().map(Self.nom).joined(separator: " · "))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            } else {
+                pastilles(badges)
+            }
+        }
+        .task(id: reference) { etat.ou.demander(reference, client: etat.tmdb) }
+    }
+
+    /// Le seul bouton de la carte de soirée : il lance ce qui est le plus direct.
+    @ViewBuilder
+    private func boutonPrincipal(_ badge: EtatOu.Badge) -> some View {
+        switch badge {
+        case .nas:
+            if let fichier {
+                BoutonLectureNAS(fichier: fichier, libelle: "Regarder maintenant", grand: true)
+            } else {
+                PastilleOuRegarder(symbole: "externaldrive.fill", texte: reference.type == .serie ? "Sur ton NAS, en partie" : "Sur ton NAS")
+            }
+        case .plateforme(let id, let nom, let logo):
+            if let lien = LiensPlateformes.lien(plateforme: id, titre: titre) {
+                Button { openURL(lien) } label: { EtiquetteGrandBouton(symbole: "play.fill", texte: "Regarder sur \(nom)") }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Regarder sur \(nom)")
+                    .accessibilityHint("Ouvre \(nom) sur ce titre")
+            } else {
+                PastilleOuRegarder(logo: logo, texte: nom).accessibilityLabel("Inclus sur \(nom)")
+            }
+        case .tele(let chaine, let quand):
+            Button {
+                etat.ongletDemande = .accueil
+                etat.programmeTeleDemande = true
+            } label: { EtiquetteGrandBouton(symbole: "tv.fill", texte: "\(chaine) · \(quand)") }
+                .buttonStyle(.plain)
+                .accessibilityLabel("À la TV : \(chaine), \(quand)")
+                .accessibilityHint("Ouvre le programme TV")
+        }
+    }
+
+    /// Le nom court d'un accès, pour la ligne « Aussi : … ».
+    private static func nom(_ badge: EtatOu.Badge) -> String {
+        switch badge {
+        case .nas: "ton NAS"
+        case .plateforme(_, let nom, _): nom
+        case .tele(let chaine, let quand): "\(chaine) \(quand)"
+        }
+    }
+
+    @ViewBuilder
+    private func pastilles(_ badges: [EtatOu.Badge]) -> some View {
         Flux(espacement: 8) {
             ForEach(badges, id: \.self) { badge in
                 switch badge {
@@ -108,7 +177,6 @@ struct ActionsOuRegarder: View {
                     .frame(minHeight: 32)
             }
         }
-        .task(id: reference) { etat.ou.demander(reference, client: etat.tmdb) }
     }
 
     /// Rien chez toi : le dire plutôt que de laisser un blanc — mais seulement une fois les plateformes lues.
@@ -116,5 +184,23 @@ struct ActionsOuRegarder: View {
         if let secours { return secours }
         guard etat.ou.aDesAbonnements, etat.ou.plateformesConnues(reference) else { return nil }
         return "Dans aucun de tes abonnements"
+    }
+}
+
+
+/// L'habillage d'un grand bouton d'action, du même dessin que « Regarder maintenant » du NAS.
+struct EtiquetteGrandBouton: View {
+    let symbole: String
+    let texte: String
+
+    var body: some View {
+        Label(texte, systemImage: symbole)
+            .font(.headline)
+            .lineLimit(1)
+            .minimumScaleFactor(0.8)
+            .frame(maxWidth: .infinity)
+            .frame(height: 50)
+            .foregroundStyle(.black)
+            .background(Theme.degradeAccent, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
     }
 }

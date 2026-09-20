@@ -137,20 +137,26 @@ enum Demonstration {
         func a(_ heure: Int, _ minute: Int, dans jours: Int = 0) -> Date {
             aujourdhui.instant(heure: heure).addingTimeInterval(TimeInterval(jours * 86_400 + minute * 60))
         }
+        // Les passages télé se posent sur la journée TV, qui va de 6 h à 6 h (GrilleTele) : après minuit, « demain »
+        // reste le lendemain de la soirée en cours, comme la rangée de jours du programme l'affiche.
+        let jourTele = GrilleTele.jourTele(.now)
+        func aTele(_ heure: Int, _ minute: Int, dans jours: Int = 0) -> Date {
+            jourTele.instant(heure: heure).addingTimeInterval(TimeInterval(jours * 86_400 + minute * 60))
+        }
         passage(films[3], chaine: "W9.fr", debut: Date.now.addingTimeInterval(-40 * 60))
         passage(films[5], chaine: "France2.fr", debut: Date.now.addingTimeInterval(95 * 60))
-        passage(aVoir, chaine: "TF1.fr", debut: a(20, 55))
-        passage(films[8], chaine: "M6.fr", debut: a(21, 5))
-        passage(reacher, chaine: "RTSUn.ch", debut: a(21, 10), episode: (2, 6))
-        passage(reacher, chaine: "RTSUn.ch", debut: a(22, 2), episode: (2, 7))
-        passage(films[7], chaine: "Arte.fr", debut: a(23, 25))
-        passage(films[2], chaine: "TMC.fr", debut: a(14, 5, dans: 1))
-        passage(films[6], chaine: "France3.fr", debut: a(21, 5, dans: 1))
+        passage(aVoir, chaine: "TF1.fr", debut: aTele(20, 55))
+        passage(films[8], chaine: "M6.fr", debut: aTele(21, 5))
+        passage(reacher, chaine: "RTSUn.ch", debut: aTele(21, 10), episode: (2, 6))
+        passage(reacher, chaine: "RTSUn.ch", debut: aTele(22, 2), episode: (2, 7))
+        passage(films[7], chaine: "Arte.fr", debut: aTele(23, 25))
+        passage(films[2], chaine: "TMC.fr", debut: aTele(14, 5, dans: 1))
+        passage(films[6], chaine: "France3.fr", debut: aTele(21, 5, dans: 1))
         // Deux épisodes qui s'enchaînent demain : toujours à venir, quelle que soit l'heure où l'on regarde.
-        passage(jackRyan, chaine: "RTSDeux.ch", debut: a(20, 40, dans: 1), episode: (1, 3))
-        passage(jackRyan, chaine: "RTSDeux.ch", debut: a(21, 37, dans: 1), episode: (1, 4))
-        passage(films[1], chaine: "TF1.fr", debut: a(21, 10, dans: 2))
-        passage(films[4], chaine: "M6.fr", debut: a(21, 10, dans: 3))
+        passage(jackRyan, chaine: "RTSDeux.ch", debut: aTele(20, 40, dans: 1), episode: (1, 3))
+        passage(jackRyan, chaine: "RTSDeux.ch", debut: aTele(21, 37, dans: 1), episode: (1, 4))
+        passage(films[1], chaine: "TF1.fr", debut: aTele(21, 10, dans: 2))
+        passage(films[4], chaine: "M6.fr", debut: aTele(21, 10, dans: 3))
 
         // À venir : un épisode ce soir, une saison la semaine prochaine, une sortie dans un mois, un passage TV demain.
         func rendezVous(_ titre: Titre, dans jours: Int, _ libelle: String, _ nature: EcheancePrevue.Nature) {

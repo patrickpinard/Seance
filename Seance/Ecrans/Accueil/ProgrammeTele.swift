@@ -411,7 +411,8 @@ struct LigneDiffusion: View {
 /// Tout le programme à venir des chaînes cochées (EF-46 à EF-49) : un jour à la fois, la soirée en vedette.
 struct ProgrammeTeleView: View {
     @Environment(EtatApp.self) private var etat
-    @Query(sort: \Diffusion.debut) private var diffusions: [Diffusion]
+    /// Le guide à partir d'aujourd'hui : la page ne montre jamais le passé, inutile de le relire.
+    @Query private var diffusions: [Diffusion]
     @Query private var chaines: [Chaine]
     @Query private var suivis: [Suivi]
     @State private var type: TypeTitre? = .film
@@ -421,6 +422,11 @@ struct ProgrammeTeleView: View {
 
     /// Une semaine suffit : au-delà, le guide est incomplet et change encore.
     private static let joursAffiches = 7
+
+    init() {
+        let jour = Calendar.current.startOfDay(for: .now)
+        _diffusions = Query(filter: #Predicate<Diffusion> { $0.fin > jour }, sort: \Diffusion.debut)
+    }
 
     var body: some View {
         TimelineView(.periodic(from: .now, by: 60)) { horloge in

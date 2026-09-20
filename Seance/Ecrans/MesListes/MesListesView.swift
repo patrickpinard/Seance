@@ -12,6 +12,7 @@ struct MesListesView: View {
         case aVoir = "À voir"
         case enCours = "En cours"
         case termines = "Terminés"
+        case favoris = "Favoris"
         case listes = "Listes"
 
         var id: String { rawValue }
@@ -22,13 +23,14 @@ struct MesListesView: View {
             case .aVoir: "bookmark.fill"
             case .enCours: "play.circle.fill"
             case .termines: "checkmark.circle.fill"
+            case .favoris: "star.fill"
             case .listes: "rectangle.stack.fill"
             }
         }
 
         var statut: StatutSuivi? {
             switch self {
-            case .aVenir, .listes: nil
+            case .aVenir, .listes, .favoris: nil
             case .aVoir: .aVoir
             case .enCours: .enCours
             case .termines: .termine
@@ -90,6 +92,8 @@ struct MesListesView: View {
                             choixOnglet.padding(.horizontal, 16)
                             if onglet == .aVenir {
                                 aVenir
+                            } else if onglet == .favoris {
+                                SectionFavoris(recherche: recherche).padding(.horizontal, 16)
                             } else if let statut = onglet.statut {
                                 if suivis.contains(where: { $0.statut == statut }) { barreListe(statut).padding(.horizontal, 16) }
                                 liste(statut)
@@ -104,6 +108,8 @@ struct MesListesView: View {
                             .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
                         if onglet == .listes {
                             SectionListesNommees(recherche: recherche)
+                        } else if onglet == .favoris {
+                            SectionFavoris(recherche: recherche)
                         } else if let statut = onglet.statut {
                             if suivis.contains(where: { $0.statut == statut }) { barreListe(statut) }
                             liste(statut)

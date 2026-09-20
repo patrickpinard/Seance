@@ -85,8 +85,10 @@ struct CarteSoiree: View {
             .accessibilityLabel([titre.titre, detail, rendezVous, ouAffiche].compactMap { $0 }.joined(separator: ", "))
             .accessibilityAddTraits(.isButton)
 
-            // Où le regarder, tout de suite : c'est la première chose à savoir d'un titre prévu.
-            ActionsOuRegarder(reference: titre.reference, titre: titre.titre, episode: episode, secours: ouAffiche.flatMap { Self.secours($0) })
+            // Où le regarder, tout de suite : c'est la première chose à savoir d'un titre prévu. Sur une carte
+            // de soirée, un seul bouton — Séance choisit la source la plus directe et dit les autres dessous.
+            ActionsOuRegarder(reference: titre.reference, titre: titre.titre, episode: episode,
+                              secours: ouAffiche.flatMap { Self.secours($0) }, presentation: .boutonUnique)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, 12)
                 .padding(.top, 8)

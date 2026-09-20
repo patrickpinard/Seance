@@ -13,6 +13,8 @@ struct VideosPersoView: View {
     @Environment(EtatApp.self) private var etat
     @Environment(\.openURL) private var ouvrir
     @State private var illisible: VideoPerso?
+    /// La vidéo ouverte dans le lecteur de Séance (Réglages › Vidéos personnelles).
+    @State private var aLire: VideoPerso?
 
     var body: some View {
         let arbre = etat.videosPerso.arbre
@@ -78,6 +80,13 @@ struct VideosPersoView: View {
         } message: {
             Text("Vérifie qu'elle est installée, et que le mot de passe de l'accès est enregistré dans Réglages › Vidéos personnelles. Une vidéo de famille n'a pas de fiche TMDB : Infuse doit la lire par son adresse, ce qu'il ne sait peut-être pas faire — dans ce cas, choisis VLC dans Réglages › Lecture.")
         }
+        .fullScreenCover(item: $aLire) { video in
+            LecteurIntegre(video: video, acces: etat.videosPerso.reglages.acces,
+                           motDePasse: etat.videosPerso.motDePasse(films: etat.nas.reglages) ?? "") { _ in
+                // Format que le lecteur d'iOS ne sait pas ouvrir : l'écran d'appel proposera VLC.
+                illisible = video
+            }
+        }
     }
 
     private func ligne(_ video: VideoPerso) -> some View {
@@ -104,6 +113,11 @@ struct VideosPersoView: View {
     }
 
     private func lire(_ video: VideoPerso) {
+        // Dans Séance : la vidéo reste sur le NAS et se lit ici même, sans passer la main à une autre app.
+        if etat.videosPerso.reglages.lecteurIntegre, etat.videosPerso.motDePasse(films: etat.nas.reglages) != nil {
+            aLire = video
+            return
+        }
         guard let lien = etat.videosPerso.lien(pour: video, films: etat.nas.reglages, lecteur: etat.nas.lecteur) else { illisible = video; return }
         ouvrir(lien) { accepte in if !accepte { illisible = video } }
     }
@@ -122,6 +136,7 @@ struct VideosPersoView: View {
 struct ReglagesVideosPersoView: View {
     @Environment(EtatApp.self) private var etat
     @State private var actif = false
+    @State private var lecteurIntegre = true
     @State private var hote = ""
     @State private var partage = ""
     @State private var dossiers = ""
@@ -167,13 +182,22 @@ struct ReglagesVideosPersoView: View {
                         NavigationLink(value: DossierVideosPerso()) { Label("Voir mes vidéos", systemImage: "video.fill") }
                     }
                 } footer: {
-                    Text("Elles s'ouvrent dans le lecteur choisi dans Réglages › Lecture. Une vidéo de famille n'ayant pas de fiche TMDB, Infuse doit la lire par son adresse : si rien ne se lance, choisis VLC.")
+                    Text("Une vidéo de famille n'a pas de fiche TMDB : les lecteurs extérieurs doivent la lire par son adresse, ce qu'ils ne font pas toujours.")
+                }
+                Section {
+                    Toggle("Lire dans Séance", isOn: $lecteurIntegre)
+                        .onChange(of: lecteurIntegre) { enregistrer() }
+                } footer: {
+                    Text(lecteurIntegre
+                         ? "La vidéo reste sur le NAS et se lit ici même, sans passer par une autre app. Formats lus : MP4, MOV, M4V — ce que filme un iPhone."
+                         : "Elles s'ouvrent dans le lecteur choisi dans Réglages › Lecture, Infuse ou VLC.")
                 }
             }
         }
         .pageReglages("Vidéos personnelles")
         .onAppear {
             actif = etat.videosPerso.reglages.actif
+            lecteurIntegre = etat.videosPerso.reglages.lecteurIntegre
             if etat.videosPerso.reglages.estComplet || actif { remplir(etat.videosPerso.reglages.acces) }
         }
     }
@@ -185,8 +209,10 @@ struct ReglagesVideosPersoView: View {
 
     private var saisis: ReglagesVideosPerso {
         let liste = dossiers.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
-        return ReglagesVideosPerso(actif: actif, acces: ReglagesNAS(hote: hote.trimmingCharacters(in: .whitespaces), partage: partage.trimmingCharacters(in: .whitespaces),
-                                                                  dossiers: liste, utilisateur: utilisateur.trimmingCharacters(in: .whitespaces)))
+        return ReglagesVideosPerso(actif: actif,
+                                   acces: ReglagesNAS(hote: hote.trimmingCharacters(in: .whitespaces), partage: partage.trimmingCharacters(in: .whitespaces),
+                                                      dossiers: liste, utilisateur: utilisateur.trimmingCharacters(in: .whitespaces)),
+                                   lecteurIntegre: lecteurIntegre)
     }
 
     private func remplir(_ acces: ReglagesNAS) {

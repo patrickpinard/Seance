@@ -124,8 +124,9 @@ final class ParcoursSoireeTests: XCTestCase {
         capture("explorer-sans-le-titre")
     }
 
-    /// La fiche d'un titre qui passe à la TV dit la chaîne, le jour et l'heure dans sa carte « Où regarder ». Sur un passage
-    /// de **demain** (Jack Ryan, dans la démonstration) : un test ne dépend pas de l'heure à laquelle il tourne.
+    /// La fiche d'un titre qui passe à la TV dit la chaîne, le jour et l'heure dans sa carte « Où regarder ». Sur le
+    /// passage du lendemain de la soirée en cours (Jack Ryan, dans la démonstration). La journée TV va de 6 h à 6 h :
+    /// entre minuit et six heures, ce lendemain-là est « aujourd'hui » au calendrier — les deux libellés conviennent.
     func testLaFicheDonneLePassageTele() throws {
         Lancement.demonstration(app)
         app.launchArguments += ["-apparence", "sombre"]
@@ -133,7 +134,9 @@ final class ParcoursSoireeTests: XCTestCase {
         XCTAssertTrue(app.tabBars.buttons["Accueil"].firstMatch.waitForExistence(timeout: 20))
         app.open(URL(string: "seance://serie/73375")!)
         XCTAssertTrue(app.staticTexts["Où regarder"].firstMatch.waitForExistence(timeout: 25), "La fiche ne s'ouvre pas")
-        let passage = app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS 'À la TV · en direct' AND label CONTAINS 'demain à'")).firstMatch
+        let passage = app.descendants(matching: .any).matching(
+            NSPredicate(format: "label CONTAINS 'À la TV · en direct' AND (label CONTAINS 'demain à' OR label CONTAINS %@)", "aujourd'hui à")
+        ).firstMatch
         XCTAssertTrue(passage.waitForExistence(timeout: 10), "La carte « Où regarder » ne donne pas la chaîne, le jour et l'heure")
         capture("fiche-passage-tele", attente: 2)
     }

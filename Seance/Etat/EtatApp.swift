@@ -49,6 +49,8 @@ final class EtatApp {
     let ou = EtatOu()
     /// Images de fond et durées des titres, pour les grandes cartes.
     let decors = EtatDecors()
+    /// Les documentaires : thèmes cochés et titres du moment (EF-151 à EF-156).
+    let documentaires = EtatDocumentaires()
     /// Synchronisation entre appareils par un dossier d'iCloud Drive.
     let synchro = EtatSynchro()
     /// L'e-mail de la semaine, envoyé par le compte de messagerie de l'utilisateur.

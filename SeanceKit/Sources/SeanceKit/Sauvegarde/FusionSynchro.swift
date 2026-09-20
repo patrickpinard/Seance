@@ -36,6 +36,7 @@ extension Sauvegarde {
         for s in soirees ?? [] { resultat["soiree:\(s.reference)|\(s.soiree)"] = "" }
         for a in acteursSuivis ?? [] { resultat["acteur:\(a.personneID)"] = "" }
         for a in aimes ?? [] { resultat["aime:\(a.reference)"] = "" }
+        for f in favoris ?? [] { resultat["favori:\(f.reference)"] = "" }
         for l in listes {
             resultat["liste:\(l.nom)"] = ""
             for titre in l.titres { resultat["listeTitre:\(l.nom)|\(titre)"] = "" }
@@ -146,6 +147,7 @@ public struct PlanSynchro: Sendable, Equatable {
         filtree.soirees = recue.soirees?.filter { !refuse("soiree:\($0.reference)|\($0.soiree)") }
         filtree.acteursSuivis = recue.acteursSuivis?.filter { !refuse("acteur:\($0.personneID)") }
         filtree.aimes = recue.aimes?.filter { !refuse("aime:\($0.reference)") }
+        filtree.favoris = recue.favoris?.filter { !refuse("favori:\($0.reference)") }
         filtree.filtres = recue.filtres.filter { !refuse("filtre:\($0.nom)") }
         filtree.interets = recue.interets.filter { !refuse("interet:\($0.cle)") }
         filtree.listes = recue.listes.filter { !refuse("liste:\($0.nom)") }.map { liste in

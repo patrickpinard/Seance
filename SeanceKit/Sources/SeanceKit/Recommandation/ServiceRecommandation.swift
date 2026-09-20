@@ -1,7 +1,7 @@
 import Foundation
 
-public struct ResultatSuggestions: Sendable, Equatable {
-    public enum Origine: String, Sendable {
+public struct ResultatSuggestions: Codable, Sendable, Equatable {
+    public enum Origine: String, Codable, Sendable {
         /// Classé par Claude, à partir des candidats de l'app (EF-24).
         case claude
         /// Classé sur l'iPhone, sans réseau ni clé (EF-27).

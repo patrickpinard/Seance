@@ -21,6 +21,60 @@ final class IdeesModele {
     /// Déjà chargé une fois : revenir sur l'onglet ne relance pas la recherche.
     private(set) var charge = false
 
+    /// Les dernières idées, gardées sur disque d'un lancement à l'autre : l'écran les montre tout de suite
+    /// plutôt qu'une roue, tant qu'elles ont moins de six heures, datent du même jour et que rien n'a bougé
+    /// dans les goûts, les listes ou les plateformes. Sinon, elles sont recalculées comme avant.
+    private struct IdeesGardees: Codable {
+        let calculeLe: Date
+        let empreinte: String
+        let resultat: ResultatSuggestions
+        let ou: [ReferenceTitre: EtatDisponibilite]
+    }
+
+    private static let fichierIdees = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
+        .appending(path: "idees-du-soir.json")
+    private static let validiteIdees: TimeInterval = 6 * 3600
+
+    /// Ce qui rend des idées périmées : les plateformes cochées, le nombre de titres suivis et de « J'aime ».
+    private static func empreinte(_ contexte: ModelContext) -> String {
+        let plateformes = ((try? contexte.fetch(FetchDescriptor<Abonnement>(predicate: #Predicate { $0.actif }))) ?? [])
+            .map(\.providerID).sorted().map(String.init).joined(separator: ",")
+        let suivis = (try? contexte.fetchCount(FetchDescriptor<Suivi>())) ?? 0
+        let aimes = (try? contexte.fetchCount(FetchDescriptor<TitreAime>())) ?? 0
+        return "\(plateformes)|\(suivis)|\(aimes)"
+    }
+
+    /// Reprend les idées du dernier lancement. Faux si elles manquent, ont vieilli ou ne valent plus.
+    func reprendre(contexte: ModelContext) -> Bool {
+        #if DEBUG
+        // En démonstration (captures, tests d'interface), les idées se recalculent toujours : celles d'un
+        // lancement précédent ne correspondent plus au magasin, qui vient d'être refait.
+        if Demonstration.active { return false }
+        #endif
+        guard demande.envieNettoyee.isEmpty,
+              let donnees = try? Data(contentsOf: Self.fichierIdees),
+              let gardees = try? JSONDecoder().decode(IdeesGardees.self, from: donnees),
+              gardees.calculeLe > Date.now.addingTimeInterval(-Self.validiteIdees),
+              Calendar.current.isDateInToday(gardees.calculeLe),
+              gardees.empreinte == Self.empreinte(contexte)
+        else { return false }
+        resultat = gardees.resultat
+        ou = gardees.ou
+        retirees = []
+        charge = true
+        return true
+    }
+
+    private func garder(contexte: ModelContext) {
+        #if DEBUG
+        if Demonstration.active { return }
+        #endif
+        guard demande.envieNettoyee.isEmpty, let resultat else { return }
+        let gardees = IdeesGardees(calculeLe: .now, empreinte: Self.empreinte(contexte), resultat: resultat, ou: ou)
+        guard let donnees = try? JSONEncoder().encode(gardees) else { return }
+        try? donnees.write(to: Self.fichierIdees, options: .atomic)
+    }
+
     /// Sans envie précisée, le classement reste local : pas d'appel payant à Claude à chaque ouverture.
     func chercher(etat: EtatApp, contexte: ModelContext, precise: Bool = false) async {
         guard let tmdb = etat.tmdb, !enCours else { return }
@@ -43,6 +97,7 @@ final class IdeesModele {
             resultat = nouveau
             retirees = []
             ou = await Self.disponibilites(nouveau.suggestions.map(\.reference), tmdb: tmdb, contexte: contexte)
+            garder(contexte: contexte)
             if let resultat, claude != nil, resultat.origine == .local, let avertissement = resultat.avertissement {
                 etat.journal.noter(.claude, avertissement, conseil: "Les idées viennent du classement local. Vérifie la clé Claude dans Réglages › Claude si cela se répète.")
             }
@@ -197,7 +252,7 @@ struct SectionIdees: View {
             }
         }
         .task(id: etat.tmdb != nil) {
-            if !modele.charge { await modele.chercher(etat: etat, contexte: contexte) }
+            if !modele.charge, !modele.reprendre(contexte: contexte) { await modele.chercher(etat: etat, contexte: contexte) }
         }
         .onAppear(perform: lireEcartes)
         .animation(.easeOut(duration: 0.25), value: idees.map(\.id))
@@ -238,6 +293,12 @@ struct SectionIdees: View {
                 try? ServiceGouts(contexte: contexte).annulerReport(reference)
                 modele.restaurer(reference)
             }
+        case .dejaVu:
+            // Déjà vu avant : le titre quitte les idées, nourrit les goûts, et reste hors des statistiques.
+            let actions = ActionsRapides(etat: etat, contexte: contexte)
+            Task { [modele] in
+                await actions.executer(.dejaVuAvant, sur: titre, annulationEnPlus: { modele.restaurer(reference) })
+            }
         case .jamais:
             try? gouts.jamais(reference, titre: titre.titre, genres: titre.genres, cheminAffiche: titre.cheminAffiche)
             etat.confirmer("Ne te sera plus proposé", symbole: "hand.thumbsdown.fill") { [modele, contexte] in
@@ -251,7 +312,7 @@ struct SectionIdees: View {
 
 /// Une idée : affiche, titre, où la regarder, raison en une phrase, et les trois gestes du soir.
 private struct CarteIdee: View {
-    enum Action { case jeRegarde, pasCeSoir, jamais, jAime }
+    enum Action { case jeRegarde, pasCeSoir, jamais, jAime, dejaVu }
 
     let suggestion: SuggestionClassee
     let ou: String?
@@ -301,6 +362,8 @@ private struct CarteIdee: View {
                             explication: "Ce titre te plaît, même sans l'avoir vu : Séance te proposera davantage de titres de ce genre.") { action(.jAime) }
                 BoutonIcone(symbole: "hand.thumbsdown", libelle: "Je n'aime pas", taille: 36,
                             explication: "Ne plus jamais proposer ce titre. Séance en tient compte pour tes goûts ; Réglages › Toi permet de tout reproposer.") { action(.jamais) }
+                BoutonIcone(symbole: "eye", libelle: "Déjà vu", taille: 36,
+                            explication: "Tu l'as déjà vu : il sort des idées et compte dans tes goûts, sans entrer dans tes statistiques.") { action(.dejaVu) }
                 BoutonIcone(symbole: "clock.arrow.circlepath", libelle: "Pas ce soir", taille: 36,
                             explication: "L'écarter pour ce soir : il pourra revenir dès demain.") { action(.pasCeSoir) }
                 Button { action(.jeRegarde) } label: {

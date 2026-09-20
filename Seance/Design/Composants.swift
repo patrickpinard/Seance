@@ -70,6 +70,9 @@ final class CacheImages: @unchecked Sendable {
     private let memoire = NSCache<NSURL, UIImage>()
     private let cacheDisque: URLCache
     private let session: URLSession
+    /// Préchargements en cours, pour ne pas demander deux fois la même image.
+    private var enCours: Set<URL> = []
+    private let verrou = NSLock()
 
     private init() {
         memoire.countLimit = 400
@@ -90,6 +93,37 @@ final class CacheImages: @unchecked Sendable {
 
     func enMemoire(_ url: URL) -> UIImage? {
         memoire.object(forKey: url as NSURL)
+    }
+
+    /// Charge en avance les images qu'on va faire défiler — les grandes cartes de l'accueil surtout : quand la
+    /// rangée arrive à l'écran, l'image est déjà là. Ce qui est connu ou déjà en route n'est pas redemandé, et
+    /// le chargement se fait en tâche de fond, derrière ce que l'écran affiche déjà.
+    func precharger(_ urls: [URL], limite: Int = 12) {
+        for url in retenir(urls, limite: limite) {
+            Task(priority: .utility) {
+                _ = await charger(url)
+                terminer(url)
+            }
+        }
+    }
+
+    /// Réserve les images à charger : celles qui manquent et que personne ne charge déjà.
+    private func retenir(_ urls: [URL], limite: Int) -> [URL] {
+        verrou.lock()
+        defer { verrou.unlock() }
+        var retenues: [URL] = []
+        for url in urls where enMemoire(url) == nil && !enCours.contains(url) {
+            guard retenues.count < limite else { break }
+            enCours.insert(url)
+            retenues.append(url)
+        }
+        return retenues
+    }
+
+    private func terminer(_ url: URL) {
+        verrou.lock()
+        enCours.remove(url)
+        verrou.unlock()
     }
 
     /// `nil` en cas d'échec ou d'annulation : l'appelant décide de réessayer.

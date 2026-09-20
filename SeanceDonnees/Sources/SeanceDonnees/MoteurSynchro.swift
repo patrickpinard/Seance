@@ -57,6 +57,23 @@ public struct MoteurSynchro {
         appliquer: (_ remplacees: [String: Sauvegarde.Preference], _ recues: [[String: Sauvegarde.Preference]]) -> Void = { _, _ in },
         maintenant: Date = .now
     ) async throws -> Bilan {
+        // Un seul aller-retour vers le transport : SMB garde sa connexion du début à la fin du passage.
+        await transport.ouvrirPassage()
+        do {
+            let bilan = try await passage(preferences: preferences, appliquer: appliquer, maintenant: maintenant)
+            await transport.fermerPassage()
+            return bilan
+        } catch {
+            await transport.fermerPassage()
+            throw error
+        }
+    }
+
+    private func passage(
+        preferences: () -> [String: Sauvegarde.Preference],
+        appliquer: (_ remplacees: [String: Sauvegarde.Preference], _ recues: [[String: Sauvegarde.Preference]]) -> Void,
+        maintenant: Date
+    ) async throws -> Bilan {
         // 1. Les fichiers des autres qui ont changé depuis leur dernier import.
         let propre = SynchroDossier.nomFichier(appareil: appareil)
         var importes = (defauts.dictionary(forKey: cleImportes) as? [String: Date]) ?? [:]

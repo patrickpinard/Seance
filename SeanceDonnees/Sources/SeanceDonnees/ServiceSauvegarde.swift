@@ -55,6 +55,10 @@ public struct ServiceSauvegarde {
         }
         // Absente tant qu'il n'y en a pas : le fichier d'un appareil sans « J'aime » reste celui d'avant la 4.7.
         s.aimes = aimes.isEmpty ? nil : aimes
+        let favoris = try contexte.fetch(FetchDescriptor<Favori>(sortBy: [SortDescriptor(\.ajouteLe), SortDescriptor(\.tmdbID)])).map {
+            Sauvegarde.Favori(reference: $0.reference, titre: $0.titre, cheminAffiche: $0.cheminAffiche, annee: $0.annee, ajouteLe: $0.ajouteLe)
+        }
+        s.favoris = favoris.isEmpty ? nil : favoris
         // Les soirées passées n'intéressent plus personne ; celles de ce soir et d'après voyagent.
         let ceSoir = ServiceSoiree.soiree(date)
         s.soirees = try contexte.fetch(FetchDescriptor<SelectionSoir>(sortBy: [SortDescriptor(\.soiree), SortDescriptor(\.ajouteLe)]))
@@ -146,6 +150,9 @@ public struct ServiceSauvegarde {
         for a in plan.aimes {
             contexte.insert(TitreAime(reference: a.reference, titre: a.titre, cheminAffiche: a.cheminAffiche, genres: a.genres,
                                       acteursIDs: a.acteursIDs, acteurs: a.acteurs, aimeLe: a.aimeLe))
+        }
+        for f in plan.favoris {
+            contexte.insert(Favori(reference: f.reference, titre: f.titre, cheminAffiche: f.cheminAffiche, annee: f.annee, ajouteLe: f.ajouteLe))
         }
         for a in plan.acteursSuivis {
             let acteur = ActeurSuivi(personneID: a.personneID, nom: a.nom, cheminPortrait: a.cheminPortrait)

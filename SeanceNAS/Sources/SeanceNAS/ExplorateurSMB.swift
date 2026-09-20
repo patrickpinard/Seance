@@ -158,7 +158,9 @@ public struct ExplorateurSMB: ExplorateurFichiers {
     }
 
     /// Ouvre le partage, fait le travail, referme. Sert aussi au dossier de synchronisation (`DossierSynchroSMB`).
-    func avecPartage<Resultat: Sendable>(_ travail: (SMB2Manager) async throws -> Resultat) async throws -> Resultat {
+    /// Ouvre le partage et rend le client : à l'appelant de le déconnecter. Sert à garder une connexion
+    /// le temps de plusieurs opérations (`SessionSMB`), là où `avecPartage` en ouvre une par appel.
+    func connecter() async throws -> SMB2Manager {
         guard let url = URL(string: "smb://\(reglages.hote)"),
               let client = SMB2Manager(
                   url: url,
@@ -176,6 +178,11 @@ public struct ExplorateurSMB: ExplorateurFichiers {
         }
 
         try await client.connectShare(name: reglages.partage)
+        return client
+    }
+
+    func avecPartage<Resultat: Sendable>(_ travail: (SMB2Manager) async throws -> Resultat) async throws -> Resultat {
+        let client = try await connecter()
         do {
             let resultat = try await travail(client)
             try? await client.disconnectShare()

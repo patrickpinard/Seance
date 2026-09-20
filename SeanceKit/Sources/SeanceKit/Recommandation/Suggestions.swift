@@ -20,7 +20,7 @@ public struct DemandeCeSoir: Sendable, Hashable, Codable {
 }
 
 /// Un titre proposé au classement : ce que l'app sait de lui sans ouvrir sa fiche.
-public struct CandidatSuggestion: Sendable, Equatable, Identifiable {
+public struct CandidatSuggestion: Codable, Sendable, Equatable, Identifiable {
     public var titre: TitreResume
     public var dureeMinutes: Int?
     public var acteurs: [Int]
@@ -44,7 +44,7 @@ public struct CandidatSuggestion: Sendable, Equatable, Identifiable {
 }
 
 /// Pourquoi un titre remonte, ou pourquoi il descend : chaque raison se dit en français à l'écran.
-public enum RaisonAffinite: Sendable, Equatable, Hashable {
+public enum RaisonAffinite: Codable, Sendable, Equatable, Hashable {
     /// Le genre nommé dans la demande du soir.
     case demande(Int)
     case genreAime(Int)
@@ -56,7 +56,7 @@ public enum RaisonAffinite: Sendable, Equatable, Hashable {
 }
 
 /// Le score local d'un candidat : une valeur de 0 à 1, et ce qui l'explique.
-public struct ScoreAffinite: Sendable, Equatable {
+public struct ScoreAffinite: Codable, Sendable, Equatable {
     public var valeur: Double
     public var raisons: [RaisonAffinite]
 
@@ -67,7 +67,7 @@ public struct ScoreAffinite: Sendable, Equatable {
 }
 
 /// Un titre retenu, avec sa phrase d'explication (EF-24).
-public struct SuggestionClassee: Sendable, Equatable, Identifiable {
+public struct SuggestionClassee: Codable, Sendable, Equatable, Identifiable {
     public var candidat: CandidatSuggestion
     public var score: ScoreAffinite
     /// Une phrase, de Claude ou construite à partir des raisons locales.

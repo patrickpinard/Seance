@@ -15,6 +15,8 @@ struct SourcesAccueil: Codable, Hashable {
     var nas = true
     /// « Dans ta liste, regardable ce soir » : ce que tu voulais voir et qui est sur le NAS, tes plateformes ou la TV.
     var regardable = true
+    /// « Documentaires pour toi » : la troisième catégorie, selon les thèmes cochés (EF-154).
+    var documentaires = true
     /// Films et séries du classement, chacun : 3, 5 ou 10.
     var nombreTop = 5
     /// Titres de « Nouveautés » : 10, 20 ou 30.
@@ -40,7 +42,7 @@ struct SourcesAccueil: Codable, Hashable {
     }
 
     enum CodingKeys: String, CodingKey {
-        case plateformes, top10, tele, duMoment, nas, regardable, nombreTop, nombreDuMoment, nombreBandeau, seriesTele
+        case plateformes, top10, tele, duMoment, nas, regardable, documentaires, nombreTop, nombreDuMoment, nombreBandeau, seriesTele
     }
 
     /// Les réglages d'une version précédente restent valables : ce qui a été ajouté depuis prend sa valeur par défaut.
@@ -52,6 +54,7 @@ struct SourcesAccueil: Codable, Hashable {
         duMoment = try c.decodeIfPresent(Bool.self, forKey: .duMoment) ?? true
         nas = try c.decodeIfPresent(Bool.self, forKey: .nas) ?? true
         regardable = try c.decodeIfPresent(Bool.self, forKey: .regardable) ?? true
+        documentaires = try c.decodeIfPresent(Bool.self, forKey: .documentaires) ?? true
         let top = try c.decodeIfPresent(Int.self, forKey: .nombreTop) ?? 5
         nombreTop = Self.choixTop.contains(top) ? top : 5
         let moment = try c.decodeIfPresent(Int.self, forKey: .nombreDuMoment) ?? 20
@@ -138,26 +141,47 @@ enum DestinationAccueil: Hashable {
     case nas
     case tele
     case duMoment(plateformes: [Int]?)
+    case documentaires
 }
 
 struct AccueilView: View {
     @Environment(EtatApp.self) private var etat
     @Environment(\.modelContext) private var contexte
     @Query(filter: #Predicate<Abonnement> { $0.actif }, sort: \Abonnement.nom) private var abonnements: [Abonnement]
-    @Query(sort: \Diffusion.debut) private var diffusions: [Diffusion]
+    /// Le guide à partir d'aujourd'hui : les passages d'hier ne servent plus à rien ici.
+    @Query private var diffusions: [Diffusion]
     @AppStorage("accueil.sources") private var sourcesBrutes = Data()
     @AppStorage(Prenom.cle) private var prenomBrut = ""
     @State private var modele = AccueilModele()
     @State private var reglageSources = false
     @State private var chemin = NavigationPath()
     @Query(sort: \SelectionSoir.ajouteLe) private var selections: [SelectionSoir]
-    @Query(sort: \Suivi.ajouteLe, order: .reverse) private var suivis: [Suivi]
-    /// Les rendez-vous de tes titres : l'accueil résume ceux d'aujourd'hui, « À venir » les montre tous.
-    @Query(sort: \Echeance.date) private var echeances: [Echeance]
+    /// Ce que tu veux voir ou es en train de regarder, les plus récents d'abord : l'accueil n'en montre qu'une poignée.
+    @Query private var regardables: [Suivi]
+    /// « Je n'aime pas », « ni VF ni sous-titres » : ces titres ne sont plus proposés, l'accueil compris.
+    @Query private var refuses: [Suivi]
+    /// Les rendez-vous de tes titres, sur huit jours : l'accueil résume ceux d'aujourd'hui, « À venir » les montre tous.
+    @Query private var echeances: [Echeance]
+
+    /// Les quatre requêtes ci-dessus sont bornées ici : sans cela, l'accueil relisait tout le guide télé, toutes
+    /// les listes et toutes les échéances à chaque affichage, pour n'en montrer que quelques lignes.
+    init() {
+        let jour = Calendar.current.startOfDay(for: .now)
+        let horizon = jour.addingTimeInterval(8 * 86_400)
+        _diffusions = Query(filter: #Predicate<Diffusion> { $0.fin > jour }, sort: \Diffusion.debut)
+        _echeances = Query(filter: #Predicate<Echeance> { $0.date >= jour && $0.date < horizon }, sort: \Echeance.date)
+        _refuses = Query(filter: #Predicate<Suivi> { $0.statutBrut == "exclu" || $0.exclusionLangue }, sort: \Suivi.ajouteLe)
+        var candidats = FetchDescriptor<Suivi>(
+            predicate: #Predicate { ($0.statutBrut == "aVoir" || $0.statutBrut == "enCours") && !$0.masque },
+            sortBy: [SortDescriptor(\Suivi.ajouteLe, order: .reverse)]
+        )
+        candidats.fetchLimit = 40
+        _regardables = Query(candidats)
+    }
 
     /// « Je n'aime pas », « ni VF ni sous-titres » : ces titres ne sont plus proposés, l'accueil compris.
     private var ecartes: Set<ReferenceTitre> {
-        Set(suivis.filter { $0.statut == .exclu || $0.exclusionLangue }.map(\.reference))
+        Set(refuses.map(\.reference))
     }
 
     private func proposables(_ titres: [TitreResume]) -> [TitreResume] {
@@ -166,9 +190,7 @@ struct AccueilView: View {
     }
 
     /// Ce que tu veux voir ou es en train de regarder : on demande pour chacun où il se regarde (réponse gardée 12 h).
-    private var candidatsRegardables: [Suivi] {
-        Array(suivis.filter { ($0.statut == .aVoir || $0.statut == .enCours) && !$0.masque }.prefix(40))
-    }
+    private var candidatsRegardables: [Suivi] { regardables }
 
     /// « Ce soir : Heat, Reacher », ou la prochaine soirée prévue ; rien quand aucune soirée n'est prévue.
     /// « Aujourd'hui » : ce qui sort ou passe ce jour pour tes titres, en quelques lignes ; le détail est dans Mes listes › À venir.
@@ -254,6 +276,12 @@ struct AccueilView: View {
         async let moment: Void = modele.charger(client: client, plateformes: plateformes, nombre: sources.nombreDuMoment)
         async let top: Void = modele.chargerTop(client: client, plateformes: plateformes, nombre: sources.nombreTop)
         _ = await (moment, top)
+        if sources.documentaires {
+            await etat.documentaires.charger(client: client, plateformes: plateformes)
+        }
+        // Les grandes cartes sont lourdes en image : les charger en avance évite la case grise au défilement.
+        let titres = modele.duMoment + modele.topFilms + modele.topSeries
+        CacheImages.partage.precharger(titres.compactMap { ImageTMDB.url($0.cheminFond ?? $0.cheminAffiche, .fond) })
     }
 
     var body: some View {
@@ -283,6 +311,7 @@ struct AccueilView: View {
                 case .nas: NASView()
                 case .tele: ProgrammeTeleView()
                 case .duMoment(let plateformes): DuMomentView(plateformes: plateformes)
+                case .documentaires: DocumentairesView()
                 }
             }
             .toolbar {
@@ -395,6 +424,19 @@ struct AccueilView: View {
                     }
                 }
 
+                if sources.documentaires, !etat.documentaires.films.isEmpty || !etat.documentaires.series.isEmpty {
+                    VStack(alignment: .leading, spacing: 12) {
+                        TitreSection(titre: "Documentaires pour toi") {
+                            BoutonToutVoir { chemin.append(DestinationAccueil.documentaires) }
+                        }
+                        Text(etat.documentaires.resume)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .padding(.horizontal, 20)
+                        Carrousel(titres: proposables(etat.documentaires.films + etat.documentaires.series)) { _ in nil }
+                    }
+                }
+
                 if sources.nas {
                     SectionNAS { chemin.append(DestinationAccueil.nas) }
                 }
@@ -446,9 +488,12 @@ struct ReglageSourcesAccueil: View {
                     Toggle("Top de l'année", isOn: $sources.top10).tint(Theme.accent)
                     Toggle("Ce soir à la TV", isOn: $sources.tele).tint(Theme.accent)
                     Toggle("Nouveautés", isOn: $sources.duMoment).tint(Theme.accent)
+                    Toggle("Documentaires pour toi", isOn: $sources.documentaires).tint(Theme.accent)
                     Toggle("Sur ton NAS", isOn: $sources.nas).tint(Theme.accent)
                 } header: {
                     Text("Sections de l'accueil")
+                } footer: {
+                    Text("Les documentaires ont leurs propres thèmes : ils se choisissent sur la page Documentaires.")
                 }
 
                 Section {
@@ -511,7 +556,12 @@ private struct SectionRegardable: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             TitreSection("Regardable ce soir, dans ta liste")
-                .task(id: suivis.map(\.reference)) { await etat.decors.charger(suivis.map(\.reference), client: etat.tmdb) }
+                .task(id: suivis.map(\.reference)) {
+                    await etat.decors.charger(suivis.map(\.reference), client: etat.tmdb)
+                    CacheImages.partage.precharger(suivis.compactMap {
+                        ImageTMDB.url(etat.decors.decor($0.reference)?.fond ?? $0.cheminAffiche, .fond)
+                    })
+                }
             Text("Sur ton NAS, sur tes plateformes ou à la TV ce soir")
                 .font(.caption)
                 .foregroundStyle(.secondary)

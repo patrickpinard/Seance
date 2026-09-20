@@ -69,6 +69,10 @@ d'un passage télé, un code).
 | Une image distante | `ImageDistante` | idem |
 | Un filtre qu'on allume | `PuceFiltre` | idem |
 | **Où regarder** un titre, tout de suite (soirée, idées, recherche, propositions) | `ActionsOuRegarder` : pastilles qui agissent — « Lire sur le NAS », la plateforme (ouvre sa recherche sur le titre), la chaîne avec le jour et l'heure ; `PastilleOuRegarder` pour le dessin | `Seance/Design/OuRegarder.swift` |
+| **Lancer** ce qui est prévu, d'un seul geste (carte de soirée) | `ActionsOuRegarder(presentation: .boutonUnique)` : un grand bouton qui choisit la source — NAS, puis plateforme, puis chaîne — et dit les autres dessous ; `EtiquetteGrandBouton` pour le dessin | idem |
+| Lire une vidéo personnelle sans quitter l'app | `LecteurIntegre` (AVPlayer sur le relais local `RelaisVideo`) | `Seance/Ecrans/NAS/LecteurIntegre.swift` |
+| ★ Les favoris, en grille avec le partage | `SectionFavoris` (onglet Favoris de Mes listes) | `Seance/Ecrans/MesListes/SectionFavoris.swift` |
+| Les documentaires et leurs thèmes | `DocumentairesView`, thèmes en `PuceFiltre` | `Seance/Ecrans/Documentaires/DocumentairesView.swift` |
 | Où regarder, en coin d'affiche et en tête de fiche | `BadgeOu`, `RangeeOu` | `Seance/Etat/EtatOu.swift` |
 | Apple TV : bouton d'action | `BoutonTV` (orange = action principale ; blanc à texte noir quand il a le focus) | `SeanceTV/Design/ComposantsTV.swift` |
 | Apple TV : affiche, grande carte, étagère, page vide | `AfficheTV`, `CarteLargeTV`, `EtagereTV`, `VideTV` | idem |

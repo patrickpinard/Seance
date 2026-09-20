@@ -8,6 +8,8 @@ import SwiftData
 /// Fiche TMDB complète gardée pour l'affichage hors ligne.
 @Model
 public final class TitreCache {
+    // Lu par identifiant à chaque fiche ouverte hors ligne.
+    #Index<TitreCache>([\.tmdbID])
     public var tmdbID: Int = 0
     public var typeBrut: String = TypeTitre.film.rawValue
     /// Réponse TMDB brute, en JSON.
@@ -25,6 +27,8 @@ public final class TitreCache {
 /// Un passage à la TV, rattaché à TMDB quand la correspondance est sûre (EF-46 à EF-51).
 @Model
 public final class Diffusion {
+    // La grille télé demande une fenêtre de temps ; « où regarder » demande le titre.
+    #Index<Diffusion>([\.debut], [\.tmdbID])
     public var chaine: String = ""
     public var debut: Date = Date.distantPast
     public var fin: Date = Date.distantPast
@@ -79,6 +83,8 @@ public final class EtatPlateformes {
 /// Un rendez-vous d'un titre surveillé (épisode, saison, sortie, TV), pour « À venir » et le widget.
 @Model
 public final class Echeance {
+    // L'accueil ne veut que celles du jour.
+    #Index<Echeance>([\.date])
     public var tmdbID: Int = 0
     public var typeBrut: String = TypeTitre.film.rawValue
     public var titre: String = ""
@@ -131,6 +137,8 @@ public final class AlertePlanifiee {
 /// à l'analyse : la bibliothèque s'affiche sans réseau.
 @Model
 public final class FichierNAS {
+    // Chaque affiche demande « ce titre est-il sur le NAS ? » : sans index, la vidéothèque entière est parcourue.
+    #Index<FichierNAS>([\.tmdbID], [\.chemin])
     public var tmdbID: Int?
     public var typeBrut: String = TypeTitre.film.rawValue
     public var saison: Int?

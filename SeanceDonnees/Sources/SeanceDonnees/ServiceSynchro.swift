@@ -99,6 +99,9 @@ public struct ServiceSynchro {
         for aime in try contexte.fetch(FetchDescriptor<TitreAime>()) where voulues.contains("aime:\(aime.reference)") {
             contexte.delete(aime); nombre += 1
         }
+        for favori in try contexte.fetch(FetchDescriptor<Favori>()) where voulues.contains("favori:\(favori.reference)") {
+            contexte.delete(favori); nombre += 1
+        }
         for acteur in try contexte.fetch(FetchDescriptor<ActeurSuivi>()) where voulues.contains("acteur:\(acteur.personneID)") {
             contexte.delete(acteur); nombre += 1
         }

@@ -1,7 +1,7 @@
 import Foundation
 
 /// Un film ou une série, sous une forme commune aux écrans (cartes, carrousels, grilles).
-public struct TitreResume: Sendable, Hashable, Identifiable {
+public struct TitreResume: Codable, Sendable, Hashable, Identifiable {
     public let reference: ReferenceTitre
     public let titre: String
     public let titreOriginal: String

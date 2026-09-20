@@ -88,4 +88,14 @@ public protocol TransportSynchro: Sendable {
     func lire(_ nom: String) async throws -> Data
     /// Écrit, ou remplace, le fichier de ce nom ; crée le dossier s'il manque.
     func ecrire(_ donnees: Data, nom: String) async throws
+    /// Début d'un passage : un transport qui coûte cher à ouvrir (SMB) peut garder sa connexion jusqu'à `fermerPassage`.
+    func ouvrirPassage() async
+    /// Fin du passage : la connexion gardée se referme. Toujours appelée, même après une erreur.
+    func fermerPassage() async
+}
+
+public extension TransportSynchro {
+    /// Un dossier local ou iCloud Drive n'a rien à ouvrir ni à fermer.
+    func ouvrirPassage() async {}
+    func fermerPassage() async {}
 }

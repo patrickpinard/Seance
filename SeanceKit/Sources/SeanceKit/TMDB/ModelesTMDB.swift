@@ -118,7 +118,7 @@ public struct SerieResume: Decodable, Sendable, Hashable, Identifiable {
 
 // MARK: - Plateformes (données JustWatch, à citer comme source)
 
-public struct Fournisseur: Decodable, Sendable, Hashable, Identifiable {
+public struct Fournisseur: Codable, Sendable, Hashable, Identifiable {
     public let id: Int
     public let nom: String
     public let cheminLogo: String?

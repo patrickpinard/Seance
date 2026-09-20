@@ -406,8 +406,17 @@ struct CeSoirView: View {
             }
             // Une soirée passée : le film a été vu ce soir-là, à l'heure du film.
             let quand = titre.soiree < ServiceSoiree.soiree() ? ServiceSoiree.jour(titre.soiree)?.addingTimeInterval(9 * 3600) : nil
+            let avant = try? ServiceSuivi(contexte: contexte).suivi(reference)
+            let statutAvant = avant?.statut
+            let nom = titre.titre
+            let affiche = titre.cheminAffiche
+            let jour = titre.soiree
             try? ServiceSuivi(contexte: contexte).marquerVu(film: film, le: quand ?? .now)
-            etat.confirmer("« \(titre.titre) » marqué vu", symbole: "eye.fill")
+            etat.confirmer("« \(titre.titre) » marqué vu", symbole: "eye.fill") { [contexte] in
+                try? ServiceSuivi(contexte: contexte).marquerNonVu(film: reference)
+                AnnulationTitre.restaurer(reference, existait: avant != nil, statut: statutAvant, contexte: contexte)
+                try? ServiceSoiree(contexte: contexte).retenir(reference, titre: nom, cheminAffiche: affiche, soiree: jour)
+            }
             // Vu : il ne doit plus revenir dans les idées de la soirée.
             idees.retirer(reference)
             withAnimation(.snappy) { filmANoter = film }
@@ -471,7 +480,14 @@ private struct AjouterASoiree: View {
     init(soiree: SoireeModele, idees: IdeesModele, depart: Date) {
         self.soiree = soiree
         self.idees = idees
-        _jour = State(initialValue: max(depart, Calendar.current.startOfDay(for: .now)))
+        _jour = State(initialValue: max(depart, Self.premierJour))
+    }
+
+    /// Le premier jour qu'on peut choisir : celui de la soirée **en cours**, pas le jour du calendrier. Entre minuit
+    /// et six heures, la soirée en cours est celle de la veille (ServiceSoiree.soiree) : sans cela, « Ajouter »
+    /// rangeait les titres dans la soirée du lendemain, invisible depuis « Ce soir ».
+    private static var premierJour: Date {
+        ServiceSoiree.jour(ServiceSoiree.soiree()) ?? Calendar.current.startOfDay(for: .now)
     }
 
     /// `nil` pour ce soir : les rendez-vous du jour et « regardable ce soir » s'appliquent.
@@ -492,7 +508,7 @@ private struct AjouterASoiree: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 22) {
-                    DatePicker(selection: $jour, in: Calendar.current.startOfDay(for: .now)..., displayedComponents: .date) {
+                    DatePicker(selection: $jour, in: Self.premierJour..., displayedComponents: .date) {
                         Label(soireeChoisie == nil ? "Pour ce soir" : "Pour la soirée du", systemImage: "calendar")
                             .font(.headline)
                     }

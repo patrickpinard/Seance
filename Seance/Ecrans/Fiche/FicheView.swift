@@ -501,6 +501,9 @@ private struct ContenuFiche: View {
     private var menuAutres: some View {
         let adresse = URL(string: "https://www.themoviedb.org/\(fiche.reference.type == .film ? "movie" : "tv")/\(fiche.reference.tmdbID)")!
         return Menu {
+            Button { basculerFavori() } label: {
+                Label(estFavori ? "Retirer de mes favoris" : "Ajouter à mes favoris", systemImage: estFavori ? "star.fill" : "star")
+            }
             Button {
                 etat.titreADater = TitreChoisi(reference: fiche.reference, titre: fiche.titre, cheminAffiche: fiche.cheminAffiche)
             } label: {
@@ -588,13 +591,35 @@ private struct ContenuFiche: View {
         etatDisponibilite = (try? ServiceDisponibilite(contexte: contexte).etat(fiche.reference, offres: fiche.offres)) ?? .introuvable
     }
 
+    /// ★ Les favoris (EF-165) : une collection à part, ni « À voir » ni « J'aime ».
+    private var estFavori: Bool {
+        (try? ServiceFavoris(contexte: contexte).estFavori(fiche.reference)) ?? false
+    }
+
+    private func basculerFavori() {
+        let reference = fiche.reference
+        let annee = fiche.annee
+        guard let ajoute = try? ServiceFavoris(contexte: contexte).basculer(reference, titre: fiche.titre,
+                                                                           cheminAffiche: fiche.cheminAffiche, annee: annee)
+        else { return }
+        rafraichir()
+        etat.confirmer(ajoute ? "★ Ajouté à tes favoris" : "Retiré de tes favoris", symbole: ajoute ? "star.fill" : "star") { [contexte] in
+            _ = try? ServiceFavoris(contexte: contexte).basculer(reference, titre: fiche.titre, cheminAffiche: fiche.cheminAffiche, annee: annee)
+            rafraichir()
+        }
+    }
+
     private func basculerAVoir() {
         let service = ServiceSuivi(contexte: contexte)
         if let suivi, suivi.masque {
             suivi.masque = false
             contexte.sauver()
             rafraichir()
-            etat.confirmer("Remis dans Terminés", symbole: "bookmark.fill")
+            etat.confirmer("Remis dans Terminés", symbole: "bookmark.fill") { [contexte] in
+                suivi.masque = true
+                contexte.sauver()
+                rafraichir()
+            }
             return
         }
         if let suivi {
@@ -611,7 +636,14 @@ private struct ContenuFiche: View {
             } else if let serie = fiche.serie {
                 _ = try? service.suivre(serie: serie)
             }
-            etat.confirmer("Ajouté à À voir", symbole: "plus.circle.fill")
+            let reference = fiche.reference
+            etat.confirmer("Ajouté à À voir", symbole: "plus.circle.fill") { [contexte] in
+                if let ajoute = try? ServiceSuivi(contexte: contexte).suivi(reference) {
+                    contexte.delete(ajoute)
+                    contexte.sauver()
+                }
+                rafraichir()
+            }
         }
         rafraichir()
         // Suivre un titre, c'est vouloir être prévenu : l'autorisation est demandée à ce moment-là (EF-81).

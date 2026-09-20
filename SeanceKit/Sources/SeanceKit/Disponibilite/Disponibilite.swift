@@ -53,7 +53,7 @@ public struct CopieNAS: Sendable, Hashable {
 }
 
 /// Un passage à la TV.
-public struct DiffusionPrevue: Sendable, Hashable {
+public struct DiffusionPrevue: Codable, Sendable, Hashable {
     public var chaine: String
     public var debut: Date
     public var fin: Date
@@ -82,7 +82,7 @@ public struct SourcesTitre: Sendable {
 }
 
 /// L'état affiché en tête du bloc « Où regarder » (EF-73).
-public enum EtatDisponibilite: Sendable, Equatable {
+public enum EtatDisponibilite: Codable, Sendable, Equatable {
     case surNAS(qualite: QualiteVideo?)
     case dansAbonnements([Fournisseur])
     case aLaTeleBientot(DiffusionPrevue)

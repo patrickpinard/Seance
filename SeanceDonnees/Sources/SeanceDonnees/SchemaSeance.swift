@@ -40,9 +40,9 @@ public enum SchemaSeanceV1: VersionedSchema {
 public enum SchemaSeanceV2: VersionedSchema {
     public static var versionIdentifier: Schema.Version { Schema.Version(2, 0, 0) }
 
-    /// Les modèles de la version 2 : ceux d'aujourd'hui, sans `TitreAime`, arrivé en version 3.
+    /// Les modèles de la version 2 : ceux de la version 3, sans `TitreAime`, arrivé en version 3.
     static var modelesUtilisateur: [any PersistentModel.Type] {
-        EntrepotSeance.modelesUtilisateur.filter { ObjectIdentifier($0) != ObjectIdentifier(TitreAime.self) }
+        SchemaSeanceV3.modelesUtilisateur.filter { ObjectIdentifier($0) != ObjectIdentifier(TitreAime.self) }
     }
 
     public static var models: [any PersistentModel.Type] {
@@ -54,6 +54,20 @@ public enum SchemaSeanceV2: VersionedSchema {
 public enum SchemaSeanceV3: VersionedSchema {
     public static var versionIdentifier: Schema.Version { Schema.Version(3, 0, 0) }
 
+    /// Les modèles de la version 3 : ceux d'aujourd'hui, sans `Favori`, arrivé en version 4.
+    static var modelesUtilisateur: [any PersistentModel.Type] {
+        EntrepotSeance.modelesUtilisateur.filter { ObjectIdentifier($0) != ObjectIdentifier(Favori.self) }
+    }
+
+    public static var models: [any PersistentModel.Type] {
+        modelesUtilisateur + EntrepotSeance.modelesCache
+    }
+}
+
+/// Version 4 (Séance 5.3) : les favoris (`Favori`), un modèle de plus.
+public enum SchemaSeanceV4: VersionedSchema {
+    public static var versionIdentifier: Schema.Version { Schema.Version(4, 0, 0) }
+
     public static var models: [any PersistentModel.Type] {
         EntrepotSeance.modelesUtilisateur + EntrepotSeance.modelesCache
     }
@@ -61,13 +75,13 @@ public enum SchemaSeanceV3: VersionedSchema {
 
 public enum PlanMigrationSeance: SchemaMigrationPlan {
     public static var schemas: [any VersionedSchema.Type] {
-        [SchemaSeanceV1.self, SchemaSeanceV2.self, SchemaSeanceV3.self]
+        [SchemaSeanceV1.self, SchemaSeanceV2.self, SchemaSeanceV3.self, SchemaSeanceV4.self]
     }
 
     public static var stages: [MigrationStage] {
-        // Un champ ajouté avec sa valeur par défaut : migration légère.
-        // Un champ ajouté avec sa valeur par défaut, puis un modèle ajouté : migrations légères.
+        // Un champ ajouté avec sa valeur par défaut, puis deux modèles ajoutés : migrations légères.
         [.lightweight(fromVersion: SchemaSeanceV1.self, toVersion: SchemaSeanceV2.self),
-         .lightweight(fromVersion: SchemaSeanceV2.self, toVersion: SchemaSeanceV3.self)]
+         .lightweight(fromVersion: SchemaSeanceV2.self, toVersion: SchemaSeanceV3.self),
+         .lightweight(fromVersion: SchemaSeanceV3.self, toVersion: SchemaSeanceV4.self)]
     }
 }

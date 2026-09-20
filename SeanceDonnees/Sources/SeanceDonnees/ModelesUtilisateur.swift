@@ -46,9 +46,37 @@ public final class TitreAime {
     }
 }
 
+/// ★ Un favori (EF-165) : un titre qu'on garde en mémoire, vu ou non. Ce n'est ni « À voir » — une intention —,
+/// ni « J'aime » — un goût qui oriente les idées : c'est une collection à soi, faite pour être montrée (EF-167).
+@Model
+public final class Favori {
+    // Retrouvé par identifiant à chaque fiche ouverte et à chaque affiche de la page Favoris.
+    #Index<Favori>([\.tmdbID])
+    public var tmdbID: Int = 0
+    public var typeBrut: String = TypeTitre.film.rawValue
+    public var titre: String = ""
+    public var cheminAffiche: String?
+    public var annee: Int?
+    public var ajouteLe: Date = Date.now
+
+    public init(reference: ReferenceTitre, titre: String, cheminAffiche: String? = nil, annee: Int? = nil, ajouteLe: Date = .now) {
+        tmdbID = reference.tmdbID
+        typeBrut = reference.type.rawValue
+        self.titre = titre
+        self.cheminAffiche = cheminAffiche
+        self.annee = annee
+        self.ajouteLe = ajouteLe
+    }
+
+    public var type: TypeTitre { TypeTitre(rawValue: typeBrut) ?? .film }
+    public var reference: ReferenceTitre { ReferenceTitre(type: type, tmdbID: tmdbID) }
+}
+
 /// Un film ou une série dans les listes de Patrick.
 @Model
 public final class Suivi {
+    // Le statut sert à tous les filtres de listes, l'identifiant à retrouver un titre.
+    #Index<Suivi>([\.tmdbID], [\.statutBrut])
     public var tmdbID: Int = 0
     public var typeBrut: String = TypeTitre.film.rawValue
     public var statutBrut: String = StatutSuivi.aVoir.rawValue

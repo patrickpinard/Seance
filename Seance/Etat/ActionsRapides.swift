@@ -11,13 +11,21 @@ struct ActionsRapides {
     let contexte: ModelContext
 
     enum Action {
-        case aVoir, vuAujourdhui, dejaVuAvant, soiree, pasInteresse, jAime
+        case aVoir, vuAujourdhui, dejaVuAvant, soiree, pasInteresse, jAime, favori
     }
 
-    func executer(_ action: Action, sur titre: TitreResume) async {
+    /// `annulationEnPlus` : ce que l'écran appelant veut défaire aussi — remettre l'idée dans la liste, par exemple.
+    func executer(_ action: Action, sur titre: TitreResume, annulationEnPlus: (@MainActor () -> Void)? = nil) async {
         do {
             var annulation: (@MainActor () -> Void)?
             let (texte, symbole) = try await effectuer(action, sur: titre, annulation: &annulation)
+            if annulation != nil || annulationEnPlus != nil {
+                let defaire = annulation
+                annulation = {
+                    defaire?()
+                    annulationEnPlus?()
+                }
+            }
             etat.confirmer(texte, symbole: symbole, annuler: annulation)
             AccessibilityNotification.Announcement(texte).post()
         } catch {
@@ -37,7 +45,17 @@ struct ActionsRapides {
                 guard existant.masque else { return ("Déjà dans Mes listes", "bookmark.fill") }
                 existant.masque = false
                 try contexte.save()
+                annulation = { [contexte] in
+                    guard let remis = try? ServiceSuivi(contexte: contexte).suivi(reference) else { return }
+                    remis.masque = true
+                    contexte.sauver()
+                }
                 return ("Remis dans Terminés", "bookmark.fill")
+            }
+            annulation = { [contexte] in
+                guard let ajoute = try? ServiceSuivi(contexte: contexte).suivi(reference) else { return }
+                contexte.delete(ajoute)
+                contexte.sauver()
             }
             switch reference.type {
             case .film: try suivi.suivre(film: try await client().film(reference.tmdbID, complements: [.casting]))
@@ -51,14 +69,26 @@ struct ActionsRapides {
             return ("Ajouté à À voir", "plus.circle.fill")
 
         case .vuAujourdhui:
+            let avantVu = try suivi.suivi(reference)
+            let statutAvantVu = avantVu?.statut
             try suivi.marquerVu(film: try await client().film(reference.tmdbID, complements: [.casting]))
+            annulation = { [contexte] in
+                try? ServiceSuivi(contexte: contexte).marquerNonVu(film: reference)
+                AnnulationTitre.restaurer(reference, existait: avantVu != nil, statut: statutAvantVu, contexte: contexte)
+            }
             return ("Marqué vu aujourd'hui", "eye.fill")
 
         case .dejaVuAvant:
             if try suivi.estVu(reference), reference.type == .film { return ("Déjà marqué vu", "eye.fill") }
             switch reference.type {
             case .film:
+                let avantDejaVu = try suivi.suivi(reference)
+                let statutAvantDejaVu = avantDejaVu?.statut
                 try suivi.marquerVu(film: try await client().film(reference.tmdbID, complements: [.casting]), anterieur: true)
+                annulation = { [contexte] in
+                    try? ServiceSuivi(contexte: contexte).marquerNonVu(film: reference)
+                    AnnulationTitre.restaurer(reference, existait: avantDejaVu != nil, statut: statutAvantDejaVu, contexte: contexte)
+                }
                 return ("Marqué déjà vu avant", "clock.arrow.circlepath")
             case .serie:
                 let tmdb = try client()
@@ -75,7 +105,18 @@ struct ActionsRapides {
 
         case .soiree:
             try ServiceSoiree(contexte: contexte).retenir(reference, titre: titre.titre, cheminAffiche: titre.cheminAffiche)
+            annulation = { [contexte] in try? ServiceSoiree(contexte: contexte).retirer(reference) }
             return ("Ajouté à ma soirée", "moon.stars.fill")
+
+        case .favori:
+            // ★ Une collection à part : ni « À voir », ni un goût (EF-165).
+            let favoris = ServiceFavoris(contexte: contexte)
+            let ajoute = try favoris.basculer(reference, titre: titre.titre, cheminAffiche: titre.cheminAffiche, annee: titre.date?.annee)
+            annulation = { [contexte] in
+                _ = try? ServiceFavoris(contexte: contexte).basculer(reference, titre: titre.titre,
+                                                                    cheminAffiche: titre.cheminAffiche, annee: titre.date?.annee)
+            }
+            return ajoute ? ("★ Ajouté à tes favoris", "star.fill") : ("Retiré de tes favoris", "star.slash")
 
         case .jAime:
             let gouts = ServiceGouts(contexte: contexte)
@@ -120,6 +161,7 @@ struct MenuActionsTitre: View {
         Button { etat.titreADater = choisi } label: { Label("Prévoir pour une soirée…", systemImage: "calendar") }
         Button { etat.titrePourListe = choisi } label: { Label("Ajouter à une liste…", systemImage: "list.bullet.rectangle.portrait") }
         Divider()
+        Button { lancer(.favori) } label: { Label("Ajouter à mes favoris", systemImage: "star") }
         Button { lancer(.jAime) } label: { Label("J'aime", systemImage: "hand.thumbsup") }
         Button(role: .destructive) { lancer(.pasInteresse) } label: { Label("Je n'aime pas : ne plus me le proposer", systemImage: "hand.thumbsdown") }
     }

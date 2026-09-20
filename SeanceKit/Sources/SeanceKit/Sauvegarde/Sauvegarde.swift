@@ -143,6 +143,23 @@ public struct Sauvegarde: Codable, Sendable, Equatable {
     }
 
     /// 👍 « J'aime » ; absent des sauvegardes antérieures à la version 4.7.
+    /// ★ Un favori (EF-165) : de quoi l'afficher sans réseau, et le reconnaître d'un appareil à l'autre.
+    public struct Favori: Codable, Sendable, Equatable {
+        public var reference: ReferenceTitre
+        public var titre: String
+        public var cheminAffiche: String?
+        public var annee: Int?
+        public var ajouteLe: Date
+
+        public init(reference: ReferenceTitre, titre: String, cheminAffiche: String?, annee: Int?, ajouteLe: Date) {
+            self.reference = reference
+            self.titre = titre
+            self.cheminAffiche = cheminAffiche
+            self.annee = annee
+            self.ajouteLe = ajouteLe
+        }
+    }
+
     public struct Aime: Codable, Sendable, Equatable {
         public var reference: ReferenceTitre
         public var titre: String
@@ -252,6 +269,8 @@ public struct Sauvegarde: Codable, Sendable, Equatable {
     public var reports: [Report]?
     /// 👍 Les « J'aime » ; absents des sauvegardes antérieures à la version 4.7.
     public var aimes: [Aime]?
+    /// ★ Les favoris ; absents des sauvegardes antérieures à la version 5.3.
+    public var favoris: [Favori]?
     public var preferences: [String: Preference]?
     /// Synchronisation entre appareils (voir FusionSynchro.swift) : quand chaque élément a changé pour la dernière
     /// fois, et ce qui a été supprimé. Absents d'une sauvegarde exportée à la main, qui ne fait qu'ajouter.
@@ -303,6 +322,7 @@ public struct PlanImport: Sendable, Equatable {
     public var soirees: [Sauvegarde.Soiree] = []
     public var reports: [Sauvegarde.Report] = []
     public var aimes: [Sauvegarde.Aime] = []
+    public var favoris: [Sauvegarde.Favori] = []
     /// Titres déjà présents que le fichier complète : vu ou noté sur l'autre appareil, acteurs ou genres manquants.
     public var suivisCompletes: [Sauvegarde.Suivi] = []
     /// Plateformes déjà présentes dont le logo manquait.
@@ -353,6 +373,7 @@ public struct PlanImport: Sendable, Equatable {
         soirees = nouveaux(importee.soirees ?? [], existante.soirees ?? [], cle: \.reference)
         reports = nouveaux(importee.reports ?? [], existante.reports ?? [], cle: \.reference)
         aimes = nouveaux(importee.aimes ?? [], existante.aimes ?? [], cle: \.reference)
+        favoris = nouveaux(importee.favoris ?? [], existante.favoris ?? [], cle: \.reference)
 
         let presents = Dictionary(existante.suivis.map { ($0.reference, $0) }, uniquingKeysWith: { premier, _ in premier })
         suivisCompletes = importee.suivis.compactMap { importe in presents[importe.reference].flatMap { Self.complement(importe, $0) } }

@@ -6,10 +6,23 @@ public struct ReglagesVideosPerso: Codable, Sendable, Hashable {
     /// La case à cocher : décochée, rien n'apparaît dans l'app.
     public var actif: Bool
     public var acces: ReglagesNAS
+    /// Lire dans Séance plutôt que dans Infuse ou VLC. Vrai par défaut : une vidéo de famille n'a pas de fiche,
+    /// et les lecteurs extérieurs ne démarrent pas toujours sur un simple chemin SMB (4.4.1).
+    public var lecteurIntegre: Bool
 
-    public init(actif: Bool = false, acces: ReglagesNAS = ReglagesNAS(partage: "video", dossiers: [])) {
+    public init(actif: Bool = false, acces: ReglagesNAS = ReglagesNAS(partage: "video", dossiers: []),
+                lecteurIntegre: Bool = true) {
         self.actif = actif
         self.acces = acces
+        self.lecteurIntegre = lecteurIntegre
+    }
+
+    // Le format reste additif : une sauvegarde d'avant la 5.3 n'a pas ce champ, il vaut alors « vrai ».
+    public init(from decoder: any Decoder) throws {
+        let valeurs = try decoder.container(keyedBy: CodingKeys.self)
+        actif = try valeurs.decodeIfPresent(Bool.self, forKey: .actif) ?? false
+        acces = try valeurs.decodeIfPresent(ReglagesNAS.self, forKey: .acces) ?? ReglagesNAS(partage: "video", dossiers: [])
+        lecteurIntegre = try valeurs.decodeIfPresent(Bool.self, forKey: .lecteurIntegre) ?? true
     }
 
     /// Prérempli avec le NAS des films : même adresse, même compte, partage « video », tous ses dossiers.

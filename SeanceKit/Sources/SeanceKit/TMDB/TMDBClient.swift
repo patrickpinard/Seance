@@ -84,6 +84,15 @@ public actor TMDBClient {
 
     // MARK: - Fiches
 
+    /// Les mots-clés TMDB qui portent ce nom : sert à traduire un thème de documentaire (« nature », « space »)
+    /// en identifiants utilisables par `discover` (EF-152).
+    public func motsCles(_ texte: String) async throws -> PageTMDB<MotCleTMDB> {
+        try await envoyer("/3/search/keyword", [
+            URLQueryItem(name: "query", value: texte),
+            URLQueryItem(name: "page", value: "1"),
+        ])
+    }
+
     public func fournisseurs(_ type: TypeTitre, id: Int) async throws -> FournisseursParPays {
         try await envoyer("/3/\(type.segmentTMDB)/\(id)/watch/providers", [])
     }

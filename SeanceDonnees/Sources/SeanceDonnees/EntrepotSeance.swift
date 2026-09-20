@@ -22,7 +22,7 @@ public enum EntrepotSeance {
     public static var modelesUtilisateur: [any PersistentModel.Type] {
         [Suivi.self, Visionnage.self, ListePerso.self, FiltreEnregistre.self,
          Interet.self, Abonnement.self, Chaine.self, SourceNAS.self, SuggestionReportee.self, SelectionSoir.self, ActeurSuivi.self,
-         TitreAime.self]
+         TitreAime.self, Favori.self]
     }
 
     public static var modelesCache: [any PersistentModel.Type] {
@@ -37,7 +37,7 @@ public enum EntrepotSeance {
         let cache = configuration("Cache", modelesCache, emplacement)
         do {
             return try ModelContainer(
-                for: Schema(versionedSchema: SchemaSeanceV3.self),
+                for: Schema(versionedSchema: SchemaSeanceV4.self),
                 migrationPlan: PlanMigrationSeance.self,
                 configurations: utilisateur, cache
             )
@@ -52,6 +52,13 @@ public enum EntrepotSeance {
 
     /// Renseignée quand le plan de migration n'a pas pu ouvrir le magasin ; l'app la note dans son journal.
     public nonisolated(unsafe) static var derniereErreurDuPlan: String?
+
+    /// Pour les tests : une base de la version 3 du schéma (Séance 4.7 à 5.2), sans les favoris.
+    static func conteneurV3(dossier: URL) throws -> ModelContainer {
+        let utilisateur = configuration("Utilisateur", SchemaSeanceV3.modelesUtilisateur, .dossier(dossier))
+        let cache = configuration("Cache", modelesCache, .dossier(dossier))
+        return try ModelContainer(for: Schema(versionedSchema: SchemaSeanceV3.self), configurations: utilisateur, cache)
+    }
 
     /// Pour les tests : une base de la version 2 du schéma (Séance 2.4 à 4.6), sans les « J'aime ».
     static func conteneurV2(dossier: URL) throws -> ModelContainer {
