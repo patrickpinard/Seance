@@ -30,8 +30,9 @@ final class EtatLettre {
 
     private let coffre: any CoffreCles
     var journal: Journal?
-    private static let cle = "lettre.reglages"
-    private static let cleDernier = "lettre.dernierEnvoi"
+    /// Ces deux réglages voyagent dans la sauvegarde et la synchronisation (`PreferencesSauvegardees`) ; le mot de passe, non.
+    static let cle = "lettre.reglages"
+    static let cleDernier = "lettre.dernierEnvoi"
 
     init(coffre: any CoffreCles) {
         self.coffre = coffre
@@ -48,6 +49,13 @@ final class EtatLettre {
         reglages = nouveaux
         UserDefaults.standard.set(try? JSONEncoder().encode(nouveaux), forKey: Self.cle)
         if !motDePasse.isEmpty, (try? coffre.enregistrer(motDePasse, pour: .smtp)) != nil { aUnMotDePasse = true }
+    }
+
+    /// Un autre appareil a déjà envoyé l'e-mail de la semaine : celui-ci ne le renverra pas.
+    func noterEnvoiAilleurs(_ date: Date) {
+        guard date > (dernierEnvoi ?? .distantPast) else { return }
+        dernierEnvoi = date
+        UserDefaults.standard.set(date, forKey: Self.cleDernier)
     }
 
     /// Le moment prévu de l'envoi de cette semaine : le dernier « jour à l'heure dite » déjà passé.

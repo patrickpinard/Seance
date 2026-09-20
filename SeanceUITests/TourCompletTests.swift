@@ -115,7 +115,7 @@ final class TourCompletTests: XCTestCase {
         app.navigationBars.buttons.firstMatch.tap()
 
         app.buttons["À venir"].firstMatch.tap()
-        XCTAssertTrue(app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Tout : '")).firstMatch.waitForExistence(timeout: 10),
+        XCTAssertTrue(app.buttons.matching(NSPredicate(format: "label ENDSWITH 'rendez-vous'")).firstMatch.waitForExistence(timeout: 10),
                       "La rangée de jours d'« À venir » est absente")
         capture("09-a-venir", attente: 4)
         app.buttons.matching(NSPredicate(format: "label CONTAINS 'Nouvel épisode' OR label CONTAINS 'Sur '")).firstMatch.tap()

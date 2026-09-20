@@ -20,6 +20,25 @@ struct NoteVersion: Identifiable {
 
     static let historique: [NoteVersion] = [
         NoteVersion(
+            numero: "5.1",
+            date: "20 septembre 2026",
+            resume: "Un accueil en grandes cartes, « Aujourd'hui » d'un coup d'œil, et un essai d'alerte fait pour l'Apple Watch.",
+            fonctionnalites: [
+                Fonctionnalite(symbole: "rectangle.fill", titre: "Partout, la grande carte de « Ce soir à la TV »",
+                               detail: "Regardable ce soir, le Top de l'année, Du moment et ton NAS passent au même format 16/9 : l'image en grand, où regarder en haut à gauche, et dessous ce qui compte — « Sur ton NAS · 4K », la plateforme, le rang, l'année, la durée, la note."),
+                Fonctionnalite(symbole: "calendar", titre: "Aujourd'hui, sur l'accueil",
+                               detail: "Ce qui sort ou passe aujourd'hui pour tes titres, en quelques lignes ; « Tout voir » ouvre Mes listes › À venir."),
+                Fonctionnalite(symbole: "calendar.badge.minus", titre: "À venir, un jour à la fois",
+                               detail: "Le bouton « Tout » disparaît : une série qui passe chaque soir à la TV s'y répétait autant de fois, et noyait le reste. La page s'ouvre sur le jour le plus proche."),
+                Fonctionnalite(symbole: "applewatch", titre: "Tester une alerte sur l'Apple Watch",
+                               detail: "iOS ne transmet une alerte à la montre que si l'iPhone est verrouillé : un essai immédiat, téléphone en main, n'y arrive jamais. Réglages › Alertes a maintenant un essai à vingt secondes, avec la consigne de verrouiller, et signale ce qui bloque dans les réglages de notification de Séance. L'essai demandé depuis l'Apple TV attend lui aussi vingt secondes."),
+                Fonctionnalite(symbole: "envelope.arrow.triangle.branch", titre: "L'e-mail de la semaine voyage entre tes appareils",
+                               detail: "Destinataires, jour, heure et compte d'envoi passent par la synchronisation et la sauvegarde, avec la date du dernier envoi pour éviter les doublons. Le mot de passe, lui, reste dans le trousseau de chaque appareil."),
+                Fonctionnalite(symbole: "minus.circle", titre: "Accueil allégé",
+                               detail: "Le rappel « Sur 7 plateformes seulement · Modifier » est retiré ; le réglage reste dans la feuille de l'accueil."),
+            ]
+        ),
+        NoteVersion(
             numero: "5.0",
             date: "20 septembre 2026",
             resume: "L'e-mail de la semaine, des suggestions sur la page Ce soir, des Réglages en grandes cartes, et « Préférences ».",

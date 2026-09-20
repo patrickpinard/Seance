@@ -9,7 +9,8 @@ pensée pour la Suisse romande : elle dit **où regarder** chaque titre — sur 
 tu es abonné, ou à la télévision avec la chaîne, le jour et l'heure — et elle t'aide à organiser ta soirée.
 
 Une seule app, quatre appareils Apple : **iPhone, iPad, Mac et Apple TV**. Tout reste chez toi : pas de compte,
-pas de serveur, pas de publicité. Les données vivent sur tes appareils et se synchronisent par un dossier d'iCloud Drive.
+pas de serveur, pas de publicité. Les données vivent sur tes appareils et se synchronisent par un dossier d'iCloud Drive
+et par un dossier du NAS — c'est par lui que l'Apple TV reçoit tes listes.
 
 <p align="center">
   <img src="Documentation/Captures/iphone-soiree.jpg" alt="Séance sur iPhone : accueil, soirée, recherche dans la soirée, programme télé" width="100%">
@@ -22,12 +23,15 @@ pas de serveur, pas de publicité. Les données vivent sur tes appareils et se s
 | **Où regarder, tout de suite** | Sur chaque titre : « Lire sur le NAS » lance la vidéo (Infuse ou VLC), « Netflix », « Prime Video » ou « Apple TV » ouvrent la plateforme sur le titre, et la télé donne la chaîne, le jour et l'heure. Seuls **tes** abonnements comptent. |
 | **Streaming et télé, bien séparés** | Le streaming se regarde quand tu veux ; la télé (blue TV, antenne) passe à une date et une heure fixes. Séance ne mélange pas les deux. |
 | **Ce soir** | Ta soirée en grandes cartes : un film, l'épisode suivant d'une série (le premier, si tu ne l'as jamais commencée), la durée totale. « Regardé », puis ta note. Une rangée de jours prépare les soirées à venir, avec un rappel le jour venu. |
+| **👍 👎 et suggestions** | Un pouce levé ou baissé, comme sur Netflix, sans avoir vu le titre ; la note de 1 à 10 vient après. « Suggestions pour toi », sur la page Ce soir, part d'abord des acteurs que tu suis, puis de tes pouces et de tes notes. |
 | **Des idées selon tes goûts** | Des titres regardables sur tes plateformes, classés sur l'appareil d'après tes notes — ou par Claude si tu ajoutes une clé d'API, pour lire une envie (« un truc nerveux, pas trop long »). « Je n'aime pas » écarte un titre pour de bon ; les Réglages permettent de tout reproposer. |
 | **Suivi des séries** | Épisode par épisode, « vu jusqu'ici », notes, prochain épisode, alertes à chaque épisode ou à chaque saison. |
 | **Programme télé** | Les chaînes que tu choisis, en grandes cartes, avec une cloche pour être prévenu avant le début. |
 | **NAS** | Ta bibliothèque de films et de séries lue en SMB, rattachée à TMDB, et tes vidéos personnelles. |
 | **Explorer** | Tout TMDB, tes plateformes, ton NAS ou la télé ; filtres par genre, période, note, acteur ; filtres enregistrés. |
 | **Mes listes, statistiques, bilan de l'année** | À voir, en cours, terminés, listes nommées, à venir ; heures regardées, genres, acteurs. |
+| **L'e-mail de la semaine** | Une fois par semaine, les sorties, épisodes et passages à la TV de tes titres, les nouveautés de tes plateformes et tes soirées prévues, en HTML aux couleurs de Séance, à plusieurs destinataires. Il part de ton appareil, par ton compte de messagerie (SMTP, port 465). |
+| **Alertes** | Notifications locales sur l'iPhone — et l'Apple Watch quand il est verrouillé : épisodes, sorties, passages à la TV, nouveaux films et séries des acteurs suivis. |
 | **Widgets, Siri, raccourcis** | Le prochain épisode se coche depuis l'écran d'accueil ; « Qu'est-ce que je regarde ce soir avec Séance ? ». |
 | **Accessibilité** | Texte très agrandi, VoiceOver, zones de toucher de 44 points, apparence sombre ou claire — vérifiés par des tests automatiques. |
 
@@ -39,8 +43,9 @@ pas de serveur, pas de publicité. Les données vivent sur tes appareils et se s
 
 ### iPad et Mac
 
-La même app, avec une barre latérale ; sur le Mac (Mac Catalyst), des raccourcis clavier (⌘1 à ⌘6, ⌘F) et le clic droit
-sur une affiche pour les actions rapides.
+La même app. Sur l'iPad, les onglets en haut et une barre latérale à la demande ; sur le Mac (Mac Catalyst), le menu en haut,
+la roue dentée des réglages en haut à droite, des raccourcis clavier (⌘1 à ⌘6, ⌘F, ⌘,) et le clic droit sur une affiche
+pour les actions rapides.
 
 <p align="center">
   <img src="Documentation/Captures/ipad-mac.jpg" alt="Séance sur iPad et Mac" width="90%">
@@ -48,8 +53,9 @@ sur une affiche pour les actions rapides.
 
 ### Apple TV
 
-Une interface à part, faite pour la télécommande : le menu en haut de l'écran, l'accueil en grande image, ta soirée,
-tes listes, le programme télé, le NAS, et les réglages entièrement modifiables depuis le canapé. La TV se configure
+Une interface à part, faite pour la télécommande, aussi complète que celle de l'iPhone : le menu en haut de l'écran,
+l'accueil en grande image, ta soirée et des idées, tes listes, le programme TV, le NAS et tes vidéos personnelles, la fiche
+complète (où regarder, épisodes, pouces, note, casting) et la fiche des acteurs, et des réglages en grandes cartes. La TV se configure
 depuis l'iPhone, par un code à six chiffres.
 
 <p align="center">
@@ -61,7 +67,7 @@ Pour aller plus loin : la [présentation](Documentation/Séance%20—%20présent
 [fiche de présentation](Documentation/Séance%20—%20fiche%20de%20présentation.pdf), le
 [cahier des exigences](Documentation/Séance%20—%20cahier%20des%20exigences.docx) et la
 [charte graphique](Documentation/Charte%20graphique.md). L'historique des versions se lit dans l'app
-(Réglages › À propos › Versions) et dans `Seance/Ecrans/Reglages/Versions.swift`.
+(Réglages › Versions) et dans `Seance/Ecrans/Reglages/Versions.swift`.
 
 ## Sources de données
 
@@ -74,7 +80,7 @@ Pour aller plus loin : la [présentation](Documentation/Séance%20—%20présent
 
 | Dossier | Contenu |
 | --- | --- |
-| `SeanceKit/` | Le moteur, sans persistance ni dépendance : client TMDB et cache, critères d'Explorer, guide TV (XMLTV), rattachement à TMDB, goûts et recommandation, noms de fichiers du NAS, sauvegarde et fusion de synchronisation, liens vers les plateformes, trousseau. Se teste avec les seuls Command Line Tools. |
+| `SeanceKit/` | Le moteur, sans persistance ni dépendance : e-mail de la semaine (HTML, MIME, client SMTP), client TMDB et cache, critères d'Explorer, guide TV (XMLTV), rattachement à TMDB, goûts et recommandation, noms de fichiers du NAS, sauvegarde et fusion de synchronisation, liens vers les plateformes, trousseau. Se teste avec les seuls Command Line Tools. |
 | `SeanceDonnees/` | Le modèle SwiftData (configurations « Utilisateur » et « Cache », sans CloudKit) et les services qui appliquent le moteur au magasin. Xcode requis (macros `@Model`). |
 | `SeanceNAS/` | L'accès SMB (AMSMB2), à part pour que le moteur reste sans dépendance. |
 | `Seance/` | L'app iPhone, iPad et Mac (Mac Catalyst). |

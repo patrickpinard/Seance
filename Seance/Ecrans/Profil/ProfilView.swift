@@ -98,6 +98,7 @@ struct ProfilView: View {
     private var dernieresNotes: some View {
         VStack(alignment: .leading, spacing: 10) {
             TitreSection("Tes dernières notes")
+                .task(id: notes.map(\.reference)) { await etat.decors.charger(notes.map(\.reference), client: etat.tmdb) }
             if notes.isEmpty {
                 Text("Note un film ou une série depuis sa fiche : tes notes affinent ce que Séance te propose.")
                     .font(.subheadline)
@@ -108,22 +109,10 @@ struct ProfilView: View {
                     LazyHStack(alignment: .top, spacing: 14) {
                         ForEach(notes) { suivi in
                             NavigationLink(value: suivi.reference) {
-                                VStack(alignment: .leading, spacing: 5) {
-                                    ImageDistante(url: ImageTMDB.url(suivi.cheminAffiche, .affiche))
-                                        .aspectRatio(2 / 3, contentMode: .fit)
-                                        .overlay(alignment: .topTrailing) {
-                                            Text("★ \(suivi.note ?? 0)")
-                                                .font(.caption2.weight(.heavy))
-                                                .padding(.horizontal, 7).padding(.vertical, 4)
-                                                .background(Theme.degradeAccent, in: Capsule())
-                                                .foregroundStyle(.black)
-                                                .padding(6)
-                                        }
-                                    Text(suivi.titre)
-                                        .font(.caption.weight(.semibold))
-                                        .lineLimit(1)
-                                }
-                                .frame(width: 104)
+                                // Le même format large que le reste de l'app (5.1) : l'image, ta note en ligne orange, où le revoir.
+                                CarteLargeTitre(reference: suivi.reference, titre: suivi.titre, cheminAffiche: suivi.cheminAffiche,
+                                                accroche: "★ \(suivi.note ?? 0)/10 · ta note")
+                                    .frame(width: CarteLargeTitre.largeur)
                             }
                             .buttonStyle(.plain)
                             .accessibilityLabel("\(suivi.titre), noté \(suivi.note ?? 0) sur 10")
@@ -247,7 +236,7 @@ struct ProfilView: View {
                     .font(.system(size: 17, weight: .semibold))
                     .foregroundStyle(.white)
                     .frame(width: 38, height: 38)
-                    .background(Color.purple.gradient, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    .background(Theme.degradeAccent, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Tes statistiques").font(.subheadline.weight(.semibold))
                     Text("Ta collection, tes heures, tes acteurs et genres favoris, ton année en cartes")

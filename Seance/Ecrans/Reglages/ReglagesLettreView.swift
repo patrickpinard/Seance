@@ -61,7 +61,7 @@ struct ReglagesLettreView: View {
             } header: {
                 Text("Quand")
             } footer: {
-                Text("Séance n'a pas de serveur : l'e-mail part de cet appareil, à sa première ouverture de Séance (ou à son premier réveil en arrière-plan) après ce moment. Active-le sur un seul appareil, sinon tu le recevrais en double.")
+                Text("Séance n'a pas de serveur : l'e-mail part de cet appareil, à sa première ouverture de Séance (ou à son premier réveil en arrière-plan) après ce moment. Ces réglages voyagent vers tes autres appareils par la synchronisation — pas le mot de passe, qui reste dans le trousseau de chacun : seul un appareil où tu l'as saisi peut envoyer, et la date du dernier envoi est partagée pour éviter les doublons.")
             }
 
             Section {

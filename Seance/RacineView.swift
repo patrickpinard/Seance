@@ -13,6 +13,8 @@ struct RacineView: View {
     @State private var bienvenue = false
     @State private var onglet = OngletRacine.accueil
     @State private var survolConfirmation = false
+    /// Mac : les Réglages s'ouvrent en feuille, depuis la roue dentée ou ⌘,.
+    @State private var reglagesOuverts = false
     /// Sur le Mac, le message de confirmation se centre sur le contenu, pas sur la fenêtre avec sa barre latérale.
     @AppStorage("mac.barreLaterale.masquee") private var barreMasquee = false
 
@@ -63,6 +65,35 @@ struct RacineView: View {
         // Confirmation d'une action, au-dessus de la barre d'onglets.
         #if targetEnvironment(macCatalyst)
         .allowsHitTesting(!survolConfirmation)
+        #endif
+        #if targetEnvironment(macCatalyst)
+        // Mac : la roue dentée des réglages, tout en haut à droite, à la hauteur du menu, la même sur toutes les pages.
+        .overlay(alignment: .topTrailing) {
+            Button { reglagesOuverts = true } label: {
+                Image(systemName: "gearshape.fill")
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(Theme.accentClair)
+                    .frame(width: 40, height: 40)
+                    .background(.regularMaterial, in: Circle())
+                    .overlay(Circle().strokeBorder(Theme.trait))
+                    .contentShape(Circle())
+            }
+            .buttonStyle(.plain)
+            .help("Réglages (⌘,)")
+            .accessibilityLabel("Réglages")
+            .padding(.top, 8)
+            .padding(.trailing, 18)
+            .ignoresSafeArea()
+        }
+        .sheet(isPresented: $reglagesOuverts) {
+            NavigationStack {
+                ReglagesView()
+                    .destinationsTitres()
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar { ToolbarItem(placement: .confirmationAction) { Button("OK") { reglagesOuverts = false } } }
+            }
+            .frame(minWidth: 760, minHeight: 640)
+        }
         #endif
         .overlay(alignment: .bottom) {
             if let confirmation = etat.confirmation {
@@ -175,7 +206,11 @@ struct RacineView: View {
         }
         .onChange(of: etat.ongletDemande) { _, demande in
             guard let demande else { return }
-            onglet = demande == .reglages && (classeTaille == .compact || Self.surMac) ? .profil : demande
+            if demande == .reglages, Self.surMac {
+                reglagesOuverts = true
+            } else {
+                onglet = demande == .reglages && classeTaille == .compact ? .profil : demande
+            }
             etat.ongletDemande = nil
         }
         // Fenêtre rétrécie (iPad) : l'onglet Réglages disparaît, Profil le remplace.

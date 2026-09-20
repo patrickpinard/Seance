@@ -117,6 +117,7 @@
 		CC898EF9BC0F2AB4B3062CF4 /* SeanceApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4994130740FE5C4E9733D92 /* SeanceApp.swift */; };
 		CF9E1E93D06F26359CB61324 /* FondTV.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C7A078473F674DE5D855194 /* FondTV.swift */; };
 		D09506312ABD69FBD6A03FA4 /* Lancement.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F521A01F8C00C6861F32A49 /* Lancement.swift */; };
+		D0EC1A46C9C48B351F5DDB19 /* CarteLargeTitre.swift in Sources */ = {isa = PBXBuildFile; fileRef = 015B5FC98ADD1A47A074B635 /* CarteLargeTitre.swift */; };
 		D27C1FC5A3614E1EDF282F6F /* AccueilTV.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10CC0E2C253A873F99B0EBDA /* AccueilTV.swift */; };
 		D3692AACDB2EE1BC63A706F2 /* ReglagesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = ABA6924ED64F1E1D2244C779 /* ReglagesView.swift */; };
 		D3D291714E7E7727508D57A7 /* PublicationEtagere.swift in Sources */ = {isa = PBXBuildFile; fileRef = E44F427370D5E25552689ED0 /* PublicationEtagere.swift */; };
@@ -199,6 +200,7 @@
 /* Begin PBXFileReference section */
 		003B43F4A3CFECED924F22EE /* FicheView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FicheView.swift; sourceTree = "<group>"; };
 		008A803E15A92C5BA4793BAE /* RechercheSoiree.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RechercheSoiree.swift; sourceTree = "<group>"; };
+		015B5FC98ADD1A47A074B635 /* CarteLargeTitre.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CarteLargeTitre.swift; sourceTree = "<group>"; };
 		051C2BE31C08E94AC2FB3AC6 /* PersonneTV.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersonneTV.swift; sourceTree = "<group>"; };
 		0638E7609742B2A07A76BE89 /* Seance.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Seance.entitlements; sourceTree = "<group>"; };
 		0661326CD01844A8F4B22D2B /* LienProfond.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LienProfond.swift; sourceTree = "<group>"; };
@@ -545,6 +547,7 @@
 			children = (
 				296C605DA0D2EB94945E9572 /* BarreLaterale.swift */,
 				E0F1BE421457182AAB4A1642 /* BasculeGrilleListe.swift */,
+				015B5FC98ADD1A47A074B635 /* CarteLargeTitre.swift */,
 				D1E76531BEB952957EAAEE65 /* Composants.swift */,
 				146BA72B687CCB624880596C /* EtatVide.swift */,
 				FBCCC2C7EB557DC82B0A231D /* Filtres.swift */,
@@ -966,6 +969,7 @@
 				06635254C557E72B65090ABF /* BasculeGrilleListe.swift in Sources */,
 				A052334119F82E47D0C04940 /* BienvenueView.swift in Sources */,
 				AAA30D3585243499220B7576 /* BilanAnneeView.swift in Sources */,
+				D0EC1A46C9C48B351F5DDB19 /* CarteLargeTitre.swift in Sources */,
 				E4F3613E523F79F4C481880A /* CartesSoiree.swift in Sources */,
 				4B9275D4D5E71A9F65F5DDAF /* CeSoirView.swift in Sources */,
 				FC66DDA64C3A840C4CB2D4F3 /* ChoixSoiree.swift in Sources */,
@@ -1229,7 +1233,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 38;
+				CURRENT_PROJECT_VERSION = 39;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = GATK475J3P;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -1249,7 +1253,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 5.0;
+				MARKETING_VERSION = 5.1;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -1350,7 +1354,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 38;
+				CURRENT_PROJECT_VERSION = 39;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = GATK475J3P;
 				ENABLE_NS_ASSERTIONS = NO;
@@ -1364,7 +1368,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 5.0;
+				MARKETING_VERSION = 5.1;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";

@@ -128,21 +128,9 @@ extension View {
     }
 
     /// Le bouton qui masque ou affiche le menu de gauche, en tête de la barre d'un onglet ; rien sur l'iPhone.
-    /// Posé à la racine de chaque onglet. Sur le Mac (menu en haut, sans barre latérale ni onglet Réglages), c'est la roue
-    /// dentée des réglages, en haut à droite de toutes les pages, comme sur l'Apple TV ; ailleurs, rien.
+    /// Posé à la racine de chaque onglet ; ne fait plus rien depuis la 5.1.
     func boutonBarreLaterale() -> some View {
-        #if targetEnvironment(macCatalyst)
-        toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                NavigationLink(value: DestinationReglage.reglages) {
-                    Image(systemName: "gearshape.fill")
-                }
-                .help("Réglages (⌘,)")
-                .accessibilityLabel("Réglages")
-            }
-        }
-        #else
+        // Sur le Mac, la roue dentée est posée une fois pour toutes par `RacineView`, à hauteur du menu.
         self
-        #endif
     }
 }

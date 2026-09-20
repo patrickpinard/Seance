@@ -58,7 +58,10 @@ enum PreferencesSauvegardees {
         for cle in textes { if let valeur = defauts.string(forKey: cle), !valeur.isEmpty { resultat[cle] = .texte(valeur) } }
         for cle in entiers where defauts.object(forKey: cle) != nil { resultat[cle] = .entier(defauts.integer(forKey: cle)) }
         for cle in booleens where defauts.object(forKey: cle) != nil { resultat[cle] = .booleen(defauts.bool(forKey: cle)) }
-        for cle in donnees + [cleAlertes, cleNAS, EtatVideosPerso.cleReglages] { if let valeur = defauts.data(forKey: cle) { resultat[cle] = .donnees(valeur) } }
+        for cle in donnees + [cleAlertes, cleNAS, EtatVideosPerso.cleReglages, EtatLettre.cle] { if let valeur = defauts.data(forKey: cle) { resultat[cle] = .donnees(valeur) } }
+        // L'e-mail de la semaine : ses réglages voyagent (destinataires, jour, compte — jamais le mot de passe), et la
+        // date du dernier envoi aussi, pour que deux appareils ne l'envoient pas chacun de leur côté.
+        if let envoi = defauts.object(forKey: EtatLettre.cleDernier) as? Date { resultat[EtatLettre.cleDernier] = .entier(Int(envoi.timeIntervalSince1970)) }
         return resultat
     }
 
@@ -67,7 +70,8 @@ enum PreferencesSauvegardees {
     /// `remplacer` : pour les réglages qu'un autre appareil a modifiés plus récemment (synchronisation).
     static func appliquer(_ preferences: [String: Sauvegarde.Preference], etat: EtatApp, remplacer: Bool = false, defauts: UserDefaults = .standard) -> Int {
         var repris = 0
-        for (cle, valeur) in preferences where remplacer || defauts.object(forKey: cle) == nil {
+        // La date du dernier e-mail envoyé se compare toujours : la plus récente l'emporte.
+        for (cle, valeur) in preferences where remplacer || defauts.object(forKey: cle) == nil || cle == EtatLettre.cleDernier {
             switch (cle, valeur) {
             case (cleAlertes, .donnees(let brut)):
                 // Les alertes et le NAS gardent leurs réglages en mémoire : ils passent par leur propre porte.
@@ -76,6 +80,11 @@ enum PreferencesSauvegardees {
             case (cleNAS, .donnees(let brut)):
                 guard let reglages = try? JSONDecoder().decode(ReglagesNAS.self, from: brut) else { continue }
                 etat.nas.enregistrer(reglages)
+            case (EtatLettre.cle, .donnees(let brut)):
+                guard let reglages = try? JSONDecoder().decode(EtatLettre.Reglages.self, from: brut) else { continue }
+                etat.lettre.enregistrer(reglages)
+            case (EtatLettre.cleDernier, .entier(let secondes)):
+                etat.lettre.noterEnvoiAilleurs(Date(timeIntervalSince1970: TimeInterval(secondes)))
             case (EtatVideosPerso.cleReglages, .donnees(let brut)):
                 guard let reglages = try? JSONDecoder().decode(ReglagesVideosPerso.self, from: brut) else { continue }
                 etat.videosPerso.enregistrer(reglages)

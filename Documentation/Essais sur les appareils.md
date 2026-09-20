@@ -89,3 +89,28 @@ SEANCE_NAS_HOTE=… SEANCE_NAS_PARTAGE=Films SEANCE_NAS_UTILISATEUR=… SEANCE_N
    discrètement que le NAS n'a pas répondu.
 6. iPad et Mac : activer « Par le NAS » aussi, si tu veux qu'ils passent par lui en plus d'iCloud Drive.
 
+## E-mail de la semaine (5.0)
+
+Le client SMTP n'a été éprouvé ici que jusqu'au refus d'un faux mot de passe (`SEANCE_SMTP_ESSAI=1 swift test --filter SMTPReel`
+dans `SeanceKit`) : aucun e-mail réel n'est parti.
+
+1. Réglages › E-mail de la semaine : serveur (`smtpauths.bluewin.ch`), port 465, utilisateur, adresse, mot de passe ;
+   une ou plusieurs adresses séparées par « ; ».
+2. « Voir l'e-mail de cette semaine » : l'aperçu doit montrer tes titres de la semaine, aux couleurs de Séance.
+3. « Envoyer un e-mail d'essai ». Attendu : « E-mail d'essai envoyé à … », et l'e-mail dans la boîte (voir aussi les indésirables).
+   - « Le serveur refuse l'utilisateur ou le mot de passe » : Gmail exige un mot de passe d'application.
+   - Un serveur en port 587 seulement (iCloud) ne convient pas.
+4. Activer l'envoi, choisir le jour et l'heure : l'e-mail part à la première ouverture de Séance après ce moment.
+5. Les réglages arrivent sur les autres appareils par la synchronisation — pas le mot de passe.
+
+## Alertes sur l'Apple Watch (5.1)
+
+iOS ne transmet une alerte à la montre que si l'iPhone est verrouillé ou en veille.
+
+1. Réglages › Alertes › **Tester sur l'Apple Watch**, puis verrouiller l'iPhone ; montre au poignet, déverrouillée.
+   Attendu, vingt secondes plus tard : l'alerte au poignet.
+2. Rien au poignet : la section « Apple Watch » signale ce qui bloque dans les réglages de notification de Séance. Sinon :
+   app Watch › Notifications › « Recopier les alertes de l'iPhone » › Séance ; et aucun mode de concentration actif.
+3. Depuis l'Apple TV : Réglages › « Tester une alerte », ouvrir Séance sur l'iPhone, le verrouiller : l'alerte arrive vingt
+   secondes après la synchronisation.
+

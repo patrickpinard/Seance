@@ -61,6 +61,7 @@ d'un passage télé, un code).
 | Choisir **ce que la page montre** (onglets de Mes listes, source d'Explorer, Films / Séries, rayons du NAS) | `SelecteurCases` | `Seance/Design/SelecteurCases.swift` |
 | Grille ou liste | `BasculeGrilleListe` | `Seance/Design/BasculeGrilleListe.swift` |
 | Un réglage, un dossier, une entrée de menu | `TuileReglage` (symbole orange, titre, état) | `Seance/Ecrans/Reglages/ReglagesView.swift` |
+| **Un titre dans une étagère** (accueil : regardable, Top, Du moment, NAS) | `CarteLargeTitre` : 16/9, le format de « Ce soir à la TV » — où regarder en haut à gauche, ligne orange, titre, faits. Les affiches 2:3 restent pour les grilles (Mes listes, Explorer) | `Seance/Design/CarteLargeTitre.swift` |
 | Un réglage surveillé (en ordre / à régler), en grande carte | `CarteReglage` (affiche floutée en fond, symbole orange, pastille d'état) ; `CarteReglageTV` sur l'Apple TV | idem ; `SeanceTV/Design/CarteReglageTV.swift` |
 | Une ligne d'état (en ordre / à régler) | `LigneEtat` | idem |
 | Une page sans contenu | `EtatVide` : symbole, titre, phrase, action | `Seance/Design/EtatVide.swift` |

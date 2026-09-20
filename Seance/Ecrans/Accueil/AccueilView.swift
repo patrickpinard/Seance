@@ -152,6 +152,8 @@ struct AccueilView: View {
     @State private var chemin = NavigationPath()
     @Query(sort: \SelectionSoir.ajouteLe) private var selections: [SelectionSoir]
     @Query(sort: \Suivi.ajouteLe, order: .reverse) private var suivis: [Suivi]
+    /// Les rendez-vous de tes titres : l'accueil résume ceux d'aujourd'hui, « À venir » les montre tous.
+    @Query(sort: \Echeance.date) private var echeances: [Echeance]
 
     /// « Je n'aime pas », « ni VF ni sous-titres » : ces titres ne sont plus proposés, l'accueil compris.
     private var ecartes: Set<ReferenceTitre> {
@@ -169,6 +171,51 @@ struct AccueilView: View {
     }
 
     /// « Ce soir : Heat, Reacher », ou la prochaine soirée prévue ; rien quand aucune soirée n'est prévue.
+    /// « Aujourd'hui » : ce qui sort ou passe ce jour pour tes titres, en quelques lignes ; le détail est dans Mes listes › À venir.
+    @ViewBuilder
+    private var aujourdhui: some View {
+        let calendrier = Calendar.current
+        var vues = Set<String>()
+        let duJour = echeances.filter { calendrier.isDateInToday($0.date) && vues.insert("\($0.reference)|\($0.libelle)").inserted }
+        if !duJour.isEmpty {
+            VStack(alignment: .leading, spacing: 10) {
+                TitreSection(titre: "Aujourd'hui") {
+                    BoutonToutVoir {
+                        etat.listeDemandee = .aVenir
+                        etat.ongletDemande = .listes
+                    }
+                }
+                VStack(spacing: 0) {
+                    ForEach(Array(duJour.prefix(4).enumerated()), id: \.offset) { rang, echeance in
+                        if rang > 0 { Divider().overlay(Theme.trait).padding(.leading, 60) }
+                        NavigationLink(value: echeance.reference) {
+                            HStack(spacing: 12) {
+                                ImageDistante(url: ImageTMDB.url(echeance.cheminAffiche, .affiche), coins: 6)
+                                    .frame(width: 34, height: 51)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(echeance.titre).font(.subheadline.weight(.semibold)).lineLimit(1)
+                                    Text(echeance.libelle).font(.caption.weight(.semibold)).foregroundStyle(Theme.accentClair).lineLimit(1)
+                                }
+                                Spacer(minLength: 0)
+                                Image(systemName: "chevron.right").font(.caption.weight(.semibold)).foregroundStyle(.tertiary)
+                            }
+                            .padding(.horizontal, 12)
+                            .frame(minHeight: 62)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    if duJour.count > 4 {
+                        Text("et \(duJour.count - 4) de plus dans « À venir »").font(.caption).foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .leading).padding(.horizontal, 12).padding(.bottom, 10)
+                    }
+                }
+                .background(Theme.surface, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .padding(.horizontal, 20)
+            }
+        }
+    }
+
     private var resumeSoiree: String? {
         let jour = ServiceSoiree.soiree()
         let ceSoir = selections.filter { $0.soiree == jour }.map(\.titre)
@@ -312,19 +359,7 @@ struct AccueilView: View {
                     .accessibilityHint("Ouvre Ce soir")
                 }
 
-                // Accueil limité à certaines plateformes : c'est dit, et modifiable d'un geste.
-                if let plateformes {
-                    Button { reglageSources = true } label: {
-                        Label("Sur \(nomsPlateformes(plateformes)) seulement · Modifier", systemImage: "play.tv")
-                            .font(.subheadline.weight(.semibold))
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 8)
-                            .background(Theme.surface, in: Capsule())
-                    }
-                    .buttonStyle(.plain)
-                    .foregroundStyle(Theme.accentClair)
-                    .padding(.horizontal, 20)
-                }
+                aujourdhui
 
                 if sources.regardable {
                     // Sur le NAS, sur tes plateformes ou à la TV ce soir : le badge « où regarder » le sait déjà.
@@ -476,6 +511,7 @@ private struct SectionRegardable: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             TitreSection("Regardable ce soir, dans ta liste")
+                .task(id: suivis.map(\.reference)) { await etat.decors.charger(suivis.map(\.reference), client: etat.tmdb) }
             Text("Sur ton NAS, sur tes plateformes ou à la TV ce soir")
                 .font(.caption)
                 .foregroundStyle(.secondary)
@@ -484,8 +520,9 @@ private struct SectionRegardable: View {
                 LazyHStack(alignment: .top, spacing: 14) {
                     ForEach(suivis) { suivi in
                         NavigationLink(value: suivi.reference) {
-                            AfficheSuivi(suivi: suivi, rendezVous: nil, episodesVus: 0)
-                                .frame(width: 118)
+                            CarteLargeTitre(reference: suivi.reference, titre: suivi.titre, cheminAffiche: suivi.cheminAffiche,
+                                            faits: suivi.note.map { ["★ \($0)/10"] } ?? [])
+                                .frame(width: CarteLargeTitre.largeur)
                         }
                         .buttonStyle(.plain)
                         .contextMenu {
@@ -580,7 +617,7 @@ private struct Carrousel: View {
             LazyHStack(alignment: .top, spacing: 12) {
                 ForEach(titres) { titre in
                     NavigationLink(value: titre.reference) {
-                        CarteAffiche(titre: titre, sousTitre: sousTitre(titre))
+                        CarteLargeTitre(titre, accroche: sousTitre(titre)).frame(width: CarteLargeTitre.largeur)
                     }
                     .buttonStyle(.plain)
                     .actionsRapides(titre)
@@ -631,15 +668,8 @@ private struct SectionTop10: View {
 
     private func carte(_ titre: TitreResume, rang: Int) -> some View {
         NavigationLink(value: titre.reference) {
-            HStack(alignment: .bottom, spacing: -14) {
-                Text("\(rang)")
-                    .font(.system(size: 88, weight: .black, design: .rounded))
-                    .foregroundStyle(Theme.degradeAccent)
-                    .shadow(color: .black.opacity(0.6), radius: 4)
-                    .padding(.bottom, 44)
-                    .accessibilityHidden(true)
-                CarteAffiche(titre: titre, sousTitre: titre.reference.type == .film ? "Film" : "Série")
-            }
+            CarteLargeTitre(titre, accroche: "N° \(rang) des \(titre.reference.type == .film ? "films" : "séries")", rang: rang)
+                .frame(width: CarteLargeTitre.largeur)
         }
         .buttonStyle(.plain)
         .actionsRapides(titre)
@@ -665,7 +695,17 @@ private struct SectionNAS: View {
                 DefilementHorizontal {
                     LazyHStack(alignment: .top, spacing: 12) {
                         ForEach(apercu) { oeuvre in
-                            CarteOeuvreNAS(oeuvre: oeuvre, largeur: 118)
+                            let carte = CarteLargeTitre(reference: oeuvre.reference, titre: oeuvre.titre, cheminFond: oeuvre.fichiers.first?.cheminFond,
+                                                        cheminAffiche: oeuvre.cheminAffiche,
+                                                        accroche: [oeuvre.nouveaute ? "Nouveau" : nil, oeuvre.qualite,
+                                                                   oeuvre.fichiers.count > 1 ? "\(oeuvre.fichiers.count) fichiers" : nil].compactMap { $0 }.joined(separator: " · "),
+                                                        faits: [oeuvre.annee.map(String.init), oeuvre.nombreVotes > 0 ? "\(Int((oeuvre.noteMoyenne * 10).rounded())) %" : nil].compactMap { $0 })
+                                .frame(width: CarteLargeTitre.largeur)
+                            if let reference = oeuvre.reference {
+                                NavigationLink(value: reference) { carte }.buttonStyle(.plain)
+                            } else {
+                                carte
+                            }
                         }
                     }
                     .padding(.horizontal, 20)

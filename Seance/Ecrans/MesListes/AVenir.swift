@@ -120,14 +120,13 @@ struct CarteEcheance: View {
     }
 }
 
-/// L'onglet « À venir » de Mes listes, dans un défilement libre (pas dans une `List`, qui ouvrait plusieurs liens à la fois) : la rangée des jours où il se passe quelque chose (« Tout »
-/// d'abord), puis les rendez-vous en grandes cartes, le plus proche en tête.
+/// L'onglet « À venir » de Mes listes, dans un défilement libre (pas dans une `List`, qui ouvrait plusieurs liens à la fois) : la rangée des jours où il se passe quelque chose, puis les rendez-vous en grandes cartes, le plus proche en tête.
 struct SectionAVenir: View {
     /// Les rendez-vous à partir d'aujourd'hui, déjà filtrés par la recherche, triés par date.
     let echeances: [Echeance]
 
     @Environment(EtatApp.self) private var etat
-    /// Le jour choisi, à minuit ; `nil` pour tout voir.
+    /// Le jour choisi, à minuit ; `nil` : le plus proche.
     @State private var jourChoisi: Date?
 
     private static let locale = Locale(identifier: "fr_CH")
@@ -139,20 +138,13 @@ struct SectionAVenir: View {
     var body: some View {
         let parJour = parJour
         let jours = parJour.keys.sorted()
-        // Un jour dont le dernier rendez-vous vient de passer n'existe plus : retour à « Tout ».
-        let jour = jourChoisi.flatMap { parJour[$0] == nil ? nil : $0 }
-        let affichees = jour.flatMap { parJour[$0] } ?? echeances
+        // Toujours un jour à la fois, le plus proche d'office : « Tout » répétait la même série autant de fois qu'elle passe
+        // dans la semaine (NCIS chaque soir sur W9), et noyait le reste.
+        let jour = jourChoisi.flatMap { parJour[$0] == nil ? nil : $0 } ?? jours.first
+        let affichees = jour.flatMap { parJour[$0] } ?? []
 
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
-                Button {
-                    withAnimation(.easeOut(duration: 0.2)) { jourChoisi = nil }
-                } label: {
-                    TuileJour(nom: "Tout", numero: echeances.count, detail: "à venir", actif: jour == nil)
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Tout : \(Format.pluriel(echeances.count, "rendez-vous", "rendez-vous"))")
-                .accessibilityAddTraits(jour == nil ? .isSelected : [])
                 ForEach(jours, id: \.self) { date in
                     let nombre = parJour[date]?.count ?? 0
                     Button {

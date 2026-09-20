@@ -418,10 +418,12 @@ struct BoutonToutVoir: View {
     let action: () -> Void
 
     var body: some View {
-        Button("Tout voir", action: action)
-            .font(.subheadline.weight(.semibold))
-            .tint(Theme.accent)
-            .fixedSize()
+        // Un lien d'une ligne : il répond sur 44 points (audit d'accessibilité), sans grandir à l'écran.
+        Button(action: action) {
+            Text("Tout voir").font(.subheadline.weight(.semibold)).fixedSize().zoneDeToucher(largeur: 44)
+        }
+        .tint(Theme.accent)
+        .padding(.vertical, -12)
     }
 }
 
