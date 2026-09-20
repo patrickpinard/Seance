@@ -78,12 +78,8 @@ struct FicheTV: View {
         HStack(spacing: 28) {
             // Un film du NAS : la lecture d'abord, c'est pour elle qu'on est devant la TV.
             if reference.type == .film, let fichier = siens.first {
-                ForEach(etat.liens(pour: fichier), id: \.lecteur) { lien in
-                    Button { lire(lien.url, avec: lien.lecteur) } label: {
-                        Label("Lire avec \(lien.lecteur.nom)", systemImage: "play.fill")
-                    }
-                    .buttonStyle(BoutonTV(principal: lien.lecteur == .infuse))
-                }
+                Button { lire(fichier) } label: { Label("Lire", systemImage: "play.fill") }
+                    .buttonStyle(BoutonTV(principal: true))
             }
             Button { basculerSoiree() } label: {
                 Label(prevuCeSoir ? "Retirer de ce soir" : "Ce soir", systemImage: prevuCeSoir ? "moon.stars.fill" : "moon.stars")
@@ -107,10 +103,8 @@ struct FicheTV: View {
                     Text(numero(fichier)).font(.system(size: 28, weight: .bold)).monospacedDigit().frame(width: 150, alignment: .leading)
                     Text(fichier.qualite ?? "").font(.system(size: 24)).foregroundStyle(.secondary)
                     Spacer()
-                    ForEach(etat.liens(pour: fichier), id: \.lecteur) { lien in
-                        Button { lire(lien.url, avec: lien.lecteur) } label: { Label(lien.lecteur.nom, systemImage: "play.fill") }
-                            .buttonStyle(BoutonTV(principal: lien.lecteur == .infuse))
-                    }
+                    Button { lire(fichier) } label: { Label("Lire", systemImage: "play.fill") }
+                        .buttonStyle(BoutonTV(principal: true))
                 }
                 .font(.system(size: 26))
             }
@@ -170,9 +164,16 @@ struct FicheTV: View {
         }
     }
 
-    private func lire(_ url: URL, avec lecteur: LecteurVideo) {
+    /// Dans l'app choisie dans Réglages › Lecture, et elle seule.
+    private func lire(_ fichier: FichierNAS) {
+        guard let url = etat.lien(pour: fichier) else {
+            etat.dire(etat.lecteur == .infuse ? "Infuse ne s'ouvre que sur un titre reconnu. Choisis VLC dans Réglages › Lecture."
+                                              : "Le mot de passe du NAS manque : vois Réglages › NAS.")
+            return
+        }
+        etat.noterLecture(fichier)
         ouvrir(url) { accepte in
-            if !accepte { etat.dire("\(lecteur.nom) n'est pas installé sur cette Apple TV, ou refuse ce lien.") }
+            if !accepte { etat.dire("\(etat.lecteur.nom) n'est pas installé sur cette Apple TV, ou refuse ce lien.") }
         }
     }
 

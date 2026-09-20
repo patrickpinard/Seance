@@ -7,6 +7,7 @@ import SwiftUI
 struct RacineTV: View {
     @Environment(EtatTV.self) private var etat
     @Environment(\.modelContext) private var contexte
+    @Environment(\.scenePhase) private var phase
 
     @State private var onglet = DepartTV.onglet
     @State private var cheminAccueil = DepartTV.fiche.map { [$0] } ?? []
@@ -16,14 +17,19 @@ struct RacineTV: View {
         TabView(selection: $onglet) {
             Tab("Accueil", systemImage: "house.fill", value: OngletTV.accueil) {
                 NavigationStack(path: $cheminAccueil) {
-                    AccueilTV().navigationDestination(for: ReferenceTitre.self) { FicheTV(reference: $0) }
+                    AccueilTV().sousLaPastille().navigationDestination(for: ReferenceTitre.self) { FicheTV(reference: $0) }
                 }
             }
             Tab("Ce soir", systemImage: "moon.stars.fill", value: OngletTV.ceSoir) { pile { CeSoirTV() } }
             Tab("Mes listes", systemImage: "bookmark.fill", value: OngletTV.listes) { pile { ListesTV() } }
+            Tab("Explorer", systemImage: "sparkle.magnifyingglass", value: OngletTV.explorer) { pile { ExplorerTV() } }
+            Tab("Télé", systemImage: "tv.fill", value: OngletTV.tele) { pile { TeleTV() } }
             Tab("NAS", systemImage: "externaldrive.fill", value: OngletTV.nas) { pile { NASTV() } }
+            Tab("Profil", systemImage: "person.crop.circle.fill", value: OngletTV.profil) { pile { ProfilTV() } }
             Tab("Réglages", systemImage: "gearshape.fill", value: OngletTV.reglages) { pile { ReglagesTV() } }
         }
+        // Huit onglets débordent d'une barre en haut d'écran : la barre latérale de tvOS les montre tous, comme l'app Apple TV.
+        .tabViewStyle(.sidebarAdaptable)
         .background(Theme.fond.ignoresSafeArea())
         .overlay(alignment: .bottom) {
             if let message = etat.message {
@@ -38,9 +44,29 @@ struct RacineTV: View {
         }
         .animation(.snappy, value: etat.message)
         .fullScreenCover(isPresented: $configuration) { ConfigurationTV() }
+        // Retour de l'app de lecture : « Tu l'as regardé ? » (EF-118, sur la TV).
+        .onChange(of: phase) { _, nouvelle in
+            if nouvelle == .active { etat.revenir() }
+        }
+        .alert("Tu l'as regardé ?", isPresented: Binding { etat.lectureAConfirmer != nil } set: { if !$0 { etat.lectureAConfirmer = nil } },
+               presenting: etat.lectureAConfirmer) { reference in
+            Button("Oui, marquer vu") { marquerVu(reference) }
+            Button("Pas encore", role: .cancel) {}
+        } message: { _ in
+            Text("Séance le range dans tes films vus ; tu pourras le noter depuis sa fiche.")
+        }
         // La bibliothèque du NAS se relit au lancement : le magasin de la TV est un cache (EF-145).
         .task {
             if etat.nasPret, !etat.enDemonstration { await etat.analyserNAS(contexte: contexte) }
+        }
+    }
+
+    private func marquerVu(_ reference: ReferenceTitre) {
+        Task {
+            guard let film = try? await etat.tmdb?.film(reference.tmdbID) else { return etat.dire("TMDB ne répond pas : marque-le vu depuis sa fiche.") }
+            try? ServiceSuivi(contexte: contexte).marquerVu(film: film)
+            try? ServiceSoiree(contexte: contexte).retirer(reference)
+            etat.dire("« \(film.titre) » marqué vu")
         }
     }
 
@@ -48,13 +74,14 @@ struct RacineTV: View {
     private func pile(@ViewBuilder _ contenu: () -> some View) -> some View {
         NavigationStack {
             contenu()
+                .sousLaPastille()
                 .navigationDestination(for: ReferenceTitre.self) { FicheTV(reference: $0) }
         }
     }
 }
 
 enum OngletTV: String, Hashable {
-    case accueil, ceSoir, listes, nas, reglages
+    case accueil, ceSoir, listes, explorer, tele, nas, profil, reglages
 }
 
 /// Où l'app s'ouvre. Toujours l'accueil — sauf dans une version de test, où `SEANCE_TV_ONGLET=nas` ou
@@ -94,5 +121,13 @@ enum DepartTV {
         }
         #endif
         return nil
+    }
+}
+
+extension View {
+    /// Repliée, la barre latérale de tvOS laisse en haut à gauche une pastille au nom de l'onglet : les pages
+    /// commencent dessous, pour qu'elle ne chevauche pas leur premier titre.
+    func sousLaPastille() -> some View {
+        safeAreaPadding(.top, 90)
     }
 }

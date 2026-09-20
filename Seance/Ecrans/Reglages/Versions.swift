@@ -20,6 +20,21 @@ struct NoteVersion: Identifiable {
 
     static let historique: [NoteVersion] = [
         NoteVersion(
+            numero: "4.1",
+            date: "20 septembre 2026",
+            resume: "Des Réglages refaits, un seul lecteur pour « Lire », et une Apple TV presque aussi complète que l'iPhone.",
+            fonctionnalites: [
+                Fonctionnalite(symbole: "gearshape.2", titre: "Réglages, plus simples",
+                               detail: "L'état en tête est la seule entrée de ce qu'il surveille — TMDB, plateformes, télévision, NAS, lecture, alertes, sauvegarde : chaque ligne s'ouvre. Dessous, le reste en tuiles, aux couleurs de Séance. Plus aucun réglage en double."),
+                Fonctionnalite(symbole: "play.circle", titre: "Un seul lecteur",
+                               detail: "« Lire » ouvre l'app choisie dans Réglages › Lecture, Infuse ou VLC, et elle seule : plus de second bouton ni d'appui long. Ce choix part aussi vers l'Apple TV avec le reste."),
+                Fonctionnalite(symbole: "appletv.fill", titre: "Apple TV : tout le reste",
+                               detail: "Le programme télé jour par jour et « Ce soir à la télé » sur l'accueil, Explorer par choix plutôt qu'au clavier, ton Profil, une grande image en tête d'accueil, et « Tu l'as regardé ? » au retour d'un film. Les onglets passent dans une barre latérale."),
+                Fonctionnalite(symbole: "slider.horizontal.3", titre: "Apple TV : des Réglages complets",
+                               detail: "Même page qu'ici, et tout s'y modifie à la télécommande : plateformes, chaînes, goûts, NAS, lecteur. Tant que la synchronisation par le NAS n'est pas là, ces changements restent sur la TV."),
+            ]
+        ),
+        NoteVersion(
             numero: "4.0",
             date: "20 septembre 2026",
             resume: "Séance arrive sur l'Apple TV, et ton iPhone la met en route avec un simple code.",

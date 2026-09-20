@@ -12,8 +12,8 @@ final class EnvoiAppleTVTests: XCTestCase {
         XCTAssertTrue(app.tabBars.buttons["Profil"].firstMatch.waitForExistence(timeout: 20))
         app.tabBars.buttons["Profil"].firstMatch.tap()
         app.navigationBars.buttons["Réglages"].firstMatch.tap()
-        let carte = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Configurer mon Apple TV'")).firstMatch
-        XCTAssertTrue(app.amener(carte), "La carte « Configurer mon Apple TV » est absente des Réglages")
+        let carte = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Mon Apple TV'")).firstMatch
+        XCTAssertTrue(app.amener(carte), "La tuile « Mon Apple TV » est absente des Réglages")
         carte.tap()
 
         let tv = app.buttons.matching(NSPredicate(format: "label CONTAINS 'Apple TV'")).firstMatch

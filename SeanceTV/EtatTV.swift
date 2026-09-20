@@ -22,8 +22,19 @@ final class EtatTV {
     /// Dit en bas de l'écran ce qui vient d'être fait, quelques secondes.
     var message: String?
 
+    /// L'app qui lit les vidéos du NAS : « Lire » n'ouvre que celle-là.
+    private(set) var lecteur: LecteurVideo
+    /// Le film lancé dans l'app de lecture : au retour dans Séance, on demande s'il a été regardé.
+    var lectureAConfirmer: ReferenceTitre?
+    private var lectureLancee: ReferenceTitre?
+    private(set) var teleEnCours = false
+    private(set) var derniereLectureTele = UserDefaults.standard.object(forKey: Cle.derniereLectureTele) as? Date
+
     private enum Cle {
         static let nas = "nas.reglages"
+        static let lecteur = "nas.lecteur"
+        static let derniereLectureTele = "tele.derniereLecture"
+        static let chainesLues = "tele.chainesLues"
     }
 
     init() {
@@ -32,6 +43,7 @@ final class EtatTV {
         } else {
             nas = ReglagesNAS()
         }
+        lecteur = UserDefaults.standard.string(forKey: Cle.lecteur).flatMap(LecteurVideo.init(rawValue:)) ?? .infuse
         motDePasseNAS = ((try? coffre.lire(.nas)) ?? nil) != nil
         rechargerTMDB()
     }
@@ -89,6 +101,7 @@ final class EtatTV {
             enregistrerNAS(reglages, motDePasse: configuration.motDePasseNAS ?? "")
             recus.append(motDePasseNAS ? "le NAS" : "le NAS, sans son mot de passe")
         }
+        if let choisi = configuration.lecteur { choisir(choisi) }
         if let donnees = configuration.sauvegarde, let sauvegarde = try? Sauvegarde.decoder(donnees),
            let plan = try? ServiceSauvegarde(contexte: contexte).importer(sauvegarde) {
             recus.append(plan.estVide ? "tes données (déjà à jour)" : "tes listes et tes soirées")
@@ -137,19 +150,49 @@ final class EtatTV {
 
     // MARK: Lecture
 
-    /// Infuse ouvre le titre dans sa bibliothèque par son identifiant TMDB (le partage du NAS doit y être ajouté, sur
-    /// l'Apple TV aussi) ; VLC reçoit l'adresse SMB, identifiants compris.
-    func liens(pour fichier: FichierNAS) -> [(lecteur: LecteurVideo, url: URL)] {
-        var liens: [(LecteurVideo, URL)] = []
-        let episode = fichier.saison.flatMap { saison in fichier.episode.map { NumeroEpisode(saison: saison, episode: $0) } }
-        if let reference = fichier.reference, let lien = LecteurVideo.infuse.lienBibliotheque(reference, episode: episode) {
-            liens.append((.infuse, lien))
+    func choisir(_ nouveau: LecteurVideo) {
+        lecteur = nouveau
+        UserDefaults.standard.set(nouveau.rawValue, forKey: Cle.lecteur)
+    }
+
+    /// Le lien vers l'app de lecture choisie, et elle seule. Infuse ouvre le titre dans sa bibliothèque par son
+    /// identifiant TMDB (le partage du NAS doit y être ajouté, sur l'Apple TV aussi) ; VLC reçoit l'adresse SMB.
+    func lien(pour fichier: FichierNAS) -> URL? {
+        switch lecteur {
+        case .infuse:
+            let episode = fichier.saison.flatMap { saison in fichier.episode.map { NumeroEpisode(saison: saison, episode: $0) } }
+            return fichier.reference.flatMap { lecteur.lienBibliotheque($0, episode: episode) }
+        case .vlc:
+            guard let motDePasse = (try? coffre.lire(.nas)) ?? nil, let video = nas.url(chemin: fichier.chemin, motDePasse: motDePasse) else { return nil }
+            return lecteur.lien(pour: video)
         }
-        if let motDePasse = (try? coffre.lire(.nas)) ?? nil, let video = nas.url(chemin: fichier.chemin, motDePasse: motDePasse),
-           let lien = LecteurVideo.vlc.lien(pour: video) {
-            liens.append((.vlc, lien))
-        }
-        return liens
+    }
+
+    /// Un film part dans l'app de lecture : on s'en souvient, pour demander au retour s'il a été regardé.
+    func noterLecture(_ fichier: FichierNAS) {
+        lectureLancee = fichier.reference.flatMap { $0.type == .film ? $0 : nil }
+    }
+
+    /// Retour dans Séance : « Tu l'as regardé ? »
+    func revenir() {
+        lectureAConfirmer = lectureLancee
+        lectureLancee = nil
+    }
+
+    // MARK: Programme télé
+
+    /// Relit le guide si la dernière lecture a plus de douze heures ou si les chaînes cochées ont changé.
+    func actualiserTele(contexte: ModelContext, force: Bool = false) async {
+        guard !enDemonstration, !teleEnCours, let tmdb, let actives = try? ServiceProgrammesTV.chainesActives(contexte) else { return }
+        let lues = UserDefaults.standard.stringArray(forKey: Cle.chainesLues)
+        guard force || ServiceProgrammesTV.doitActualiser(derniereLecture: derniereLectureTele, chainesLues: lues, chainesActives: actives) else { return }
+        teleEnCours = true
+        defer { teleEnCours = false }
+        let service = ServiceProgrammesTV(contexte: contexte, guide: GuideTVClient(), rattachement: RattachementGuide(recherche: tmdb))
+        guard (try? await service.actualiser()) != nil else { return }
+        derniereLectureTele = .now
+        UserDefaults.standard.set(Date.now, forKey: Cle.derniereLectureTele)
+        UserDefaults.standard.set(actives, forKey: Cle.chainesLues)
     }
 
     func dire(_ texte: String) {

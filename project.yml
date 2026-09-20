@@ -18,8 +18,8 @@ settings:
     # Équipe personnelle de Patrick (compte Apple gratuit).
     DEVELOPMENT_TEAM: GATK475J3P
     # Version affichée dans À propos › Versions ; à changer avec Seance/Ecrans/Reglages/Versions.swift.
-    MARKETING_VERSION: "4.0"
-    CURRENT_PROJECT_VERSION: "25"
+    MARKETING_VERSION: "4.1"
+    CURRENT_PROJECT_VERSION: "26"
 
 packages:
   SeanceKit:

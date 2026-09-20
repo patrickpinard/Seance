@@ -109,7 +109,8 @@ struct EnvoiAppleTVView: View {
             cleTMDB: (try? coffre.lire(.tmdb)) ?? nil,
             nas: etat.nas.estConfigure ? etat.nas.reglages : nil,
             motDePasseNAS: (try? coffre.lire(.nas)) ?? nil,
-            sauvegarde: sauvegarde
+            sauvegarde: sauvegarde,
+            lecteur: etat.nas.lecteur
         )
         Task {
             do {

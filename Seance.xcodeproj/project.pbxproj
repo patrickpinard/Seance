@@ -27,7 +27,9 @@
 		2052DE94C65ACC142FD3C13F /* Enregistrement.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B1700F8E822A4D474EC18A2 /* Enregistrement.swift */; };
 		20FA4ABD083DC6765765CA01 /* SeanceDonnees in Frameworks */ = {isa = PBXBuildFile; productRef = 2CAE51A8CC0DF6130D32359E /* SeanceDonnees */; };
 		235FD4AE7A62D4B74525FB9D /* ProgrammeTeleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EAE8B788413B4185E79D6B4 /* ProgrammeTeleTests.swift */; };
+		2A0E12E18C94B91D230F7950 /* TeleTV.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76E95955E82BF0843BEFC076 /* TeleTV.swift */; };
 		2A5AA594AC154FF6E7492533 /* EnvoiAppleTVTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0EDD37B39A84ADA0B97BEB0F /* EnvoiAppleTVTests.swift */; };
+		2E78913583D012AC8AAC1D1B /* ProfilTV.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D777738E8169D1D6CBA2E0A /* ProfilTV.swift */; };
 		31EF6B7567FA50350F574204 /* LectureNAS.swift in Sources */ = {isa = PBXBuildFile; fileRef = 562FA0BC92C87B80E5980C1F /* LectureNAS.swift */; };
 		32056F493FAD69C4C9128FA0 /* CeSoirTV.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3FE25142805AA50B481B3069 /* CeSoirTV.swift */; };
 		38494C6BBA699EBC23E52D0A /* ClavierTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6BF050FFB31533A9C659BB48 /* ClavierTests.swift */; };
@@ -68,6 +70,7 @@
 		92876E82089F7847852065E2 /* Preferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27A875186D1EBB3CF86647AE /* Preferences.swift */; };
 		93199CD505BB89136E582D70 /* ComposantsTV.swift in Sources */ = {isa = PBXBuildFile; fileRef = 540314EE6294B3465B1CB83B /* ComposantsTV.swift */; };
 		9465DF498AFBE22D12E9EC5E /* FicheView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 003B43F4A3CFECED924F22EE /* FicheView.swift */; };
+		9867FB00F0D6DD9089B21C75 /* ExplorerTV.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D15356F74B00927F6949939 /* ExplorerTV.swift */; };
 		9B9A908F82B4C7E4F5A1F7D2 /* ConfigurationTV.swift in Sources */ = {isa = PBXBuildFile; fileRef = A683B780160AA62BE42AD9C1 /* ConfigurationTV.swift */; };
 		9B9D518CBB779E2321545F3B /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6507C62249A2769DB1E60E0 /* Theme.swift */; };
 		9D5E919DE0559CD12DD8AB23 /* SeanceTVApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDABBFFE0299F9E2180E680B /* SeanceTVApp.swift */; };
@@ -207,6 +210,7 @@
 		6F81823D485206B920058D9E /* PublicationWidgets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PublicationWidgets.swift; sourceTree = "<group>"; };
 		701BB30E177402C310C6B51C /* ProfilView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfilView.swift; sourceTree = "<group>"; };
 		70E5C0C6A6037BEC6D806F5F /* SeanceWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeanceWidget.swift; sourceTree = "<group>"; };
+		76E95955E82BF0843BEFC076 /* TeleTV.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TeleTV.swift; sourceTree = "<group>"; };
 		7788E5AF973E89FC76F574C6 /* SeanceUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = SeanceUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		7B0BBB17CE85F8FC16F4470B /* EnvoiAppleTV.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnvoiAppleTV.swift; sourceTree = "<group>"; };
 		7F2F9E228CF6FD8AD2ABB788 /* ListesTV.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ListesTV.swift; sourceTree = "<group>"; };
@@ -216,6 +220,8 @@
 		8B1700F8E822A4D474EC18A2 /* Enregistrement.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Enregistrement.swift; sourceTree = "<group>"; };
 		8B744A230DB10B098ACBAA1A /* SeanceWidget.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = SeanceWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		8C27D46355FD45FE0B6BCD9F /* FicheDefilementTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FicheDefilementTests.swift; sourceTree = "<group>"; };
+		8D15356F74B00927F6949939 /* ExplorerTV.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExplorerTV.swift; sourceTree = "<group>"; };
+		8D777738E8169D1D6CBA2E0A /* ProfilTV.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfilTV.swift; sourceTree = "<group>"; };
 		90761F2586C2B18FD2046492 /* EtatSynchro.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EtatSynchro.swift; sourceTree = "<group>"; };
 		9AE0ECC999FF1CA413FECC30 /* ListesNommees.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ListesNommees.swift; sourceTree = "<group>"; };
 		9F359EEF2BD50F8A8280CD01 /* AVenir.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AVenir.swift; sourceTree = "<group>"; };
@@ -563,10 +569,13 @@
 				10CC0E2C253A873F99B0EBDA /* AccueilTV.swift */,
 				3FE25142805AA50B481B3069 /* CeSoirTV.swift */,
 				A683B780160AA62BE42AD9C1 /* ConfigurationTV.swift */,
+				8D15356F74B00927F6949939 /* ExplorerTV.swift */,
 				EC28EF8C6F8FD3DBA038A6B1 /* FicheTV.swift */,
 				7F2F9E228CF6FD8AD2ABB788 /* ListesTV.swift */,
 				2DE009439CA55CCDE58B6A92 /* NASTV.swift */,
+				8D777738E8169D1D6CBA2E0A /* ProfilTV.swift */,
 				54B4F4189EFFF7CA18A4B017 /* ReglagesTV.swift */,
+				76E95955E82BF0843BEFC076 /* TeleTV.swift */,
 			);
 			path = Ecrans;
 			sourceTree = "<group>";
@@ -773,13 +782,16 @@
 				50762ED1A79B5815F5A6B883 /* Demonstration.swift in Sources */,
 				2052DE94C65ACC142FD3C13F /* Enregistrement.swift in Sources */,
 				E73943D3F2FC9A1C1C9E15AB /* EtatTV.swift in Sources */,
+				9867FB00F0D6DD9089B21C75 /* ExplorerTV.swift in Sources */,
 				3ACD7AF63174915B43570296 /* FauxTMDB.swift in Sources */,
 				8F8CD3C44264D47470182C69 /* FicheTV.swift in Sources */,
 				5DDD07F40FFE3335AC49B8AF /* ListesTV.swift in Sources */,
 				AF221D726CDAD5B2E1814E93 /* NASTV.swift in Sources */,
+				2E78913583D012AC8AAC1D1B /* ProfilTV.swift in Sources */,
 				7FE9E5D984637A420CA60AA8 /* RacineTV.swift in Sources */,
 				82B7699785ED31DA68C754A9 /* ReglagesTV.swift in Sources */,
 				9D5E919DE0559CD12DD8AB23 /* SeanceTVApp.swift in Sources */,
+				2A0E12E18C94B91D230F7950 /* TeleTV.swift in Sources */,
 				F3631B58722536201E41B063 /* Theme.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -1039,7 +1051,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 25;
+				CURRENT_PROJECT_VERSION = 26;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = GATK475J3P;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -1059,7 +1071,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 4.0;
+				MARKETING_VERSION = 4.1;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -1143,7 +1155,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 25;
+				CURRENT_PROJECT_VERSION = 26;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = GATK475J3P;
 				ENABLE_NS_ASSERTIONS = NO;
@@ -1157,7 +1169,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 4.0;
+				MARKETING_VERSION = 4.1;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";

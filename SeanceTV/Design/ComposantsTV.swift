@@ -165,23 +165,26 @@ struct VideTV: View {
 /// comme dans les apps d'Apple. `principal` : l'action qu'on est venu faire (lire), en orange.
 struct BoutonTV: ButtonStyle {
     var principal = false
+    /// `nil` : le bouton prend la hauteur de son contenu (une tuile de jour), au lieu des 76 points d'un bouton d'action.
+    var hauteur: CGFloat? = 76
 
     func makeBody(configuration: Configuration) -> some View {
-        Corps(configuration: configuration, principal: principal)
+        Corps(configuration: configuration, principal: principal, hauteur: hauteur)
     }
 
     private struct Corps: View {
         let configuration: Configuration
         let principal: Bool
+        let hauteur: CGFloat?
         @Environment(\.isFocused) private var aLeFocus
         @Environment(\.isEnabled) private var actif
 
         var body: some View {
             configuration.label
                 .font(.system(size: 28, weight: .semibold))
-                .foregroundStyle(aLeFocus ? .black : .white)
-                .padding(.horizontal, 34)
-                .frame(height: 76)
+                .foregroundStyle(aLeFocus || principal ? .black : .white)
+                .padding(.horizontal, hauteur == nil ? 0 : 34)
+                .frame(height: hauteur)
                 .background {
                     let forme = RoundedRectangle(cornerRadius: 20, style: .continuous)
                     if aLeFocus {

@@ -10,10 +10,14 @@ struct AccueilTV: View {
     @Query(sort: \SelectionSoir.ajouteLe) private var soirees: [SelectionSoir]
     @Query(sort: \FichierNAS.indexeLe, order: .reverse) private var fichiers: [FichierNAS]
     @Query private var suivis: [Suivi]
+    @Query(sort: \Diffusion.debut) private var diffusions: [Diffusion]
+    @Query private var chaines: [Chaine]
 
     @State private var duMoment: [ApercuTV] = []
     @State private var top: [ApercuTV] = []
     @State private var configuration = false
+    /// Images de fond des titres de la soirée, lues sur TMDB quand le NAS ne les connaît pas.
+    @State private var fonds: [ReferenceTitre: String] = [:]
 
     var body: some View {
         ScrollView {
@@ -28,6 +32,7 @@ struct AccueilTV: View {
                     }
                     .frame(maxWidth: .infinity)
                 }
+                if let vedette { enTete(vedette) }
                 if !ceSoir.isEmpty {
                     EtagereTV(titre: "Ce soir", sousTitre: "Ce que tu as prévu de regarder") {
                         ForEach(ceSoir, id: \.reference) { selection in
@@ -46,6 +51,20 @@ struct AccueilTV: View {
                                 AfficheTV(titre: oeuvre.titre, sousTitre: oeuvre.detail, cheminAffiche: oeuvre.cheminAffiche, marque: marque(oeuvre.reference))
                             }
                             .buttonStyle(.card)
+                        }
+                    }
+                }
+                if !teleCeSoir.isEmpty {
+                    EtagereTV(titre: "Ce soir à la télé", sousTitre: "Films et séries de tes chaînes, à partir de maintenant") {
+                        ForEach(teleCeSoir) { bloc in
+                            let carte = CarteLargeTV(surtitre: bloc.debut <= .now ? "EN DIRECT" : bloc.debut.formatted(.dateTime.hour().minute().locale(Locale(identifier: "fr_CH"))),
+                                                     titre: bloc.premiere.titreGuide, detail: nomChaine(bloc.premiere.chaine),
+                                                     cheminImage: bloc.premiere.cheminFond ?? bloc.premiere.cheminAffiche)
+                            if let reference = bloc.reference {
+                                NavigationLink(value: reference) { carte }.buttonStyle(.card)
+                            } else {
+                                Button {} label: { carte }.buttonStyle(.card)
+                            }
                         }
                     }
                 }
@@ -83,6 +102,62 @@ struct AccueilTV: View {
         }
     }
 
+    /// La grande image de tête : ta soirée si tu en as prévu une, sinon le titre du moment.
+    private func enTete(_ vedette: Vedette) -> some View {
+        NavigationLink(value: vedette.reference) {
+            ImageTV(url: ImageTMDB.url(vedette.cheminImage, vedette.large ? .fondGrand : .afficheGrande), symboleVide: "")
+                .frame(maxWidth: .infinity)
+                .frame(height: 620)
+                .overlay { LinearGradient(colors: [.clear, .black.opacity(0.35), .black.opacity(0.9)], startPoint: .top, endPoint: .bottom) }
+                .overlay(alignment: .bottomLeading) {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text(vedette.surtitre).font(.system(size: 28, weight: .heavy)).foregroundStyle(Theme.accentClair)
+                        Text(vedette.titre).font(.system(size: 72, weight: .heavy)).lineLimit(2)
+                        if let detail = vedette.detail { Text(detail).font(.system(size: 30)).foregroundStyle(.white.opacity(0.8)) }
+                    }
+                    .foregroundStyle(.white)
+                    .padding(50)
+                }
+        }
+        .buttonStyle(.card)
+        .padding(.horizontal, MargesTV.bord)
+        .focusSection()
+    }
+
+    private struct Vedette {
+        let reference: ReferenceTitre
+        let surtitre: String
+        let titre: String
+        let detail: String?
+        let cheminImage: String?
+        let large: Bool
+    }
+
+    private var vedette: Vedette? {
+        if let prevu = ceSoir.first {
+            let fond = fichiers.first { $0.reference == prevu.reference }?.cheminFond ?? fonds[prevu.reference]
+            return Vedette(reference: prevu.reference, surtitre: ceSoir.count > 1 ? "CE SOIR · \(ceSoir.count) TITRES PRÉVUS" : "CE SOIR",
+                           titre: prevu.titre, detail: surLeNAS(prevu.reference) ? "Sur ton NAS, prêt à lire" : nil,
+                           cheminImage: fond ?? prevu.cheminAffiche, large: fond != nil)
+        }
+        guard let premier = duMoment.first else { return nil }
+        return Vedette(reference: premier.reference, surtitre: "DU MOMENT", titre: premier.titre, detail: premier.sousTitre,
+                       cheminImage: premier.cheminFond ?? premier.cheminAffiche, large: premier.cheminFond != nil)
+    }
+
+    /// Ce soir à la télé : en cours ou à venir dans la journée télé d'aujourd'hui.
+    private var teleCeSoir: [BlocDiffusion] {
+        let maintenant = Date.now
+        let aujourdhui = GrilleTele.jourTele(maintenant)
+        return GrilleTele.blocs(diffusions.filter { $0.fin > maintenant })
+            .filter { GrilleTele.jourAffiche($0, maintenant: maintenant) == aujourdhui }
+            .sorted { $0.debut < $1.debut }.prefix(12).map { $0 }
+    }
+
+    private func nomChaine(_ identifiant: String) -> String {
+        NomChaineTV.lire(identifiant, parmi: chaines)
+    }
+
     // MARK: Données
 
     private var ceSoir: [SelectionSoir] {
@@ -114,6 +189,13 @@ struct AccueilTV: View {
         async let topSeries = try? client.decouvrirSeries(.top(.serie))
         duMoment = ApercuTV.meler((await films)?.resultats ?? [], (await series)?.resultats ?? [])
         top = ApercuTV.meler((await topFilms)?.resultats ?? [], (await topSeries)?.resultats ?? [])
+        // L'image de fond du premier titre de la soirée, pour la grande image de tête.
+        if let prevu = ceSoir.first, fonds[prevu.reference] == nil, !surLeNAS(prevu.reference) {
+            switch prevu.reference.type {
+            case .film: fonds[prevu.reference] = (try? await client.film(prevu.reference.tmdbID, complements: []))?.cheminFond
+            case .serie: fonds[prevu.reference] = (try? await client.serie(prevu.reference.tmdbID))?.cheminFond
+            }
+        }
     }
 }
 
@@ -123,21 +205,24 @@ struct ApercuTV: Identifiable, Hashable {
     let titre: String
     let sousTitre: String?
     let cheminAffiche: String?
+    var cheminFond: String?
     let popularite: Double
 
     var id: ReferenceTitre { reference }
 
-    static func meler(_ films: [FilmResume], _ series: [SerieResume]) -> [ApercuTV] {
+    /// `garderLOrdre` : celui de TMDB (une recherche, un tri choisi) plutôt que la popularité.
+    static func meler(_ films: [FilmResume], _ series: [SerieResume], garderLOrdre: Bool = false) -> [ApercuTV] {
         let deFilms = films.map {
             ApercuTV(reference: ReferenceTitre(type: .film, tmdbID: $0.id), titre: $0.titre,
                      sousTitre: ["Film", $0.dateSortie.map { String($0.annee) }].compactMap { $0 }.joined(separator: " · "),
-                     cheminAffiche: $0.cheminAffiche, popularite: $0.popularite)
+                     cheminAffiche: $0.cheminAffiche, cheminFond: $0.cheminFond, popularite: $0.popularite)
         }
         let deSeries = series.map {
             ApercuTV(reference: ReferenceTitre(type: .serie, tmdbID: $0.id), titre: $0.nom, sousTitre: "Série",
-                     cheminAffiche: $0.cheminAffiche, popularite: $0.popularite)
+                     cheminAffiche: $0.cheminAffiche, cheminFond: $0.cheminFond, popularite: $0.popularite)
         }
-        return (deFilms + deSeries).filter { $0.cheminAffiche != nil }.sorted { $0.popularite > $1.popularite }.prefix(24).map { $0 }
+        let tous = (deFilms + deSeries).filter { $0.cheminAffiche != nil }
+        return (garderLOrdre ? tous : tous.sorted { $0.popularite > $1.popularite }).prefix(garderLOrdre ? 40 : 24).map { $0 }
     }
 }
 

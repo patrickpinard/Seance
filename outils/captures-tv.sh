@@ -26,6 +26,9 @@ capturer() {  # nom, puis variables d'environnement « CLE=valeur »
 capturer tv-accueil
 capturer tv-cesoir SEANCE_TV_ONGLET=ceSoir
 capturer tv-listes SEANCE_TV_ONGLET=listes
+capturer tv-tele SEANCE_TV_ONGLET=tele
+capturer tv-explorer SEANCE_TV_ONGLET=explorer
+capturer tv-profil SEANCE_TV_ONGLET=profil
 capturer tv-nas SEANCE_TV_ONGLET=nas
 capturer tv-reglages SEANCE_TV_ONGLET=reglages
 capturer tv-fiche SEANCE_TV_FICHE=film:324552

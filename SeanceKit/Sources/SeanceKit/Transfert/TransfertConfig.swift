@@ -11,13 +11,17 @@ public struct ConfigurationTransferee: Codable, Sendable, Equatable {
     public var motDePasseNAS: String?
     /// Une `Sauvegarde` encodée : listes, soirées, visionnages, plateformes cochées.
     public var sauvegarde: Data?
+    /// L'app de lecture choisie sur l'expéditeur : la TV la reprend, et reste libre d'en changer.
+    public var lecteur: LecteurVideo?
 
-    public init(expediteur: String, cleTMDB: String? = nil, nas: ReglagesNAS? = nil, motDePasseNAS: String? = nil, sauvegarde: Data? = nil) {
+    public init(expediteur: String, cleTMDB: String? = nil, nas: ReglagesNAS? = nil, motDePasseNAS: String? = nil, sauvegarde: Data? = nil,
+                lecteur: LecteurVideo? = nil) {
         self.expediteur = expediteur
         self.cleTMDB = cleTMDB
         self.nas = nas
         self.motDePasseNAS = motDePasseNAS
         self.sauvegarde = sauvegarde
+        self.lecteur = lecteur
     }
 }
 
