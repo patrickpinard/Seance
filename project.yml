@@ -6,6 +6,7 @@ options:
   bundleIdPrefix: ch.patrick
   deploymentTarget:
     iOS: "26.0"
+    tvOS: "26.0"
   developmentLanguage: fr
   createIntermediateGroups: true
 
@@ -117,6 +118,42 @@ targets:
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
 
+  # Séance sur Apple TV (EF-141) : la même logique par les trois paquets, une interface à part pour la télécommande.
+  SeanceTV:
+    type: application
+    platform: tvOS
+    sources:
+      - SeanceTV
+      # Couleurs et adresses d'images, communes à toutes les plateformes.
+      - path: Seance/Design/Theme.swift
+      # Données fictives et faux TMDB, pour relire les écrans dans le simulateur sans clé.
+      - path: Seance/Etat/Demonstration.swift
+      - path: Seance/Etat/FauxTMDB.swift
+    dependencies:
+      - package: SeanceKit
+      - package: SeanceDonnees
+      - package: SeanceNAS
+    info:
+      path: SeanceTV/Info.plist
+      properties:
+        CFBundleDisplayName: Séance
+        CFBundleDevelopmentRegion: fr
+        CFBundleLocalizations:
+          - fr
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        UIUserInterfaceStyle: Dark
+        NSLocalNetworkUsageDescription: Séance lit la liste des films et séries de ton NAS, sur le réseau de la maison.
+        # Apps de lecture que Séance sait ouvrir sur l'Apple TV.
+        LSApplicationQueriesSchemes:
+          - infuse
+          - vlc-x-callback
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: ch.patrick.seance.tv
+        TARGETED_DEVICE_FAMILY: "3"
+        ASSETCATALOG_COMPILER_APPICON_NAME: "App Icon & Top Shelf Image"
+
   SeanceWidget:
     type: app-extension
     platform: iOS
@@ -160,6 +197,12 @@ targets:
         TEST_TARGET_NAME: Seance
 
 schemes:
+  SeanceTV:
+    build:
+      targets:
+        SeanceTV: all
+    run:
+      config: Debug
   Seance:
     build:
       targets:

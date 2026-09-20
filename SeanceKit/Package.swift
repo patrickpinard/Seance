@@ -5,7 +5,7 @@ import PackageDescription
 // Command Line Tools (voir outils/tester.sh). Le modèle persistant vit dans SeanceDonnees.
 let package = Package(
     name: "SeanceKit",
-    platforms: [.iOS(.v26), .macOS(.v26)],
+    platforms: [.iOS(.v26), .macOS(.v26), .tvOS(.v26)],
     products: [
         .library(name: "SeanceKit", targets: ["SeanceKit"]),
     ],

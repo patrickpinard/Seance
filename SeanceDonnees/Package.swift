@@ -5,7 +5,7 @@ import PackageDescription
 // ce paquet se compile et se teste dans Xcode, pas avec les seules Command Line Tools.
 let package = Package(
     name: "SeanceDonnees",
-    platforms: [.iOS(.v26), .macOS(.v26)],
+    platforms: [.iOS(.v26), .macOS(.v26), .tvOS(.v26)],
     products: [
         .library(name: "SeanceDonnees", targets: ["SeanceDonnees"]),
     ],

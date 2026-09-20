@@ -5,7 +5,7 @@ import PackageDescription
 // Séparé de SeanceKit pour que le moteur reste sans dépendance externe.
 let package = Package(
     name: "SeanceNAS",
-    platforms: [.iOS(.v26), .macOS(.v26)],
+    platforms: [.iOS(.v26), .macOS(.v26), .tvOS(.v26)],
     products: [
         .library(name: "SeanceNAS", targets: ["SeanceNAS"]),
     ],
