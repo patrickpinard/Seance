@@ -126,4 +126,3 @@ iOS ne transmet une alerte à la montre que si l'iPhone est verrouillé ou en ve
 5. Mac : Réglages › **Centrale de la maison**, activer les deux interrupteurs, laisser Séance ouverte. Attendu : « Dernier passage »
    avance tous les quarts d'heure ; le Mac ne se met plus en veille ; après redémarrage, Séance s'ouvre seule. `caffeinate` devient inutile.
 6. Spotlight : taper le nom d'un titre de tes listes ; le toucher ouvre sa fiche.
-\n

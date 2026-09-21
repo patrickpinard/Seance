@@ -53,6 +53,9 @@ final class ReglagesTests: XCTestCase {
             ("Journal", "Journal"),
         ]
         for page in pages {
+            // Du haut de la page à chaque fois : une carte restée sous la barre de navigation translucide se dit touchable,
+            // mais le toucher atterrit sur la barre.
+            app.swipeDown(); app.swipeDown(); app.swipeDown()
             let ligne = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", page.ligne)).firstMatch
             XCTAssertTrue(app.amener(ligne, essais: 16), "Ligne « \(page.ligne) » absente")
             ligne.tap()

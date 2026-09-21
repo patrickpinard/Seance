@@ -18,7 +18,7 @@ if (( $# )); then
 else
   essais=(-only-testing:SeanceUITests/TourCompletTests -only-testing:SeanceUITests/ProgrammeTeleTests
           -only-testing:SeanceUITests/ReglagesTests -only-testing:SeanceUITests/SynchroTests
-          -only-testing:SeanceUITests/EtatsVidesTests -only-testing:SeanceUITests/AccessibiliteTests -only-testing:SeanceUITests/ParcoursSoireeTests
+          -only-testing:SeanceUITests/EtatsVidesTests -only-testing:SeanceUITests/AccessibiliteTests -only-testing:SeanceUITests/ParcoursSoireeTests -only-testing:SeanceUITests/FamilleTests
           -only-testing:SeanceUITests/VideosPersoTests)
 fi
 "$racine/outils/generer-projet.sh" > /dev/null
