@@ -10,7 +10,13 @@ struct RacineTV: View {
     @Environment(\.scenePhase) private var phase
 
     @State private var onglet = DepartTV.onglet
-    @State private var cheminAccueil = DepartTV.fiche.map { [$0] } ?? []
+    /// Un chemin générique : typé « titres seulement », il refusait en silence la fiche d'un acteur — choisir un visage
+    /// du casting ne faisait rien depuis l'accueil ou l'étagère du haut (trouvé par `TelecommandeTests`, 6.0).
+    @State private var cheminAccueil: NavigationPath = {
+        var chemin = NavigationPath()
+        if let fiche = DepartTV.fiche { chemin.append(fiche) }
+        return chemin
+    }()
     @State private var configuration = DepartTV.configurer
 
     var body: some View {
@@ -55,7 +61,7 @@ struct RacineTV: View {
         .onOpenURL { url in
             guard url.scheme == "seance", let hote = url.host(), let type = TypeTitre(rawValue: hote), let id = Int(url.lastPathComponent) else { return }
             onglet = .accueil
-            cheminAccueil = [ReferenceTitre(type: type, tmdbID: id)]
+            cheminAccueil = NavigationPath([ReferenceTitre(type: type, tmdbID: id)])
         }
         // Retour de l'app de lecture : « Tu l'as regardé ? » (EF-118, sur la TV).
         .onChange(of: phase) { _, nouvelle in

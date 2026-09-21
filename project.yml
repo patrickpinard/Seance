@@ -239,6 +239,21 @@ targets:
         GENERATE_INFOPLIST_FILE: YES
         TEST_TARGET_NAME: Seance
 
+  # L'Apple TV à la télécommande virtuelle (6.0) : jusqu'ici, aucun test ne la couvrait.
+  SeanceTVUITests:
+    type: bundle.ui-testing
+    platform: tvOS
+    sources:
+      - SeanceTVUITests
+    dependencies:
+      - target: SeanceTV
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: ch.patrick.seance.tv.uitests
+        TARGETED_DEVICE_FAMILY: "3"
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_TARGET_NAME: SeanceTV
+
 schemes:
   SeanceTV:
     build:
@@ -247,6 +262,10 @@ schemes:
         SeanceTVEtagere: all
     run:
       config: Debug
+    test:
+      config: Debug
+      targets:
+        - SeanceTVUITests
   Seance:
     build:
       targets:

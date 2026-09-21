@@ -127,6 +127,7 @@
 		D3692AACDB2EE1BC63A706F2 /* ReglagesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = ABA6924ED64F1E1D2244C779 /* ReglagesView.swift */; };
 		D3D291714E7E7727508D57A7 /* PublicationEtagere.swift in Sources */ = {isa = PBXBuildFile; fileRef = E44F427370D5E25552689ED0 /* PublicationEtagere.swift */; };
 		D4F4F44E2C6AB85B53D771C2 /* CocherEpisodeIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F6CA7E0DFEDE70FAE64BAE2 /* CocherEpisodeIntent.swift */; };
+		D68A718D324A69F539944A97 /* TelecommandeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EA69EFE83C26656E55AC5AB /* TelecommandeTests.swift */; };
 		D7839D09AE2AB89616944451 /* SeanceKit in Frameworks */ = {isa = PBXBuildFile; productRef = 7ADAE3C1D67EB1A73644A89C /* SeanceKit */; };
 		DB78148DCA732B30059925A7 /* EtatsVidesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F81E03F245BE8E927674F9DD /* EtatsVidesTests.swift */; };
 		DC668FDED6FFAFA21E3CE266 /* EtagereDuHaut.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B91968F8C13F8CECB709FC5 /* EtagereDuHaut.swift */; };
@@ -156,6 +157,13 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		4C28209E52CD00039EABFEE7 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = E2B1786E7B6738225D6A3413 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = ED64E9E9ADA74FA98453D465;
+			remoteInfo = SeanceTV;
+		};
 		59C204F7C22E594887EB641F /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = E2B1786E7B6738225D6A3413 /* Project object */;
@@ -246,6 +254,7 @@
 		37C7B9F1A78F1017567D37D0 /* BandeAnnonceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BandeAnnonceTests.swift; sourceTree = "<group>"; };
 		396BAF5FB28525626D656F7A /* RacineTV.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RacineTV.swift; sourceTree = "<group>"; };
 		3E8607047668E8E7A1C0B521 /* PersonneView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersonneView.swift; sourceTree = "<group>"; };
+		3EA69EFE83C26656E55AC5AB /* TelecommandeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TelecommandeTests.swift; sourceTree = "<group>"; };
 		3FAD0B3B3AE70CDCB3242DF4 /* ExplorerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExplorerTests.swift; sourceTree = "<group>"; };
 		3FE25142805AA50B481B3069 /* CeSoirTV.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CeSoirTV.swift; sourceTree = "<group>"; };
 		40DE70175786093499565AD1 /* ReglagesCentraleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReglagesCentraleView.swift; sourceTree = "<group>"; };
@@ -322,6 +331,7 @@
 		C7706567EB9521978C37DCC4 /* EtatDecors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EtatDecors.swift; sourceTree = "<group>"; };
 		C7971FD6500EC30161EA83E4 /* SeanceNAS */ = {isa = PBXFileReference; lastKnownFileType = folder; name = SeanceNAS; path = SeanceNAS; sourceTree = SOURCE_ROOT; };
 		C823C7D99C49FEB6D7792D4F /* ReglagesTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReglagesTests.swift; sourceTree = "<group>"; };
+		C99EF37CF4DFD9BE636726D5 /* SeanceTVUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = SeanceTVUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		CA91FBA795C5F100C03F8CC6 /* BandesAnnonces.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BandesAnnonces.swift; sourceTree = "<group>"; };
 		CACE819FB69880D873526A37 /* ListesCompletes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ListesCompletes.swift; sourceTree = "<group>"; };
 		CD94F6BCC152B1B30DE2DF48 /* EtatNAS.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EtatNAS.swift; sourceTree = "<group>"; };
@@ -390,6 +400,7 @@
 				480DDBB4427776452973C0F2 /* Seance.app */,
 				59DD74EA045499352F7FE820 /* SeanceTV.app */,
 				1F58DEFF9DE77F1E7284865B /* SeanceTVEtagere.appex */,
+				C99EF37CF4DFD9BE636726D5 /* SeanceTVUITests.xctest */,
 				7788E5AF973E89FC76F574C6 /* SeanceUITests.xctest */,
 				8B744A230DB10B098ACBAA1A /* SeanceWidget.appex */,
 			);
@@ -403,6 +414,7 @@
 				89ADAFCFBC281A62D27267AD /* Seance */,
 				A60A48223856A14BABB7275D /* SeanceTV */,
 				2ED1301A7BC23F406B7BCB9B /* SeanceTVEtagere */,
+				F4E33D80FAF907B25CE8EBDC /* SeanceTVUITests */,
 				92F183107815F6F546815EEA /* SeanceUITests */,
 				321C31EFF855BABEA117ABDC /* SeanceWidget */,
 				0B4ADF6654F9470B84E1FC40 /* Products */,
@@ -750,6 +762,14 @@
 			path = Personne;
 			sourceTree = "<group>";
 		};
+		F4E33D80FAF907B25CE8EBDC /* SeanceTVUITests */ = {
+			isa = PBXGroup;
+			children = (
+				3EA69EFE83C26656E55AC5AB /* TelecommandeTests.swift */,
+			);
+			path = SeanceTVUITests;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -790,6 +810,24 @@
 			productName = SeanceWidget;
 			productReference = 8B744A230DB10B098ACBAA1A /* SeanceWidget.appex */;
 			productType = "com.apple.product-type.app-extension";
+		};
+		A890BEBEA0F519C5FF4E076F /* SeanceTVUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 21662477B29FA3B45B3210FF /* Build configuration list for PBXNativeTarget "SeanceTVUITests" */;
+			buildPhases = (
+				018D17336913E87ECEAA899B /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				459F6FD132FA4E71F8CF3E07 /* PBXTargetDependency */,
+			);
+			name = SeanceTVUITests;
+			packageProductDependencies = (
+			);
+			productName = SeanceTVUITests;
+			productReference = C99EF37CF4DFD9BE636726D5 /* SeanceTVUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
 		};
 		AD94E5CF69BD9EBAFBECDB21 /* SeanceTVEtagere */ = {
 			isa = PBXNativeTarget;
@@ -874,6 +912,11 @@
 						DevelopmentTeam = GATK475J3P;
 						ProvisioningStyle = Automatic;
 					};
+					A890BEBEA0F519C5FF4E076F = {
+						DevelopmentTeam = GATK475J3P;
+						ProvisioningStyle = Automatic;
+						TestTargetID = ED64E9E9ADA74FA98453D465;
+					};
 					AD94E5CF69BD9EBAFBECDB21 = {
 						DevelopmentTeam = GATK475J3P;
 						ProvisioningStyle = Automatic;
@@ -912,6 +955,7 @@
 				AD94E5CF69BD9EBAFBECDB21 /* SeanceTVEtagere */,
 				9AEF434A525906697AF13159 /* SeanceWidget */,
 				10A4C7D16728591DB6427505 /* SeanceUITests */,
+				A890BEBEA0F519C5FF4E076F /* SeanceTVUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -937,6 +981,14 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		018D17336913E87ECEAA899B /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D68A718D324A69F539944A97 /* TelecommandeTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		16C36628C925AD8C1A973391 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -1113,6 +1165,11 @@
 			target = AF4076291E91C6677C297EBF /* Seance */;
 			targetProxy = 59C204F7C22E594887EB641F /* PBXContainerItemProxy */;
 		};
+		459F6FD132FA4E71F8CF3E07 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = ED64E9E9ADA74FA98453D465 /* SeanceTV */;
+			targetProxy = 4C28209E52CD00039EABFEE7 /* PBXContainerItemProxy */;
+		};
 		45EBF0E39A8219D4A2E9D8C7 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = AD94E5CF69BD9EBAFBECDB21 /* SeanceTVEtagere */;
@@ -1188,6 +1245,23 @@
 			};
 			name = Debug;
 		};
+		432765D9C02AA5BC5AF56E98 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = ch.patrick.seance.tv.uitests;
+				SDKROOT = appletvos;
+				TARGETED_DEVICE_FAMILY = 3;
+				TEST_TARGET_NAME = SeanceTV;
+			};
+			name = Release;
+		};
 		469E16B782BC7930A30F6EE9 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -1202,6 +1276,23 @@
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = 1;
 				TEST_TARGET_NAME = Seance;
+			};
+			name = Debug;
+		};
+		5D0D5577D9CA7DFFD73113E6 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = ch.patrick.seance.tv.uitests;
+				SDKROOT = appletvos;
+				TARGETED_DEVICE_FAMILY = 3;
+				TEST_TARGET_NAME = SeanceTV;
 			};
 			name = Debug;
 		};
@@ -1447,6 +1538,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		21662477B29FA3B45B3210FF /* Build configuration list for PBXNativeTarget "SeanceTVUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				5D0D5577D9CA7DFFD73113E6 /* Debug */,
+				432765D9C02AA5BC5AF56E98 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
 		24686E81B89685CFF8A7DD8E /* Build configuration list for PBXNativeTarget "SeanceUITests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

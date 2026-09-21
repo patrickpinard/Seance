@@ -29,4 +29,19 @@ SIMULATEUR="iPad Air 11-inch (M3)" RESULTAT="$racine/.build/ipad.xcresult" "$rac
 # Un test sauté (mauvais simulateur) n'a rien vérifié : ce n'est pas une réussite.
 grep -q "Test Case .* skipped" "$racine/.build/tests-interface.log" && { echo "Échec : tests iPad sautés, rien n'a été vérifié."; exit 1; }
 
+etape "Interface, Apple TV"
+# À la télécommande virtuelle (6.0) : le menu, la fiche jusqu'au casting et à l'acteur, les réglages.
+tv=$(xcrun simctl list devices available | grep -F "Apple TV 4K (3rd generation) (" | grep -v 1080p | tail -1 | grep -o -E '[0-9A-F]{8}-[0-9A-F-]{27}')
+if [[ -n $tv ]]; then
+  xcrun simctl boot $tv > /dev/null 2>&1; xcrun simctl bootstatus $tv -b > /dev/null 2>&1
+  xcodebuild test -project "$racine/Seance.xcodeproj" -scheme SeanceTV -destination "platform=tvOS Simulator,id=$tv" \
+    -derivedDataPath "$racine/.build/dd-tv" -test-timeouts-enabled YES -default-test-execution-time-allowance 300 \
+    > "$racine/.build/tests-tv.log" 2>&1
+  grep -E "Test Case .*(passed|failed)" "$racine/.build/tests-tv.log" | cut -c1-200
+  grep -q "Test Case .* failed" "$racine/.build/tests-tv.log" && { echo "Échec : interface Apple TV (journal : .build/tests-tv.log)."; exit 1; }
+  grep -q "Test Case .* passed" "$racine/.build/tests-tv.log" || { echo "Échec : les tests de l'Apple TV n'ont pas tourné."; exit 1; }
+else
+  echo "Simulateur d'Apple TV introuvable : tests TV non lancés."
+fi
+
 echo "Tout passe."
