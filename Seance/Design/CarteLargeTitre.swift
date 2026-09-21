@@ -19,6 +19,8 @@ struct CarteLargeTitre: View {
     var rang: Int?
     /// Un symbole discret en haut à droite, quand le rang ne s'y trouve pas : la cloche des alertes, l'œil du déjà-vu.
     var symboleCoin: String?
+    /// `false` quand l'accroche dit déjà où regarder (« Sur W9 à 18:14 ») : la chaîne ne se répète pas derrière.
+    var ouApresAccroche = true
 
     @Environment(EtatApp.self) private var etat
 
@@ -43,7 +45,7 @@ struct CarteLargeTitre: View {
     }
 
     private var ligneOrange: String? {
-        [accroche, ou(avecAccroche: accroche != nil)].compactMap { $0 }.joined(separator: " · ").nilSiVide
+        [accroche, accroche != nil && !ouApresAccroche ? nil : ou(avecAccroche: accroche != nil)].compactMap { $0 }.joined(separator: " · ").nilSiVide
     }
 
     var body: some View {

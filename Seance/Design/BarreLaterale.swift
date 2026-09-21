@@ -1,3 +1,4 @@
+import SeanceDonnees
 import SwiftUI
 
 /// Sur le Mac, le menu de gauche se masque pour laisser toute la place à la page : bouton dans la barre de chaque
@@ -110,7 +111,8 @@ enum TitreFenetre {
     static func retablir() {
         #if targetEnvironment(macCatalyst)
         for scene in UIApplication.shared.connectedScenes.compactMap({ $0 as? UIWindowScene }) {
-            scene.title = "Séance"
+            // À côté des boutons de la fenêtre, à hauteur du menu : l'app, et qui regarde quand la maison a plusieurs profils.
+            scene.title = QuiRegardeActuel.nom.map { "Séance · \($0)" } ?? "Séance"
         }
         #endif
     }
@@ -130,7 +132,55 @@ extension View {
     /// Le bouton qui masque ou affiche le menu de gauche, en tête de la barre d'un onglet ; rien sur l'iPhone.
     /// Posé à la racine de chaque onglet ; ne fait plus rien depuis la 5.1.
     func boutonBarreLaterale() -> some View {
-        // Sur le Mac, la roue dentée est posée une fois pour toutes par `RacineView`, à hauteur du menu.
-        self
+        modifier(PastilleQuiRegardeModifier())
+    }
+}
+
+/// Qui regarde, en ce moment (Famille) : `nil` tant que la maison n'a qu'un profil — inutile de le dire.
+@MainActor
+enum QuiRegardeActuel {
+    static var nom: String? {
+        let famille = ProfilsFamille()
+        guard famille.aPlusieursProfils else { return nil }
+        let actif = famille.actif
+        if !actif.prenom.isEmpty { return actif.prenom }
+        return Prenom.lire() ?? "Moi"
+    }
+}
+
+/// En haut à gauche de chaque page, quand la maison a plusieurs profils : qui regarde, et un toucher pour changer. Sur le
+/// Mac, le nom est dans le titre de la fenêtre, à hauteur du menu ; la pastille, elle, garde le geste pour changer.
+private struct PastilleQuiRegardeModifier: ViewModifier {
+    @State private var choix = false
+
+    func body(content: Content) -> some View {
+        content
+            .toolbar {
+                if let nom = QuiRegardeActuel.nom {
+                    ToolbarItem(placement: .topBarLeading) {
+                        // Pas un `Label` : dans la barre d'iOS 26, il se réduit à son icône et le prénom disparaît.
+                        Button { choix = true } label: {
+                            HStack(spacing: 6) {
+                                Image(systemName: ProfilsFamille().actif.symbole)
+                                Text(nom).lineLimit(1)
+                            }
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(Theme.accentClair)
+                            .padding(.horizontal, 6)
+                        }
+                        .help("Qui regarde : \(nom). Toucher pour changer de personne.")
+                        .accessibilityLabel("Qui regarde : \(nom)")
+                        .accessibilityHint("Change de personne")
+                        .accessibilityIdentifier("quiRegarde")
+                    }
+                }
+            }
+            .fullScreenCover(isPresented: $choix) {
+                QuiRegardeView { profil in
+                    choix = false
+                    ConteneurApp.changerDeProfil(vers: profil)
+                }
+            }
+            .onAppear { TitreFenetre.retablir() }
     }
 }

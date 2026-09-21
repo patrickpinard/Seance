@@ -181,6 +181,9 @@ final class EtatSynchro {
     /// choisi (iCloud Drive, Fichiers), puis dans celui du NAS s'il est activé : c'est par lui que l'Apple TV reçoit tout.
     /// `automatique` : au retour dans l'app ; silencieuse s'il n'y a rien, et pas plus d'une fois toutes les deux minutes.
     func synchroniser(etat: EtatApp, contexte: ModelContext, automatique declenchementAuto: Bool = false) async {
+        #if DEBUG
+        if Demonstration.coupeeDuMonde { return }
+        #endif
         let signet = UserDefaults.standard.data(forKey: Cle.signet)
         guard !enCours, signet != nil || parLeNAS else { return }
         if declenchementAuto {

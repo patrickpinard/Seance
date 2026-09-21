@@ -20,6 +20,27 @@ struct NoteVersion: Identifiable {
 
     static let historique: [NoteVersion] = [
         NoteVersion(
+            numero: "6.0.2",
+            date: "21 septembre 2026",
+            resume: "Tu vois qui regarde, en haut à gauche de chaque page ; « Aujourd'hui » passe aux grandes cartes ; la fiche de présentation parle de la version 6.",
+            fonctionnalites: [
+                Fonctionnalite(symbole: "person.crop.circle", titre: "Qui regarde, toujours affiché",
+                               detail: "Dès que la maison a plusieurs profils, le prénom de la personne en cours s'affiche en haut à gauche de chaque page, à la hauteur du menu, avec son symbole. Un toucher ouvre « Qui regarde ? » pour changer. Sur le Mac, il est aussi dans le titre de la fenêtre ; sur l'Apple TV, à gauche du menu du haut."),
+                Fonctionnalite(symbole: "calendar", titre: "« Aujourd'hui » en grandes cartes",
+                               detail: "Les rendez-vous du jour de l'accueil passent de la liste serrée aux cartes 16/9 du reste de l'app : l'image, ce qui se passe en orange (« Sur W9 à 18:22 », « Nouvel épisode S02E04 »), le titre. Une ligne résume la journée ; « Tout voir » ouvre toujours À venir."),
+                Fonctionnalite(symbole: "envelope.fill", titre: "La carte E-mail à la bonne hauteur",
+                               detail: "Dans Réglages, elle annonçait le nombre de destinataires sur une ligne de plus et dépassait ses voisines. Elle dit maintenant « Activé » ou « À terminer », comme les autres."),
+                Fonctionnalite(symbole: "person.2.fill", titre: "Le profil principal garde son nom",
+                               detail: "Sans prénom enregistré, il prenait celui de la personne en cours : quand Anne regardait, « Qui regarde ? » montrait deux « Anne », et le premier menait au profil principal. Il s'appelle maintenant « Moi » tant qu'un autre profil est ouvert."),
+                Fonctionnalite(symbole: "tv", titre: "« TV » aussi dans À venir",
+                               detail: "Les cartes des passages à la TV portaient encore l'étiquette « TÉLÉ »."),
+                Fonctionnalite(symbole: "lock.shield", titre: "Les essais sur le Mac ne touchent plus à tes données",
+                               detail: "La démonstration qui sert aux captures partage l'identifiant de la vraie app : sur le Mac, elle ne synchronise plus, n'envoie plus l'e-mail de la semaine, ne démarre plus la centrale et ne remplace plus tes alertes ni ton index Spotlight."),
+                Fonctionnalite(symbole: "doc.richtext", titre: "Fiche de présentation : version 6",
+                               detail: "Douze pages et de nouvelles captures en cartes 16/9 : une page pour la Famille, « Qui regarde ? » sur l'Apple TV, l'e-mail de la semaine, la centrale de la maison et Spotlight."),
+            ]
+        ),
+        NoteVersion(
             numero: "6.0.1",
             date: "21 septembre 2026",
             resume: "La famille voyage entre tes appareils et se choisit sur l'Apple TV ; le Mac retrouve des pages homogènes et un accès aux Réglages qui marche partout.",

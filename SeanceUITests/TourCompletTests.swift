@@ -178,8 +178,11 @@ final class TourCompletTests: XCTestCase {
                       "Le parcours « Nouvel appareil » n'est pas proposé dans les réglages")
         capture("21-reglages-bas")
         // Piste B : « Lecture » est une ligne de l'état, en haut de la page.
+        // Du haut de la page : une carte restée sous la barre de navigation translucide se dit touchable, mais le toucher
+        // atterrit sur la barre (voir ReglagesTests).
+        app.swipeDown(); app.swipeDown(); app.swipeDown()
         let lecture = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Lecture'")).firstMatch
-        XCTAssertTrue(app.amener(lecture, versLeHaut: true, essais: 16), "La carte « Lecture » est absente de l'état")
+        XCTAssertTrue(app.amener(lecture, essais: 16), "La carte « Lecture » est absente de l'état")
         lecture.tap()
         XCTAssertTrue(app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'VLC'")).firstMatch.waitForExistence(timeout: 10), "Le choix du lecteur est absent")
         capture("21-lecture")

@@ -17,6 +17,17 @@ enum Demonstration {
         ProcessInfo.processInfo.environment["SEANCE_DEMO"] == "vide"
     }
 
+    /// Une démonstration hors du simulateur — sur le Mac, pour une capture : l'app y partage l'identifiant et les réglages
+    /// de la vraie. Elle n'envoie alors rien au-dehors : synchroniser déposerait ses données fictives dans le vrai dossier,
+    /// où l'absence des vrais titres passerait pour des suppressions ; l'e-mail de la semaine partirait pour de bon.
+    static var coupeeDuMonde: Bool {
+        #if targetEnvironment(simulator)
+        false
+        #else
+        active
+        #endif
+    }
+
     private struct Titre {
         let reference: ReferenceTitre
         let nom: String

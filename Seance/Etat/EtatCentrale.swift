@@ -52,6 +52,9 @@ final class EtatCentrale {
         if let veille { ProcessInfo.processInfo.endActivity(veille) }
         veille = nil
         guard active else { return }
+        #if DEBUG
+        if Demonstration.coupeeDuMonde { return }
+        #endif
         // Ni sieste de l'app, ni mise en veille du Mac par inactivité : c'est ce que faisait `caffeinate` à la main.
         veille = ProcessInfo.processInfo.beginActivity(options: [.userInitiated, .idleSystemSleepDisabled],
                                                        reason: "Séance veille sur la maison : synchronisation, alertes, e-mail de la semaine")

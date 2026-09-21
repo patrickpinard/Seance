@@ -78,6 +78,10 @@ final class EtatAlertes {
             derniereMiseAJour = .now
             programmerTacheFond()
             guard autorisees else { return }
+            #if DEBUG
+            // Les notifications en attente sont celles de la vraie app : la démonstration du Mac ne les remplace pas.
+            if Demonstration.coupeeDuMonde { return }
+            #endif
             let enAttente = await centre.pendingNotificationRequests().map(\.identifier).filter { $0.hasPrefix(Self.prefixe) }
             centre.removePendingNotificationRequests(withIdentifiers: enAttente)
             for notification in prochaines {

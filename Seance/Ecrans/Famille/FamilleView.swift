@@ -81,8 +81,7 @@ struct FamilleView: View {
     }
 
     private func nom(_ profil: ProfilFamille) -> String {
-        if !profil.prenom.isEmpty { return profil.prenom }
-        return profil.estPrincipal ? (Prenom.lire(prenom) ?? "Moi") : "Sans prénom"
+        ProfilFamille.nomAffiche(profil, actif: actif, prenomDeLAppareil: prenom)
     }
 
     private func relire() {
@@ -164,10 +163,22 @@ private struct FicheProfil: View {
         .presentationDetents([.medium, .large])
         .onAppear {
             if let profil {
-                prenom = profil.prenom.isEmpty && profil.estPrincipal ? (Prenom.lire() ?? "") : profil.prenom
+                // Le prénom de l'appareil n'est celui du profil principal que si c'est lui qui regarde.
+                prenom = profil.prenom.isEmpty && profil.estPrincipal && profil.id == ProfilsFamille().actif.id ? (Prenom.lire() ?? "") : profil.prenom
                 symbole = profil.symbole
             }
         }
+    }
+}
+
+extension ProfilFamille {
+    /// Le nom d'un profil à l'écran. Le profil principal sans prénom enregistré prend celui de l'appareil (Réglages › Toi)
+    /// — mais seulement quand c'est lui qui regarde : ce prénom devient celui de la personne en cours à chaque changement,
+    /// et « Qui regarde ? » montrait alors deux « Anne ».
+    static func nomAffiche(_ profil: ProfilFamille, actif: ProfilFamille, prenomDeLAppareil: String) -> String {
+        if !profil.prenom.isEmpty { return profil.prenom }
+        guard profil.estPrincipal else { return "Sans prénom" }
+        return (profil.id == actif.id ? Prenom.lire(prenomDeLAppareil) : nil) ?? "Moi"
     }
 }
 
@@ -188,7 +199,7 @@ struct QuiRegardeView: View {
                     Button { choisir(profil) } label: {
                         VStack(spacing: 10) {
                             PastilleProfil(profil: profil, taille: 92, actif: profil.id == actif.id)
-                            Text(profil.prenom.isEmpty ? (profil.estPrincipal ? (Prenom.lire(prenom) ?? "Moi") : "Sans prénom") : profil.prenom)
+                            Text(ProfilFamille.nomAffiche(profil, actif: actif, prenomDeLAppareil: prenom))
                                 .font(.headline)
                                 .lineLimit(1)
                         }

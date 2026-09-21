@@ -203,8 +203,9 @@ struct ReglagesView: View {
                     tuile(.prenom, "Prénom et idées", "person.fill",
                           "\(Prenom.lire(prenom) ?? "Prénom à saisir") · \(Format.pluriel(NombreIdees.lire(nombreIdees), "idée"))")
                     tuile(.apparence, "Apparence", Apparence.lire(apparence).symbole, Apparence.lire(apparence).nom)
-                    tuile(.lettre, "E-mail de la semaine", "envelope.fill",
-                          !etat.lettre.reglages.actif ? "Tes sorties, chaque semaine" : etat.lettre.pret ? Format.pluriel(etat.lettre.adresses.count, "destinataire") : "À terminer",
+                    tuile(.lettre, "E-mail", "envelope.fill",
+                          // Court, pour que la tuile garde la hauteur de ses voisines : le nombre de destinataires se lit dans la page.
+                          !etat.lettre.reglages.actif ? "Tes sorties de la semaine" : etat.lettre.pret ? "Activé" : "À terminer",
                           alerte: etat.lettre.reglages.actif && !etat.lettre.pret)
                     // L'accueil se personnalise dans sa feuille, la même que depuis l'accueil : un seul réglage, deux portes.
                     Button { accueil = true } label: { TuileReglage(titre: "Accueil", symbole: "house.fill", valeur: libelleAccueil) }

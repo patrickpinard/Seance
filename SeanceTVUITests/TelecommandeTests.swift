@@ -90,6 +90,9 @@ final class TelecommandeTests: XCTestCase {
         XCTAssertTrue(focusSur(["Anne"]), "La télécommande n'atteint pas le profil d'Anne")
         telecommande.press(.select)
         XCTAssertTrue(app.staticTexts["Tes listes sont vides sur cette TV"].waitForExistence(timeout: 20), "Le profil d'Anne montre les listes d'un autre")
+        // En haut à gauche, à la hauteur du menu : qui regarde.
+        XCTAssertTrue(app.descendants(matching: .any).matching(NSPredicate(format: "label == 'Qui regarde : Anne'")).firstMatch.waitForExistence(timeout: 5),
+                      "Le prénom d'Anne n'est pas affiché en haut à gauche")
         capture("tv-listes-anne")
     }
 }

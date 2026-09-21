@@ -77,6 +77,9 @@ final class EtatLettre {
 
     /// Au lancement, au retour dans l'app et au réveil en arrière-plan : envoie si l'échéance de la semaine est passée.
     func envoyerSiDu(etat: EtatApp, contexte: ModelContext) async {
+        #if DEBUG
+        if Demonstration.coupeeDuMonde { return }
+        #endif
         guard reglages.actif, pret, !enCours, let echeance = Self.echeance(jour: reglages.jour, heure: reglages.heure, maintenant: .now),
               (dernierEnvoi ?? .distantPast) < echeance else { return }
         await envoyer(etat: etat, contexte: contexte, essai: false)

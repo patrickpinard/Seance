@@ -48,6 +48,20 @@ struct RacineTV: View {
         // de tvOS, qui se replie quand on descend dans la page et revient quand on remonte.
         .tabViewStyle(.tabBarOnly)
         .background(Theme.fond.ignoresSafeArea())
+        // Qui regarde, en haut à gauche, à la hauteur du menu : seulement quand la maison a plusieurs profils.
+        .overlay(alignment: .topLeading) {
+            if ConteneurTV.famille.aPlusieursProfils {
+                Label(QuiRegardeTV.nom(ConteneurTV.famille.actif), systemImage: ConteneurTV.famille.actif.symbole)
+                    .font(.system(size: 26, weight: .semibold))
+                    .foregroundStyle(Theme.accentClair)
+                    .padding(.horizontal, 22).frame(height: 56)
+                    .background(.black.opacity(0.45), in: Capsule())
+                    .padding(.leading, MargesTV.bord)
+                    .padding(.top, 52)
+                    .ignoresSafeArea()
+                    .accessibilityLabel("Qui regarde : \(QuiRegardeTV.nom(ConteneurTV.famille.actif))")
+            }
+        }
         .overlay(alignment: .bottom) {
             if let message = etat.message {
                 Text(message)

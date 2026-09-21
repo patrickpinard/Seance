@@ -14,6 +14,10 @@ enum IndexSpotlight {
     /// Refait l'index : tes listes sont courtes, et un titre retiré doit en sortir.
     static func actualiser(contexte: ModelContext) {
         guard CSSearchableIndex.isIndexingAvailable() else { return }
+        #if DEBUG
+        // L'index est celui de la vraie app : la démonstration du Mac n'y met pas ses titres fictifs.
+        if Demonstration.coupeeDuMonde { return }
+        #endif
         let suivis = ((try? contexte.fetch(FetchDescriptor<Suivi>())) ?? []).filter { $0.statut != .exclu && !$0.titre.isEmpty }
         let elements = suivis.map { suivi -> CSSearchableItem in
             let attributs = CSSearchableItemAttributeSet(contentType: .content)

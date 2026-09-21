@@ -207,35 +207,34 @@ struct AccueilView: View {
                         etat.ongletDemande = .listes
                     }
                 }
-                VStack(spacing: 0) {
-                    ForEach(Array(duJour.prefix(4).enumerated()), id: \.offset) { rang, echeance in
-                        if rang > 0 { Divider().overlay(Theme.trait).padding(.leading, 60) }
-                        NavigationLink(value: echeance.reference) {
-                            HStack(spacing: 12) {
-                                ImageDistante(url: ImageTMDB.url(echeance.cheminAffiche, .affiche), coins: 6)
-                                    .frame(width: 34, height: 51)
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(echeance.titre).font(.subheadline.weight(.semibold)).lineLimit(1)
-                                    Text(echeance.libelle).font(.caption.weight(.semibold)).foregroundStyle(Theme.accentClair).lineLimit(1)
-                                }
-                                Spacer(minLength: 0)
-                                Image(systemName: "chevron.right").font(.caption.weight(.semibold)).foregroundStyle(.tertiary)
+                Text(resumeDuJour(duJour)).font(.caption).foregroundStyle(.secondary).padding(.horizontal, 20)
+                // Les mêmes grandes cartes que le reste de l'accueil : l'image, ce qui se passe en orange (« Sur M6 à 21:05 »,
+                // « Nouvel épisode S02E04 »), le titre. La liste serrée de la 5.1 se lisait mal.
+                DefilementHorizontal {
+                    LazyHStack(alignment: .top, spacing: 14) {
+                        ForEach(Array(duJour.prefix(12).enumerated()), id: \.offset) { _, echeance in
+                            NavigationLink(value: echeance.reference) {
+                                CarteLargeTitre(reference: echeance.reference, titre: echeance.titre, cheminAffiche: echeance.cheminAffiche,
+                                                accroche: echeance.libelle, ouApresAccroche: echeance.nature != .tele)
+                                    .frame(width: CarteLargeTitre.largeur)
                             }
-                            .padding(.horizontal, 12)
-                            .frame(minHeight: 62)
-                            .contentShape(Rectangle())
+                            .buttonStyle(.plain)
                         }
-                        .buttonStyle(.plain)
                     }
-                    if duJour.count > 4 {
-                        Text("et \(duJour.count - 4) de plus dans « À venir »").font(.caption).foregroundStyle(.secondary)
-                            .frame(maxWidth: .infinity, alignment: .leading).padding(.horizontal, 12).padding(.bottom, 10)
-                    }
+                    .padding(.horizontal, 20)
                 }
-                .background(Theme.surface, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-                .padding(.horizontal, 20)
+                .task(id: duJour.map(\.reference)) { await etat.decors.charger(duJour.map(\.reference), client: etat.tmdb) }
             }
         }
+    }
+
+    /// « 3 rendez-vous aujourd'hui : 2 passages à la TV, 1 nouvel épisode ».
+    private func resumeDuJour(_ echeances: [Echeance]) -> String {
+        let tele = echeances.filter { $0.nature == .tele }.count
+        let autres = echeances.count - tele
+        let morceaux = [tele > 0 ? Format.pluriel(tele, "passage à la TV", "passages à la TV") : nil,
+                        autres > 0 ? Format.pluriel(autres, "sortie ou épisode", "sorties ou épisodes") : nil].compactMap { $0 }
+        return "Pour tes titres : " + morceaux.joined(separator: ", ")
     }
 
     private var resumeSoiree: String? {

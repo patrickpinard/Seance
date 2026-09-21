@@ -14,7 +14,7 @@ private struct PastilleNature: View {
         case .episode: "ÉPISODE"
         case .saison: "SAISON"
         case .sortie: "SORTIE"
-        case .tele: "TÉLÉ"
+        case .tele: "TV"
         }
     }
 

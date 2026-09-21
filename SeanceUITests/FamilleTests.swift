@@ -51,7 +51,20 @@ final class FamilleTests: XCTestCase {
         app.tabBars.buttons["Mes listes"].firstMatch.tap()
         XCTAssertFalse(app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'John Wick'")).firstMatch.waitForExistence(timeout: 4),
                        "Les listes du profil principal se voient dans celui d'Anne")
+        // En haut à gauche de la page : qui regarde.
+        let quiRegarde = app.buttons.matching(NSPredicate(format: "identifier == 'quiRegarde' OR label CONTAINS 'Anne'")).firstMatch
+        XCTAssertTrue(quiRegarde.waitForExistence(timeout: 5), "Le nom de la personne n'est pas affiché en haut de la page")
+        XCTAssertTrue(quiRegarde.label.contains("Anne"), "La pastille ne dit pas qui regarde : « \(quiRegarde.label) »")
         capture("famille-listes-anne")
+
+        // La pastille ouvre « Qui regarde ? » ; rechoisir Anne referme sans rien changer.
+        quiRegarde.tap()
+        XCTAssertTrue(app.staticTexts["Qui regarde ?"].waitForExistence(timeout: 5), "La pastille n'ouvre pas « Qui regarde ? »")
+        capture("famille-qui-regarde")
+        // Le profil principal garde son nom : il prenait le prénom de la personne en cours (deux « Anne »).
+        XCTAssertEqual(app.buttons.matching(NSPredicate(format: "label == 'Anne'")).count, 1, "Deux profils s'appellent « Anne » dans « Qui regarde ? »")
+        app.buttons["Anne"].firstMatch.tap()
+        XCTAssertTrue(app.tabBars.buttons["Accueil"].firstMatch.waitForExistence(timeout: 15))
 
         // Retour au profil principal : ses listes sont là.
         ouvrirFamille()
@@ -62,5 +75,17 @@ final class FamilleTests: XCTestCase {
         app.tabBars.buttons["Mes listes"].firstMatch.tap()
         XCTAssertTrue(app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'John Wick'")).firstMatch.waitForExistence(timeout: 10),
                       "De retour au profil principal, ses listes ont disparu")
+
+        // « Qui regarde ce soir ? » : Anne se coche dans les idées de la feuille « Ajouter à ma soirée ».
+        app.tabBars.buttons["Ce soir"].firstMatch.tap()
+        let ajouter = app.navigationBars.buttons["Ajouter"].firstMatch
+        XCTAssertTrue(ajouter.waitForExistence(timeout: 10), "Pas de bouton « Ajouter » sur Ce soir")
+        ajouter.tap()
+        XCTAssertTrue(app.textFields["rechercheSoiree"].firstMatch.waitForExistence(timeout: 10), "La feuille « Ajouter à ma soirée » ne s'ouvre pas")
+        let anne = app.buttons["Anne regarde aussi"].firstMatch
+        XCTAssertTrue(app.amener(anne, essais: 12), "« Qui regarde ce soir ? » n'est pas proposé")
+        anne.tap()
+        XCTAssertTrue(anne.isSelected, "Anne n'est pas cochée")
+        capture("famille-ce-soir", attente: 4)
     }
 }
