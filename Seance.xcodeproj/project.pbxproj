@@ -101,6 +101,7 @@
 		A9536F4C9B5ABE97BDFE231D /* EtatDecors.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7706567EB9521978C37DCC4 /* EtatDecors.swift */; };
 		A9D5AB82F1CA559285C218B3 /* VuesWidgets.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12C540EB67C8BD5BA63EA997 /* VuesWidgets.swift */; };
 		AAA30D3585243499220B7576 /* BilanAnneeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35CC3B4EFAE0BC57A7EC7605 /* BilanAnneeView.swift */; };
+		AB855C5A02596D5B9A1741EA /* ReglagesCentraleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 40DE70175786093499565AD1 /* ReglagesCentraleView.swift */; };
 		ABDB1F1CF56254EA3517C885 /* NASView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E818541C3B3B900062945DAE /* NASView.swift */; };
 		AE0965C1E675AFBE9CD34867 /* AVenir.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F359EEF2BD50F8A8280CD01 /* AVenir.swift */; };
 		AE3C6E517C3A52185389FEB3 /* Demonstration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59D423F4DD1DA03825519F89 /* Demonstration.swift */; };
@@ -139,6 +140,7 @@
 		E724440F732F4BEC1F5D2B3F /* SeanceNAS in Frameworks */ = {isa = PBXBuildFile; productRef = 5419FEA36E6C245006D42ADA /* SeanceNAS */; };
 		E73943D3F2FC9A1C1C9E15AB /* EtatTV.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8D712A6F922DE489158A5E7 /* EtatTV.swift */; };
 		E88382E40DBA182DAA361F71 /* BandesAnnonces.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA91FBA795C5F100C03F8CC6 /* BandesAnnonces.swift */; };
+		E90B1B398ADDFE4E1DE18A19 /* EtatCentrale.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C0C8A74971337065B3F6249 /* EtatCentrale.swift */; };
 		EB5C447131F05A6754775E34 /* VisiteTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3719B49FCFBACBABA76DF8AD /* VisiteTests.swift */; };
 		EDBBE1D377840342A321B6B8 /* TourCompletTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED072241FDDEE5DC57D56512 /* TourCompletTests.swift */; };
 		F0BC104982496F4B989F98CB /* LecteurIntegre.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5AEDB40E8F08A0608A8ED1BF /* LecteurIntegre.swift */; };
@@ -246,6 +248,7 @@
 		3E8607047668E8E7A1C0B521 /* PersonneView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersonneView.swift; sourceTree = "<group>"; };
 		3FAD0B3B3AE70CDCB3242DF4 /* ExplorerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExplorerTests.swift; sourceTree = "<group>"; };
 		3FE25142805AA50B481B3069 /* CeSoirTV.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CeSoirTV.swift; sourceTree = "<group>"; };
+		40DE70175786093499565AD1 /* ReglagesCentraleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReglagesCentraleView.swift; sourceTree = "<group>"; };
 		41CC940B3FCF5A8D527E41E2 /* ReglagesSauvegardeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReglagesSauvegardeView.swift; sourceTree = "<group>"; };
 		480DDBB4427776452973C0F2 /* Seance.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Seance.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		49F605778D99EB9E5C2D53BA /* ChoixSoiree.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChoixSoiree.swift; sourceTree = "<group>"; };
@@ -284,6 +287,7 @@
 		8A126034EF29AF09F67F2548 /* EtatLettre.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EtatLettre.swift; sourceTree = "<group>"; };
 		8B1700F8E822A4D474EC18A2 /* Enregistrement.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Enregistrement.swift; sourceTree = "<group>"; };
 		8B744A230DB10B098ACBAA1A /* SeanceWidget.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = SeanceWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		8C0C8A74971337065B3F6249 /* EtatCentrale.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EtatCentrale.swift; sourceTree = "<group>"; };
 		8C27D46355FD45FE0B6BCD9F /* FicheDefilementTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FicheDefilementTests.swift; sourceTree = "<group>"; };
 		8D15356F74B00927F6949939 /* ExplorerTV.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExplorerTV.swift; sourceTree = "<group>"; };
 		8D777738E8169D1D6CBA2E0A /* ProfilTV.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfilTV.swift; sourceTree = "<group>"; };
@@ -425,6 +429,7 @@
 				59D423F4DD1DA03825519F89 /* Demonstration.swift */,
 				297F7F074F246563F3CA483B /* EtatAlertes.swift */,
 				51B21A23E9E47516765D2FE0 /* EtatApp.swift */,
+				8C0C8A74971337065B3F6249 /* EtatCentrale.swift */,
 				C7706567EB9521978C37DCC4 /* EtatDecors.swift */,
 				9B2688F547FDB3FBFBE7E882 /* EtatDocumentaires.swift */,
 				8A126034EF29AF09F67F2548 /* EtatLettre.swift */,
@@ -490,6 +495,7 @@
 				7B0BBB17CE85F8FC16F4470B /* EnvoiAppleTV.swift */,
 				FF2549F1AAD117B2DFF94C9B /* JournalView.swift */,
 				C008722D573D7286070E193D /* ReglagesAlertesView.swift */,
+				40DE70175786093499565AD1 /* ReglagesCentraleView.swift */,
 				A2AC1B40272C1294A203DA5B /* ReglagesComptes.swift */,
 				1E397E973BF02CB68B97C4AA /* ReglagesLettreView.swift */,
 				BC72ED9E3BF950C28E130C53 /* ReglagesOuRegarder.swift */,
@@ -1013,6 +1019,7 @@
 				5A5CCACF177BB9999D6A1FA1 /* EpisodesSerie.swift in Sources */,
 				B45CC8D1AEDA64C277298D8A /* EtatAlertes.swift in Sources */,
 				030A7DD55F9553A369D2C6EB /* EtatApp.swift in Sources */,
+				E90B1B398ADDFE4E1DE18A19 /* EtatCentrale.swift in Sources */,
 				A9536F4C9B5ABE97BDFE231D /* EtatDecors.swift in Sources */,
 				1950DF50A2854AC7A4914500 /* EtatDocumentaires.swift in Sources */,
 				1954A1EE8F1C4AFDAFBCAC62 /* EtatLettre.swift in Sources */,
@@ -1054,6 +1061,7 @@
 				04DED8B613DEB61FFF6F58C2 /* ReceptionParCode.swift in Sources */,
 				44E618EA4C9D17D2DDB633BD /* RechercheSoiree.swift in Sources */,
 				18158B1DB5CD34907A7E464A /* ReglagesAlertesView.swift in Sources */,
+				AB855C5A02596D5B9A1741EA /* ReglagesCentraleView.swift in Sources */,
 				49FB7C17586C400A6A6F0E0C /* ReglagesComptes.swift in Sources */,
 				3B4763B4A6C2FF52C03AA419 /* ReglagesLettreView.swift in Sources */,
 				0AFCD996B554004B80322E4F /* ReglagesNASView.swift in Sources */,

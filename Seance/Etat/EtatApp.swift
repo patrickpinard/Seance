@@ -55,6 +55,8 @@ final class EtatApp {
     let synchro = EtatSynchro()
     /// L'e-mail de la semaine, envoyé par le compte de messagerie de l'utilisateur.
     let lettre: EtatLettre
+    /// Mac : Séance veille sur la maison (6.0).
+    let centrale = EtatCentrale()
     /// Une sauvegarde « .seance » reçue par AirDrop ou ouverte depuis Fichiers : l'import se confirme.
     var sauvegardeRecue: URL?
     let journal = Journal()
