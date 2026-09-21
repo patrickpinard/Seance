@@ -11,6 +11,7 @@
 		0301958790324CC4F0427E3F /* ProfilView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 701BB30E177402C310C6B51C /* ProfilView.swift */; };
 		030A7DD55F9553A369D2C6EB /* EtatApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51B21A23E9E47516765D2FE0 /* EtatApp.swift */; };
 		04DED8B613DEB61FFF6F58C2 /* ReceptionParCode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 203436E177D09B1A81617C9B /* ReceptionParCode.swift */; };
+		05A997AAEE2609418347B2EC /* FamilleTV.swift in Sources */ = {isa = PBXBuildFile; fileRef = 175681010BEED29FC95F0172 /* FamilleTV.swift */; };
 		06635254C557E72B65090ABF /* BasculeGrilleListe.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0F1BE421457182AAB4A1642 /* BasculeGrilleListe.swift */; };
 		07DCF7A5BF7DE657CD13FAE2 /* VuesWidgets.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12C540EB67C8BD5BA63EA997 /* VuesWidgets.swift */; };
 		07DE75AEB94EC0ECF1D894BB /* PersonneView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E8607047668E8E7A1C0B521 /* PersonneView.swift */; };
@@ -232,6 +233,7 @@
 		12C540EB67C8BD5BA63EA997 /* VuesWidgets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VuesWidgets.swift; sourceTree = "<group>"; };
 		146BA72B687CCB624880596C /* EtatVide.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EtatVide.swift; sourceTree = "<group>"; };
 		1716806C1D6DA6DE569DF0C9 /* BandeSoirees.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BandeSoirees.swift; sourceTree = "<group>"; };
+		175681010BEED29FC95F0172 /* FamilleTV.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FamilleTV.swift; sourceTree = "<group>"; };
 		1987D3867BA078091BC7D8A1 /* VideosPersoTV.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideosPersoTV.swift; sourceTree = "<group>"; };
 		1A183D5A1A3FBB515C991256 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		1E397E973BF02CB68B97C4AA /* ReglagesLettreView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReglagesLettreView.swift; sourceTree = "<group>"; };
@@ -715,6 +717,7 @@
 				3FE25142805AA50B481B3069 /* CeSoirTV.swift */,
 				A683B780160AA62BE42AD9C1 /* ConfigurationTV.swift */,
 				8D15356F74B00927F6949939 /* ExplorerTV.swift */,
+				175681010BEED29FC95F0172 /* FamilleTV.swift */,
 				EC28EF8C6F8FD3DBA038A6B1 /* FicheTV.swift */,
 				7F2F9E228CF6FD8AD2ABB788 /* ListesTV.swift */,
 				2DE009439CA55CCDE58B6A92 /* NASTV.swift */,
@@ -1016,6 +1019,7 @@
 				E73943D3F2FC9A1C1C9E15AB /* EtatTV.swift in Sources */,
 				8C382949E3BC9BD85DD579C4 /* EtatVideosPerso.swift in Sources */,
 				9867FB00F0D6DD9089B21C75 /* ExplorerTV.swift in Sources */,
+				05A997AAEE2609418347B2EC /* FamilleTV.swift in Sources */,
 				3ACD7AF63174915B43570296 /* FauxTMDB.swift in Sources */,
 				8F8CD3C44264D47470182C69 /* FicheTV.swift in Sources */,
 				CF9E1E93D06F26359CB61324 /* FondTV.swift in Sources */,
@@ -1372,7 +1376,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 43;
+				CURRENT_PROJECT_VERSION = 44;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = GATK475J3P;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -1392,7 +1396,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 6.0;
+				MARKETING_VERSION = 6.0.1;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -1493,7 +1497,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 43;
+				CURRENT_PROJECT_VERSION = 44;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = GATK475J3P;
 				ENABLE_NS_ASSERTIONS = NO;
@@ -1507,7 +1511,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 6.0;
+				MARKETING_VERSION = 6.0.1;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";

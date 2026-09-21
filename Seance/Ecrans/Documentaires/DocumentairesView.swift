@@ -32,7 +32,7 @@ struct DocumentairesView: View {
                              libelleAction: "Relire", symboleAction: "arrow.clockwise") { recharger() }
                         .padding(.horizontal, 20)
                 } else {
-                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 290, maximum: 520), spacing: 14, alignment: .top)], spacing: 14) {
+                    LazyVGrid(columns: CarteLargeTitre.colonnes, spacing: 14) {
                         ForEach(titres) { titre in
                             NavigationLink(value: titre.reference) {
                                 CarteLargeTitre(titre)

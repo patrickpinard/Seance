@@ -516,7 +516,7 @@ struct ProgrammeTeleView: View {
             .accessibilityAddTraits(.isHeader)
 
             // Le même format partout, quelle que soit l'heure du programme : la grande carte 16/9.
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: 290, maximum: 520), spacing: 14)], spacing: 14) {
+            LazyVGrid(columns: CarteLargeTitre.colonnes, spacing: 14) {
                 ForEach(blocs) { bloc in
                     CarteDiffusion(bloc: bloc, chaine: nomChaine(bloc.premiere.chaine), marque: bloc.reference.flatMap { marques[$0] },
                                    maintenant: maintenant)

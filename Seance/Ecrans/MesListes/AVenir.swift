@@ -161,7 +161,7 @@ struct SectionAVenir: View {
             .padding(.horizontal, 16)
         }
 
-        LazyVGrid(columns: [GridItem(.adaptive(minimum: 290, maximum: 520), spacing: 14, alignment: .top)], spacing: 14) {
+        LazyVGrid(columns: CarteLargeTitre.colonnes, spacing: 14) {
             ForEach(affichees) { echeance in
                 CarteEcheance(echeance: echeance, decor: etat.decors.decor(echeance.reference))
             }

@@ -1,4 +1,5 @@
 import Foundation
+import SeanceDonnees
 import SeanceKit
 
 /// Ton prénom, saisi dans Réglages : Séance te parle plus familièrement quand elle propose quelque chose.
@@ -59,6 +60,8 @@ enum PreferencesSauvegardees {
         for cle in entiers where defauts.object(forKey: cle) != nil { resultat[cle] = .entier(defauts.integer(forKey: cle)) }
         for cle in booleens where defauts.object(forKey: cle) != nil { resultat[cle] = .booleen(defauts.bool(forKey: cle)) }
         for cle in donnees + [cleAlertes, cleNAS, EtatVideosPerso.cleReglages, EtatLettre.cle] { if let valeur = defauts.data(forKey: cle) { resultat[cle] = .donnees(valeur) } }
+        // La famille : les personnes créées ici arrivent sur les autres appareils, Apple TV comprise.
+        if let famille = ProfilsFamille().exporter() { resultat[ProfilsFamille.cleSynchro] = .donnees(famille) }
         // L'e-mail de la semaine : ses réglages voyagent (destinataires, jour, compte — jamais le mot de passe), et la
         // date du dernier envoi aussi, pour que deux appareils ne l'envoient pas chacun de leur côté.
         if let envoi = defauts.object(forKey: EtatLettre.cleDernier) as? Date { resultat[EtatLettre.cleDernier] = .entier(Int(envoi.timeIntervalSince1970)) }
@@ -80,6 +83,8 @@ enum PreferencesSauvegardees {
             case (cleNAS, .donnees(let brut)):
                 guard let reglages = try? JSONDecoder().decode(ReglagesNAS.self, from: brut) else { continue }
                 etat.nas.enregistrer(reglages)
+            case (ProfilsFamille.cleSynchro, .donnees(let brut)):
+                guard ProfilsFamille().fusionner(brut) > 0 else { continue }
             case (EtatLettre.cle, .donnees(let brut)):
                 guard let reglages = try? JSONDecoder().decode(EtatLettre.Reglages.self, from: brut) else { continue }
                 etat.lettre.enregistrer(reglages)

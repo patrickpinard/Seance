@@ -18,6 +18,10 @@ struct RacineTV: View {
         return chemin
     }()
     @State private var configuration = DepartTV.configurer
+    /// Famille : « Qui regarde ? » à l'ouverture, une fois par lancement, dès que la maison a plusieurs profils.
+    @State private var quiRegarde = RacineTV.doitDemander
+    private static var dejaDemande = false
+    private static var doitDemander: Bool { !dejaDemande && ConteneurTV.famille.aPlusieursProfils && DepartTV.fiche == nil }
 
     var body: some View {
         TabView(selection: $onglet) {
@@ -57,6 +61,13 @@ struct RacineTV: View {
         }
         .animation(.snappy, value: etat.message)
         .fullScreenCover(isPresented: $configuration) { ConfigurationTV() }
+        .fullScreenCover(isPresented: $quiRegarde) {
+            QuiRegardeTV { profil in
+                Self.dejaDemande = true
+                quiRegarde = false
+                ConteneurTV.changerDeProfil(vers: profil)
+            }
+        }
         // Une affiche de l'étagère du haut : `seance://film/603` ouvre sa fiche.
         .onOpenURL { url in
             guard url.scheme == "seance", let hote = url.host(), let type = TypeTitre(rawValue: hote), let id = Int(url.lastPathComponent) else { return }

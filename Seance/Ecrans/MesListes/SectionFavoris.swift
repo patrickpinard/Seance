@@ -36,7 +36,7 @@ struct SectionFavoris: View {
                     }
                     .zoneDeToucher()
                 }
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 290, maximum: 520), spacing: 14, alignment: .top)], spacing: 14) {
+                LazyVGrid(columns: CarteLargeTitre.colonnes, spacing: 14) {
                     ForEach(montres) { favori in
                         NavigationLink(value: favori.reference) {
                             CarteLargeTitre(favori: favori)

@@ -128,21 +128,13 @@ struct ListePersoView: View {
                         .padding(.horizontal, 16)
                         .padding(.top, 8)
                 }
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: largeurGrille == .regular ? 150 : 105), spacing: 12, alignment: .top)], spacing: 18) {
+                LazyVGrid(columns: CarteLargeTitre.colonnes, spacing: 18) {
                     ForEach(titres, id: \.reference) { apercu in
                         NavigationLink(value: apercu.reference) {
-                            VStack(alignment: .leading, spacing: 4) {
-                                ImageDistante(url: ImageTMDB.url(apercu.cheminAffiche, .affiche))
-                                    .aspectRatio(2 / 3, contentMode: .fit)
-                                    .overlay(alignment: .topLeading) { BadgeOu(reference: apercu.reference).padding(5) }
-                                    .task(id: apercu.reference) { etat.ou.demander(apercu.reference, client: etat.tmdb) }
-                                Text(apercu.titre.isEmpty ? "\(apercu.reference.type == .film ? "Film" : "Série") \(apercu.reference.tmdbID)" : apercu.titre)
-                                    .font(.subheadline.weight(.semibold))
-                                    .lineLimit(2, reservesSpace: true)
-                                    .multilineTextAlignment(.leading)
-                                Text(apercu.reference.type == .film ? "Film" : "Série").font(.caption).foregroundStyle(.secondary)
-                            }
-                            .contentShape(Rectangle())
+                            // Le même format 16/9 que partout ailleurs (6.0.1) : c'était la dernière page en affiches verticales.
+                            CarteLargeTitre(reference: apercu.reference,
+                                            titre: apercu.titre.isEmpty ? "\(apercu.reference.type == .film ? "Film" : "Série") \(apercu.reference.tmdbID)" : apercu.titre,
+                                            cheminAffiche: apercu.cheminAffiche)
                         }
                         .buttonStyle(.plain)
                         .contextMenu {

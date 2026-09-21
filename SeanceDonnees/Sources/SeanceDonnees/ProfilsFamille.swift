@@ -31,7 +31,8 @@ public struct ProfilFamille: Codable, Sendable, Hashable, Identifiable {
     static func nomDeDossier(_ prenom: String) -> String {
         let propre = prenom.precomposedStringWithCanonicalMapping.trimmingCharacters(in: .whitespacesAndNewlines)
             .components(separatedBy: CharacterSet(charactersIn: "/\\:*?\"<>|")).joined(separator: "-")
-        return propre.isEmpty ? "Profil" : propre
+        // « anne » sur l'iPad et « Anne » sur l'iPhone sont la même personne : un seul dossier, quelle que soit la casse du NAS.
+        return propre.isEmpty ? "Profil" : propre.capitalized(with: Locale(identifier: "fr_CH"))
     }
 }
 
@@ -96,6 +97,33 @@ public struct ProfilsFamille {
                 try? FileManager.default.removeItem(at: dossier.appending(path: "Utilisateur-\(profil.id).store\(suffixe)"))
             }
         }
+    }
+
+    // MARK: La famille voyage entre les appareils (6.0.1)
+
+    /// La clé sous laquelle la famille voyage dans les réglages de la sauvegarde et de la synchronisation.
+    public static let cleSynchro = "famille.profils"
+
+    /// Les profils de la maison, tels qu'ils partent vers les autres appareils ; `nil` quand il n'y a que le principal.
+    public func exporter() -> Data? {
+        let autres = profils.filter { !$0.estPrincipal }
+        return autres.isEmpty ? nil : try? JSONEncoder().encode(autres)
+    }
+
+    /// Ajoute ici les personnes créées ailleurs, avec le même identifiant — leurs listes se retrouvent ainsi d'un appareil
+    /// à l'autre, dans le sous-dossier à leur prénom. Rien n'est jamais retiré : supprimer un profil reste un geste local.
+    /// Renvoie le nombre de personnes ajoutées.
+    @discardableResult
+    public func fusionner(_ donnees: Data) -> Int {
+        guard let recus = try? JSONDecoder().decode([ProfilFamille].self, from: donnees) else { return 0 }
+        var tous = profils
+        var ajoutes = 0
+        for recu in recus where !recu.estPrincipal && !recu.prenom.isEmpty {
+            let connu = tous.contains { $0.id == recu.id || $0.prenom.compare(recu.prenom, options: [.caseInsensitive, .diacriticInsensitive]) == .orderedSame }
+            if !connu { tous.append(recu); ajoutes += 1 }
+        }
+        if ajoutes > 0 { enregistrer(tous) }
+        return ajoutes
     }
 
     private func enregistrer(_ profils: [ProfilFamille]) {

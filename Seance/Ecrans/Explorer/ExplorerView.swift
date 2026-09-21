@@ -59,7 +59,7 @@ struct ExplorerView: View {
     /// Affiches plus grandes sur le Mac : 105 points y feraient des timbres-poste.
     private var colonnes: [GridItem] {
         // Le format unique de l'app : la grande carte 16/9, une par colonne sur l'iPhone, deux ou trois sur l'iPad.
-        [GridItem(.adaptive(minimum: 290, maximum: 520), spacing: 14, alignment: .top)]
+        CarteLargeTitre.colonnes
     }
 
     var body: some View {

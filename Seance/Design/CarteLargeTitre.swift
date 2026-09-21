@@ -24,6 +24,14 @@ struct CarteLargeTitre: View {
 
     static let largeur: CGFloat = 310
 
+    /// La grille des pages en cartes 16/9, la même partout : une colonne sur l'iPhone ; sur l'iPad et le Mac, des cartes de la
+    /// taille de celles des étagères (310 points), autant que la fenêtre en contient. Sans ce plafond, une page laissait ses
+    /// cartes grossir jusqu'à 520 points et une autre les serrait dans des colonnes d'affiches de 150 : aucun format commun.
+    @MainActor static var colonnes: [GridItem] {
+        let telephone = UIDevice.current.userInterfaceIdiom == .phone
+        return [GridItem(.adaptive(minimum: 290, maximum: telephone ? 520 : 350), spacing: 14, alignment: .top)]
+    }
+
     private var film: Bool { reference?.type != .serie }
 
     /// Où regarder, en toutes lettres. Deux sources au plus — trois ne tiennent pas sur une ligne, et la carte

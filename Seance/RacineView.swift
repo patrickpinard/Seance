@@ -28,8 +28,6 @@ struct RacineView: View {
     /// Spotlight se refait quand tes listes changent.
     @Query private var suivisPourSpotlight: [Suivi]
     private var nombreDeSuivis: Int { suivisPourSpotlight.count }
-    /// Mac : les Réglages s'ouvrent en feuille, depuis la roue dentée ou ⌘,.
-    @State private var reglagesOuverts = false
     /// Sur le Mac, le message de confirmation se centre sur le contenu, pas sur la fenêtre avec sa barre latérale.
     @AppStorage("mac.barreLaterale.masquee") private var barreMasquee = false
 
@@ -56,9 +54,11 @@ struct RacineView: View {
                 ProfilView()
             }
             // Sur l'iPhone, un 6e onglet cacherait Explorer derrière « Autre » : Réglages s'ouvre depuis Profil.
-            // Sur le Mac non plus : la roue dentée, en haut à droite de chaque page, y mène (comme sur l'Apple TV).
-            if classeTaille != .compact, !Self.surMac {
-                Tab("Réglages", systemImage: "gearshape", value: .reglages) {
+            if classeTaille != .compact {
+                // Mac : une roue dentée dans le menu même, comme sur l'Apple TV. Posée par-dessus les pages (5.1 à 6.0), elle
+                // tombait sous le menu, recouvrait la recherche d'Explorer et le bouton de l'accueil, et ne répondait pas
+                // partout. La barre du Mac n'affiche que le texte des onglets : l'entrée s'appelle « Réglages », comme sur l'iPad.
+                Tab("Réglages", systemImage: "gearshape", value: OngletRacine.reglages) {
                     NavigationStack {
                         ReglagesView()
                             .destinationsTitres()
@@ -80,36 +80,6 @@ struct RacineView: View {
         // Confirmation d'une action, au-dessus de la barre d'onglets.
         #if targetEnvironment(macCatalyst)
         .allowsHitTesting(!survolConfirmation)
-        #endif
-        #if targetEnvironment(macCatalyst)
-        // Mac : la roue dentée des réglages, tout en haut à droite, à la hauteur du menu, la même sur toutes les pages.
-        .overlay(alignment: .topTrailing) {
-            Button { reglagesOuverts = true } label: {
-                Image(systemName: "gearshape.fill")
-                    .font(.system(size: 17, weight: .semibold))
-                    .foregroundStyle(Theme.accentClair)
-                    .frame(width: 40, height: 40)
-                    .background(.regularMaterial, in: Circle())
-                    .overlay(Circle().strokeBorder(Theme.trait))
-                    .contentShape(Circle())
-            }
-            .buttonStyle(.plain)
-            .help("Réglages (⌘,)")
-            .accessibilityLabel("Réglages")
-            // Sous la barre de titre de la fenêtre, et non dedans : `ignoresSafeArea` la plaçait dans la zone que
-            // macOS se réserve, où le clic n'atteignait jamais le bouton.
-            .padding(.top, 10)
-            .padding(.trailing, 18)
-        }
-        .sheet(isPresented: $reglagesOuverts) {
-            NavigationStack {
-                ReglagesView()
-                    .destinationsTitres()
-                    .navigationBarTitleDisplayMode(.inline)
-                    .toolbar { ToolbarItem(placement: .confirmationAction) { Button("OK") { reglagesOuverts = false } } }
-            }
-            .frame(minWidth: 760, minHeight: 640)
-        }
         #endif
         .overlay(alignment: .bottom) {
             if let confirmation = etat.confirmation {
@@ -229,11 +199,7 @@ struct RacineView: View {
         }
         .onChange(of: etat.ongletDemande) { _, demande in
             guard let demande else { return }
-            if demande == .reglages, Self.surMac {
-                reglagesOuverts = true
-            } else {
-                onglet = demande == .reglages && classeTaille == .compact ? .profil : demande
-            }
+            onglet = demande == .reglages && classeTaille == .compact ? .profil : demande
             etat.ongletDemande = nil
         }
         // Fenêtre rétrécie (iPad) : l'onglet Réglages disparaît, Profil le remplace.

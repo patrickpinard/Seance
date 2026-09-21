@@ -80,4 +80,16 @@ final class TelecommandeTests: XCTestCase {
         telecommande.press(.menu)
         XCTAssertTrue(app.staticTexts["État de Séance sur cette TV"].waitForExistence(timeout: 10), "Retour ne ramène pas aux Réglages")
     }
+
+    /// Famille : « Qui regarde ? » à l'ouverture ; choisir Anne ouvre ses listes à elle, vides, pas celles du profil principal.
+    func testQuiRegardeALOuverture() throws {
+        lancer(["SEANCE_TV_FAMILLE": "Anne", "SEANCE_TV_ONGLET": "listes"])
+        XCTAssertTrue(app.staticTexts["Qui regarde ?"].waitForExistence(timeout: 30), "Pas de « Qui regarde ? » à l'ouverture avec deux profils")
+        capture("tv-qui-regarde")
+        for _ in 0..<3 where !focusSur(["Anne"]) { telecommande.press(.right); Thread.sleep(forTimeInterval: 0.6) }
+        XCTAssertTrue(focusSur(["Anne"]), "La télécommande n'atteint pas le profil d'Anne")
+        telecommande.press(.select)
+        XCTAssertTrue(app.staticTexts["Tes listes sont vides sur cette TV"].waitForExistence(timeout: 20), "Le profil d'Anne montre les listes d'un autre")
+        capture("tv-listes-anne")
+    }
 }

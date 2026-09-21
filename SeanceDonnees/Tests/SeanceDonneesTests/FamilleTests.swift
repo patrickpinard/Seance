@@ -36,6 +36,22 @@ struct FamilleTests {
         #expect(ProfilFamille.nomDeDossier("Jean/Luc: 2") == "Jean-Luc- 2")
     }
 
+    @Test func laFamilleVoyageEntreLesAppareils() {
+        let iphone = registre()
+        let tele = registre()
+        #expect(iphone.exporter() == nil)
+        let anne = iphone.ajouter(prenom: "Anne", symbole: "star.fill")
+        iphone.ajouter(prenom: "Léo", symbole: "bolt.fill")
+        let paquet = iphone.exporter()!
+        #expect(tele.fusionner(paquet) == 2)
+        #expect(tele.profils.map(\.prenom) == ["", "Anne", "Léo"] && tele.profils[1].id == anne.id)
+        // Reçue deux fois, ou déjà créée à la main sous le même prénom : pas de doublon.
+        #expect(tele.fusionner(paquet) == 0)
+        let ipad = registre()
+        ipad.ajouter(prenom: "anne", symbole: "heart.fill")
+        #expect(ipad.fusionner(paquet) == 1 && ipad.profils.map(\.prenom) == ["", "anne", "Léo"])
+    }
+
     @Test func leFoyerSePartageLesListesNon() throws {
         let patrick = try EntrepotSeance.conteneur(.memoire)
         let anne = try EntrepotSeance.conteneur(.memoire)

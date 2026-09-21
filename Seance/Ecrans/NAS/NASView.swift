@@ -62,7 +62,7 @@ struct NASView: View {
     @Environment(\.horizontalSizeClass) private var largeurGrille
     /// Affiches plus grandes sur le Mac : 105 points y feraient des timbres-poste.
     private var colonnes: [GridItem] {
-        [GridItem(.adaptive(minimum: largeurGrille == .regular ? 150 : 105), spacing: 12, alignment: .top)]
+        CarteLargeTitre.colonnes
     }
 
     var body: some View {
@@ -168,7 +168,7 @@ struct NASView: View {
                     }
                     if rayon == .nouveautes {
                         // Le dossier NEW tout en grandes cartes : peu de titres, ceux qu'on vient chercher.
-                        LazyVGrid(columns: [GridItem(.adaptive(minimum: 290, maximum: 520), spacing: 14, alignment: .top)], spacing: 14) {
+                        LazyVGrid(columns: CarteLargeTitre.colonnes, spacing: 14) {
                             ForEach(oeuvres) { oeuvre in
                                 CarteLargeNAS(oeuvre: oeuvre, decor: oeuvre.reference.flatMap(etat.decors.decor),
                                                   marque: oeuvre.reference.flatMap { marques[$0] })
@@ -197,7 +197,7 @@ struct NASView: View {
                                 .font(.title3.weight(.bold))
                                 .padding(.top, 6)
                         }
-                        LazyVGrid(columns: [GridItem(.adaptive(minimum: 290, maximum: 520), spacing: 14, alignment: .top)], spacing: 14) {
+                        LazyVGrid(columns: CarteLargeTitre.colonnes, spacing: 14) {
                             ForEach(oeuvres) { oeuvre in
                                 CarteLargeNAS(oeuvre: oeuvre, decor: oeuvre.reference.flatMap(etat.decors.decor),
                                               marque: oeuvre.reference.flatMap { marques[$0] })

@@ -20,6 +20,7 @@ struct ReglagesTV: View {
     @Query private var suivis: [Suivi]
     @Query private var fichiers: [FichierNAS]
     @State private var configuration = false
+    @State private var quiRegarde = false
     @State private var chemin: [ReglageTV] = DepartTV.reglage.flatMap { nom in
         ["cle": ReglageTV.cle, "plateformes": .plateformes, "tele": .tele, "nas": .nas, "videosPerso": .videosPerso,
          "lecture": .lecture, "gouts": .gouts, "aPropos": .aPropos][nom].map { [$0] }
@@ -63,6 +64,14 @@ struct ReglagesTV: View {
                                                detail: "Un code ici, et tout arrive : clé, NAS, listes", enOrdre: nil, cheminAffiche: affiche(13))
                             }
                             .buttonStyle(.card)
+                            // Famille : changer de personne, ici aussi.
+                            Button { quiRegarde = true } label: {
+                                CarteReglageTV(titre: "Famille", symbole: "person.2.fill",
+                                               detail: "Qui regarde : \(QuiRegardeTV.nom(ConteneurTV.famille.actif)). " +
+                                                   (ConteneurTV.famille.aPlusieursProfils ? "Choisis une autre personne." : "Ajoute la famille sur ton iPhone."),
+                                               enOrdre: nil, cheminAffiche: affiche(16))
+                            }
+                            .buttonStyle(.card)
                             NavigationLink(value: ReglageTV.gouts) {
                                 CarteReglageTV(titre: "Tes goûts", symbole: "heart.fill",
                                                detail: interets.isEmpty ? "Genres à choisir" : interets.map(\.libelle).sorted().joined(separator: ", "), enOrdre: nil, cheminAffiche: affiche(14))
@@ -85,6 +94,12 @@ struct ReglagesTV: View {
             .navigationDestination(for: ReglageTV.self) { PageReglageTV(reglage: $0).pageOuverte() }
         }
         .fullScreenCover(isPresented: $configuration) { ConfigurationTV() }
+        .fullScreenCover(isPresented: $quiRegarde) {
+            QuiRegardeTV { profil in
+                quiRegarde = false
+                ConteneurTV.changerDeProfil(vers: profil)
+            }
+        }
     }
 
     // MARK: Piste B : héros et grandes cartes

@@ -112,7 +112,7 @@ struct CeSoirView: View {
     }
 
     /// Grandes cartes : une colonne sur l'iPhone, deux ou trois sur le Mac.
-    private static let colonnesCartes = [GridItem(.adaptive(minimum: 300, maximum: 560), spacing: 14, alignment: .top)]
+    private static let colonnesCartes = CarteLargeTitre.colonnes
 
     private var contenu: some View {
         ScrollView {

@@ -42,8 +42,8 @@ struct ProfilView: View {
                     statistiques
                 }
                 .padding(.vertical, 16)
-                .frame(maxWidth: 1180, alignment: .leading)
-                .frame(maxWidth: .infinity)
+                // Toute la largeur, comme les autres pages : bornée à 1180 points, elle laissait deux bandes vides sur le Mac.
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
             .background(Theme.fond)
             .navigationTitle("Préférences")

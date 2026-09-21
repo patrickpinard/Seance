@@ -20,6 +20,23 @@ struct NoteVersion: Identifiable {
 
     static let historique: [NoteVersion] = [
         NoteVersion(
+            numero: "6.0.1",
+            date: "21 septembre 2026",
+            resume: "La famille voyage entre tes appareils et se choisit sur l'Apple TV ; le Mac retrouve des pages homogènes et un accès aux Réglages qui marche partout.",
+            fonctionnalites: [
+                Fonctionnalite(symbole: "person.2.fill", titre: "La famille arrive sur tous tes appareils",
+                               detail: "Les personnes créées dans Réglages › Famille voyagent avec la synchronisation : l'iPad, le Mac et l'Apple TV les reçoivent, avec le même identifiant, et chacune retrouve ses listes dans son sous-dossier. Rien n'est jamais retiré à distance : supprimer un profil reste un geste local."),
+                Fonctionnalite(symbole: "appletv", titre: "Apple TV : « Qui regarde ? »",
+                               detail: "À l'ouverture dès que la maison a plusieurs profils, et dans Réglages › Famille pour changer en cours de route. Chaque personne a son magasin sur la TV et se synchronise dans son sous-dossier du NAS ; la bibliothèque du NAS et le guide TV restent communs."),
+                Fonctionnalite(symbole: "menubar.rectangle", titre: "Mac : « Réglages » dans le menu",
+                               detail: "La roue dentée posée par-dessus les pages tombait sous le menu, recouvrait la recherche d'Explorer et le bouton de l'accueil, et ne répondait pas sur Préférences. Les Réglages sont maintenant une entrée du menu du haut, à sa hauteur, qui marche sur toutes les pages (la barre du Mac n'affiche que du texte : pas d'icône possible)."),
+                Fonctionnalite(symbole: "rectangle.grid.2x2", titre: "Mac et iPad : le même format partout",
+                               detail: "Une seule grille pour toutes les pages en cartes 16/9, calée sur la taille des étagères : « Tout voir », le NAS et les listes nommées serraient leurs cartes dans des colonnes d'affiches, d'autres pages les laissaient grossir jusqu'à 520 points. Les listes nommées, dernière page en affiches verticales, passent aux grandes cartes."),
+                Fonctionnalite(symbole: "arrow.left.and.right", titre: "Mac : Préférences sur toute la largeur",
+                               detail: "La page s'arrêtait à 1180 points et laissait deux bandes vides dans une grande fenêtre."),
+            ]
+        ),
+        NoteVersion(
             numero: "6.0",
             date: "21 septembre 2026",
             resume: "La famille : un profil par personne. Et un Mac qui veille sur la maison, l'Apple TV enfin testée à la télécommande, tes titres dans Spotlight.",

@@ -15,6 +15,8 @@ public enum EntrepotSeance {
         /// Pour les tests et les aperçus SwiftUI.
         case memoire
         case dossier(URL)
+        /// Apple TV (6.0.1) : le magasin d'un autre profil de la famille dans ce dossier, à côté du cache commun.
+        case dossierProfil(URL, String)
     }
 
     /// Dossier partagé avec le widget, pour ce qui n'est pas dans SwiftData (liste des prochains épisodes).
@@ -38,6 +40,7 @@ public enum EntrepotSeance {
     public static func conteneur(_ emplacement: Emplacement = .groupeApp) throws -> ModelContainer {
         var nomUtilisateur = "Utilisateur"
         if case .profil(let identifiant) = emplacement { nomUtilisateur = "Utilisateur-\(identifiant)" }
+        if case .dossierProfil(_, let identifiant) = emplacement { nomUtilisateur = "Utilisateur-\(identifiant)" }
         let utilisateur = configuration(nomUtilisateur, modelesUtilisateur, emplacement)
         let cache = configuration("Cache", modelesCache, emplacement)
         do {
@@ -97,7 +100,7 @@ public enum EntrepotSeance {
             return ModelConfiguration(nom, schema: schema, groupContainer: .identifier(groupeApp), cloudKitDatabase: .none)
         case .memoire:
             return ModelConfiguration(nom, schema: schema, isStoredInMemoryOnly: true, cloudKitDatabase: .none)
-        case .dossier(let dossier):
+        case .dossier(let dossier), .dossierProfil(let dossier, _):
             return ModelConfiguration(nom, schema: schema, url: dossier.appending(path: "\(nom).store"), cloudKitDatabase: .none)
         }
     }

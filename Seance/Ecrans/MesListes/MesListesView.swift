@@ -337,7 +337,7 @@ struct MesListesView: View {
         }
         if enGrille, !titres.isEmpty {
             // Le format unique de l'app : la grande carte 16/9, où l'on voit d'un coup l'image, où regarder et les faits.
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: 290, maximum: 520), spacing: 14, alignment: .top)], spacing: 14) {
+            LazyVGrid(columns: CarteLargeTitre.colonnes, spacing: 14) {
                 ForEach(titres) { suivi in
                     NavigationLink(value: suivi.reference) {
                         CarteLargeTitre(suivi: suivi, rendezVous: prochainRendezVous(suivi, reperes),

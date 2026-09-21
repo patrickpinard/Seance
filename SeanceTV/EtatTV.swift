@@ -155,12 +155,20 @@ final class EtatTV {
         defer { synchroEnCours = false }
         // L'état de la synchronisation précédente vit à côté du magasin, dans le cache : si tvOS a fait le ménage,
         // les deux sont partis ensemble, et tout le dossier se relit.
-        let fichierEtat = URL.cachesDirectory.appending(path: "Seance/synchro-etat.json")
-        let moteur = MoteurSynchro(contexte: contexte, transport: DossierSynchroSMB(reglages: nas, motDePasse: motDePasse),
-                                   appareil: appareilSynchro, espace: "synchro.nas", fichierEtat: fichierEtat)
+        // Famille : chaque personne a son sous-dossier (« Séance/Famille/Anne »), ses repères et son état, comme sur l'iPhone.
+        let profil = ConteneurTV.famille.actif
+        let fichierEtat = URL.cachesDirectory.appending(path: profil.estPrincipal ? "Seance/synchro-etat.json" : "Seance/synchro-etat-\(profil.id).json")
+        let dossier = [DossierSynchroSMB.dossierParDefaut, profil.dossierSynchro].compactMap { $0 }.joined(separator: "/")
+        let moteur = MoteurSynchro(contexte: contexte, transport: DossierSynchroSMB(reglages: nas, motDePasse: motDePasse, dossier: dossier),
+                                   appareil: appareilSynchro, espace: profil.estPrincipal ? "synchro.nas" : "synchro.nas.p.\(profil.id)", fichierEtat: fichierEtat)
         if !FileManager.default.fileExists(atPath: fichierEtat.path(percentEncoded: false)) { moteur.oublier() }
         do {
-            let bilan = try await moteur.synchroniser()
+            // Les personnes de la famille, créées sur l'iPhone, arrivent dans les réglages de son fichier.
+            let bilan = try await moteur.synchroniser(appliquer: { remplacees, recues in
+                for reglages in recues + [remplacees] {
+                    if case .donnees(let brut)? = reglages[ProfilsFamille.cleSynchro] { ConteneurTV.famille.fusionner(brut) }
+                }
+            })
             derniereSynchro = .now
             UserDefaults.standard.set(Date.now, forKey: "synchro.nas.derniere")
             erreurSynchro = nil

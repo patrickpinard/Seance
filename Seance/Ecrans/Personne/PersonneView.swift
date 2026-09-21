@@ -258,7 +258,7 @@ struct PersonneView: View {
             .padding(.horizontal, 20)
         }
         if enGrille {
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: 290, maximum: 520), spacing: 14, alignment: .top)], spacing: 14) {
+            LazyVGrid(columns: CarteLargeTitre.colonnes, spacing: 14) {
                 ForEach(credits, id: \.reference) { credit in
                     NavigationLink(value: credit.reference) {
                         CarteLargeTitre(credit.titreResume, accroche: vus.contains(credit.reference) ? "✓ Vu" : nil)
