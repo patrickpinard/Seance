@@ -4,8 +4,10 @@ import SwiftUI
 
 @main
 struct SeanceApp: App {
-    private let conteneur = ConteneurApp.resultat
+    @State private var conteneur = ConteneurApp.resultat
     @State private var etat = EtatApp()
+    /// Change avec le profil de la famille : tous les écrans se reconstruisent sur le nouveau magasin.
+    @State private var generation = 0
     @AppStorage(Apparence.cle) private var apparence = Apparence.sombre.rawValue
 
     var body: some Scene {
@@ -13,8 +15,14 @@ struct SeanceApp: App {
             switch conteneur {
             case .success(let conteneur):
                 RacineView()
+                    .id(generation)
                     .environment(etat)
                     .modelContainer(conteneur)
+                    .onReceive(NotificationCenter.default.publisher(for: .profilChange)) { _ in
+                        self.conteneur = ConteneurApp.resultat
+                        etat = EtatApp()
+                        generation += 1
+                    }
                     .preferredColorScheme(Apparence.lire(apparence).schema)
             case .failure(let erreur):
                 ContentUnavailableView(
@@ -44,7 +52,7 @@ struct SeanceApp: App {
         }
         // Réveil accordé par iOS de temps en temps : les alertes restent à jour sans ouvrir l'app.
         .backgroundTask(.appRefresh(EtatAlertes.tacheFond)) {
-            guard case .success(let conteneur) = conteneur else { return }
+            guard let conteneur = await MainActor.run(body: { ConteneurApp.conteneur }) else { return }
             await etat.rafraichirEnFond(conteneur: conteneur)
         }
     }

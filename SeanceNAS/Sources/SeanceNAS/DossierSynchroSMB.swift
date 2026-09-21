@@ -120,8 +120,11 @@ public struct DossierSynchroSMB: TransportSynchro {
         let dossier = dossier
         let reel = try await nomReel(nom)
         try await session.avec { client in
-            if (try? await client.attributesOfItem(atPath: dossier)) == nil {
-                try await client.createDirectory(atPath: dossier)
+            // « Séance », puis « Séance/Famille/Anne » pour un profil de la famille : chaque étage se crée s'il manque.
+            var chemin = ""
+            for etage in dossier.split(separator: "/") {
+                chemin = chemin.isEmpty ? String(etage) : "\(chemin)/\(etage)"
+                if (try? await client.attributesOfItem(atPath: chemin)) == nil { try await client.createDirectory(atPath: chemin) }
             }
             let cible = "\(dossier)/\(reel)"
             // Écrire à côté puis remplacer : un autre appareil ne lit jamais un fichier à moitié écrit.

@@ -215,9 +215,11 @@ final class EtatNAS {
     }
 
     /// Le dossier « Séance » du NAS, pour la synchronisation (EF-144) ; `nil` tant que le NAS n'est pas réglé.
-    func dossierSynchro() -> DossierSynchroSMB? {
+    /// `sousDossier` : « Famille/Anne », pour un autre profil que le principal.
+    func dossierSynchro(sousDossier: String? = nil) -> DossierSynchroSMB? {
         guard reglages.estComplet, let motDePasse = (try? coffre.lire(.nas)) ?? nil, !motDePasse.isEmpty else { return nil }
-        return DossierSynchroSMB(reglages: reglages, motDePasse: motDePasse)
+        let dossier = [DossierSynchroSMB.dossierParDefaut, sousDossier].compactMap { $0 }.joined(separator: "/")
+        return DossierSynchroSMB(reglages: reglages, motDePasse: motDePasse, dossier: dossier)
     }
 
     private func explorateur() throws -> ExplorateurSMB {

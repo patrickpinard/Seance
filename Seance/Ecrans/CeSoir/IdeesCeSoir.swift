@@ -9,6 +9,9 @@ import SwiftUI
 @Observable
 final class IdeesModele {
     var demande = DemandeCeSoir()
+    /// « Qui regarde ce soir ? » (Famille, 6.0) : les autres personnes devant l'écran. Leurs goûts se fondent avec ceux du
+    /// profil actif, et ce que l'une a vu ou écarté n'est proposé à personne.
+    var invites: [ProfilFamille] = []
     private(set) var resultat: ResultatSuggestions?
     /// Idées traitées (« je regarde », « pas ce soir », « jamais ») : la liste affiche les suivantes à leur place.
     private(set) var retirees: [ReferenceTitre] = []
@@ -86,8 +89,18 @@ final class IdeesModele {
         }
         let gouts = ServiceGouts(contexte: contexte)
         do {
-            profil = try gouts.profil()
-            let exclusions = try gouts.contexteCandidats()
+            var profils = [try gouts.profil()]
+            var contextes = [try gouts.contexteCandidats()]
+            for invite in invites {
+                guard let conteneur = try? EntrepotSeance.conteneurDesGouts(invite) else { continue }
+                let siens = ServiceGouts(contexte: conteneur.mainContext)
+                if let sonProfil = try? siens.profil(), let sonContexte = try? siens.contexteCandidats() {
+                    profils.append(sonProfil)
+                    contextes.append(sonContexte)
+                }
+            }
+            profil = ServiceFamille.fondre(profils)
+            let exclusions = ServiceFamille.fondre(contextes)
             let candidats = try await CollecteurCandidats(client: tmdb).candidats(pour: demande, profil: profil, contexte: exclusions)
             nombreCandidats = candidats.count
             let claude = precise && !demande.envieNettoyee.isEmpty ? etat.claude : nil
@@ -202,6 +215,8 @@ struct SectionIdees: View {
                 .help("Chercher d'autres idées")
             }
 
+            quiRegardeCeSoir
+
             // Film, série ou les deux : le choix relance la recherche.
             SelecteurCases(selection: Binding { modele.demande.type } set: { type in
                 guard type != modele.demande.type else { return }
@@ -256,6 +271,40 @@ struct SectionIdees: View {
         }
         .onAppear(perform: lireEcartes)
         .animation(.easeOut(duration: 0.25), value: idees.map(\.id))
+    }
+
+    /// « Qui regarde ce soir ? » : les autres profils de la maison, à cocher. N'apparaît que s'il y en a.
+    @ViewBuilder
+    private var quiRegardeCeSoir: some View {
+        let autres = ProfilsFamille().profils.filter { $0.id != ProfilsFamille().actif.id }
+        if !autres.isEmpty {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Qui regarde ce soir ?").font(.subheadline.weight(.semibold))
+                Flux(espacement: 8) {
+                    ForEach(autres) { profil in
+                        let present = modele.invites.contains(profil)
+                        Button {
+                            if present { modele.invites.removeAll { $0 == profil } } else { modele.invites.append(profil) }
+                            Task { await modele.chercher(etat: etat, contexte: contexte, precise: !modele.demande.envieNettoyee.isEmpty) }
+                        } label: {
+                            Label(profil.prenom.isEmpty ? "Moi" : profil.prenom, systemImage: present ? "checkmark.circle.fill" : profil.symbole)
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(present ? Color.black : Color.primary)
+                                .padding(.horizontal, 14)
+                                .frame(minHeight: 44)
+                                .background(present ? AnyShapeStyle(Theme.degradeAccent) : AnyShapeStyle(Theme.surface), in: Capsule())
+                                .contentShape(Capsule())
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("\(profil.prenom) regarde aussi")
+                        .accessibilityAddTraits(present ? .isSelected : [])
+                    }
+                }
+                Text(modele.invites.isEmpty ? "Coche qui regarde avec toi : Séance cherche ce qui plaît à tous."
+                                            : "Idées pour toi et \(modele.invites.map(\.prenom).joined(separator: ", ")) : rien de ce que l'un de vous a vu ou écarté.")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+        }
     }
 
     private func lireEcartes() {

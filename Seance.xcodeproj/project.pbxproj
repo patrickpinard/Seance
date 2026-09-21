@@ -27,6 +27,7 @@
 		1A8569E44BCE62268A7B0B31 /* EtatVide.swift in Sources */ = {isa = PBXBuildFile; fileRef = 146BA72B687CCB624880596C /* EtatVide.swift */; };
 		1A87204CC25E301D3A307919 /* SeanceWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 8B744A230DB10B098ACBAA1A /* SeanceWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		1C624813E48BF003F682B704 /* SeanceNAS in Frameworks */ = {isa = PBXBuildFile; productRef = 527578283F776F88734B4303 /* SeanceNAS */; };
+		1D641CB047D9C9801A7F01DE /* FamilleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31C67022B73C55F8D0DD9D6B /* FamilleTests.swift */; };
 		2052DE94C65ACC142FD3C13F /* Enregistrement.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B1700F8E822A4D474EC18A2 /* Enregistrement.swift */; };
 		20FA4ABD083DC6765765CA01 /* SeanceDonnees in Frameworks */ = {isa = PBXBuildFile; productRef = 2CAE51A8CC0DF6130D32359E /* SeanceDonnees */; };
 		234F7F0C219075B2EB1E85A8 /* ContentProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = EBB25F5115A5BA4FF7D114B9 /* ContentProvider.swift */; };
@@ -80,6 +81,7 @@
 		82B7699785ED31DA68C754A9 /* ReglagesTV.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54B4F4189EFFF7CA18A4B017 /* ReglagesTV.swift */; };
 		8770272C3FEE7FA90176BBDB /* SelecteurCases.swift in Sources */ = {isa = PBXBuildFile; fileRef = D141434E6948792544ABCEBD /* SelecteurCases.swift */; };
 		889E1057E692259368F006C8 /* FeuilleFiltres.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D0200041452BB3D285609DE /* FeuilleFiltres.swift */; };
+		8A6192E3859B5B6F27F04D57 /* FamilleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 069F223EF3422117B3EE2BE7 /* FamilleView.swift */; };
 		8C382949E3BC9BD85DD579C4 /* EtatVideosPerso.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8F13EA7630B92FF4E4FA3F7 /* EtatVideosPerso.swift */; };
 		8F8CD3C44264D47470182C69 /* FicheTV.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC28EF8C6F8FD3DBA038A6B1 /* FicheTV.swift */; };
 		90CB491DC981A4EF8E410D77 /* ReglagesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C823C7D99C49FEB6D7792D4F /* ReglagesTests.swift */; };
@@ -208,6 +210,7 @@
 		051C2BE31C08E94AC2FB3AC6 /* PersonneTV.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersonneTV.swift; sourceTree = "<group>"; };
 		0638E7609742B2A07A76BE89 /* Seance.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Seance.entitlements; sourceTree = "<group>"; };
 		0661326CD01844A8F4B22D2B /* LienProfond.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LienProfond.swift; sourceTree = "<group>"; };
+		069F223EF3422117B3EE2BE7 /* FamilleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FamilleView.swift; sourceTree = "<group>"; };
 		06FFBF0A7DCCC85A19A1CEE6 /* ParcoursSoireeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParcoursSoireeTests.swift; sourceTree = "<group>"; };
 		0A301A4B4AB1816D72C3C693 /* CarteReglageTV.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CarteReglageTV.swift; sourceTree = "<group>"; };
 		0B91968F8C13F8CECB709FC5 /* EtagereDuHaut.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EtagereDuHaut.swift; sourceTree = "<group>"; };
@@ -232,6 +235,7 @@
 		29DE681EF5C1EAA1687286C4 /* MesListesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MesListesView.swift; sourceTree = "<group>"; };
 		2DE009439CA55CCDE58B6A92 /* NASTV.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NASTV.swift; sourceTree = "<group>"; };
 		316415587B7F86140C8C565A /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		31C67022B73C55F8D0DD9D6B /* FamilleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FamilleTests.swift; sourceTree = "<group>"; };
 		3279F3CE4F19B222D6A87054 /* ExplorerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExplorerView.swift; sourceTree = "<group>"; };
 		32E76981CE172025F2148C2A /* Raccourcis.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Raccourcis.swift; sourceTree = "<group>"; };
 		33C7D56023BA6C0CBD491C53 /* StatistiquesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatistiquesView.swift; sourceTree = "<group>"; };
@@ -539,6 +543,7 @@
 				5A85DB1D41B6EB90FB6A7935 /* CeSoir */,
 				97A8D99F014D0D126D7F4D59 /* Documentaires */,
 				4EE375953E179A32E8C952AF /* Explorer */,
+				BEA1F92DCFDA1B8074CAA0F0 /* Famille */,
 				11842A37CB6CC1E9FB06C384 /* Fiche */,
 				885C49167BD7924620D60FEF /* MesListes */,
 				AF219F7004E2A7292D15FC02 /* NAS */,
@@ -631,6 +636,7 @@
 				0EDD37B39A84ADA0B97BEB0F /* EnvoiAppleTVTests.swift */,
 				F81E03F245BE8E927674F9DD /* EtatsVidesTests.swift */,
 				3FAD0B3B3AE70CDCB3242DF4 /* ExplorerTests.swift */,
+				31C67022B73C55F8D0DD9D6B /* FamilleTests.swift */,
 				8C27D46355FD45FE0B6BCD9F /* FicheDefilementTests.swift */,
 				C096216F8F25D89E9BAB625D /* IPadTests.swift */,
 				9F521A01F8C00C6861F32A49 /* Lancement.swift */,
@@ -710,6 +716,14 @@
 				7F9972116AF32F224AFE3545 /* VideosPerso.swift */,
 			);
 			path = NAS;
+			sourceTree = "<group>";
+		};
+		BEA1F92DCFDA1B8074CAA0F0 /* Famille */ = {
+			isa = PBXGroup;
+			children = (
+				069F223EF3422117B3EE2BE7 /* FamilleView.swift */,
+			);
+			path = Famille;
 			sourceTree = "<group>";
 		};
 		E27CE31059C40D615F788DC1 /* Packages */ = {
@@ -1009,6 +1023,7 @@
 				27E5B9CB098F2C9B33F23190 /* EtatVideosPerso.swift in Sources */,
 				C2DC72385E62E22BC17B8F7B /* ExplorerModele.swift in Sources */,
 				44CC27564B8FE5C1912FCED7 /* ExplorerView.swift in Sources */,
+				8A6192E3859B5B6F27F04D57 /* FamilleView.swift in Sources */,
 				384FE0F435964622466BCCB2 /* FauxTMDB.swift in Sources */,
 				889E1057E692259368F006C8 /* FeuilleFiltres.swift in Sources */,
 				9465DF498AFBE22D12E9EC5E /* FicheView.swift in Sources */,
@@ -1068,6 +1083,7 @@
 				2A5AA594AC154FF6E7492533 /* EnvoiAppleTVTests.swift in Sources */,
 				DB78148DCA732B30059925A7 /* EtatsVidesTests.swift in Sources */,
 				C660FE50BC091499DE585220 /* ExplorerTests.swift in Sources */,
+				1D641CB047D9C9801A7F01DE /* FamilleTests.swift in Sources */,
 				54F323CA789B8DA3749B81CB /* FicheDefilementTests.swift in Sources */,
 				3A89356006CFB7C030658FEE /* IPadTests.swift in Sources */,
 				D09506312ABD69FBD6A03FA4 /* Lancement.swift in Sources */,

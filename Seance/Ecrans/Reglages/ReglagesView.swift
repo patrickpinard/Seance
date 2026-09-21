@@ -7,7 +7,7 @@ import SwiftUI
 /// Un lien « par vue » vers Réglages, depuis la barre d'outils de Profil, figeait l'iPhone : SwiftUI remettait
 /// la destination à jour à chaque rendu, sans fin, jusqu'à ce qu'iOS tue l'app.
 enum DestinationReglage: Hashable {
-    case reglages, prenom, apparence, tmdb, claude, plateformes, tele, nas, videosPerso, lecture, alertes, sauvegarde, lettre, aPropos, versions, journal, apercuWidgets
+    case reglages, prenom, famille, apparence, tmdb, claude, plateformes, tele, nas, videosPerso, lecture, alertes, sauvegarde, lettre, aPropos, versions, journal, apercuWidgets
 }
 
 struct PageReglage: View {
@@ -17,6 +17,7 @@ struct PageReglage: View {
         switch destination {
         case .reglages: ReglagesView().navigationBarTitleDisplayMode(.inline)
         case .prenom: ReglagesPrenomView()
+        case .famille: FamilleView()
         case .apparence: ReglagesApparenceView()
         case .tmdb: ReglagesTMDBView()
         case .claude: ReglagesClaudeView()
@@ -207,6 +208,11 @@ struct ReglagesView: View {
                     // L'accueil se personnalise dans sa feuille, la même que depuis l'accueil : un seul réglage, deux portes.
                     Button { accueil = true } label: { TuileReglage(titre: "Accueil", symbole: "house.fill", valeur: libelleAccueil) }
                         .buttonStyle(.plain)
+                }
+                rubrique("La maison") {
+                    tuile(.famille, "Famille", "person.2.fill",
+                          ProfilsFamille().aPlusieursProfils ? ProfilsFamille().profils.map { $0.prenom.isEmpty ? "Moi" : $0.prenom }.joined(separator: ", ")
+                                                             : "Un profil par personne : listes, notes, idées")
                 }
                 rubrique("Tes appareils") {
                     Button { nouvelAppareil = true } label: {

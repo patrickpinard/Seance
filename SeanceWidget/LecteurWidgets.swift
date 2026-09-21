@@ -7,7 +7,8 @@ import UIKit
 /// Le magasin partagé avec l'app, ouvert une fois par processus du widget.
 @MainActor
 enum ConteneurPartage {
-    static let conteneur: ModelContainer? = try? EntrepotSeance.conteneur(.groupeApp)
+    // Le profil actif de la famille (6.0) : le widget montre ses épisodes, pas ceux du profil principal.
+    static let conteneur: ModelContainer? = try? EntrepotSeance.conteneur(ProfilsFamille().actif.emplacement)
 }
 
 /// Lit ce que les widgets affichent : la soirée et les échéances dans SwiftData, les prochains

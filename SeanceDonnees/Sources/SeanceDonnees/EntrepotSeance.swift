@@ -9,6 +9,9 @@ public enum EntrepotSeance {
     public enum Emplacement: Sendable {
         /// Conteneur partagé avec le widget ; c'est l'emplacement de l'app.
         case groupeApp
+        /// Famille (Séance 6.0) : le magasin d'un autre profil du foyer, à côté de celui du profil principal. Ses listes,
+        /// ses notes et ses goûts sont à lui ; le cache (TMDB, guide TV, NAS) reste commun. Pas de changement de schéma.
+        case profil(String)
         /// Pour les tests et les aperçus SwiftUI.
         case memoire
         case dossier(URL)
@@ -33,7 +36,9 @@ public enum EntrepotSeance {
     /// rouvert comme avant la 2.4, par la migration automatique : une erreur du plan ne doit jamais couper
     /// l'app de ses données.
     public static func conteneur(_ emplacement: Emplacement = .groupeApp) throws -> ModelContainer {
-        let utilisateur = configuration("Utilisateur", modelesUtilisateur, emplacement)
+        var nomUtilisateur = "Utilisateur"
+        if case .profil(let identifiant) = emplacement { nomUtilisateur = "Utilisateur-\(identifiant)" }
+        let utilisateur = configuration(nomUtilisateur, modelesUtilisateur, emplacement)
         let cache = configuration("Cache", modelesCache, emplacement)
         do {
             return try ModelContainer(
@@ -48,6 +53,13 @@ public enum EntrepotSeance {
                 configurations: utilisateur, cache
             )
         }
+    }
+
+    /// Le seul magasin « Utilisateur » d'un autre profil de la famille, pour y lire ses goûts (« Qui regarde ce soir ? »)
+    /// sans rouvrir le cache commun, que le profil actif tient déjà.
+    public static func conteneurDesGouts(_ profil: ProfilFamille) throws -> ModelContainer {
+        let nom = profil.estPrincipal ? "Utilisateur" : "Utilisateur-\(profil.id)"
+        return try ModelContainer(for: Schema(modelesUtilisateur), configurations: configuration(nom, modelesUtilisateur, profil.emplacement))
     }
 
     /// Renseignée quand le plan de migration n'a pas pu ouvrir le magasin ; l'app la note dans son journal.
@@ -81,7 +93,7 @@ public enum EntrepotSeance {
     ) -> ModelConfiguration {
         let schema = Schema(modeles)
         switch emplacement {
-        case .groupeApp:
+        case .groupeApp, .profil:
             return ModelConfiguration(nom, schema: schema, groupContainer: .identifier(groupeApp), cloudKitDatabase: .none)
         case .memoire:
             return ModelConfiguration(nom, schema: schema, isStoredInMemoryOnly: true, cloudKitDatabase: .none)

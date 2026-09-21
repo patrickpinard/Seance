@@ -11,6 +11,17 @@ struct RacineView: View {
     @Environment(\.horizontalSizeClass) private var classeTaille
     @AppStorage("bienvenue.terminee") private var bienvenueTerminee = false
     @State private var bienvenue = false
+    /// Famille (6.0) : « Qui regarde ? » à l'ouverture, quand la maison a plusieurs profils. Une fois par lancement.
+    @State private var quiRegarde = RacineView.doitDemanderQuiRegarde
+    private static var dejaDemande = false
+    private static var doitDemanderQuiRegarde: Bool {
+        let famille = ProfilsFamille()
+        #if DEBUG
+        if Demonstration.active { return false }
+        #endif
+        guard !dejaDemande, famille.aPlusieursProfils, famille.demanderAuLancement else { return false }
+        return true
+    }
     @State private var onglet = OngletRacine.accueil
     @State private var survolConfirmation = false
     /// Mac : les Réglages s'ouvrent en feuille, depuis la roue dentée ou ⌘,.
@@ -147,6 +158,13 @@ struct RacineView: View {
             AjoutAListeView(titre: titre)
         }
         .modifier(ReceptionEtSynchro())
+        .fullScreenCover(isPresented: $quiRegarde) {
+            QuiRegardeView { profil in
+                Self.dejaDemande = true
+                quiRegarde = false
+                ConteneurApp.changerDeProfil(vers: profil)
+            }
+        }
         .fullScreenCover(isPresented: $bienvenue) {
             BienvenueView(mode: .premierLancement) {
                 bienvenueTerminee = true

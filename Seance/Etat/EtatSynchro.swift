@@ -78,6 +78,13 @@ enum ImportSauvegarde {
 @MainActor
 @Observable
 final class EtatSynchro {
+    /// Famille (6.0) : chaque profil synchronise dans son sous-dossier (« Famille/Anne »), avec ses propres repères ; le
+    /// profil principal reste à la racine, comme avant. Un changement de profil recrée cet état.
+    let profil = ProfilsFamille().actif
+    private var suffixe: String { profil.estPrincipal ? "" : ".p.\(profil.id)" }
+    private var espaceDossier: String { "synchro" + suffixe }
+    private var espaceNAS: String { "synchro.nas" + suffixe }
+
     private(set) var nomDossier: String?
     private(set) var derniereSynchro: Date?
     private(set) var dernierMessage: String?
@@ -156,7 +163,7 @@ final class EtatSynchro {
         // Un autre dossier : tout ce qu'il contient est nouveau, et notre fichier n'y est pas encore.
         defauts.removeObject(forKey: Cle.importes)
         defauts.removeObject(forKey: Cle.empreinte)
-        try? FileManager.default.removeItem(at: Self.fichierEtat)
+        try? FileManager.default.removeItem(at: fichierEtat)
         nomDossier = url.lastPathComponent
         dernierMessage = nil
     }
@@ -164,7 +171,7 @@ final class EtatSynchro {
     func oublier() {
         let defauts = UserDefaults.standard
         [Cle.signet, Cle.nomDossier, Cle.importes, Cle.empreinte, Cle.derniere].forEach(defauts.removeObject)
-        try? FileManager.default.removeItem(at: Self.fichierEtat)
+        try? FileManager.default.removeItem(at: fichierEtat)
         nomDossier = nil
         derniereSynchro = nil
         dernierMessage = nil
@@ -207,11 +214,12 @@ final class EtatSynchro {
                 if perime, let neuf = try? dossier.bookmarkData(options: [], includingResourceValuesForKeys: nil, relativeTo: nil) {
                     UserDefaults.standard.set(neuf, forKey: Cle.signet)
                 }
-                let moteur = MoteurSynchro(contexte: contexte, transport: DossierLocal(dossier: dossier), appareil: appareil,
-                                           espace: "synchro", fichierEtat: Self.fichierEtat)
+                let transportLocal = DossierLocal(dossier: profil.dossierSynchro.map { dossier.appending(path: $0, directoryHint: .isDirectory) } ?? dossier)
+                let moteur = MoteurSynchro(contexte: contexte, transport: transportLocal, appareil: appareil,
+                                           espace: espaceDossier, fichierEtat: fichierEtat)
                 let bilan = try await moteur.synchroniser(preferences: preferences, appliquer: appliquer)
                 noter(bilan)
-                await traiterEssaiAlerte(bilan.presents, transport: DossierLocal(dossier: dossier), espace: "synchro", etat: etat)
+                await traiterEssaiAlerte(bilan.presents, transport: transportLocal, espace: espaceDossier, etat: etat)
                 // Un filet de sécurité : l'état du jour, daté, à côté ; les cinq derniers de cet appareil sont gardés.
                 if let donnees = bilan.deposees {
                     let nomAppareil = appareil
@@ -227,13 +235,13 @@ final class EtatSynchro {
         // 2. Le dossier « Séance » du NAS (EF-144), à la maison seulement : ailleurs, le NAS ne répond pas et ce n'est
         //    pas une panne — la synchronisation automatique se tait, la prochaine à la maison rattrapera.
         if parLeNAS {
-            if let transport = etat.nas.dossierSynchro() {
+            if let transport = etat.nas.dossierSynchro(sousDossier: profil.dossierSynchro) {
                 do {
                     let moteur = MoteurSynchro(contexte: contexte, transport: transport, appareil: appareil,
-                                               espace: "synchro.nas", fichierEtat: Self.fichierEtat)
+                                               espace: espaceNAS, fichierEtat: fichierEtat)
                     let bilan = try await moteur.synchroniser(preferences: preferences, appliquer: appliquer)
                     noter(bilan)
-                    await traiterEssaiAlerte(bilan.presents, transport: transport, espace: "synchro.nas", etat: etat)
+                    await traiterEssaiAlerte(bilan.presents, transport: transport, espace: espaceNAS, etat: etat)
                     derniereSynchroNAS = .now
                     UserDefaults.standard.set(Date.now, forKey: Cle.derniereNAS)
                     messageNAS = nil
@@ -299,10 +307,10 @@ final class EtatSynchro {
 
     /// L'état déposé à la synchronisation précédente : c'est en s'y comparant que l'appareil sait ce qu'il a modifié
     /// ou supprimé depuis. Gardé hors du dossier partagé, qu'un autre appareil pourrait avoir vidé.
-    private static var fichierEtat: URL {
+    private var fichierEtat: URL {
         let dossier = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
         try? FileManager.default.createDirectory(at: dossier, withIntermediateDirectories: true)
-        return dossier.appendingPathComponent("synchro-etat.json")
+        return dossier.appendingPathComponent(profil.estPrincipal ? "synchro-etat.json" : "synchro-etat-\(profil.id).json")
     }
 
     /// « Séance — iPad 77C1.json » → « iPad ».
@@ -316,7 +324,9 @@ final class EtatSynchro {
         let dossier: URL
 
         func lister() async throws -> [SynchroDossier.Fichier] {
-            try await Task.detached { try EtatSynchro.lister(dossier) }.value
+            // Le sous-dossier d'un profil de la famille n'existe pas avant son premier dépôt : il se lit comme vide.
+            guard FileManager.default.fileExists(atPath: dossier.path(percentEncoded: false)) else { return [] }
+            return try await Task.detached { try EtatSynchro.lister(dossier) }.value
         }
 
         func lire(_ nom: String) async throws -> Data {
@@ -325,6 +335,7 @@ final class EtatSynchro {
         }
 
         func ecrire(_ donnees: Data, nom: String) async throws {
+            try? FileManager.default.createDirectory(at: dossier, withIntermediateDirectories: true)
             let url = dossier.appendingPathComponent(nom)
             try await Task.detached { try EtatSynchro.ecrire(donnees, url) }.value
         }
