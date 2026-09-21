@@ -46,7 +46,7 @@ struct NASView: View {
         case films = "Films"
         case series = "Séries"
         case nouveautes = "NEW"
-        case nonReconnus = "Autres"
+        case nonReconnus = "Non reconnus"
 
         var id: String { rawValue }
     }
@@ -147,7 +147,7 @@ struct NASView: View {
     private var bibliotheque: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                SelecteurCases(selection: $rayon, cases: Rayon.allCases.map { .init(valeur: $0, nom: libelle($0)) })
+                SelecteurCases(selection: $rayon, cases: rayonsMontres.map { .init(valeur: $0, nom: libelle($0)) })
 
                 lienVideosPerso
                 resume
@@ -260,8 +260,19 @@ struct NASView: View {
     }
 
     /// « Séries 15 » : le nombre de titres du rayon, pour voir d'un coup d'œil ce que l'analyse a trouvé.
+    /// Les rayons qui ont quelque chose, plus celui qu'on regarde : un dossier supprimé sur le NAS sort du menu
+    /// dès l'analyse suivante, au lieu d'y laisser une case vide.
+    private var rayonsMontres: [Rayon] {
+        let pleins = Rayon.allCases.filter { compte($0) > 0 }
+        return pleins.isEmpty ? [.films] : (pleins.contains(rayon) ? pleins : pleins + [rayon])
+    }
+
+    private func compte(_ rayon: Rayon) -> Int {
+        rayon == .nonReconnus ? fichiers.filter { $0.tmdbID == nil }.count : oeuvres(du: rayon).count
+    }
+
     private func libelle(_ rayon: Rayon) -> String {
-        let nombre = rayon == .nonReconnus ? fichiers.filter { $0.tmdbID == nil }.count : oeuvres(du: rayon).count
+        let nombre = compte(rayon)
         return nombre == 0 ? rayon.rawValue : "\(rayon.rawValue) \(nombre)"
     }
 

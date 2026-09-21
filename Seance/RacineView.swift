@@ -1,6 +1,7 @@
 import SeanceDonnees
 import SeanceKit
 import SwiftData
+import CoreSpotlight
 import SwiftUI
 
 /// Barre d'onglets (UX, navigation) : Explorer est l'onglet de recherche d'iOS 26, en rond séparé.
@@ -24,6 +25,9 @@ struct RacineView: View {
     }
     @State private var onglet = OngletRacine.accueil
     @State private var survolConfirmation = false
+    /// Spotlight se refait quand tes listes changent.
+    @Query private var suivisPourSpotlight: [Suivi]
+    private var nombreDeSuivis: Int { suivisPourSpotlight.count }
     /// Mac : les Réglages s'ouvrent en feuille, depuis la roue dentée ou ⌘,.
     @State private var reglagesOuverts = false
     /// Sur le Mac, le message de confirmation se centre sur le contenu, pas sur la fenêtre avec sa barre latérale.
@@ -244,6 +248,14 @@ struct RacineView: View {
         .onChange(of: etat.ficheDemandee) { _, demande in
             if demande != nil { onglet = .accueil }
         }
+        // Un titre touché dans la recherche du système (Spotlight) : sa fiche s'ouvre.
+        .onContinueUserActivity(CSSearchableItemActionType) { activite in
+            if let reference = IndexSpotlight.reference(activite) {
+                onglet = .accueil
+                etat.ficheDemandee = reference
+            }
+        }
+        .task(id: nombreDeSuivis) { IndexSpotlight.actualiser(contexte: contexte) }
         .onOpenURL { url in
             // Un fichier : une sauvegarde reçue par AirDrop ou ouverte depuis Fichiers.
             if url.isFileURL {

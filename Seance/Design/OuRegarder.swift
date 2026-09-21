@@ -99,6 +99,15 @@ struct ActionsOuRegarder: View {
         .task(id: reference) { etat.ou.demander(reference, client: etat.tmdb) }
     }
 
+    /// Ouvre la plateforme sur le titre, et retient ce que cela a donné (6.0) : une plateforme qui refuse le lien le dit tout de
+    /// suite, et Séance garde le compte de celles qui s'ouvrent vraiment (`PlateformesApprises`), pour les préférer ensuite.
+    private func ouvrirPlateforme(_ lien: URL, id: Int, nom: String) {
+        openURL(lien) { acceptee in
+            PlateformesApprises.noter(id, ouverte: acceptee)
+            if !acceptee { etat.confirmer("\(nom) ne s'ouvre pas d'ici : lance l'app et cherche « \(titre) »", symbole: "exclamationmark.triangle") }
+        }
+    }
+
     /// Le seul bouton de la carte de soirée : il lance ce qui est le plus direct.
     @ViewBuilder
     private func boutonPrincipal(_ badge: EtatOu.Badge) -> some View {
@@ -111,7 +120,7 @@ struct ActionsOuRegarder: View {
             }
         case .plateforme(let id, let nom, let logo):
             if let lien = LiensPlateformes.lien(plateforme: id, titre: titre) {
-                Button { openURL(lien) } label: { EtiquetteGrandBouton(symbole: "play.fill", texte: "Regarder sur \(nom)") }
+                Button { ouvrirPlateforme(lien, id: id, nom: nom) } label: { EtiquetteGrandBouton(symbole: "play.fill", texte: "Regarder sur \(nom)") }
                     .buttonStyle(.plain)
                     .accessibilityLabel("Regarder sur \(nom)")
                     .accessibilityHint("Ouvre \(nom) sur ce titre")
@@ -151,7 +160,7 @@ struct ActionsOuRegarder: View {
                     }
                 case .plateforme(let id, let nom, let logo):
                     if let lien = LiensPlateformes.lien(plateforme: id, titre: titre) {
-                        Button { openURL(lien) } label: { PastilleOuRegarder(logo: logo, texte: nom, ouvre: true) }
+                        Button { ouvrirPlateforme(lien, id: id, nom: nom) } label: { PastilleOuRegarder(logo: logo, texte: nom, ouvre: true) }
                             .buttonStyle(.plain)
                             .accessibilityLabel("Regarder sur \(nom)")
                             .accessibilityHint("Ouvre \(nom) sur ce titre")
@@ -202,5 +211,25 @@ struct EtiquetteGrandBouton: View {
             .frame(height: 50)
             .foregroundStyle(.black)
             .background(Theme.degradeAccent, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+    }
+}
+
+/// Ce que Séance a appris en ouvrant les plateformes : TMDB ne donne pas de lien, Séance ouvre leur recherche, et toutes ne
+/// s'y prêtent pas sur tous les appareils. Par plateforme : combien de fois le lien s'est ouvert, combien de fois non.
+enum PlateformesApprises {
+    private static let cle = "plateformes.ouvertures"
+
+    static func noter(_ id: Int, ouverte: Bool) {
+        var comptes = UserDefaults.standard.dictionary(forKey: cle) as? [String: [Int]] ?? [:]
+        var compte = comptes[String(id)] ?? [0, 0]
+        compte[ouverte ? 0 : 1] += 1
+        comptes[String(id)] = compte
+        UserDefaults.standard.set(comptes, forKey: cle)
+    }
+
+    /// Une plateforme dont le lien n'a jamais abouti et a déjà échoué deux fois : « Regarder maintenant » en choisit une autre.
+    static func fiable(_ id: Int) -> Bool {
+        let compte = (UserDefaults.standard.dictionary(forKey: cle) as? [String: [Int]])?[String(id)] ?? [0, 0]
+        return compte[0] > 0 || compte[1] < 2
     }
 }

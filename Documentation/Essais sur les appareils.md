@@ -114,3 +114,16 @@ iOS ne transmet une alerte à la montre que si l'iPhone est verrouillé ou en ve
 3. Depuis l'Apple TV : Réglages › « Tester une alerte », ouvrir Séance sur l'iPhone, le verrouiller : l'alerte arrive vingt
    secondes après la synchronisation.
 
+
+
+## Famille et centrale de la maison (6.0)
+
+1. Réglages › Famille › **Ajouter une personne**, puis « Choisir » : l'app se reconstruit, ses listes sont vides, les plateformes et
+   les chaînes sont celles de la maison. Revenir au profil principal : tout est là.
+2. Fermer et rouvrir Séance : « Qui regarde ? » s'affiche.
+3. Ce soir › Ajouter : cocher l'autre personne sous « Qui regarde ce soir ? » ; les idées changent.
+4. Même prénom créé sur l'iPad : après une synchronisation de chaque côté, ses listes s'y retrouvent (sous-dossier `Famille/Prénom`).
+5. Mac : Réglages › **Centrale de la maison**, activer les deux interrupteurs, laisser Séance ouverte. Attendu : « Dernier passage »
+   avance tous les quarts d'heure ; le Mac ne se met plus en veille ; après redémarrage, Séance s'ouvre seule. `caffeinate` devient inutile.
+6. Spotlight : taper le nom d'un titre de tes listes ; le toucher ouvre sa fiche.
+\n

@@ -92,7 +92,9 @@ final class EtatOu {
     func badges(_ reference: ReferenceTitre) -> [Badge] {
         var resultat: [Badge] = []
         if nas.contains(reference) { resultat.append(.nas) }
-        let plateformes = (entrees[Self.cle(reference)]?.plateformes ?? []).filter { abonnements.contains($0.id) }.sorted { $0.priorite < $1.priorite }
+        // Celles dont le lien s'ouvre vraiment passent devant (6.0) ; à égalité, l'ordre de TMDB.
+        let plateformes = (entrees[Self.cle(reference)]?.plateformes ?? []).filter { abonnements.contains($0.id) }
+            .sorted { (PlateformesApprises.fiable($0.id) ? 0 : 1, $0.priorite) < (PlateformesApprises.fiable($1.id) ? 0 : 1, $1.priorite) }
         resultat += plateformes.prefix(2).map { .plateforme(id: $0.id, nom: $0.nom, logo: $0.logo) }
         if let passage = teleSemaine[reference] { resultat.append(.tele(chaine: passage.chaine, quand: passage.quand)) }
         return resultat

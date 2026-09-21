@@ -20,6 +20,40 @@ struct NoteVersion: Identifiable {
 
     static let historique: [NoteVersion] = [
         NoteVersion(
+            numero: "6.0",
+            date: "21 septembre 2026",
+            resume: "La famille : un profil par personne. Et un Mac qui veille sur la maison, l'Apple TV enfin testée à la télécommande, tes titres dans Spotlight.",
+            fonctionnalites: [
+                Fonctionnalite(symbole: "person.2.fill", titre: "Famille : un profil par personne",
+                               detail: "Réglages › Famille : chacun a ses listes, ses notes, ses pouces, ses soirées et ses idées du soir. Les plateformes, les chaînes, le NAS et les clés restent ceux de la maison et suivent d'un profil à l'autre. « Qui regarde ? » à l'ouverture, comme sur Netflix ; ton profil de toujours ne change pas, rien n'est migré."),
+                Fonctionnalite(symbole: "person.3.fill", titre: "Qui regarde ce soir ?",
+                               detail: "Dans « Ce soir », coche qui regarde avec toi : Séance fond vos goûts et cherche ce qui plaît à tous. Un genre que l'un de vous déteste est évité plutôt que moyenné, et rien de ce que l'un a vu ou écarté n'est proposé."),
+                Fonctionnalite(symbole: "arrow.triangle.2.circlepath", titre: "Chaque profil se synchronise",
+                               detail: "Dans un sous-dossier « Famille/Prénom » du dossier d'iCloud Drive et du NAS : crée un profil du même prénom sur un autre appareil, ils se retrouvent. Le widget suit le profil en cours. L'Apple TV et l'e-mail de la semaine suivent le profil principal."),
+                Fonctionnalite(symbole: "house.and.flag.fill", titre: "Mac : la centrale de la maison",
+                               detail: "Séance n'a pas de serveur : sans app ouverte, rien n'avance. Sur un Mac qui reste allumé (Réglages › Centrale de la maison), elle passe tous les quarts d'heure : elle synchronise l'iCloud Drive et le NAS — le pont entre l'Apple TV et tes autres appareils —, relit le guide TV et le NAS, recalcule les alertes et envoie l'e-mail de la semaine à l'heure dite. Elle peut s'ouvrir à l'ouverture de session, et garde le Mac éveillé."),
+                Fonctionnalite(symbole: "appletv", titre: "Apple TV : un acteur s'ouvre aussi depuis l'accueil",
+                               detail: "Depuis une fiche ouverte de l'accueil ou de l'étagère du haut, choisir un visage du casting ne faisait rien : le chemin de navigation n'acceptait que des titres. Trouvé par les nouveaux tests de la TV, qui rejouent tes gestes à la télécommande : le menu, la fiche jusqu'au casting et à l'acteur, les réglages."),
+                Fonctionnalite(symbole: "magnifyingglass", titre: "Tes titres dans Spotlight",
+                               detail: "Tape le nom d'un titre de tes listes dans la recherche de l'iPhone, de l'iPad ou du Mac : sa fiche s'ouvre dans Séance. L'index reste sur l'appareil."),
+                Fonctionnalite(symbole: "play.tv", titre: "La plateforme qui s'ouvre vraiment",
+                               detail: "Séance retient quelles plateformes acceptent d'être ouvertes sur un titre : « Regarder maintenant » les préfère, et une plateforme qui refuse le dit tout de suite au lieu de ne rien faire."),
+            ]
+        ),
+        NoteVersion(
+            numero: "5.4",
+            date: "21 septembre 2026",
+            resume: "Un dossier supprimé sur le NAS ne bloque plus l'analyse, et le menu de ton NAS ne garde que les rayons qui ont quelque chose.",
+            fonctionnalites: [
+                Fonctionnalite(symbole: "folder.badge.minus", titre: "Un dossier supprimé n'arrête plus tout",
+                               detail: "Un dossier déclaré dans les réglages mais effacé du NAS faisait échouer l'analyse entière : la bibliothèque restait figée sur ce qu'elle savait avant. Il est maintenant laissé de côté, et les autres dossiers sont relus normalement. Si plus aucun dossier ne répond, Séance le dit toujours, et le bouton « Tester » des réglages nomme le dossier manquant."),
+                Fonctionnalite(symbole: "rectangle.3.group", titre: "Le menu de ton NAS suit ce qui reste",
+                               detail: "Films, Séries, NEW, Non reconnus : les rayons vides quittent le menu du haut dès l'analyse suivante, au lieu d'y laisser une case qui ne mène à rien."),
+                Fonctionnalite(symbole: "questionmark.folder", titre: "« Autres » devient « Non reconnus »",
+                               detail: "Le rayon dit ce qu'il contient : les fichiers dont Séance n'a pas trouvé la fiche TMDB."),
+            ]
+        ),
+        NoteVersion(
             numero: "5.3",
             date: "21 septembre 2026",
             resume: "Un seul format partout : la grande carte de « Ce soir à la TV », avec l'heure, la durée et la source, sur toutes les pages et tous tes appareils.",

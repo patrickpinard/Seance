@@ -68,7 +68,7 @@ public struct ExplorateurSMB: ExplorateurFichiers {
     public func listerVideos(dossiers: [String]) async throws -> [FichierDistant] {
         try await avecPartage { client in
             var fichiers: [FichierDistant] = []
-            for dossier in try await Self.resoudre(dossiers, client: client) {
+            for dossier in try await Self.resoudre(dossiers, client: client, strict: false) {
                 fichiers += try await Self.parcourir(dossier, client: client)
             }
             return fichiers
@@ -82,7 +82,9 @@ public struct ExplorateurSMB: ExplorateurFichiers {
             if dossiers.isEmpty {
                 fichiers = try await Self.parcourir("", client: client)
             } else {
-                for dossier in try await Self.resoudre(dossiers, client: client) { fichiers += try await Self.parcourir(dossier, client: client) }
+                for dossier in try await Self.resoudre(dossiers, client: client, strict: false) {
+                    fichiers += try await Self.parcourir(dossier, client: client)
+                }
             }
             return fichiers.map { VideoPerso(chemin: $0.chemin, taille: $0.taille, modifieLe: $0.modifieLe) }
         }
@@ -135,18 +137,30 @@ public struct ExplorateurSMB: ExplorateurFichiers {
     /// Retrouve le nom exact de chaque dossier déclaré à la racine du partage. Un dossier créé depuis
     /// un Mac s'écrit souvent « e » + accent combinant : « Séries » tapé sur l'iPhone ne lui est égal
     /// qu'après normalisation. La casse est ignorée aussi.
-    static func resoudre(_ dossiers: [String], client: SMB2Manager) async throws -> [String] {
+    /// `strict` : un dossier introuvable est une erreur (bouton « Tester » des réglages). Sinon il est simplement
+    /// laissé de côté — un dossier supprimé sur le NAS ne doit pas empêcher de relire tous les autres, sans quoi
+    /// la bibliothèque reste figée sur ce qu'elle savait avant.
+    static func resoudre(_ dossiers: [String], client: SMB2Manager, strict: Bool = true) async throws -> [String] {
         let racine = try await client.contentsOfDirectory(atPath: "")
         let presents = racine
             .filter { ($0[.isDirectoryKey] as? Bool) == true }
             .compactMap { $0[.nameKey] as? String }
             .filter(retenu)
-        return try dossiers.map { dossier in
+        var resolus: [String] = []
+        for dossier in dossiers {
             guard let reel = correspondance(dossier, parmi: presents) else {
-                throw ErreurNAS.dossierAbsent(dossier, presents: presents.map(\.precomposedStringWithCanonicalMapping).sorted())
+                if strict {
+                    throw ErreurNAS.dossierAbsent(dossier, presents: presents.map(\.precomposedStringWithCanonicalMapping).sorted())
+                }
+                continue
             }
-            return reel
+            resolus.append(reel)
         }
+        // Tous disparus : mieux vaut le dire que rendre une bibliothèque vide.
+        if !dossiers.isEmpty, resolus.isEmpty {
+            throw ErreurNAS.dossierAbsent(dossiers[0], presents: presents.map(\.precomposedStringWithCanonicalMapping).sorted())
+        }
+        return resolus
     }
 
     static func correspondance(_ dossier: String, parmi presents: [String]) -> String? {
