@@ -122,8 +122,8 @@ struct CeSoirView: View {
                     .padding(.horizontal, 20)
             }
             .padding(.vertical, 14)
-            .frame(maxWidth: 1180, alignment: .leading)
-            .frame(maxWidth: .infinity)
+            // Toute la largeur de la fenêtre, comme les autres pages : la grille s'étale d'elle-même.
+            .frame(maxWidth: .infinity, alignment: .leading)
             .animation(.snappy, value: titresAffiches.map(\.reference))
         }
         .refreshable { await soiree.charger(etat: etat, contexte: contexte) }

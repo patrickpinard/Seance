@@ -37,8 +37,10 @@ struct AccueilTV: View {
                     EtagereTV(titre: "Ce soir", sousTitre: "Ce que tu as prévu de regarder") {
                         ForEach(ceSoir, id: \.reference) { selection in
                             NavigationLink(value: selection.reference) {
-                                AfficheTV(titre: selection.titre, sousTitre: surLeNAS(selection.reference) ? "Sur ton NAS" : nil,
-                                          cheminAffiche: selection.cheminAffiche, marque: surLeNAS(selection.reference) ? "externaldrive.fill" : nil)
+                                CarteLargeTV(surtitre: surLeNAS(selection.reference) ? "Sur ton NAS" : nil, titre: selection.titre,
+                                             detail: nil, cheminImage: selection.cheminAffiche,
+                                             marque: surLeNAS(selection.reference) ? "externaldrive.fill" : nil,
+                                             largeur: CarteLargeTV.largeurGrille)
                             }
                             .buttonStyle(.card)
                         }
@@ -48,7 +50,9 @@ struct AccueilTV: View {
                     EtagereTV(titre: "Nouveaux sur ton NAS", sousTitre: "Prêts à regarder, du plus récent au plus ancien") {
                         ForEach(nouveautesNAS, id: \.reference) { oeuvre in
                             NavigationLink(value: oeuvre.reference) {
-                                AfficheTV(titre: oeuvre.titre, sousTitre: oeuvre.detail, cheminAffiche: oeuvre.cheminAffiche, marque: marque(oeuvre.reference))
+                                CarteLargeTV(surtitre: oeuvre.qualite, titre: oeuvre.titre, detail: oeuvre.detail,
+                                             cheminImage: oeuvre.cheminFond ?? oeuvre.cheminAffiche, marque: marque(oeuvre.reference),
+                                             largeur: CarteLargeTV.largeurGrille)
                             }
                             .buttonStyle(.card)
                         }
@@ -72,8 +76,10 @@ struct AccueilTV: View {
                     EtagereTV(titre: "Dans ta liste", sousTitre: "À voir, du plus récent au plus ancien") {
                         ForEach(aVoir) { suivi in
                             NavigationLink(value: suivi.reference) {
-                                AfficheTV(titre: suivi.titre, sousTitre: surLeNAS(suivi.reference) ? "Sur ton NAS" : nil,
-                                          cheminAffiche: suivi.cheminAffiche, marque: surLeNAS(suivi.reference) ? "externaldrive.fill" : nil)
+                                CarteLargeTV(surtitre: surLeNAS(suivi.reference) ? "Sur ton NAS" : nil, titre: suivi.titre,
+                                             detail: suivi.type == .film ? "Film" : "Série", cheminImage: suivi.cheminAffiche,
+                                             marque: surLeNAS(suivi.reference) ? "externaldrive.fill" : nil,
+                                             largeur: CarteLargeTV.largeurGrille)
                             }
                             .buttonStyle(.card)
                         }
@@ -95,7 +101,9 @@ struct AccueilTV: View {
             EtagereTV(titre: titre, sousTitre: sousTitre) {
                 ForEach(apercus) { apercu in
                     NavigationLink(value: apercu.reference) {
-                        AfficheTV(titre: apercu.titre, sousTitre: apercu.sousTitre, cheminAffiche: apercu.cheminAffiche, marque: marque(apercu.reference))
+                        CarteLargeTV(surtitre: nil, titre: apercu.titre, detail: apercu.sousTitre,
+                                     cheminImage: apercu.cheminFond ?? apercu.cheminAffiche, marque: marque(apercu.reference),
+                                     largeur: CarteLargeTV.largeurGrille)
                     }
                     .buttonStyle(.card)
                 }
@@ -249,6 +257,8 @@ struct OeuvreTV: Hashable {
     let reference: ReferenceTitre
     let titre: String
     let cheminAffiche: String?
+    /// La grande image du titre, pour la carte 16/9 ; l'analyse du NAS la garde avec le fichier.
+    var cheminFond: String?
     let fichiers: Int
     let qualite: String?
     let indexeLe: Date
@@ -267,7 +277,8 @@ struct OeuvreTV: Hashable {
         }
         return parTitre.map { reference, siens in
             let recent = siens.max { $0.indexeLe < $1.indexeLe } ?? siens[0]
-            return OeuvreTV(reference: reference, titre: recent.titre, cheminAffiche: recent.cheminAffiche, fichiers: siens.count,
+            return OeuvreTV(reference: reference, titre: recent.titre, cheminAffiche: recent.cheminAffiche,
+                            cheminFond: siens.compactMap(\.cheminFond).first, fichiers: siens.count,
                             qualite: recent.qualite, indexeLe: recent.indexeLe)
         }
         .sorted { ($0.indexeLe, $0.titre) > ($1.indexeLe, $1.titre) }

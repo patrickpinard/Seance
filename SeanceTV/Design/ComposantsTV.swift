@@ -86,14 +86,30 @@ struct CarteLargeTV: View {
     let titre: String
     let detail: String?
     let cheminImage: String?
+    /// Un symbole en coin : sur ton NAS, déjà vu — les mêmes marques que sur l'iPhone.
+    var marque: String?
+    /// Une carte de grille, plus petite que celle d'une étagère d'accueil.
+    var largeur: CGFloat = CarteLargeTV.largeur
 
     static let largeur: CGFloat = 620
+    /// Trois par rangée sur un écran de télévision, avec les marges.
+    static let largeurGrille: CGFloat = 520
 
     var body: some View {
         ImageTV(url: ImageTMDB.url(cheminImage, .fondGrand))
             .aspectRatio(16 / 9, contentMode: .fit)
             .overlay {
                 LinearGradient(colors: [.clear, .black.opacity(0.25), .black.opacity(0.88)], startPoint: .top, endPoint: .bottom)
+            }
+            .overlay(alignment: .topTrailing) {
+                if let marque {
+                    Image(systemName: marque)
+                        .font(.system(size: 22, weight: .bold))
+                        .foregroundStyle(marque == "externaldrive.fill" ? Color.green : Theme.accentClair)
+                        .padding(12)
+                        .background(.black.opacity(0.65), in: Circle())
+                        .padding(16)
+                }
             }
             .overlay(alignment: .bottomLeading) {
                 VStack(alignment: .leading, spacing: 6) {
@@ -108,7 +124,7 @@ struct CarteLargeTV: View {
                 .foregroundStyle(.white)
                 .padding(24)
             }
-            .frame(width: Self.largeur)
+            .frame(width: largeur)
     }
 }
 

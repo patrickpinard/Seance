@@ -128,6 +128,8 @@ struct MesListesView: View {
             }
             .refreshable { await etat.alertes.planifier(contexte: contexte, tmdb: etat.tmdb) }
             .task(id: cleInfos) { await chargerInfos(cleInfos.references) }
+            // Les grandes cartes veulent l'image large du titre : sans elle, l'affiche serait recadrée.
+            .task(id: cleInfos) { await etat.decors.charger(cleInfos.references, client: etat.tmdb) }
             // Le filtre ne survit pas à un changement d'écran : en revenant, toute la liste est là.
             .onDisappear { ceSoirSeulement = false }
             .onChange(of: abonnements.map(\.providerID)) { infos = [:] }
@@ -334,10 +336,12 @@ struct MesListesView: View {
             }
         }
         if enGrille, !titres.isEmpty {
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: largeurGrille == .regular ? 150 : 105), spacing: 12, alignment: .top)], spacing: 18) {
+            // Le format unique de l'app : la grande carte 16/9, où l'on voit d'un coup l'image, où regarder et les faits.
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 290, maximum: 520), spacing: 14, alignment: .top)], spacing: 14) {
                 ForEach(titres) { suivi in
                     NavigationLink(value: suivi.reference) {
-                        AfficheSuivi(suivi: suivi, rendezVous: prochainRendezVous(suivi, reperes), episodesVus: reperes.episodesVus[suivi.tmdbID] ?? 0)
+                        CarteLargeTitre(suivi: suivi, rendezVous: prochainRendezVous(suivi, reperes),
+                                        episodesVus: reperes.episodesVus[suivi.tmdbID] ?? 0)
                     }
                     .buttonStyle(.plain)
                     .contextMenu { menu(suivi, statut) }

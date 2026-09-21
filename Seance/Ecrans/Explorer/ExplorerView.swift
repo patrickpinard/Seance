@@ -58,7 +58,8 @@ struct ExplorerView: View {
     @Environment(\.horizontalSizeClass) private var largeurGrille
     /// Affiches plus grandes sur le Mac : 105 points y feraient des timbres-poste.
     private var colonnes: [GridItem] {
-        [GridItem(.adaptive(minimum: largeurGrille == .regular ? 150 : 105), spacing: 12, alignment: .top)]
+        // Le format unique de l'app : la grande carte 16/9, une par colonne sur l'iPhone, deux ou trois sur l'iPad.
+        [GridItem(.adaptive(minimum: 290, maximum: 520), spacing: 14, alignment: .top)]
     }
 
     var body: some View {
@@ -92,6 +93,8 @@ struct ExplorerView: View {
                 rechercheActive = false
             }
             .task(id: CleRecherche(texte: texte, portee: portee)) { await rechercher() }
+            // Les grandes cartes veulent l'image large du titre : sans elle, l'affiche serait recadrée.
+            .task(id: titres.map(\.reference)) { await etat.decors.charger(titres.map(\.reference), client: etat.tmdb) }
             .task(id: CleChargement(filtres: modele.filtres, abonnements: abonnements.map(\.providerID), cle: etat.tmdb != nil)) {
                 guard let client = etat.tmdb else { return }
                 await modele.recharger(client: client, contexte: contexte, abonnements: abonnements.map(\.providerID))
@@ -170,7 +173,7 @@ struct ExplorerView: View {
                             LazyHStack(alignment: .top, spacing: 14) {
                                 ForEach(dansMesListes) { suivi in
                                     NavigationLink(value: suivi.reference) {
-                                        AfficheSuivi(suivi: suivi, rendezVous: nil, episodesVus: 0).frame(width: 110)
+                                        CarteLargeTitre(suivi: suivi).frame(width: CarteLargeTitre.largeur)
                                     }
                                     .buttonStyle(.plain)
                                 }
@@ -191,10 +194,10 @@ struct ExplorerView: View {
                     if vedette != nil, !titres.isEmpty {
                         TitreSection("Titres")
                     }
-                    LazyVGrid(columns: colonnes, spacing: 18) {
+                    LazyVGrid(columns: colonnes, spacing: 14) {
                         ForEach(titres) { titre in
                             NavigationLink(value: titre.reference) {
-                                CarteAffiche(titre: titre, largeur: nil)
+                                CarteLargeTitre(titre)
                             }
                             .buttonStyle(.plain)
                             .actionsRapides(titre)
@@ -255,7 +258,8 @@ struct ExplorerView: View {
                 LazyHStack(alignment: .top, spacing: 12) {
                     ForEach(titresVedette) { titre in
                         NavigationLink(value: titre.reference) {
-                            CarteAffiche(titre: titre)
+                            CarteLargeTitre(titre)
+                                .frame(width: CarteLargeTitre.largeur)
                                 .overlay(alignment: .topTrailing) { badgeVu(titre.reference) }
                         }
                         .buttonStyle(.plain)
@@ -594,10 +598,10 @@ struct ExplorerView: View {
             }
             .padding(.horizontal, 20)
         } else {
-            LazyVGrid(columns: colonnes, spacing: 18) {
+            LazyVGrid(columns: colonnes, spacing: 14) {
                 ForEach(resultatsProposes) { titre in
                     NavigationLink(value: titre.reference) {
-                        CarteAffiche(titre: titre, largeur: nil)
+                        CarteLargeTitre(titre)
                     }
                     .buttonStyle(.plain)
                     .actionsRapides(titre)

@@ -117,10 +117,10 @@ struct PersonneTV: View {
             EtagereTV(titre: "\(nom) · \(liste.count)", sousTitre: realisateur ? "Réalisés" : "Les plus connus d'abord") {
                 ForEach(liste.prefix(40), id: \.reference) { credit in
                     NavigationLink(value: credit.reference) {
-                        AfficheTV(titre: credit.titre,
-                                  sousTitre: [credit.date.map { String($0.annee) }, realisateur ? nil : credit.personnage].compactMap { $0 }.joined(separator: " · "),
-                                  cheminAffiche: credit.cheminAffiche,
-                                  marque: vus.contains(credit.reference) ? "checkmark" : nil)
+                        CarteLargeTV(surtitre: nil, titre: credit.titre,
+                                     detail: [credit.date.map { String($0.annee) }, realisateur ? nil : credit.personnage].compactMap { $0 }.joined(separator: " · "),
+                                     cheminImage: credit.cheminAffiche, marque: vus.contains(credit.reference) ? "checkmark" : nil,
+                                     largeur: CarteLargeTV.largeurGrille)
                     }
                     .buttonStyle(.card)
                 }

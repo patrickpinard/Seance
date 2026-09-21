@@ -17,6 +17,8 @@ struct CarteLargeTitre: View {
     /// « 2023 · 2 h 01 · 82 % ».
     var faits: [String] = []
     var rang: Int?
+    /// Un symbole discret en haut à droite, quand le rang ne s'y trouve pas : la cloche des alertes, l'œil du déjà-vu.
+    var symboleCoin: String?
 
     @Environment(EtatApp.self) private var etat
 
@@ -24,15 +26,16 @@ struct CarteLargeTitre: View {
 
     private var film: Bool { reference?.type != .serie }
 
-    /// Où regarder, en toutes lettres.
-    private var ou: String? {
+    /// Où regarder, en toutes lettres. Deux sources au plus — trois ne tiennent pas sur une ligne, et la carte
+    /// coupait le texte au milieu d'un mot ; une seule quand la carte a déjà son accroche.
+    private func ou(avecAccroche: Bool) -> String? {
         guard let reference else { return nil }
-        let noms = etat.ou.badges(reference).map(BadgeOu.libelle)
+        let noms = etat.ou.badges(reference).map(BadgeOu.libelle).prefix(avecAccroche ? 1 : 2)
         return noms.isEmpty ? nil : noms.joined(separator: " · ")
     }
 
     private var ligneOrange: String? {
-        [accroche, ou].compactMap { $0 }.joined(separator: " · ").nilSiVide
+        [accroche, ou(avecAccroche: accroche != nil)].compactMap { $0 }.joined(separator: " · ").nilSiVide
     }
 
     var body: some View {
@@ -51,6 +54,15 @@ struct CarteLargeTitre: View {
                 if let reference { BadgeOu(reference: reference).padding(12) }
             }
             .overlay(alignment: .topTrailing) {
+                if let symboleCoin, rang == nil {
+                    Image(systemName: symboleCoin)
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(Theme.accentClair)
+                        .padding(7)
+                        .background(.black.opacity(0.6), in: Circle())
+                        .padding(10)
+                        .accessibilityHidden(true)
+                }
                 if let rang {
                     Text("\(rang)")
                         .font(.system(size: 44, weight: .black, design: .rounded))
@@ -102,6 +114,47 @@ extension CarteLargeTitre {
         if resume.nombreVotes > 0 { faits.append("\(resume.pourcentageNote) %") }
         self.init(reference: resume.reference, titre: resume.titre, cheminFond: resume.cheminFond, cheminAffiche: resume.cheminAffiche,
                   accroche: accroche, faits: faits, rang: rang)
+    }
+}
+
+extension CarteLargeTitre {
+    /// Un titre de Mes listes : son prochain rendez-vous ou sa note en accroche, ses épisodes vus dans les faits.
+    init(suivi: Suivi, rendezVous: String? = nil, episodesVus: Int = 0) {
+        var faits: [String] = []
+        if suivi.type == .serie, episodesVus > 0 { faits.append(Format.pluriel(episodesVus, "épisode vu", "épisodes vus")) }
+        if let note = suivi.note { faits.append("★ \(note)/10") }
+        self.init(reference: suivi.reference, titre: suivi.titre, cheminAffiche: suivi.cheminAffiche,
+                  accroche: rendezVous, faits: faits, symboleCoin: suivi.alertesActives ? "bell.fill" : nil)
+    }
+
+    /// Un fichier du NAS : la qualité en accroche, l'année et le poids dans les faits.
+    init(fichier: FichierNAS, nouveau: Bool = false) {
+        var accroche: [String] = []
+        if nouveau { accroche.append("Nouveau") }
+        if let qualite = fichier.qualite { accroche.append(qualite) }
+        var faits: [String] = []
+        if let annee = fichier.annee { faits.append(String(annee)) }
+        if fichier.nombreVotes > 0 { faits.append("\(Int((fichier.noteMoyenne * 10).rounded())) %") }
+        self.init(reference: fichier.reference, titre: fichier.titre, cheminFond: fichier.cheminFond,
+                  cheminAffiche: fichier.cheminAffiche, accroche: accroche.isEmpty ? nil : accroche.joined(separator: " · "),
+                  faits: faits)
+    }
+
+    /// Un titre d'une liste nommée : de quoi l'afficher sans réseau.
+    init(apercu: ApercuTitre) {
+        self.init(reference: apercu.reference, titre: apercu.titre, cheminAffiche: apercu.cheminAffiche)
+    }
+
+    /// ★ Un favori : son année et son type.
+    init(favori: Favori) {
+        self.init(reference: favori.reference, titre: favori.titre, cheminAffiche: favori.cheminAffiche,
+                  faits: [favori.annee.map(String.init)].compactMap { $0 }, symboleCoin: "star.fill")
+    }
+
+    /// Un rendez-vous d'« À venir » : « Épisode 3 · demain » en accroche.
+    init(echeance: Echeance, quand: String? = nil) {
+        self.init(reference: echeance.reference, titre: echeance.titre, cheminAffiche: echeance.cheminAffiche,
+                  accroche: [echeance.libelle, quand].compactMap { $0 }.joined(separator: " · "))
     }
 }
 

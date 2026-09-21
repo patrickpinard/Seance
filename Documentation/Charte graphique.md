@@ -61,7 +61,9 @@ d'un passage télé, un code).
 | Choisir **ce que la page montre** (onglets de Mes listes, source d'Explorer, Films / Séries, rayons du NAS) | `SelecteurCases` | `Seance/Design/SelecteurCases.swift` |
 | Grille ou liste | `BasculeGrilleListe` | `Seance/Design/BasculeGrilleListe.swift` |
 | Un réglage, un dossier, une entrée de menu | `TuileReglage` (symbole orange, titre, état) | `Seance/Ecrans/Reglages/ReglagesView.swift` |
-| **Un titre dans une étagère** (accueil : regardable, Top, Du moment, NAS) | `CarteLargeTitre` : 16/9, le format de « Ce soir à la TV » — où regarder en haut à gauche, ligne orange, titre, faits. Les affiches 2:3 restent pour les grilles (Mes listes, Explorer) | `Seance/Design/CarteLargeTitre.swift` |
+| **Un titre, partout** (accueil, Ce soir, Mes listes, Explorer, NAS, Documentaires, Favoris, filmographie) | `CarteLargeTitre` : **le format unique**, 16/9, celui de « Ce soir à la TV » — image en plein cadre, où regarder en haut à gauche, ligne orange (source, chaîne et heure), titre, puis type, année, durée, note. Initialiseurs pour `TitreResume`, `Suivi`, `FichierNAS`, `ApercuTitre`, `Favori`, `Echeance` | `Seance/Design/CarteLargeTitre.swift` |
+| Un titre du NAS | `CarteLargeNAS` (même carte, avec « NEW » et la qualité) | `Seance/Ecrans/NAS/NASView.swift` |
+| Un passage à la TV | `CarteDiffusion` (même carte, avec l'heure, la durée, la chaîne et la cloche) | `Seance/Ecrans/Accueil/ProgrammeTele.swift` |
 | Un réglage surveillé (en ordre / à régler), en grande carte | `CarteReglage` (affiche floutée en fond, symbole orange, pastille d'état) ; `CarteReglageTV` sur l'Apple TV | idem ; `SeanceTV/Design/CarteReglageTV.swift` |
 | Une ligne d'état (en ordre / à régler) | `LigneEtat` | idem |
 | Une page sans contenu | `EtatVide` : symbole, titre, phrase, action | `Seance/Design/EtatVide.swift` |
@@ -75,7 +77,7 @@ d'un passage télé, un code).
 | Les documentaires et leurs thèmes | `DocumentairesView`, thèmes en `PuceFiltre` | `Seance/Ecrans/Documentaires/DocumentairesView.swift` |
 | Où regarder, en coin d'affiche et en tête de fiche | `BadgeOu`, `RangeeOu` | `Seance/Etat/EtatOu.swift` |
 | Apple TV : bouton d'action | `BoutonTV` (orange = action principale ; blanc à texte noir quand il a le focus) | `SeanceTV/Design/ComposantsTV.swift` |
-| Apple TV : affiche, grande carte, étagère, page vide | `AfficheTV`, `CarteLargeTV`, `EtagereTV`, `VideTV` | idem |
+| Apple TV : un titre | `CarteLargeTV` — la même carte 16/9 que sur l'iPhone, en 520 points dans les grilles et 620 sur l'accueil. `AfficheTV` (2:3) ne sert plus qu'aux **portraits d'acteurs**. Étagère et page vide : `EtagereTV`, `VideTV` | idem |
 | Apple TV : tuile et ligne qui se choisit | `TuileTV`, `LigneTV` | `SeanceTV/Ecrans/ReglagesTV.swift` |
 | Apple TV : choisir ce que la page montre | `SelecteurTV` | `SeanceTV/Design/ComposantsTV.swift` |
 | Apple TV : une tuile de jour | `TuileJourTV` | idem |
@@ -86,6 +88,10 @@ Règles :
 - **Le sélecteur de Séance, c'est `SelecteurCases`** : des cases de même largeur, l'active en dégradé orange à texte
   noir, les autres sur `Theme.surface`. Avec symbole (50 pt de haut) pour des sections de nature différente, sans
   symbole (40 pt) pour Films / Séries. Le contrôle segmenté gris d'iOS ne sert **que dans les formulaires de réglage**.
+- **Un seul format pour un film ou une série** : la grande carte 16/9 (`CarteLargeTitre`), partout et sur tous les
+  appareils — accueil, Ce soir, Mes listes, Explorer, programme TV, NAS, Documentaires, Favoris, filmographie, et
+  l'Apple TV avec `CarteLargeTV`. On y voit d'un coup l'image, où regarder (source, chaîne, heure), le titre, la
+  durée et la note. Les affiches 2:3 ne servent plus qu'aux **portraits d'acteurs**.
 - **Un bouton principal par écran**, en dégradé orange ; les autres sont sur surface, ou en texte orange.
 - **Toute zone qui se touche fait 44 pt au moins**, même dessinée plus petite (`.zoneDeToucher()`). Un test
   automatique le vérifie (`AccessibiliteTests`).

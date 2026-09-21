@@ -321,36 +321,17 @@ private struct CarteIdee: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
+            // La grande carte 16/9, comme partout ailleurs, puis la raison de la proposition en dessous.
             NavigationLink(value: suggestion.reference) {
-                HStack(alignment: .top, spacing: 14) {
-                    ImageDistante(url: ImageTMDB.url(suggestion.candidat.titre.cheminAffiche, .affiche), coins: 10)
-                        .frame(width: 72, height: 108)
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text(suggestion.candidat.titre.titre)
-                            .font(.headline)
-                            .lineLimit(2)
-                        HStack(spacing: 8) {
-                            if suggestion.candidat.titre.nombreVotes > 0 {
-                                AnneauNote(pourcentage: suggestion.candidat.titre.pourcentageNote, diametre: 30)
-                            }
-                            if let annee = suggestion.candidat.titre.date?.annee {
-                                Text(String(annee))
-                            }
-                            Text(suggestion.reference.type == .film ? "Film" : "Série")
-                        }
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        Text(suggestion.phrase)
-                            .font(.subheadline)
-                            .foregroundStyle(.primary.opacity(0.9))
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                    Spacer(minLength: 0)
-                }
-                .contentShape(Rectangle())
+                CarteLargeTitre(suggestion.candidat.titre)
             }
             .buttonStyle(.plain)
             .actionsRapides(suggestion.candidat.titre)
+
+            Text(suggestion.phrase)
+                .font(.subheadline)
+                .foregroundStyle(.primary.opacity(0.9))
+                .fixedSize(horizontal: false, vertical: true)
 
             // Où la regarder, tout de suite : lire sur le NAS, ouvrir la plateforme, ou la chaîne et l'heure.
             ActionsOuRegarder(reference: suggestion.reference, titre: suggestion.candidat.titre.titre, secours: ou)

@@ -247,43 +247,6 @@ struct FlecheDefilement: View {
     }
 }
 
-/// Carte d'un titre dans un carrousel ou une grille (UX-03).
-struct CarteAffiche: View {
-    let titre: TitreResume
-    var largeur: CGFloat? = 118
-    /// Remplace l'année sous le titre, par exemple par une date de sortie.
-    var sousTitre: String?
-
-    @Environment(EtatApp.self) private var etat
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            ImageDistante(url: ImageTMDB.url(titre.cheminAffiche, .affiche))
-                .aspectRatio(2 / 3, contentMode: .fit)
-                // Où regarder, sans ouvrir la fiche : NAS, plateforme de tes abonnements, TV de ce soir.
-                .overlay(alignment: .topLeading) {
-                    BadgeOu(reference: titre.reference).padding(5)
-                }
-                .task(id: titre.reference) { etat.ou.demander(titre.reference, client: etat.tmdb) }
-                .overlay(alignment: .bottomLeading) {
-                    if titre.nombreVotes > 0 {
-                        AnneauNote(pourcentage: titre.pourcentageNote)
-                            .offset(x: 8, y: 16)
-                    }
-                }
-            Text(titre.titre)
-                .font(.subheadline.weight(.semibold))
-                .lineLimit(1)
-                .padding(.top, 22)
-            Text(sousTitre ?? titre.date.map { String($0.annee) } ?? " ")
-                .font(.caption)
-                .foregroundStyle(sousTitre == nil ? AnyShapeStyle(.secondary) : AnyShapeStyle(Theme.accentClair))
-                .lineLimit(1)
-        }
-        .frame(width: largeur)
-        .accessibilityElement(children: .combine)
-    }
-}
 
 /// Puce de choix unique (plateforme, saison, type) : même apparence que les critères d'Explorer.
 struct PuceFiltre: View {

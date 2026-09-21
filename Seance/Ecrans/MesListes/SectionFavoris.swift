@@ -36,22 +36,10 @@ struct SectionFavoris: View {
                     }
                     .zoneDeToucher()
                 }
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 104, maximum: 160), spacing: 12, alignment: .top)], spacing: 16) {
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 290, maximum: 520), spacing: 14, alignment: .top)], spacing: 14) {
                     ForEach(montres) { favori in
                         NavigationLink(value: favori.reference) {
-                            VStack(alignment: .leading, spacing: 6) {
-                                ImageDistante(url: ImageTMDB.url(favori.cheminAffiche, .affiche), coins: 10)
-                                    .aspectRatio(2 / 3, contentMode: .fit)
-                                    .overlay(alignment: .topLeading) { BadgeOu(reference: favori.reference).padding(6) }
-                                Text(favori.titre)
-                                    .font(.caption.weight(.semibold))
-                                    .lineLimit(2)
-                                    .multilineTextAlignment(.leading)
-                                    .foregroundStyle(.primary)
-                                Text([favori.annee.map(String.init), favori.type == .film ? "Film" : "Série"].compactMap { $0 }.joined(separator: " · "))
-                                    .font(.caption2)
-                                    .foregroundStyle(.secondary)
-                            }
+                            CarteLargeTitre(favori: favori)
                         }
                         .buttonStyle(.plain)
                         .contextMenu {
@@ -63,6 +51,7 @@ struct SectionFavoris: View {
                 }
             }
         }
+        .task(id: montres.map(\.reference)) { await etat.decors.charger(montres.map(\.reference), client: etat.tmdb) }
         .listRowBackground(Color.clear)
         .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
         .listRowSeparator(.hidden)

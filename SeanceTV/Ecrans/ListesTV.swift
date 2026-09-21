@@ -53,7 +53,8 @@ struct ListesTV: View {
                             EtagereTV(titre: liste.nom, sousTitre: liste.titres.count > 1 ? "\(liste.titres.count) titres" : "1 titre") {
                                 ForEach(liste.apercus, id: \.reference) { apercu in
                                     NavigationLink(value: apercu.reference) {
-                                        AfficheTV(titre: apercu.titre, sousTitre: nil, cheminAffiche: apercu.cheminAffiche, marque: marque(apercu.reference))
+                                        CarteLargeTV(surtitre: nil, titre: apercu.titre, detail: nil, cheminImage: apercu.cheminAffiche,
+                                                     marque: marque(apercu.reference))
                                     }
                                     .buttonStyle(.card)
                                 }
@@ -78,11 +79,12 @@ struct ListesTV: View {
             VideTV(symbole: "calendar.badge.clock", titre: "Rien de prévu pour l'instant",
                    message: "Les sorties, les nouveaux épisodes et les passages à la télé de tes titres apparaîtront ici.")
         } else {
-            LazyVGrid(columns: Array(repeating: GridItem(.fixed(AfficheTV.largeur), spacing: 40, alignment: .top), count: 6), spacing: 50) {
+            LazyVGrid(columns: Array(repeating: GridItem(.fixed(CarteLargeTV.largeurGrille), spacing: 40, alignment: .top), count: 3), spacing: 50) {
                 ForEach(echeances) { echeance in
                     NavigationLink(value: echeance.reference) {
-                        AfficheTV(titre: echeance.titre, sousTitre: echeance.libelle,
-                                  cheminAffiche: echeance.cheminAffiche, marque: marque(echeance.reference))
+                        CarteLargeTV(surtitre: echeance.libelle, titre: echeance.titre, detail: nil,
+                                     cheminImage: echeance.cheminAffiche, marque: marque(echeance.reference),
+                                     largeur: CarteLargeTV.largeurGrille)
                     }
                     .buttonStyle(.card)
                 }
@@ -104,11 +106,12 @@ struct ListesTV: View {
                           : onglet == .enCours ? "Coche un épisode sur la fiche d'une série : elle se range ici."
                           : "Un film vu, une série finie : ils se rangent ici, avec ta note.")
         } else {
-            LazyVGrid(columns: Array(repeating: GridItem(.fixed(AfficheTV.largeur), spacing: 40, alignment: .top), count: 6), spacing: 50) {
+            LazyVGrid(columns: Array(repeating: GridItem(.fixed(CarteLargeTV.largeurGrille), spacing: 40, alignment: .top), count: 3), spacing: 50) {
                 ForEach(titres) { suivi in
                     NavigationLink(value: suivi.reference) {
-                        AfficheTV(titre: suivi.titre, sousTitre: suivi.note.map { "★ \($0)/10" } ?? (suivi.type == .film ? "Film" : "Série"),
-                                  cheminAffiche: suivi.cheminAffiche, marque: marque(suivi.reference))
+                        CarteLargeTV(surtitre: suivi.note.map { "★ \($0)/10" }, titre: suivi.titre,
+                                     detail: suivi.type == .film ? "Film" : "Série", cheminImage: suivi.cheminAffiche,
+                                     marque: marque(suivi.reference), largeur: CarteLargeTV.largeurGrille)
                     }
                     .buttonStyle(.card)
                 }

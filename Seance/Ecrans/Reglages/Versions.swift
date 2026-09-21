@@ -20,6 +20,25 @@ struct NoteVersion: Identifiable {
 
     static let historique: [NoteVersion] = [
         NoteVersion(
+            numero: "5.3",
+            date: "21 septembre 2026",
+            resume: "Un seul format partout : la grande carte de « Ce soir à la TV », avec l'heure, la durée et la source, sur toutes les pages et tous tes appareils.",
+            fonctionnalites: [
+                Fonctionnalite(symbole: "rectangle.on.rectangle", titre: "La même carte, partout",
+                               detail: "Mes listes, Explorer, le programme TV, ton NAS, les documentaires, tes favoris, la filmographie d'un acteur et les propositions de soirée passent au format 16/9 de « Ce soir à la TV » : l'image en grand, où regarder en haut à gauche, puis la ligne orange — la chaîne et l'heure, « Sur ton NAS · 4K », la plateforme —, le titre, le type, l'année, la durée et la note."),
+                Fonctionnalite(symbole: "appletv", titre: "L'Apple TV suit",
+                               detail: "Ce soir, Mes listes, Explorer, le NAS, les Préférences et la filmographie montrent la même grande carte, trois par rangée. Les affiches verticales ne servent plus qu'aux portraits d'acteurs."),
+                Fonctionnalite(symbole: "gearshape.fill", titre: "Mac : la roue dentée répond",
+                               detail: "Elle était posée dans la bande que macOS réserve à la barre de titre, où le clic ne l'atteignait jamais. Elle descend de quelques points. Au clavier, ⌘, ouvre toujours les Réglages."),
+                Fonctionnalite(symbole: "macwindow", titre: "Mac : « Ce soir » occupe la fenêtre",
+                               detail: "La page s'arrêtait à 1180 points de large, là où les autres s'étalent : sur un grand écran, elle laissait deux bandes vides."),
+                Fonctionnalite(symbole: "film", titre: "Une vidéo .avi ou .mkv part dans VLC",
+                               detail: "Séance lit le MP4, le MOV et le M4V ; les autres formats s'ouvraient dans son lecteur pour n'afficher qu'un message. Ils vont maintenant directement dans VLC, et l'alerte propose le bouton qui l'ouvre."),
+                Fonctionnalite(symbole: "photo", titre: "La bonne image, pas une affiche rognée",
+                               detail: "Chaque page demande maintenant l'image large de ses titres : sans elle, la carte aurait coupé l'affiche en deux. La ligne orange, elle, se limite à deux sources pour ne plus être tronquée."),
+            ]
+        ),
+        NoteVersion(
             numero: "5.2",
             date: "20 septembre 2026",
             resume: "Les documentaires arrivent, tes favoris se partagent, tes vidéos de famille se lisent dans l'app — et Séance s'ouvre et défile plus vite.",

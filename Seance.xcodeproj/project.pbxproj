@@ -109,7 +109,6 @@
 		B30EFD10E04CCB9D9165DCB1 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 4D588BEC051F01FAD8E8B8CB /* Assets.xcassets */; };
 		B45CC8D1AEDA64C277298D8A /* EtatAlertes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 297F7F074F246563F3CA483B /* EtatAlertes.swift */; };
 		B54AD71C1C26A2A5001C8F8B /* OuRegarder.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0E402771E51648CA1AD0C6E /* OuRegarder.swift */; };
-		B7327167AD227C0AD1B823CD /* GrilleSuivis.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9DF3FDDA1406261C479BFFC /* GrilleSuivis.swift */; };
 		B771B1D712E377A57538D7D8 /* AccueilView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B281D3C94AFCE24D5CACD8E /* AccueilView.swift */; };
 		B8A8D629CB5D53A0C47BFA2E /* Versions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 832BDD6EB7D6F3C924990D39 /* Versions.swift */; };
 		C2DC72385E62E22BC17B8F7B /* ExplorerModele.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50E6C3ED562D0B27CFEF522C /* ExplorerModele.swift */; };
@@ -315,7 +314,6 @@
 		C7706567EB9521978C37DCC4 /* EtatDecors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EtatDecors.swift; sourceTree = "<group>"; };
 		C7971FD6500EC30161EA83E4 /* SeanceNAS */ = {isa = PBXFileReference; lastKnownFileType = folder; name = SeanceNAS; path = SeanceNAS; sourceTree = SOURCE_ROOT; };
 		C823C7D99C49FEB6D7792D4F /* ReglagesTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReglagesTests.swift; sourceTree = "<group>"; };
-		C9DF3FDDA1406261C479BFFC /* GrilleSuivis.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GrilleSuivis.swift; sourceTree = "<group>"; };
 		CA91FBA795C5F100C03F8CC6 /* BandesAnnonces.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BandesAnnonces.swift; sourceTree = "<group>"; };
 		CACE819FB69880D873526A37 /* ListesCompletes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ListesCompletes.swift; sourceTree = "<group>"; };
 		CD94F6BCC152B1B30DE2DF48 /* EtatNAS.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EtatNAS.swift; sourceTree = "<group>"; };
@@ -572,7 +570,6 @@
 			isa = PBXGroup;
 			children = (
 				9F359EEF2BD50F8A8280CD01 /* AVenir.swift */,
-				C9DF3FDDA1406261C479BFFC /* GrilleSuivis.swift */,
 				9AE0ECC999FF1CA413FECC30 /* ListesNommees.swift */,
 				29DE681EF5C1EAA1687286C4 /* MesListesView.swift */,
 				0193433A3FDD855434395131 /* SectionFavoris.swift */,
@@ -1016,7 +1013,6 @@
 				889E1057E692259368F006C8 /* FeuilleFiltres.swift in Sources */,
 				9465DF498AFBE22D12E9EC5E /* FicheView.swift in Sources */,
 				591CF02849D1BB825A3BD08B /* Filtres.swift in Sources */,
-				B7327167AD227C0AD1B823CD /* GrilleSuivis.swift in Sources */,
 				FFCD2E7F759C8F02A5857C49 /* IdeesCeSoir.swift in Sources */,
 				39CC7B582D020F02F55F50E2 /* Journal.swift in Sources */,
 				5201A683F4BAF8E078552DF1 /* JournalView.swift in Sources */,
@@ -1257,7 +1253,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 40;
+				CURRENT_PROJECT_VERSION = 41;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = GATK475J3P;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -1277,7 +1273,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 5.2;
+				MARKETING_VERSION = 5.3;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -1378,7 +1374,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 40;
+				CURRENT_PROJECT_VERSION = 41;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = GATK475J3P;
 				ENABLE_NS_ASSERTIONS = NO;
@@ -1392,7 +1388,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 5.2;
+				MARKETING_VERSION = 5.3;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";

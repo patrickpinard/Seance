@@ -239,25 +239,18 @@ struct PropositionsSoiree: View {
         .background(Theme.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
     }
 
+    /// La grande carte 16/9 de l'app, avec le bouton d'ajout posé dans son coin.
     private func enTeteLigne(reference: ReferenceTitre, titre: String, affiche: String?, detail: String) -> some View {
-        HStack(spacing: 12) {
-            NavigationLink(value: reference) {
-                HStack(spacing: 12) {
-                    ImageDistante(url: ImageTMDB.url(affiche, .affiche), coins: 8)
-                        .frame(width: 44, height: 66)
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text(titre).font(.headline).lineLimit(1)
-                        Text(detail).font(.subheadline).foregroundStyle(Theme.accentClair).lineLimit(1)
-                    }
-                    Spacer(minLength: 0)
-                }
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            BoutonIcone(symbole: "plus", libelle: soiree == nil ? "Ajouter à ma soirée" : "Prévoir pour cette soirée", principal: true, taille: 34,
+        NavigationLink(value: reference) {
+            CarteLargeTitre(reference: reference, titre: titre, cheminAffiche: affiche, accroche: detail)
+        }
+        .buttonStyle(.plain)
+        .overlay(alignment: .bottomTrailing) {
+            BoutonIcone(symbole: "plus", libelle: soiree == nil ? "Ajouter à ma soirée" : "Prévoir pour cette soirée", principal: true, taille: 38,
                         explication: "Ajouter ce titre à la soirée choisie.") {
                 try? ServiceSoiree(contexte: contexte).retenir(reference, titre: titre, cheminAffiche: affiche, soiree: soiree)
             }
+            .padding(10)
         }
     }
 }

@@ -103,7 +103,7 @@ private struct GrillePaginee<Entete: View>: View {
                 LazyVGrid(columns: colonnes, spacing: 18) {
                     ForEach(liste.titres) { titre in
                         NavigationLink(value: titre.reference) {
-                            CarteAffiche(titre: titre, largeur: nil, sousTitre: sousTitre(titre))
+                            CarteLargeTitre(titre, accroche: sousTitre(titre))
                         }
                         .buttonStyle(.plain)
                         .actionsRapides(titre)

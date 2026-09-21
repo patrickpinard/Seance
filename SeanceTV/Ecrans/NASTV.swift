@@ -52,10 +52,12 @@ struct NASTV: View {
             // Une grille plutôt qu'une rangée : la bibliothèque compte des centaines de titres.
             VStack(alignment: .leading, spacing: 18) {
                 Text("\(titre) · \(oeuvres.count)").font(.system(size: 38, weight: .bold)).padding(.horizontal, MargesTV.bord)
-                LazyVGrid(columns: Array(repeating: GridItem(.fixed(AfficheTV.largeur), spacing: 40, alignment: .top), count: 6), spacing: 50) {
+                LazyVGrid(columns: Array(repeating: GridItem(.fixed(CarteLargeTV.largeurGrille), spacing: 40, alignment: .top), count: 3), spacing: 50) {
                     ForEach(oeuvres, id: \.reference) { oeuvre in
                         NavigationLink(value: oeuvre.reference) {
-                            AfficheTV(titre: oeuvre.titre, sousTitre: oeuvre.detail, cheminAffiche: oeuvre.cheminAffiche)
+                            CarteLargeTV(surtitre: oeuvre.qualite, titre: oeuvre.titre, detail: oeuvre.detail,
+                                         cheminImage: oeuvre.cheminFond ?? oeuvre.cheminAffiche,
+                                         marque: "externaldrive.fill", largeur: CarteLargeTV.largeurGrille)
                         }
                         .buttonStyle(.card)
                     }

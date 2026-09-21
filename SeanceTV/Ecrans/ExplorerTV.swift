@@ -84,10 +84,11 @@ struct ExplorerTV: View {
                    message: source == .nas ? "Aucun titre de cette catégorie sur ton NAS." : source == .tele ? "Rien de cette catégorie sur tes chaînes cette semaine."
                                            : "Élargis les genres, ou change de source.")
         } else {
-            LazyVGrid(columns: Array(repeating: GridItem(.fixed(AfficheTV.largeur), spacing: 40, alignment: .top), count: 6), spacing: 50) {
+            LazyVGrid(columns: Array(repeating: GridItem(.fixed(CarteLargeTV.largeurGrille), spacing: 40, alignment: .top), count: 3), spacing: 50) {
                 ForEach(resultats) { apercu in
                     NavigationLink(value: apercu.reference) {
-                        AfficheTV(titre: apercu.titre, sousTitre: apercu.sousTitre, cheminAffiche: apercu.cheminAffiche, marque: marque(apercu.reference))
+                        CarteLargeTV(surtitre: nil, titre: apercu.titre, detail: apercu.sousTitre, cheminImage: apercu.cheminAffiche,
+                                     marque: marque(apercu.reference), largeur: CarteLargeTV.largeurGrille)
                     }
                     .buttonStyle(.card)
                 }

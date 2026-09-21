@@ -334,79 +334,6 @@ struct CarteDiffusion: View {
     }
 }
 
-/// La ligne compacte du reste de la journée : l'heure d'abord, puis la vignette, la chaîne et le titre.
-struct LigneDiffusion: View {
-    let bloc: BlocDiffusion
-    let chaine: String
-    let marque: MarqueListe?
-
-    @State private var survolCloche = false
-
-    var body: some View {
-        HStack(spacing: 8) {
-            lien
-                #if targetEnvironment(macCatalyst)
-                .allowsHitTesting(!survolCloche)
-                #endif
-            if bloc.debut > .now {
-                ClocheDiffusion(bloc: bloc, chaine: chaine, surImage: false, survol: $survolCloche)
-            }
-        }
-        .padding(10)
-        .background(Theme.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-    }
-
-    private var lien: some View {
-        LienDiffusion(bloc: bloc) {
-            HStack(spacing: 12) {
-                VStack(spacing: 2) {
-                    // « 23:50 » est plus large que « 00:10 » : jamais sur deux lignes.
-                    Text(HeuresTele.heure(bloc.debut))
-                        .font(.system(.title3, design: .rounded).weight(.heavy))
-                        .monospacedDigit()
-                        .lineLimit(1)
-                        .fixedSize()
-                        .foregroundStyle(Theme.accentClair)
-                    Text(HeuresTele.duree(bloc.dureeMinutes))
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                }
-                .frame(minWidth: 64)
-                ImageDistante(url: bloc.image, coins: 9)
-                    .frame(width: 104, height: 58)
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack(spacing: 6) {
-                        PastilleChaine(nom: chaine)
-                        PastilleType(film: bloc.estFilm)
-                    }
-                    Text(bloc.premiere.titreGuide)
-                        .font(.subheadline.weight(.semibold))
-                        .lineLimit(2)
-                        .multilineTextAlignment(.leading)
-                    HStack(spacing: 7) {
-                        if let episodes = bloc.libelleEpisodes {
-                            Text(episodes)
-                        } else if let annee = bloc.premiere.anneeGuide {
-                            Text(String(annee))
-                        }
-                        if let marque {
-                            PastilleMarque(marque: marque)
-                        }
-                    }
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-                }
-                Spacer(minLength: 0)
-            }
-            .contentShape(Rectangle())
-        }
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(bloc.descriptionVocale(chaine: chaine, marque: marque))
-        .accessibilityAddTraits(bloc.reference == nil ? [] : .isButton)
-    }
-}
 
 /// Tout le programme à venir des chaînes cochées (EF-46 à EF-49) : un jour à la fois, la soirée en vedette.
 struct ProgrammeTeleView: View {
@@ -588,23 +515,14 @@ struct ProgrammeTeleView: View {
             .accessibilityElement(children: .combine)
             .accessibilityAddTraits(.isHeader)
 
-            switch moment {
-            case .enCours, .soiree:
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 290, maximum: 520), spacing: 14)], spacing: 14) {
-                    ForEach(blocs) { bloc in
-                        CarteDiffusion(bloc: bloc, chaine: nomChaine(bloc.premiere.chaine), marque: bloc.reference.flatMap { marques[$0] },
-                                       maintenant: maintenant)
-                    }
+            // Le même format partout, quelle que soit l'heure du programme : la grande carte 16/9.
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 290, maximum: 520), spacing: 14)], spacing: 14) {
+                ForEach(blocs) { bloc in
+                    CarteDiffusion(bloc: bloc, chaine: nomChaine(bloc.premiere.chaine), marque: bloc.reference.flatMap { marques[$0] },
+                                   maintenant: maintenant)
                 }
-                .padding(.horizontal, 20)
-            case .journee, .nuit:
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 330, maximum: 640), spacing: 10)], spacing: 10) {
-                    ForEach(blocs) { bloc in
-                        LigneDiffusion(bloc: bloc, chaine: nomChaine(bloc.premiere.chaine), marque: bloc.reference.flatMap { marques[$0] })
-                    }
-                }
-                .padding(.horizontal, 20)
             }
+            .padding(.horizontal, 20)
         }
     }
 

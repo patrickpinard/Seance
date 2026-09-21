@@ -24,7 +24,8 @@ struct ProfilTV: View {
                     EtagereTV(titre: "Tes dernières notes", sousTitre: "Elles affinent ce que Séance te propose") {
                         ForEach(notes) { suivi in
                             NavigationLink(value: suivi.reference) {
-                                AfficheTV(titre: suivi.titre, sousTitre: "★ \(suivi.note ?? 0)/10", cheminAffiche: suivi.cheminAffiche)
+                                CarteLargeTV(surtitre: "★ \(suivi.note ?? 0)/10", titre: suivi.titre, detail: nil,
+                                             cheminImage: suivi.cheminAffiche, largeur: CarteLargeTV.largeurGrille)
                             }
                             .buttonStyle(.card)
                         }
@@ -34,7 +35,8 @@ struct ProfilTV: View {
                     EtagereTV(titre: "👍 Tu aimes", sousTitre: "Tes pouces levés orientent les idées du soir") {
                         ForEach(aimes.prefix(30), id: \.reference) { aime in
                             NavigationLink(value: aime.reference) {
-                                AfficheTV(titre: aime.titre, sousTitre: aime.reference.type == .film ? "Film" : "Série", cheminAffiche: aime.cheminAffiche)
+                                CarteLargeTV(surtitre: nil, titre: aime.titre, detail: aime.reference.type == .film ? "Film" : "Série",
+                                             cheminImage: aime.cheminAffiche, largeur: CarteLargeTV.largeurGrille)
                             }
                             .buttonStyle(.card)
                         }

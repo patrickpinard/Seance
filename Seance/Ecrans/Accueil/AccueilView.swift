@@ -426,7 +426,7 @@ struct AccueilView: View {
 
                 if sources.documentaires, !etat.documentaires.films.isEmpty || !etat.documentaires.series.isEmpty {
                     VStack(alignment: .leading, spacing: 12) {
-                        TitreSection(titre: "Documentaires pour toi") {
+                        TitreSection(titre: "Documentaires") {
                             BoutonToutVoir { chemin.append(DestinationAccueil.documentaires) }
                         }
                         Text(etat.documentaires.resume)
@@ -488,7 +488,7 @@ struct ReglageSourcesAccueil: View {
                     Toggle("Top de l'année", isOn: $sources.top10).tint(Theme.accent)
                     Toggle("Ce soir à la TV", isOn: $sources.tele).tint(Theme.accent)
                     Toggle("Nouveautés", isOn: $sources.duMoment).tint(Theme.accent)
-                    Toggle("Documentaires pour toi", isOn: $sources.documentaires).tint(Theme.accent)
+                    Toggle("Documentaires", isOn: $sources.documentaires).tint(Theme.accent)
                     Toggle("Sur ton NAS", isOn: $sources.nas).tint(Theme.accent)
                 } header: {
                     Text("Sections de l'accueil")

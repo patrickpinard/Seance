@@ -45,8 +45,10 @@ struct CeSoirTV: View {
                         EtagereTV(titre: libelle(choisi), sousTitre: groupe.titres.count > 1 ? "\(groupe.titres.count) titres pour cette soirée" : "1 titre") {
                             ForEach(groupe.titres, id: \.reference) { selection in
                                 NavigationLink(value: selection.reference) {
-                                    AfficheTV(titre: selection.titre, sousTitre: surLeNAS(selection.reference) ? "Sur ton NAS" : nil,
-                                              cheminAffiche: selection.cheminAffiche, marque: surLeNAS(selection.reference) ? "externaldrive.fill" : nil)
+                                    CarteLargeTV(surtitre: surLeNAS(selection.reference) ? "Sur ton NAS" : nil, titre: selection.titre,
+                                                 detail: nil, cheminImage: selection.cheminAffiche,
+                                                 marque: surLeNAS(selection.reference) ? "externaldrive.fill" : nil,
+                                                 largeur: CarteLargeTV.largeurGrille)
                                 }
                                 .buttonStyle(.card)
                             }
@@ -69,10 +71,11 @@ struct CeSoirTV: View {
             EtagereTV(titre: "Idées pour ce soir", sousTitre: "Sur tes plateformes, selon tes goûts — ouvre une fiche pour l'ajouter à ta soirée") {
                 ForEach(proposees) { idee in
                     NavigationLink(value: idee.reference) {
-                        AfficheTV(titre: idee.candidat.titre.titre,
-                                  sousTitre: idee.reference.type == .film ? "Film" : "Série",
-                                  cheminAffiche: idee.candidat.titre.cheminAffiche,
-                                  marque: surLeNAS(idee.reference) ? "externaldrive.fill" : nil)
+                        CarteLargeTV(surtitre: nil, titre: idee.candidat.titre.titre,
+                                     detail: idee.reference.type == .film ? "Film" : "Série",
+                                     cheminImage: idee.candidat.titre.cheminFond ?? idee.candidat.titre.cheminAffiche,
+                                     marque: surLeNAS(idee.reference) ? "externaldrive.fill" : nil,
+                                     largeur: CarteLargeTV.largeurGrille)
                     }
                     .buttonStyle(.card)
                 }

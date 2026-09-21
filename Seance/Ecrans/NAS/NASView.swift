@@ -170,7 +170,7 @@ struct NASView: View {
                         // Le dossier NEW tout en grandes cartes : peu de titres, ceux qu'on vient chercher.
                         LazyVGrid(columns: [GridItem(.adaptive(minimum: 290, maximum: 520), spacing: 14, alignment: .top)], spacing: 14) {
                             ForEach(oeuvres) { oeuvre in
-                                CarteNouveauteNAS(oeuvre: oeuvre, decor: oeuvre.reference.flatMap(etat.decors.decor),
+                                CarteLargeNAS(oeuvre: oeuvre, decor: oeuvre.reference.flatMap(etat.decors.decor),
                                                   marque: oeuvre.reference.flatMap { marques[$0] })
                             }
                         }
@@ -184,7 +184,7 @@ struct NASView: View {
                                 DefilementHorizontal {
                                     LazyHStack(spacing: 14) {
                                         ForEach(nouvelles) { oeuvre in
-                                            CarteNouveauteNAS(oeuvre: oeuvre, decor: oeuvre.reference.flatMap(etat.decors.decor),
+                                            CarteLargeNAS(oeuvre: oeuvre, decor: oeuvre.reference.flatMap(etat.decors.decor),
                                                               marque: oeuvre.reference.flatMap { marques[$0] })
                                                 .frame(width: 310)
                                         }
@@ -197,9 +197,10 @@ struct NASView: View {
                                 .font(.title3.weight(.bold))
                                 .padding(.top, 6)
                         }
-                        LazyVGrid(columns: colonnes, spacing: 18) {
+                        LazyVGrid(columns: [GridItem(.adaptive(minimum: 290, maximum: 520), spacing: 14, alignment: .top)], spacing: 14) {
                             ForEach(oeuvres) { oeuvre in
-                                CarteOeuvreNAS(oeuvre: oeuvre, marque: oeuvre.reference.flatMap { marques[$0] })
+                                CarteLargeNAS(oeuvre: oeuvre, decor: oeuvre.reference.flatMap(etat.decors.decor),
+                                              marque: oeuvre.reference.flatMap { marques[$0] })
                             }
                         }
                     }
@@ -291,74 +292,6 @@ struct NASView: View {
     }
 }
 
-/// Affiche, badge de qualité, titre et nombre d'épisodes ; toucher ouvre la fiche.
-struct CarteOeuvreNAS: View {
-    let oeuvre: OeuvreNAS
-    var largeur: CGFloat?
-    /// Dans ta liste (liseré orange) ou déjà vu (œil) : les mêmes marques que dans le programme TV.
-    var marque: MarqueListe?
-
-    var body: some View {
-        let carte = VStack(alignment: .leading, spacing: 4) {
-            ImageDistante(url: ImageTMDB.url(oeuvre.cheminAffiche, .affiche))
-                .aspectRatio(2 / 3, contentMode: .fit)
-                .overlay {
-                    if marque == .dansTaListe {
-                        RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(Theme.degradeAccent, lineWidth: 2)
-                    }
-                }
-                .overlay(alignment: .bottomLeading) {
-                    if let marque {
-                        Image(systemName: marque == .dansTaListe ? "bookmark.fill" : "eye.fill")
-                            .font(.caption2.weight(.bold))
-                            .foregroundStyle(marque == .dansTaListe ? AnyShapeStyle(Theme.accentClair) : AnyShapeStyle(.white.opacity(0.85)))
-                            .padding(5)
-                            .background(.black.opacity(0.7), in: Circle())
-                            .padding(6)
-                            .accessibilityLabel(marque == .dansTaListe ? "Dans ta liste" : "Déjà vu")
-                    }
-                }
-                .overlay(alignment: .topTrailing) {
-                    if let qualite = oeuvre.qualite {
-                        Text(qualite)
-                            .font(.caption2.weight(.heavy))
-                            .padding(.horizontal, 6).padding(.vertical, 3)
-                            .background(.black.opacity(0.7), in: RoundedRectangle(cornerRadius: 5))
-                            .foregroundStyle(.white)
-                            .padding(6)
-                    }
-                }
-                .overlay(alignment: .topLeading) {
-                    if oeuvre.nouveaute {
-                        Text("NEW")
-                            .font(.caption2.weight(.heavy))
-                            .padding(.horizontal, 6).padding(.vertical, 3)
-                            .background(Theme.accent, in: RoundedRectangle(cornerRadius: 5))
-                            .foregroundStyle(.black)
-                            .padding(6)
-                    }
-                }
-            Text(oeuvre.titre)
-                .font(.subheadline.weight(.semibold))
-                .lineLimit(1)
-            Text(sousTitre)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-        }
-        .frame(width: largeur)
-
-        if let reference = oeuvre.reference {
-            NavigationLink(value: reference) { carte }
-                .buttonStyle(.plain)
-        } else {
-            carte
-        }
-    }
-
-    private var sousTitre: String {
-        oeuvre.detail
-    }
-}
 
 extension OeuvreNAS {
     /// « 12 épisodes », « 2019 · ★ 7,8 ».
@@ -372,8 +305,9 @@ extension OeuvreNAS {
     }
 }
 
-/// Une nouveauté du NAS en grande carte : son image, « NEW », la qualité, et si elle est dans ta liste.
-struct CarteNouveauteNAS: View {
+/// Un titre du NAS en grande carte 16/9, le format unique de l'app : son image, « NEW » s'il vient d'arriver,
+/// la qualité, « Sur ton NAS », et si tu l'as dans ta liste ou déjà vu.
+struct CarteLargeNAS: View {
     let oeuvre: OeuvreNAS
     let decor: EtatDecors.Decor?
     let marque: MarqueListe?
@@ -393,11 +327,13 @@ struct CarteNouveauteNAS: View {
             }
             .overlay(alignment: .topLeading) {
                 HStack(spacing: 6) {
-                    Text("NEW")
-                        .font(.caption2.weight(.black))
-                        .padding(.horizontal, 7).padding(.vertical, 4)
-                        .background(Theme.degradeAccent, in: Capsule())
-                        .foregroundStyle(.black)
+                    if oeuvre.nouveaute {
+                        Text("NEW")
+                            .font(.caption2.weight(.black))
+                            .padding(.horizontal, 7).padding(.vertical, 4)
+                            .background(Theme.degradeAccent, in: Capsule())
+                            .foregroundStyle(.black)
+                    }
                     Spacer(minLength: 4)
                     if let qualite = oeuvre.qualite {
                         Text(qualite)

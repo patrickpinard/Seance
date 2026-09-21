@@ -32,19 +32,10 @@ struct DocumentairesView: View {
                              libelleAction: "Relire", symboleAction: "arrow.clockwise") { recharger() }
                         .padding(.horizontal, 20)
                 } else {
-                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 104, maximum: 160), spacing: 12, alignment: .top)], spacing: 16) {
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 290, maximum: 520), spacing: 14, alignment: .top)], spacing: 14) {
                         ForEach(titres) { titre in
                             NavigationLink(value: titre.reference) {
-                                VStack(alignment: .leading, spacing: 6) {
-                                    ImageDistante(url: ImageTMDB.url(titre.cheminAffiche, .affiche), coins: 10)
-                                        .aspectRatio(2 / 3, contentMode: .fit)
-                                        .overlay(alignment: .topLeading) { BadgeOu(reference: titre.reference).padding(6) }
-                                    Text(titre.titre)
-                                        .font(.caption.weight(.semibold))
-                                        .lineLimit(2)
-                                        .multilineTextAlignment(.leading)
-                                        .foregroundStyle(.primary)
-                                }
+                                CarteLargeTitre(titre)
                             }
                             .buttonStyle(.plain)
                             .actionsRapides(titre)
@@ -59,6 +50,7 @@ struct DocumentairesView: View {
         .navigationTitle("Documentaires")
         .navigationBarTitleDisplayMode(.inline)
         .task { await etat.documentaires.charger(client: etat.tmdb, plateformes: nil) }
+        .task(id: titres.map(\.reference)) { await etat.decors.charger(titres.map(\.reference), client: etat.tmdb) }
     }
 
     /// Les thèmes cochés (EF-152) : aucun coché veut dire « tous ».

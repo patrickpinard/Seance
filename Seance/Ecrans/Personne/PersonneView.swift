@@ -258,11 +258,10 @@ struct PersonneView: View {
             .padding(.horizontal, 20)
         }
         if enGrille {
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: largeurGrille == .regular ? 150 : 105), spacing: 12, alignment: .top)], spacing: 18) {
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 290, maximum: 520), spacing: 14, alignment: .top)], spacing: 14) {
                 ForEach(credits, id: \.reference) { credit in
                     NavigationLink(value: credit.reference) {
-                        CarteAffiche(titre: credit.titreResume, largeur: nil,
-                                     sousTitre: vus.contains(credit.reference) ? "✓ Vu" : nil)
+                        CarteLargeTitre(credit.titreResume, accroche: vus.contains(credit.reference) ? "✓ Vu" : nil)
                     }
                     .buttonStyle(.plain)
                     .actionsRapides(credit.titreResume)

@@ -75,6 +75,12 @@ struct VideosPersoView: View {
         }
         .task { await etat.videosPerso.lire(films: etat.nas.reglages) }
         .alert("\(etat.nas.lecteur.nom) n'a pas ouvert cette vidéo", isPresented: Binding { illisible != nil } set: { if !$0 { illisible = nil } }) {
+            if let video = illisible, !LecteurIntegre.lisible(video.chemin) {
+                Button("Ouvrir dans VLC") {
+                    guard let lien = etat.videosPerso.lien(pour: video, films: etat.nas.reglages, lecteur: .vlc) else { return }
+                    ouvrir(lien)
+                }
+            }
             Button("Ouvrir l'App Store") { ouvrir(etat.nas.lecteur.appStore) }
             Button("OK", role: .cancel) {}
         } message: {
@@ -114,7 +120,10 @@ struct VideosPersoView: View {
 
     private func lire(_ video: VideoPerso) {
         // Dans Séance : la vidéo reste sur le NAS et se lit ici même, sans passer la main à une autre app.
-        if etat.videosPerso.reglages.lecteurIntegre, etat.videosPerso.motDePasse(films: etat.nas.reglages) != nil {
+        // Un format qu'AVFoundation ne lit pas (.avi, .mkv, .wmv) part directement dans VLC : inutile d'ouvrir
+        // un lecteur pour lui annoncer qu'il ne sait pas lire.
+        if etat.videosPerso.reglages.lecteurIntegre, LecteurIntegre.lisible(video.chemin),
+           etat.videosPerso.motDePasse(films: etat.nas.reglages) != nil {
             aLire = video
             return
         }

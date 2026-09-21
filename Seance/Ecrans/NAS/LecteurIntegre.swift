@@ -22,8 +22,14 @@ struct LecteurIntegre: View {
     @State private var source: SourceVideoSMB?
     @State private var message: String?
 
-    /// Les formats qu'AVFoundation ouvre sans extension ni conversion.
-    private static let formatsLus: Set<String> = ["mp4", "m4v", "mov", "qt"]
+    /// Les formats qu'AVFoundation ouvre sans extension ni conversion. Un MKV, un AVI ou un WMV n'en font pas
+    /// partie : ils passent par VLC, qui les lit tous.
+    static let formatsLus: Set<String> = ["mp4", "m4v", "mov", "qt"]
+
+    /// Vrai si Séance sait lire ce fichier elle-même.
+    static func lisible(_ chemin: String) -> Bool {
+        formatsLus.contains((chemin as NSString).pathExtension.lowercased())
+    }
 
     var body: some View {
         ZStack {
@@ -64,7 +70,7 @@ struct LecteurIntegre: View {
     private func ouvrir() async {
         guard lecteur == nil, message == nil else { return }
         let extensionFichier = (video.chemin as NSString).pathExtension.lowercased()
-        guard Self.formatsLus.contains(extensionFichier) else {
+        guard Self.lisible(video.chemin) else {
             let texte = "Séance ne sait pas lire les fichiers « \(extensionFichier) ». Ouvre-la dans VLC."
             message = texte
             surEchec(texte)

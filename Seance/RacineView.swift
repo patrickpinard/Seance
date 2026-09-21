@@ -81,9 +81,10 @@ struct RacineView: View {
             .buttonStyle(.plain)
             .help("Réglages (⌘,)")
             .accessibilityLabel("Réglages")
-            .padding(.top, 8)
+            // Sous la barre de titre de la fenêtre, et non dedans : `ignoresSafeArea` la plaçait dans la zone que
+            // macOS se réserve, où le clic n'atteignait jamais le bouton.
+            .padding(.top, 10)
             .padding(.trailing, 18)
-            .ignoresSafeArea()
         }
         .sheet(isPresented: $reglagesOuverts) {
             NavigationStack {
