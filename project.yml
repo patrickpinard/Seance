@@ -18,8 +18,8 @@ settings:
     # Équipe personnelle de Patrick (compte Apple gratuit).
     DEVELOPMENT_TEAM: GATK475J3P
     # Version affichée dans À propos › Versions ; à changer avec Seance/Ecrans/Reglages/Versions.swift.
-    MARKETING_VERSION: "6.2"
-    CURRENT_PROJECT_VERSION: "48"
+    MARKETING_VERSION: "6.3"
+    CURRENT_PROJECT_VERSION: "49"
 
 packages:
   SeanceKit:
@@ -106,6 +106,8 @@ targets:
         LSApplicationQueriesSchemes:
           - infuse
           - vlc-x-callback
+          # blue TV (Swisscom) : l'adresse de son app, celle que son lecteur web utilise (6.3).
+          - tvguide
         CFBundleURLTypes:
           - CFBundleURLName: ch.patrick.seance
             CFBundleURLSchemes:
@@ -133,6 +135,10 @@ targets:
       - path: Seance/Etat/FauxTMDB.swift
       # Les vidéos personnelles : le même état sur l'iPhone et sur la TV.
       - path: Seance/Etat/EtatVideosPerso.swift
+      # « Où regarder » : le même état que sur l'iPhone, pour les logos des plateformes et des chaînes sur les cartes (6.3).
+      - path: Seance/Etat/EtatOu.swift
+      # Les notes de version, les mêmes que sur l'iPhone (6.3) ; la vue repliable, elle, reste à l'app.
+      - path: Seance/Ecrans/Reglages/Versions.swift
     dependencies:
       - package: SeanceKit
       - package: SeanceDonnees
@@ -161,6 +167,8 @@ targets:
         LSApplicationQueriesSchemes:
           - infuse
           - vlc-x-callback
+          # blue TV (Swisscom) : l'adresse de son app, celle que son lecteur web utilise (6.3).
+          - tvguide
         # seance://film/603 : une affiche de l'étagère du haut ouvre sa fiche.
         CFBundleURLTypes:
           - CFBundleURLName: ch.patrick.seance.tv

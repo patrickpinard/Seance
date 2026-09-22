@@ -48,7 +48,12 @@ struct CarteLargeTitre: View {
     /// coupait le texte au milieu d'un mot ; une seule quand la carte a déjà son accroche.
     private func ou(avecAccroche: Bool) -> String? {
         guard let reference else { return nil }
-        let noms = etat.ou.badges(reference).map(BadgeOu.libelle).prefix(avecAccroche ? 1 : 2)
+        // La carte n'a la place que d'un ou deux accès : le passage à la télé passe devant (6.3). Une plateforme est
+        // là tous les jours, une diffusion a une heure — et dans Explorer › TV, la chaîne est ce qu'on vient chercher.
+        let tous = etat.ou.badges(reference)
+        let aLaTele = tous.filter { if case .tele = $0 { true } else { false } }
+        let noms = (aLaTele + tous.filter { if case .tele = $0 { false } else { true } })
+            .map(BadgeOu.libelle).prefix(avecAccroche ? 1 : 2)
         return noms.isEmpty ? nil : noms.joined(separator: " · ")
     }
 

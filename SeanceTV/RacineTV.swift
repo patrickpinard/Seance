@@ -101,18 +101,22 @@ struct RacineTV: View {
             // En quittant l'app : l'étagère du haut reflète la soirée et le NAS du moment.
             if nouvelle == .background { PublicationEtagere.publier(contexte: contexte) }
         }
-        .alert("Tu l'as regardé ?", isPresented: Binding { etat.lectureAConfirmer != nil } set: { if !$0 { etat.lectureAConfirmer = nil } },
-               presenting: etat.lectureAConfirmer) { reference in
-            Button("Oui, marquer vu") { marquerVu(reference) }
-            Button("Pas encore", role: .cancel) {}
-        } message: { _ in
-            Text("Séance le range dans tes films vus ; tu pourras le noter depuis sa fiche.")
+        // Une fenêtre de Séance plutôt que celle du système (6.3), toujours lisible sur la TV.
+        .fullScreenCover(isPresented: Binding { etat.lectureAConfirmer != nil } set: { if !$0 { etat.lectureAConfirmer = nil } }) {
+            if let reference = etat.lectureAConfirmer {
+                DialogueTV(titre: "Tu l'as regardé ?",
+                           message: "Séance le range dans tes films vus ; tu pourras le noter depuis sa fiche.",
+                           choix: [DialogueTV.Choix(libelle: "Oui, terminé", principal: true) { marquerVu(reference) }])
+            }
         }
         // La bibliothèque du NAS se relit au lancement : le magasin de la TV est un cache (EF-145).
         .task {
             // Les listes d'abord (quelques secondes), la bibliothèque ensuite (plus longue).
+            etat.ou.actualiserLocal(contexte: contexte)
             await etat.synchroniser(contexte: contexte)
+            etat.ou.actualiserLocal(contexte: contexte)
             if etat.nasPret, !etat.enDemonstration { await etat.analyserNAS(contexte: contexte) }
+            etat.ou.actualiserLocal(contexte: contexte)
             PublicationEtagere.publier(contexte: contexte)
         }
     }

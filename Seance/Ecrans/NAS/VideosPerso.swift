@@ -11,6 +11,8 @@ struct DossierVideosPerso: Hashable {
 /// appui long (clic droit sur le Mac) ouvre la feuille « Couverture » : l'icône, le titre, la date.
 struct VideosPersoView: View {
     let dossier: DossierVideosPerso
+    /// Intégrée au rayon « Perso » de la page NAS (6.3) : le défilement, le titre et la barre sont ceux de cette page.
+    var integree = false
 
     @Environment(EtatApp.self) private var etat
     @Environment(\.openURL) private var ouvrir
@@ -21,36 +23,14 @@ struct VideosPersoView: View {
 
     var body: some View {
         let albums = etat.videosPerso.albums
-        ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                if let erreur = etat.videosPerso.erreur {
-                    MessageEtat(texte: erreur, ton: .probleme, libelleAction: "Réessayer") { relire(force: true) }
-                }
-                if dossier.chemin.isEmpty {
-                    racine(albums)
-                } else if let album = albums.first(where: { $0.id == dossier.chemin }) {
-                    page(album)
-                } else {
-                    EtatVide(symbole: "rectangle.stack", titre: "Album introuvable",
-                             message: "Ce dossier n'est plus sur le NAS, ou il n'a pas encore été relu.",
-                             libelleAction: "Relire le NAS", symboleAction: "arrow.clockwise") { relire(force: true) }
-                        .padding(.horizontal, 20)
-                }
-            }
-            .padding(.vertical, 16)
-        }
-        .background(Theme.fond)
-        .navigationTitle(titrePage(albums))
-        .toolbar {
-            if !dossier.chemin.isEmpty, let album = albums.first(where: { $0.id == dossier.chemin }) {
-                ToolbarItem(placement: .primaryAction) {
-                    Button { aCouvrir = cible(album) } label: { Label("Couverture de l'album", systemImage: "pencil") }
-                }
+        Group {
+            if integree {
+                contenu(albums)
             } else {
-                ToolbarItem(placement: .primaryAction) {
-                    Button { relire(force: true) } label: { Label("Relire le NAS", systemImage: "arrow.clockwise") }
-                        .disabled(etat.videosPerso.enCours)
-                }
+                ScrollView { contenu(albums) }
+                    .background(Theme.fond)
+                    .navigationTitle(titrePage(albums))
+                    .toolbar { barre(albums) }
             }
         }
         .task { await etat.videosPerso.lire(films: etat.nas.reglages) }
@@ -74,6 +54,41 @@ struct VideosPersoView: View {
                     try? await Task.sleep(for: .milliseconds(700))
                     lireAilleurs(video)
                 }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func contenu(_ albums: [AlbumSouvenirs]) -> some View {
+        VStack(alignment: .leading, spacing: 20) {
+            if let erreur = etat.videosPerso.erreur {
+                MessageEtat(texte: erreur, ton: .probleme, libelleAction: "Réessayer") { relire(force: true) }
+            }
+            if dossier.chemin.isEmpty {
+                racine(albums)
+            } else if let album = albums.first(where: { $0.id == dossier.chemin }) {
+                page(album)
+            } else {
+                EtatVide(symbole: "rectangle.stack", titre: "Album introuvable",
+                         message: "Ce dossier n'est plus sur le NAS, ou il n'a pas encore été relu.",
+                         libelleAction: "Relire le NAS", symboleAction: "arrow.clockwise") { relire(force: true) }
+                    .padding(.horizontal, 20)
+            }
+        }
+        .padding(.vertical, integree ? 0 : 16)
+    }
+
+    /// La barre de la page : la couverture d'un album, ou relire le NAS.
+    @ToolbarContentBuilder
+    private func barre(_ albums: [AlbumSouvenirs]) -> some ToolbarContent {
+        if !dossier.chemin.isEmpty, let album = albums.first(where: { $0.id == dossier.chemin }) {
+            ToolbarItem(placement: .primaryAction) {
+                Button { aCouvrir = cible(album) } label: { Label("Couverture de l'album", systemImage: "pencil") }
+            }
+        } else {
+            ToolbarItem(placement: .primaryAction) {
+                Button { relire(force: true) } label: { Label("Relire le NAS", systemImage: "arrow.clockwise") }
+                    .disabled(etat.videosPerso.enCours)
             }
         }
     }

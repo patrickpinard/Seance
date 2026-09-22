@@ -93,6 +93,9 @@ struct RacineView: View {
             }
         }
         .animation(.snappy, value: etat.confirmation)
+        // Le sablier d'une ouverture au-dehors (6.3) : Netflix, Disney+, blue TV… Le temps d'y arriver — une requête
+        // pour retrouver la page exacte du titre, puis l'app qui se lance —, l'écran dit ce qui se passe.
+        .modifier(SablierOuverture.Calque())
         .tint(Theme.accent)
         .task { await etat.chargerGenres() }
         // Le contrôleur d'onglets n'existe qu'une fois la fenêtre montée, et prend ses dimensions avec un temps de retard.

@@ -83,6 +83,8 @@ d'un passage télé, un code).
 | Apple TV : choisir ce que la page montre | `SelecteurTV` | `SeanceTV/Design/ComposantsTV.swift` |
 | Apple TV : une tuile de jour | `TuileJourTV` | idem |
 | Apple TV : une page de réglage | `PageTV`, `SectionTV`, `LigneTVReglage`, `BoutTV`, `ChampTV`, `BasculeTV` | `SeanceTV/Design/ReglagesComposantsTV.swift` |
+| Apple TV : poser une question | `DialogueTV` (plein écran, boutons de la charte) — jamais `alert` ni `confirmationDialog` | idem |
+| Apple TV : où regarder, en coin de carte | `BadgeOuTV` (le même `EtatOu` que l'iPhone) | `SeanceTV/Design/ComposantsTV.swift` |
 
 Règles :
 
@@ -102,7 +104,10 @@ Règles :
 - **Sur l'Apple TV, jamais de `Form` ni de `List` du système** : leur page est transparente (le texte de la page
   précédente se lit au travers) et leurs lignes passent au blanc sans changer la couleur d'un texte secondaire, qui
   devient blanc sur blanc. Une page se construit avec `PageTV` (fond opaque) et `SectionTV`, et **chaque état de
-  couleur au focus est explicite** : texte noir, secondaire noir à 65 %.
+  couleur au focus est explicite** : texte noir, secondaire noir à 65 %. Les questions passent par `DialogueTV`, pas
+  par `alert` ni `confirmationDialog` ; un champ garde son libellé **au-dessus** de lui, lisible une fois rempli.
+- **Sur l'Apple TV, une page doit avoir un élément qui prend le focus** : une page de texte seul ne défile plus à la
+  télécommande. L'historique des versions, par exemple, fait de chaque version un bouton qui s'ouvre (`PageVersionsTV`).
 - **« Où regarder » se montre avant tout le reste** : c'est la raison d'être de Séance. Partout où un titre est proposé
   pour être regardé, `ActionsOuRegarder` dit où — selon les seules plateformes cochées — et permet d'y aller d'un toucher.
 - **Sur l'Apple TV, le menu est en haut, à l'horizontale, en noms seuls** (comme Netflix) : huit entrées au plus, sans icône.

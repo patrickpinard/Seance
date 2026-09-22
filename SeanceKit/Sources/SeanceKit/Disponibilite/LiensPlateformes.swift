@@ -80,9 +80,83 @@ public enum LiensChaines {
         "Arte.fr": 28, "W9.fr": 653, "TMC.fr": 609, "NT1.fr": 295, "6ter.fr": 9,
     ]
 
-    /// La chaîne en direct dans blue TV ; `app` : le lien que l'app reprend (iPhone, iPad, Apple TV), sinon le lecteur web.
-    public static func blueTV(chaine idGuide: String, app: Bool) -> URL? {
-        guard let numero = blueTV[idGuide] else { return nil }
-        return URL(string: "https://tv.blue.ch/\(app ? "app/" : "")player/livetv/\(numero)")
+    /// Le numéro d'une chaîne du guide dans blue TV.
+    public static func numero(chaine idGuide: String) -> Int? {
+        blueTV[idGuide]
+    }
+
+    /// Le lecteur web de blue TV, sur la chaîne en direct : c'est ce qu'ouvre le Mac, faute d'app blue TV.
+    public static func siteBlueTV(chaine idGuide: String) -> URL? {
+        blueTV[idGuide].flatMap { URL(string: "https://tv.blue.ch/player/livetv/\($0)") }
+    }
+
+    /// L'app blue TV (« TV Air »), qui s'ouvre par son adresse `tvguide://` — celle que son propre lecteur web utilise
+    /// pour passer à l'app (6.3). `emission` : l'identifiant Swisscom de ce qui passe, pour ouvrir dessus ; sans lui,
+    /// l'app s'ouvre sur son guide.
+    public static func appBlueTV(emission: String? = nil) -> URL? {
+        guard let emission, !emission.isEmpty else { return URL(string: "tvguide://T=tvguide") }
+        let permis = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "._-"))
+        guard emission.unicodeScalars.allSatisfy({ permis.contains($0) && $0.isASCII }) else { return URL(string: "tvguide://T=tvguide") }
+        return URL(string: "tvguide://T=tvguide&I=\(emission)&AssetType=tvBroadcast")
+    }
+}
+
+/// Ce qui passe en ce moment sur une chaîne de blue TV (6.3), lu dans le catalogue public de Swisscom — sans compte ni
+/// clé, et sans rien dire de l'utilisateur. Sert à ouvrir l'app blue TV sur l'émission : son adresse `tvguide://` veut
+/// l'identifiant d'une émission, pas celui d'une chaîne.
+public struct CatalogueBlueTV: Sendable {
+    private let transport: any TransportHTTP
+
+    public init(transport: any TransportHTTP) {
+        self.transport = transport
+    }
+
+    public static func requete(chaine numero: Int, autour instant: Date) -> URLRequest {
+        let format = DateFormatter()
+        format.locale = Locale(identifier: "en_US_POSIX")
+        format.timeZone = TimeZone(identifier: "UTC")
+        format.dateFormat = "yyyyMMddHHmm"
+        let debut = format.string(from: instant.addingTimeInterval(-60))
+        let fin = format.string(from: instant.addingTimeInterval(60))
+        let adresse = "https://services.sg101.prd.sctv.ch/catalog/tv/channels/list/(end=\(fin);ids=\(numero);level=normal;start=\(debut))"
+        var requete = URLRequest(url: URL(string: adresse)!, timeoutInterval: 8)
+        requete.setValue("Seance/6.3 (application personnelle)", forHTTPHeaderField: "User-Agent")
+        return requete
+    }
+
+    private struct Reponse: Decodable {
+        struct Liste<Element: Decodable>: Decodable { let Items: [Element]? }
+        struct Chaine: Decodable { let Content: Contenu? }
+        struct Contenu: Decodable { let Nodes: Liste<Emission>? }
+        struct Emission: Decodable {
+            let Identifier: String?
+            let Availabilities: [Creneau]?
+        }
+        struct Creneau: Decodable {
+            let AvailabilityStart: String?
+            let AvailabilityEnd: String?
+        }
+        let Nodes: Liste<Chaine>?
+    }
+
+    /// L'identifiant de l'émission qui couvre `instant` ; à défaut, la première renvoyée.
+    public static func lire(_ donnees: Data, a instant: Date) -> String? {
+        guard let reponse = try? JSONDecoder().decode(Reponse.self, from: donnees) else { return nil }
+        let emissions = (reponse.Nodes?.Items ?? []).flatMap { $0.Content?.Nodes?.Items ?? [] }
+        let iso = ISO8601DateFormatter()
+        func couvre(_ emission: Reponse.Emission) -> Bool {
+            guard let creneau = emission.Availabilities?.first,
+                  let debut = creneau.AvailabilityStart.flatMap(iso.date(from:)),
+                  let fin = creneau.AvailabilityEnd.flatMap(iso.date(from:)) else { return false }
+            return debut <= instant && instant < fin
+        }
+        return (emissions.first(where: couvre) ?? emissions.first)?.Identifier
+    }
+
+    /// `nil` si le catalogue ne répond pas : l'app blue TV s'ouvrira alors sur son guide.
+    public func emission(chaine numero: Int, a instant: Date = .now) async -> String? {
+        guard let (donnees, reponse) = try? await transport.envoyer(Self.requete(chaine: numero, autour: instant)),
+              reponse.statusCode == 200 else { return nil }
+        return Self.lire(donnees, a: instant)
     }
 }

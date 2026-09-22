@@ -57,7 +57,7 @@ struct NASTV: View {
                         NavigationLink(value: oeuvre.reference) {
                             CarteLargeTV(surtitre: oeuvre.qualite, titre: oeuvre.titre, detail: oeuvre.detail,
                                          cheminImage: oeuvre.cheminFond ?? oeuvre.cheminAffiche,
-                                         marque: "externaldrive.fill", largeur: CarteLargeTV.largeurGrille)
+                                         marque: "externaldrive.fill", largeur: CarteLargeTV.largeurGrille, reference: oeuvre.reference)
                         }
                         .buttonStyle(.card)
                     }

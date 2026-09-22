@@ -114,35 +114,38 @@ struct PageVideosPersoTV: View {
     @State private var message: String?
 
     var body: some View {
-        Form {
-            Section {
-                Toggle("Inclure mes vidéos personnelles", isOn: $actif)
-                    .onChange(of: actif) { _, coche in
-                        if coche, hote.isEmpty { remplir(ReglagesVideosPerso.depuis(etat.nas).acces) }
-                        enregistrer()
-                    }
-            } footer: {
-                Text("Tes films de famille, rangés sur ton NAS à part de ta bibliothèque. Décochée, cette option ne montre rien et ne lit rien. Ces vidéos restent privées : leurs noms ne partent vers aucun service.")
+        // Le gabarit des autres réglages de la TV (6.3) : le `Form` de tvOS laissait voir la page précédente au travers
+        // et écrivait blanc sur blanc au focus.
+        PageTV(titre: "Vidéos personnelles",
+               sousTitre: "Tes films de famille, rangés sur ton NAS à part de ta bibliothèque. Ces vidéos restent privées : leurs noms ne partent vers aucun service.") {
+            SectionTV(explication: "Décochée, cette option ne montre rien et ne lit rien.") {
+                BasculeTV(titre: "Inclure mes vidéos personnelles", actif: Binding {
+                    actif
+                } set: { coche in
+                    actif = coche
+                    if coche, hote.isEmpty { remplir(ReglagesVideosPerso.depuis(etat.nas).acces) }
+                    enregistrer()
+                })
             }
             if actif {
-                Section {
-                    TextField("Adresse du serveur", text: $hote)
-                    TextField("Partage (video)", text: $partage)
-                    TextField("Dossiers, séparés par des virgules (vide : tout le partage)", text: $dossiers)
-                    TextField("Compte", text: $utilisateur)
-                    SecureField(etat.videosPerso.aSonMotDePasse ? "Mot de passe (déjà enregistré)" : memeCompte ? "Mot de passe (celui des films)" : "Mot de passe", text: $motDePasse)
-                    Button(etat.videosPerso.enCours ? "Lecture du NAS…" : "Enregistrer et lire le NAS") { tester() }
-                        .disabled(etat.videosPerso.enCours || hote.isEmpty || partage.isEmpty || utilisateur.isEmpty)
-                    if let message { Text(message).foregroundStyle(.secondary) }
-                } header: {
-                    Text("Où sont-elles ?")
-                } footer: {
-                    Text((memeCompte ? "Même serveur et même compte que tes films : leur mot de passe sert ici aussi. " : "Autre serveur ou autre compte : donne son mot de passe. ")
-                         + "Elles s'ouvrent dans le lecteur choisi dans Réglages › Lecture ; n'ayant pas de fiche TMDB, elles passent par leur adresse.")
+                SectionTV(titre: "Où sont-elles ?",
+                          explication: (memeCompte ? "Même serveur et même compte que tes films : leur mot de passe sert ici aussi. " : "Autre serveur ou autre compte : donne son mot de passe. ")
+                            + "Elles s'ouvrent dans le lecteur choisi dans Réglages › Lecture ; n'ayant pas de fiche TMDB, elles passent par leur adresse.") {
+                    ChampTV(titre: "Adresse du serveur", texte: $hote)
+                    ChampTV(titre: "Partage", invite: "video", texte: $partage)
+                    ChampTV(titre: "Dossiers, séparés par des virgules", invite: "vide : tout le partage", texte: $dossiers)
+                    ChampTV(titre: "Compte", texte: $utilisateur)
+                    ChampTV(titre: etat.videosPerso.aSonMotDePasse ? "Mot de passe (déjà enregistré)" : memeCompte ? "Mot de passe (celui des films)" : "Mot de passe",
+                            secret: true, texte: $motDePasse)
+                    LigneTVReglage(titre: etat.videosPerso.enCours ? "Lecture du NAS…" : "Enregistrer et lire le NAS",
+                                   detail: message, action: { tester() }) {
+                        BoutTV(forme: .chevron)
+                    }
+                    .disabled(etat.videosPerso.enCours || hote.isEmpty || partage.isEmpty || utilisateur.isEmpty)
                 }
             }
         }
-        .navigationTitle("Vidéos personnelles")
+        .pageOuverte()
         .onAppear {
             actif = etat.videosPerso.reglages.actif
             if etat.videosPerso.reglages.estComplet || actif { remplir(etat.videosPerso.reglages.acces) }

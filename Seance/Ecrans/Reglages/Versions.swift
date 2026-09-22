@@ -1,7 +1,10 @@
-import SwiftUI
+import Foundation
 
 /// Une version de Séance et ce qu'elle apporte, vu de haut. La plus récente en premier ;
 /// son numéro doit correspondre à `MARKETING_VERSION` dans `project.yml`.
+///
+/// Ces notes sont les mêmes partout (6.3) : l'app les montre dans À propos › Versions (`ListeVersions`),
+/// l'Apple TV dans Réglages › Versions (`PageVersionsTV`) — d'où ce fichier sans vue, partagé par `project.yml`.
 struct NoteVersion: Identifiable {
     struct Fonctionnalite: Identifiable {
         let symbole: String
@@ -19,6 +22,27 @@ struct NoteVersion: Identifiable {
     var id: String { numero }
 
     static let historique: [NoteVersion] = [
+        NoteVersion(
+            numero: "6.3",
+            date: "22 septembre 2026",
+            resume: "L'Apple TV rattrape l'iPhone : les logos des plateformes sur les cartes, des menus enfin lisibles, le lancement dans blue TV et l'historique des versions.",
+            fonctionnalites: [
+                Fonctionnalite(symbole: "play.tv.fill", titre: "Les logos sur les cartes de la TV",
+                               detail: "Netflix, Disney+, Prime Video, la télé, le NAS : les mêmes petites pastilles que sur l'iPhone, en haut de chaque grande carte. L'Apple TV partage maintenant « Où regarder » avec l'app, au lieu de s'en passer."),
+                Fonctionnalite(symbole: "rectangle.on.rectangle", titre: "Des menus lisibles",
+                               detail: "Les questions de la TV — « Tu l'as regardé ? », le choix de la source — passent par une page de Séance, avec ses couleurs : les fenêtres du système écrivaient parfois en blanc sur blanc. Les pages de réglage aussi : fond opaque, et chaque champ garde son libellé au-dessus, même rempli."),
+                Fonctionnalite(symbole: "tv.badge.wifi", titre: "Le lancement dans blue TV",
+                               detail: "Séance demande à Swisscom l'émission en cours sur la chaîne, puis ouvre blue TV dessus ; sans l'app, le lecteur web prend le relais. Un film ne se lance sur une chaîne que pendant sa diffusion."),
+                Fonctionnalite(symbole: "hourglass", titre: "On sait enfin ce que Séance attend",
+                               detail: "Lancer un film sur Netflix, Disney+ ou blue TV demandait plusieurs secondes sans un mot : Séance interroge Wikidata pour retrouver la page exacte du titre. Un sablier le dit maintenant, avec ce qu'il fait — et l'attente est bornée à deux secondes et demie, après quoi la plateforme s'ouvre sur sa recherche ; la réponse en retard sert la fois suivante."),
+                Fonctionnalite(symbole: "square.grid.2x2", titre: "« Perso » est un rayon du NAS",
+                               detail: "Sur ton NAS : Films, Séries, NEW et Perso, du même geste — tes souvenirs ne sont plus derrière une tuile à part. « Non reconnus » n'est plus une case du sélecteur mais une petite puce sous le résumé : c'est de l'entretien, pas un rayon."),
+                Fonctionnalite(symbole: "speaker.wave.2.fill", titre: "Le son de tes vidéos personnelles",
+                               detail: "Le lecteur de Séance déclare enfin son audio comme un lecteur : le son sort même quand le commutateur de l'iPhone est sur silencieux, et il continue quand la musique tournait. Et si la vidéo porte un son qu'iOS ne décode pas (de l'AC-3, souvent), Séance le dit et propose de l'ouvrir là où elle s'entend. Une vidéo qui ne part pas dit enfin pourquoi : « du MPEG-4 Part 2 (Xvid ou DivX) », plutôt qu'un écran noir de douze secondes."),
+                Fonctionnalite(symbole: "list.bullet.rectangle", titre: "L'historique des versions partout",
+                               detail: "Réglages › À propos › « Ce que chaque version a apporté » : la même liste que sur l'iPhone, dépliable à la télécommande."),
+            ]
+        ),
         NoteVersion(
             numero: "6.2",
             date: "22 septembre 2026",
@@ -844,68 +868,4 @@ struct NoteVersion: Identifiable {
             ]
         ),
     ]
-}
-
-/// Onglet « Versions » d'À propos : une ligne repliable par version, toutes fermées au départ
-/// pour garder la page courte.
-struct ListeVersions: View {
-    let versionInstallee: String
-
-    @State private var ouvertes: Set<String> = []
-
-    var body: some View {
-        Section {
-            ForEach(NoteVersion.historique) { version in
-                DisclosureGroup(isExpanded: Binding(
-                    get: { ouvertes.contains(version.numero) },
-                    set: { ouverte in
-                        if ouverte { ouvertes.insert(version.numero) } else { ouvertes.remove(version.numero) }
-                    }
-                )) {
-                    ForEach(version.fonctionnalites) { fonctionnalite in
-                        HStack(alignment: .top, spacing: 12) {
-                            Image(systemName: fonctionnalite.symbole)
-                                .font(.system(size: 14, weight: .semibold))
-                                .foregroundStyle(Theme.accent)
-                                .frame(width: 28, height: 28)
-                                .background(Theme.accent.opacity(0.15), in: RoundedRectangle(cornerRadius: 7, style: .continuous))
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(fonctionnalite.titre).font(.subheadline.weight(.semibold))
-                                Text(fonctionnalite.detail).font(.footnote).foregroundStyle(.secondary)
-                            }
-                        }
-                        .padding(.vertical, 2)
-                    }
-                } label: {
-                    entete(version)
-                }
-                .tint(Theme.accent)
-            }
-        } footer: {
-            Text("Touche une version pour voir ce qu'elle apporte.")
-        }
-    }
-
-    private func entete(_ version: NoteVersion) -> some View {
-        VStack(alignment: .leading, spacing: 3) {
-            HStack(alignment: .firstTextBaseline, spacing: 8) {
-                Text("Version \(version.numero)").font(.headline)
-                if version.numero == versionInstallee {
-                    Text("installée")
-                        .font(.caption2.weight(.bold))
-                        .padding(.horizontal, 6).padding(.vertical, 2)
-                        .background(Theme.accent, in: Capsule())
-                        .foregroundStyle(.black)
-                }
-                Spacer()
-                Text(version.date).font(.caption).foregroundStyle(.secondary)
-            }
-            Text(version.resume)
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-                .lineLimit(2)
-        }
-        .padding(.vertical, 2)
-        .accessibilityElement(children: .combine)
-    }
 }

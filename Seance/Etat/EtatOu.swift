@@ -117,15 +117,13 @@ final class EtatOu {
     var aUnePlateformeDirecte: Bool { !abonnements.isDisjoint(with: LiensPlateformes.avecLienDirect) }
 
     /// La chaîne à ouvrir dans blue TV (6.1) : seulement quand le passage a commencé ou commence dans le quart d'heure —
-    /// ouvrir la chaîne plus tôt montrerait autre chose. Sur le Mac, faute d'app blue TV, le lecteur web.
-    func lienBlueTV(_ reference: ReferenceTitre, maintenant: Date = .now) -> URL? {
+    /// ouvrir la chaîne plus tôt montrerait autre chose. Renvoie l'identifiant de la chaîne dans le guide ; c'est
+    /// `LancementBlueTV` qui en fait une adresse, après avoir demandé ce qui passe (6.3).
+    func chaineBlueTV(_ reference: ReferenceTitre, maintenant: Date = .now) -> String? {
         guard BlueTV.actif, let passage = passages[reference],
-              passage.debut <= maintenant.addingTimeInterval(15 * 60), passage.fin > maintenant else { return nil }
-        #if targetEnvironment(macCatalyst)
-        return LiensChaines.blueTV(chaine: passage.idGuide, app: false)
-        #else
-        return LiensChaines.blueTV(chaine: passage.idGuide, app: true)
-        #endif
+              passage.debut <= maintenant.addingTimeInterval(15 * 60), passage.fin > maintenant,
+              LiensChaines.numero(chaine: passage.idGuide) != nil else { return nil }
+        return passage.idGuide
     }
 
     /// Le badge d'une affiche : le NAS d'abord, puis la première plateforme cochée, puis la TV de ce soir.
@@ -177,86 +175,31 @@ final class EtatOu {
     }
 }
 
-/// Le badge lui-même, en coin d'affiche.
-struct BadgeOu: View {
-    let reference: ReferenceTitre
+/// Ce que Séance a appris en ouvrant les plateformes : TMDB ne donne pas de lien, Séance ouvre leur recherche, et toutes ne
+/// s'y prêtent pas sur tous les appareils. Par plateforme : combien de fois le lien s'est ouvert, combien de fois non.
+enum PlateformesApprises {
+    private static let cle = "plateformes.ouvertures"
 
-    @Environment(EtatApp.self) private var etat
-
-    var body: some View {
-        let badges = etat.ou.badges(reference)
-        HStack(spacing: 4) {
-            ForEach(badges, id: \.self) { badge in
-                switch badge {
-                case .nas: pastille("externaldrive.fill")
-                case .plateforme(_, _, let logo): BadgeOu.logo(logo)
-                case .tele: pastille("tv.fill")
-                }
-            }
-        }
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(badges.map(BadgeOu.libelle).joined(separator: ", "))
-        .accessibilityHidden(badges.isEmpty)
-        // Dans une cellule qui assemble son libellé (une grille d'affiches), le titre s'annonce avant l'endroit où
-        // regarder : « John Wick, sur ton NAS » et non l'inverse.
-        .accessibilitySortPriority(-1)
+    static func noter(_ id: Int, ouverte: Bool) {
+        var comptes = UserDefaults.standard.dictionary(forKey: cle) as? [String: [Int]] ?? [:]
+        var compte = comptes[String(id)] ?? [0, 0]
+        compte[ouverte ? 0 : 1] += 1
+        comptes[String(id)] = compte
+        UserDefaults.standard.set(comptes, forKey: cle)
     }
 
-    static func libelle(_ badge: EtatOu.Badge) -> String {
-        switch badge {
-        case .nas: "Sur ton NAS"
-        case .plateforme(_, let nom, _): nom
-        case .tele(let chaine, let quand): "\(chaine), \(quand)"
-        }
-    }
-
-    static func logo(_ chemin: String?) -> some View {
-        ImageDistante(url: ImageTMDB.url(chemin, .logo), coins: 6)
-            .frame(width: 24, height: 24)
-            .overlay(RoundedRectangle(cornerRadius: 6, style: .continuous).strokeBorder(.white.opacity(0.35), lineWidth: 1))
-            .shadow(color: .black.opacity(0.5), radius: 3)
-    }
-
-    private func pastille(_ symbole: String) -> some View {
-        Image(systemName: symbole)
-            .font(.caption2.weight(.bold))
-            .foregroundStyle(Theme.accentClair)
-            .frame(width: 24, height: 24)
-            .background(.black.opacity(0.75), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: 6, style: .continuous).strokeBorder(.white.opacity(0.25), lineWidth: 1))
+    /// Une plateforme dont le lien n'a jamais abouti et a déjà échoué deux fois : « Regarder maintenant » en choisit une autre.
+    static func fiable(_ id: Int) -> Bool {
+        let compte = (UserDefaults.standard.dictionary(forKey: cle) as? [String: [Int]])?[String(id)] ?? [0, 0]
+        return compte[0] > 0 || compte[1] < 2
     }
 }
 
-/// En tête de fiche : où regarder ce titre, d'un coup d'œil — les mêmes pastilles que sur les affiches, avec leur nom.
-/// Le détail (location, achat, prochaines diffusions) reste dans le bloc « Où regarder », plus bas.
-struct RangeeOu: View {
-    let reference: ReferenceTitre
+/// blue TV (6.1) : une chaîne en direct s'ouvre dans l'app blue TV de Swisscom — activé d'office, la maison la reçoit.
+enum BlueTV {
+    static let cle = "tele.blueTV"
 
-    @Environment(EtatApp.self) private var etat
-
-    var body: some View {
-        let badges = etat.ou.badges(reference)
-        if !badges.isEmpty {
-            Flux(espacement: 8) {
-                ForEach(badges, id: \.self) { badge in
-                    HStack(spacing: 6) {
-                        switch badge {
-                        case .nas: Image(systemName: "externaldrive.fill").foregroundStyle(Theme.accentClair)
-                        case .plateforme(_, _, let logo): BadgeOu.logo(logo).frame(width: 20, height: 20)
-                        case .tele: Image(systemName: "tv.fill").foregroundStyle(Theme.accentClair)
-                        }
-                        Text(BadgeOu.libelle(badge)).font(.caption.weight(.semibold)).lineLimit(1)
-                    }
-                    .padding(.horizontal, 10)
-                    .frame(minHeight: 30)
-                    .background(Theme.surface, in: Capsule())
-                    .overlay(Capsule().strokeBorder(Theme.trait))
-                }
-            }
-            .padding(.horizontal, 20)
-            .accessibilityElement(children: .ignore)
-            .accessibilityLabel("Où regarder : " + badges.map(BadgeOu.libelle).joined(separator: ", "))
-            .task(id: reference) { etat.ou.demander(reference, client: etat.tmdb) }
-        }
+    static var actif: Bool {
+        UserDefaults.standard.object(forKey: cle) as? Bool ?? true
     }
 }

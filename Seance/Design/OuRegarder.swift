@@ -127,7 +127,7 @@ struct ActionsOuRegarder: View {
             switch badge {
             case .nas: fichier.map(SourceLecture.nas)
             case .plateforme(let id, let nom, _): LiensPlateformes.lien(plateforme: id, titre: titre) == nil ? nil : .plateforme(id: id, nom: nom)
-            case .tele(let chaine, _): etat.ou.lienBlueTV(reference).map { .direct($0, chaine: chaine) }
+            case .tele(let chaine, _): etat.ou.chaineBlueTV(reference).map { .blueTV(idGuide: $0, chaine: chaine) }
             }
         }
     }
@@ -137,7 +137,7 @@ struct ActionsOuRegarder: View {
         switch badge {
         case .nas: fichier != nil
         case .plateforme(let id, _, _): lien(plateforme: id) != nil
-        case .tele: etat.ou.lienBlueTV(reference) != nil
+        case .tele: etat.ou.chaineBlueTV(reference) != nil
         }
     }
 
@@ -146,20 +146,10 @@ struct ActionsOuRegarder: View {
         LiensPlateformes.lien(plateforme: id, titre: titre, reference: reference, identifiants: identifiants)
     }
 
-    /// Ouvre la chaîne en direct dans blue TV (6.1).
-    private func ouvrirChaine(_ lien: URL, chaine: String) {
-        openURL(lien) { acceptee in
-            if !acceptee { etat.confirmer("blue TV ne s'ouvre pas d'ici : lance l'app et choisis \(chaine)", symbole: "exclamationmark.triangle") }
-        }
-    }
-
     /// Ouvre la plateforme sur le titre, et retient ce que cela a donné (6.0) : une plateforme qui refuse le lien le dit tout de
     /// suite, et Séance garde le compte de celles qui s'ouvrent vraiment (`PlateformesApprises`), pour les préférer ensuite.
     private func ouvrirPlateforme(_ lien: URL, id: Int, nom: String) {
-        openURL(lien) { acceptee in
-            PlateformesApprises.noter(id, ouverte: acceptee)
-            if !acceptee { etat.confirmer("\(nom) ne s'ouvre pas d'ici : lance l'app et cherche « \(titre) »", symbole: "exclamationmark.triangle") }
-        }
+        Task { await LancementPlateforme.ouvrir(plateforme: id, nom: nom, titre: titre, reference: reference, etat: etat, openURL: openURL) }
     }
 
     /// Le seul bouton de la carte de soirée : il lance ce qui est le plus direct.
@@ -182,8 +172,8 @@ struct ActionsOuRegarder: View {
                 PastilleOuRegarder(logo: logo, texte: nom).accessibilityLabel("Inclus sur \(nom)")
             }
         case .tele(let chaine, let quand):
-            if let direct = etat.ou.lienBlueTV(reference) {
-                Button { ouvrirChaine(direct, chaine: chaine) } label: { EtiquetteGrandBouton(symbole: "play.tv.fill", texte: "\(chaine) en direct · blue TV") }
+            if let idGuide = etat.ou.chaineBlueTV(reference) {
+                Button { Task { await LancementBlueTV.ouvrir(chaine: idGuide, nom: chaine, etat: etat, openURL: openURL) } } label: { EtiquetteGrandBouton(symbole: "play.tv.fill", texte: "\(chaine) en direct · blue TV") }
                     .buttonStyle(.plain)
                     .accessibilityLabel("Regarder \(chaine) en direct dans blue TV")
                     .accessibilityHint("Ouvre la chaîne dans l'app blue TV")
@@ -241,8 +231,8 @@ struct ActionsOuRegarder: View {
                 PastilleOuRegarder(logo: logo, texte: nom).accessibilityLabel("Inclus sur \(nom)")
             }
         case .tele(let chaine, let quand):
-            if let direct = etat.ou.lienBlueTV(reference) {
-                Button { ouvrirChaine(direct, chaine: chaine) } label: {
+            if let idGuide = etat.ou.chaineBlueTV(reference) {
+                Button { Task { await LancementBlueTV.ouvrir(chaine: idGuide, nom: chaine, etat: etat, openURL: openURL) } } label: {
                     PastilleOuRegarder(symbole: "play.tv.fill", texte: "\(chaine) en direct · blue TV", ouvre: true)
                 }
                 .buttonStyle(.plain)
@@ -275,14 +265,15 @@ struct ActionsOuRegarder: View {
 enum SourceLecture {
     case nas(FichierNAS)
     case plateforme(id: Int, nom: String)
-    case direct(URL, chaine: String)
+    /// blue TV (6.3) : l'adresse se calcule au toucher, une fois connue l'émission qui passe.
+    case blueTV(idGuide: String, chaine: String)
 
     /// « Sur ton NAS · 1080p », « Netflix », « RTS 1 en direct · blue TV ».
     var nom: String {
         switch self {
         case .nas(let fichier): ["Sur ton NAS", fichier.qualite].compactMap { $0 }.joined(separator: " · ")
         case .plateforme(_, let nom): nom
-        case .direct(_, let chaine): "\(chaine) en direct · blue TV"
+        case .blueTV(_, let chaine): "\(chaine) en direct · blue TV"
         }
     }
 
@@ -290,7 +281,7 @@ enum SourceLecture {
         switch self {
         case .nas: "externaldrive.fill"
         case .plateforme: "play.rectangle.fill"
-        case .direct: "play.tv.fill"
+        case .blueTV: "play.tv.fill"
         }
     }
 
@@ -299,7 +290,7 @@ enum SourceLecture {
         switch self {
         case .nas: "Sur ton NAS"
         case .plateforme(_, let nom): nom
-        case .direct(_, let chaine): "\(chaine) en direct"
+        case .blueTV(_, let chaine): "\(chaine) en direct"
         }
     }
 
@@ -308,7 +299,7 @@ enum SourceLecture {
         switch self {
         case .nas: "Regarder maintenant"
         case .plateforme(_, let nom): "Regarder sur \(nom)"
-        case .direct(_, let chaine): "\(chaine) en direct · blue TV"
+        case .blueTV(_, let chaine): "\(chaine) en direct · blue TV"
         }
     }
 }
@@ -360,7 +351,7 @@ struct ChoixLecture: View {
             RondIcone(symbole: "play.fill", principal: true, taille: 44)
                 .shadow(color: .black.opacity(0.45), radius: 6, y: 2)
         case .grand:
-            EtiquetteGrandBouton(symbole: seule.map { if case .direct = $0 { "play.tv.fill" } else { "play.fill" } } ?? "play.fill",
+            EtiquetteGrandBouton(symbole: seule.map { if case .blueTV = $0 { "play.tv.fill" } else { "play.fill" } } ?? "play.fill",
                                  texte: seule?.action ?? "Regarder…")
         case .compact:
             HStack(spacing: 7) {
@@ -381,10 +372,7 @@ struct ChoixLecture: View {
         switch source {
         case .nas(let fichier): lire(fichier)
         case .plateforme(let id, let nom): Task { await ouvrir(plateforme: id, nom: nom) }
-        case .direct(let lien, let chaine):
-            openURL(lien) { acceptee in
-                if !acceptee { etat.confirmer("blue TV ne s'ouvre pas d'ici : lance l'app et choisis \(chaine)", symbole: "exclamationmark.triangle") }
-            }
+        case .blueTV(let idGuide, let chaine): Task { await LancementBlueTV.ouvrir(chaine: idGuide, nom: chaine, etat: etat, openURL: openURL) }
         }
     }
 
@@ -410,12 +398,7 @@ struct ChoixLecture: View {
 
     /// L'identifiant n'est demandé qu'au toucher (gardé ensuite) : une étagère de cartes ne réveille pas Wikidata.
     private func ouvrir(plateforme id: Int, nom: String) async {
-        let identifiants = await EtatApp.identifiants.identifiants([reference])[reference]
-        guard let lien = LiensPlateformes.lien(plateforme: id, titre: titre, reference: reference, identifiants: identifiants) else { return }
-        openURL(lien) { acceptee in
-            PlateformesApprises.noter(id, ouverte: acceptee)
-            if !acceptee { etat.confirmer("\(nom) ne s'ouvre pas d'ici : lance l'app et cherche « \(titre) »", symbole: "exclamationmark.triangle") }
-        }
+        await LancementPlateforme.ouvrir(plateforme: id, nom: nom, titre: titre, reference: reference, etat: etat, openURL: openURL)
     }
 }
 
@@ -434,7 +417,7 @@ struct BoutonLectureCarte: View {
             switch badge {
             case .nas: nil
             case .plateforme(let id, let nom, _): LiensPlateformes.lien(plateforme: id, titre: titre) == nil ? nil : .plateforme(id: id, nom: nom)
-            case .tele(let chaine, _): etat.ou.lienBlueTV(reference).map { .direct($0, chaine: chaine) }
+            case .tele(let chaine, _): etat.ou.chaineBlueTV(reference).map { .blueTV(idGuide: $0, chaine: chaine) }
             }
         }
     }
@@ -481,6 +464,128 @@ private struct AvecFichierNAS: View {
     }
 }
 
+/// Ouvrir un titre sur sa plateforme (6.3). Deux attentes s'y cachaient, sans rien à l'écran : la page exacte du
+/// titre, que Séance demande à Wikidata — une requête réseau, une seconde d'ordinaire, plusieurs en 4G ou quand le
+/// service traîne —, puis l'ouverture de l'app elle-même, qui passe par un lien universel. Le sablier dit maintenant
+/// ce qui se passe, et l'attente est bornée : passé deux secondes et demie, la plateforme s'ouvre sur sa recherche,
+/// et la réponse en retard remplit la réserve pour la fois suivante.
+@MainActor
+enum LancementPlateforme {
+    static let attenteMax = Duration.milliseconds(2500)
+
+    static func ouvrir(plateforme id: Int, nom: String, titre: String, reference: ReferenceTitre,
+                       etat: EtatApp, openURL: OpenURLAction) async {
+        let identifiants = await etat.pendantLOuverture(de: nom, etape: "Séance retrouve la page de « \(titre) » sur \(nom)…") {
+            await identifiantsRapides(reference)
+        }
+        guard let lien = LiensPlateformes.lien(plateforme: id, titre: titre, reference: reference, identifiants: identifiants) else { return }
+        let direct = identifiants.map { LiensPlateformes.direct(plateforme: id, reference: reference, identifiants: $0) != nil } ?? false
+        etat.annoncerOuverture(nom, etape: direct ? "Ouverture du titre dans \(nom)…" : "\(nom) n'a pas de page connue pour ce titre : Séance ouvre sa recherche.")
+        openURL(lien) { acceptee in
+            etat.ouverture = nil
+            PlateformesApprises.noter(id, ouverte: acceptee)
+            if !acceptee { etat.confirmer("\(nom) ne s'ouvre pas d'ici : lance l'app et cherche « \(titre) »", symbole: "exclamationmark.triangle") }
+        }
+    }
+
+    /// L'identifiant s'il arrive à temps ; sinon rien, et la recherche fera l'affaire. La requête n'est pas annulée :
+    /// elle finira de remplir la réserve.
+    static func identifiantsRapides(_ reference: ReferenceTitre) async -> IdentifiantsPlateformes? {
+        let recherche = Task { await EtatApp.identifiants.identifiants([reference])[reference] }
+        return await withTaskGroup(of: Reponse.self) { groupe in
+            groupe.addTask { Reponse(identifiants: await recherche.value) }
+            groupe.addTask { try? await Task.sleep(for: attenteMax); return Reponse(identifiants: nil) }
+            let premiere = await groupe.next()
+            groupe.cancelAll()
+            return premiere?.identifiants
+        }
+    }
+
+    private struct Reponse: Sendable {
+        let identifiants: IdentifiantsPlateformes?
+    }
+}
+
+/// Le sablier d'une ouverture au-dehors (6.3) : ce qui s'ouvre, et ce que Séance fait pendant ce temps.
+struct SablierOuverture: View {
+    let ouverture: EtatApp.Ouverture
+
+    var body: some View {
+        VStack(spacing: 14) {
+            ProgressView().controlSize(.large).tint(Theme.accent)
+            Text("Ouverture de \(ouverture.plateforme)…").font(.headline)
+            Text(ouverture.etape)
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+        }
+        .padding(24)
+        .frame(maxWidth: 320)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .shadow(color: .black.opacity(0.35), radius: 20, y: 8)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Ouverture de \(ouverture.plateforme). \(ouverture.etape)")
+    }
+}
+
+extension SablierOuverture {
+    /// Le voile et le sablier, posés une fois pour toutes à la racine de l'app.
+    struct Calque: ViewModifier {
+        @Environment(EtatApp.self) private var etat
+
+        func body(content: Content) -> some View {
+            content
+                .overlay {
+                    if let ouverture = etat.ouverture {
+                        ZStack {
+                            Color.black.opacity(0.28).ignoresSafeArea()
+                            SablierOuverture(ouverture: ouverture)
+                        }
+                        .transition(.opacity)
+                    }
+                }
+                .animation(.snappy, value: etat.ouverture)
+        }
+    }
+}
+
+/// Ouvrir une chaîne dans blue TV (6.3). Son app ne s'ouvre pas sur une chaîne mais sur une émission : Séance demande
+/// d'abord au catalogue public de Swisscom ce qui passe en ce moment, puis ouvre `tvguide://…` — l'adresse que le
+/// lecteur web de blue TV utilise lui-même pour passer à l'app. Sans réponse, l'app s'ouvre sur son guide ; sans app
+/// (le Mac), c'est le lecteur web tv.blue.ch.
+@MainActor
+enum LancementBlueTV {
+    static func ouvrir(chaine idGuide: String, nom: String, etat: EtatApp, openURL: OpenURLAction) async {
+        guard let numero = LiensChaines.numero(chaine: idGuide) else { return }
+        #if targetEnvironment(macCatalyst)
+        let siteDabord = true
+        #else
+        let siteDabord = false
+        #endif
+        if !siteDabord {
+            let emission = await etat.pendantLOuverture(de: "blue TV", etape: "Séance demande à blue TV ce qui passe sur \(nom) en ce moment…") {
+                await CatalogueBlueTV(transport: URLSession.shared).emission(chaine: numero)
+            }
+            if let lien = LiensChaines.appBlueTV(emission: emission) {
+                etat.annoncerOuverture("blue TV", etape: "\(nom) en direct.")
+                if await ouvre(lien, openURL: openURL) { etat.ouverture = nil; return }
+            }
+        }
+        if let site = LiensChaines.siteBlueTV(chaine: idGuide) {
+            etat.annoncerOuverture("blue TV", etape: "L'app n'a pas répondu : Séance passe par tv.blue.ch.")
+            if await ouvre(site, openURL: openURL) { etat.ouverture = nil; return }
+        }
+        etat.ouverture = nil
+        etat.confirmer("blue TV ne s'ouvre pas d'ici : lance l'app et choisis \(nom)", symbole: "exclamationmark.triangle")
+    }
+
+    private static func ouvre(_ lien: URL, openURL: OpenURLAction) async -> Bool {
+        await withCheckedContinuation { suite in
+            openURL(lien) { acceptee in suite.resume(returning: acceptee) }
+        }
+    }
+}
+
 /// L'habillage d'un grand bouton d'action, du même dessin que « Regarder maintenant » du NAS.
 struct EtiquetteGrandBouton: View {
     let symbole: String
@@ -498,22 +603,86 @@ struct EtiquetteGrandBouton: View {
     }
 }
 
-/// Ce que Séance a appris en ouvrant les plateformes : TMDB ne donne pas de lien, Séance ouvre leur recherche, et toutes ne
-/// s'y prêtent pas sur tous les appareils. Par plateforme : combien de fois le lien s'est ouvert, combien de fois non.
-enum PlateformesApprises {
-    private static let cle = "plateformes.ouvertures"
+/// Le badge lui-même, en coin d'affiche.
+struct BadgeOu: View {
+    let reference: ReferenceTitre
 
-    static func noter(_ id: Int, ouverte: Bool) {
-        var comptes = UserDefaults.standard.dictionary(forKey: cle) as? [String: [Int]] ?? [:]
-        var compte = comptes[String(id)] ?? [0, 0]
-        compte[ouverte ? 0 : 1] += 1
-        comptes[String(id)] = compte
-        UserDefaults.standard.set(comptes, forKey: cle)
+    @Environment(EtatApp.self) private var etat
+
+    var body: some View {
+        let badges = etat.ou.badges(reference)
+        HStack(spacing: 4) {
+            ForEach(badges, id: \.self) { badge in
+                switch badge {
+                case .nas: pastille("externaldrive.fill")
+                case .plateforme(_, _, let logo): BadgeOu.logo(logo)
+                case .tele: pastille("tv.fill")
+                }
+            }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(badges.map(BadgeOu.libelle).joined(separator: ", "))
+        .accessibilityHidden(badges.isEmpty)
+        // Dans une cellule qui assemble son libellé (une grille d'affiches), le titre s'annonce avant l'endroit où
+        // regarder : « John Wick, sur ton NAS » et non l'inverse.
+        .accessibilitySortPriority(-1)
     }
 
-    /// Une plateforme dont le lien n'a jamais abouti et a déjà échoué deux fois : « Regarder maintenant » en choisit une autre.
-    static func fiable(_ id: Int) -> Bool {
-        let compte = (UserDefaults.standard.dictionary(forKey: cle) as? [String: [Int]])?[String(id)] ?? [0, 0]
-        return compte[0] > 0 || compte[1] < 2
+    static func libelle(_ badge: EtatOu.Badge) -> String {
+        switch badge {
+        case .nas: "Sur ton NAS"
+        case .plateforme(_, let nom, _): nom
+        case .tele(let chaine, let quand): "\(chaine), \(quand)"
+        }
+    }
+
+    static func logo(_ chemin: String?) -> some View {
+        ImageDistante(url: ImageTMDB.url(chemin, .logo), coins: 6)
+            .frame(width: 24, height: 24)
+            .overlay(RoundedRectangle(cornerRadius: 6, style: .continuous).strokeBorder(.white.opacity(0.35), lineWidth: 1))
+            .shadow(color: .black.opacity(0.5), radius: 3)
+    }
+
+    private func pastille(_ symbole: String) -> some View {
+        Image(systemName: symbole)
+            .font(.caption2.weight(.bold))
+            .foregroundStyle(Theme.accentClair)
+            .frame(width: 24, height: 24)
+            .background(.black.opacity(0.75), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 6, style: .continuous).strokeBorder(.white.opacity(0.25), lineWidth: 1))
+    }
+}
+
+/// En tête de fiche : où regarder ce titre, d'un coup d'œil — les mêmes pastilles que sur les affiches, avec leur nom.
+/// Le détail (location, achat, prochaines diffusions) reste dans le bloc « Où regarder », plus bas.
+struct RangeeOu: View {
+    let reference: ReferenceTitre
+
+    @Environment(EtatApp.self) private var etat
+
+    var body: some View {
+        let badges = etat.ou.badges(reference)
+        if !badges.isEmpty {
+            Flux(espacement: 8) {
+                ForEach(badges, id: \.self) { badge in
+                    HStack(spacing: 6) {
+                        switch badge {
+                        case .nas: Image(systemName: "externaldrive.fill").foregroundStyle(Theme.accentClair)
+                        case .plateforme(_, _, let logo): BadgeOu.logo(logo).frame(width: 20, height: 20)
+                        case .tele: Image(systemName: "tv.fill").foregroundStyle(Theme.accentClair)
+                        }
+                        Text(BadgeOu.libelle(badge)).font(.caption.weight(.semibold)).lineLimit(1)
+                    }
+                    .padding(.horizontal, 10)
+                    .frame(minHeight: 30)
+                    .background(Theme.surface, in: Capsule())
+                    .overlay(Capsule().strokeBorder(Theme.trait))
+                }
+            }
+            .padding(.horizontal, 20)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("Où regarder : " + badges.map(BadgeOu.libelle).joined(separator: ", "))
+            .task(id: reference) { etat.ou.demander(reference, client: etat.tmdb) }
+        }
     }
 }

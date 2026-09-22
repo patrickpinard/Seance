@@ -156,18 +156,31 @@ struct ChampTV: View {
     @Binding var texte: String
 
     var body: some View {
+        // Le libellé au-dessus du champ (6.3) : une fois rempli, un champ ne montre que sa valeur — « 192.168.1.220 »,
+        // « admin » — et on ne sait plus ce qu'il demande. Au-dessus, le libellé reste lisible même quand le champ
+        // prend le focus et passe au blanc.
+        VStack(alignment: .leading, spacing: 0) {
+            Text(titre).font(.system(size: 21, weight: .semibold)).foregroundStyle(.secondary)
+                .padding(.horizontal, 24)
+            champ
+        }
+        .padding(.top, 10)
+    }
+
+    @ViewBuilder
+    private var champ: some View {
         if secret {
             SecureField(titre, text: $texte, prompt: Text(invite.isEmpty ? titre : invite))
                 .textFieldStyle(.plain)
                 .font(.system(size: 30))
                 .padding(.horizontal, 24)
-                .frame(maxWidth: .infinity, minHeight: 88, alignment: .leading)
+                .frame(maxWidth: .infinity, minHeight: 78, alignment: .leading)
         } else {
             TextField(titre, text: $texte, prompt: Text(invite.isEmpty ? titre : invite))
                 .textFieldStyle(.plain)
                 .font(.system(size: 30))
                 .padding(.horizontal, 24)
-                .frame(maxWidth: .infinity, minHeight: 88, alignment: .leading)
+                .frame(maxWidth: .infinity, minHeight: 78, alignment: .leading)
         }
     }
 }
@@ -182,5 +195,59 @@ struct BasculeTV: View {
         LigneTVReglage(titre: titre, detail: detail, action: { actif.toggle() }) {
             BoutTV(forme: .coche(actif))
         }
+    }
+}
+
+/// Une question posée en plein écran, avec les boutons de la charte (6.3). Les fenêtres du système (`alert`,
+/// `confirmationDialog`) écrivaient parfois en blanc sur blanc sur la TV : ici, chaque couleur est explicite, et la
+/// touche Retour referme.
+struct DialogueTV: View {
+    struct Choix: Identifiable {
+        let libelle: String
+        var principal = false
+        let action: () -> Void
+
+        var id: String { libelle }
+    }
+
+    let titre: String
+    var message: String?
+    let choix: [Choix]
+
+    @Environment(\.dismiss) private var fermer
+
+    var body: some View {
+        ZStack {
+            Theme.fond.ignoresSafeArea()
+            VStack(spacing: 26) {
+                Text(titre)
+                    .font(.system(size: 50, weight: .heavy))
+                    .multilineTextAlignment(.center)
+                if let message {
+                    Text(message)
+                        .font(.system(size: 28))
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                }
+                HStack(spacing: 24) {
+                    ForEach(choix) { un in
+                        Button {
+                            fermer()
+                            un.action()
+                        } label: {
+                            Text(un.libelle)
+                        }
+                        .buttonStyle(BoutonTV(principal: un.principal))
+                    }
+                }
+                .padding(.top, 10)
+                Button("Annuler") { fermer() }
+                    .buttonStyle(BoutonTV())
+            }
+            .foregroundStyle(.white)
+            .frame(maxWidth: 1300)
+            .padding(60)
+        }
+        .onExitCommand { fermer() }
     }
 }

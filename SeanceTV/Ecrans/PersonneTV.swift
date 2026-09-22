@@ -120,7 +120,7 @@ struct PersonneTV: View {
                         CarteLargeTV(surtitre: nil, titre: credit.titre,
                                      detail: [credit.date.map { String($0.annee) }, realisateur ? nil : credit.personnage].compactMap { $0 }.joined(separator: " · "),
                                      cheminImage: credit.cheminAffiche, marque: vus.contains(credit.reference) ? "checkmark" : nil,
-                                     largeur: CarteLargeTV.largeurGrille)
+                                     largeur: CarteLargeTV.largeurGrille, reference: credit.reference)
                     }
                     .buttonStyle(.card)
                 }

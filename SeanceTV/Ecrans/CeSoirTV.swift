@@ -48,7 +48,7 @@ struct CeSoirTV: View {
                                     CarteLargeTV(surtitre: surLeNAS(selection.reference) ? "Sur ton NAS" : nil, titre: selection.titre,
                                                  detail: nil, cheminImage: selection.cheminAffiche,
                                                  marque: surLeNAS(selection.reference) ? "externaldrive.fill" : nil,
-                                                 largeur: CarteLargeTV.largeurGrille)
+                                                 largeur: CarteLargeTV.largeurGrille, reference: selection.reference)
                                 }
                                 .buttonStyle(.card)
                             }
@@ -75,7 +75,7 @@ struct CeSoirTV: View {
                                      detail: idee.reference.type == .film ? "Film" : "Série",
                                      cheminImage: idee.candidat.titre.cheminFond ?? idee.candidat.titre.cheminAffiche,
                                      marque: surLeNAS(idee.reference) ? "externaldrive.fill" : nil,
-                                     largeur: CarteLargeTV.largeurGrille)
+                                     largeur: CarteLargeTV.largeurGrille, reference: idee.reference)
                     }
                     .buttonStyle(.card)
                 }

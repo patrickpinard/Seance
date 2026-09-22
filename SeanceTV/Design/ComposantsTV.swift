@@ -94,6 +94,10 @@ struct CarteLargeTV: View {
     var icone: String?
     /// Un ▶︎ en haut à gauche : la carte lance la vidéo.
     var lectureEnCoin = false
+    /// Le titre, pour dire où le regarder (6.3) : les logos des plateformes, le NAS, la chaîne.
+    var reference: ReferenceTitre?
+
+    @Environment(EtatTV.self) private var etatTV
 
     static let largeur: CGFloat = 620
     /// Trois par rangée sur un écran de télévision, avec les marges.
@@ -120,7 +124,13 @@ struct CarteLargeTV: View {
                         .frame(width: 56, height: 56)
                         .background(Theme.degradeAccent, in: Circle())
                         .padding(16)
+                } else if let reference {
+                    BadgeOuTV(reference: reference).padding(16)
                 }
+            }
+            .task(id: reference) {
+                guard let reference else { return }
+                etatTV.ou.demander(reference, client: etatTV.tmdb)
             }
             .overlay(alignment: .topTrailing) {
                 if let marque {
@@ -147,6 +157,41 @@ struct CarteLargeTV: View {
             }
             .frame(width: largeur)
             .accessibilityElement(children: .combine)
+    }
+}
+
+/// Où regarder, en coin de carte sur la TV (6.3) : le logo de chaque plateforme de tes abonnements, le disque du NAS,
+/// l'écran d'une chaîne — les mêmes marques que sur l'iPhone, en plus grand.
+struct BadgeOuTV: View {
+    let reference: ReferenceTitre
+
+    @Environment(EtatTV.self) private var etat
+
+    var body: some View {
+        let badges = etat.ou.badges(reference)
+        HStack(spacing: 8) {
+            ForEach(badges, id: \.self) { badge in
+                switch badge {
+                case .nas: pastille("externaldrive.fill")
+                case .plateforme(_, _, let logo):
+                    ImageTV(url: ImageTMDB.url(logo, .logo), symboleVide: "play.tv")
+                        .frame(width: 44, height: 44)
+                        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                        .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).strokeBorder(.white.opacity(0.35), lineWidth: 1))
+                case .tele: pastille("tv.fill")
+                }
+            }
+        }
+        .accessibilityHidden(true)
+    }
+
+    private func pastille(_ symbole: String) -> some View {
+        Image(systemName: symbole)
+            .font(.system(size: 22, weight: .bold))
+            .foregroundStyle(Theme.accentClair)
+            .frame(width: 44, height: 44)
+            .background(.black.opacity(0.75), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).strokeBorder(.white.opacity(0.25), lineWidth: 1))
     }
 }
 

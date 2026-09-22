@@ -120,6 +120,13 @@ enum Demonstration {
         for (libelle, genre) in [("Action", 28), ("Thriller", 53)] {
             contexte.insert(Interet(libelle: libelle, genreID: genre))
         }
+        // Les plateformes du foyer (6.3) : sans elles, « Où regarder » n'a rien à dire et les petits logos des
+        // cartes restent vides — sur l'Apple TV comme sur l'iPhone.
+        for (identifiant, nom, logo) in [(8, "Netflix", "/pbpMk2JmcoNnQwx5JGpXngfoWtp.jpg"),
+                                         (337, "Disney Plus", "/7rwgEs15tFwyR9NPQ5vpzxTj19Q.jpg"),
+                                         (119, "Amazon Prime Video", "/emthp39XA2YScoYL1p0sdbAH2WA.jpg")] {
+            contexte.insert(Abonnement(providerID: identifiant, nom: nom, cheminLogo: logo))
+        }
         let soiree = ServiceSoiree.soiree()
         contexte.insert(SelectionSoir(reference: reacher.reference, titre: reacher.nom, cheminAffiche: reacher.affiche, soiree: soiree))
         contexte.insert(SelectionSoir(reference: aVoir.reference, titre: aVoir.nom, cheminAffiche: aVoir.affiche, soiree: soiree))

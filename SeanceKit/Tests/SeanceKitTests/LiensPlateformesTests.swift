@@ -128,11 +128,10 @@ struct LiensPlateformesTests {
     }
 
     @Test func chainesDansBlueTV() {
-        #expect(LiensChaines.blueTV(chaine: "RTSUn.ch", app: true)?.absoluteString == "https://tv.blue.ch/app/player/livetv/369")
-        #expect(LiensChaines.blueTV(chaine: "TF1.fr", app: false)?.absoluteString == "https://tv.blue.ch/player/livetv/601")
-        #expect(LiensChaines.blueTV(chaine: "Inconnue.fr", app: true) == nil)
+        #expect(LiensChaines.numero(chaine: "RTSUn.ch") == 369)
+        #expect(LiensChaines.numero(chaine: "Inconnue.fr") == nil)
         // Toutes les chaînes que Séance propose ont leur numéro.
-        #expect(ChaineGuide.catalogue.allSatisfy { LiensChaines.blueTV(chaine: $0.id, app: true) != nil })
+        #expect(ChaineGuide.catalogue.allSatisfy { LiensChaines.numero(chaine: $0.id) != nil })
     }
 }
 
@@ -147,5 +146,38 @@ struct WikidataReelTests {
         #expect(lus[johnWick2]?.netflix == "80131552")
         #expect(lus[strangerThings]?.netflix == "80057281")
         #expect(lus[strangerThings]?.appleTV?.hasPrefix("umc.cmc.") == true)
+    }
+}
+
+/// blue TV (6.3) : l'app s'ouvre par son adresse `tvguide://`, sur l'émission en cours quand le catalogue public la donne.
+@Suite("blue TV")
+struct BlueTVTests {
+    @Test func adresseDeLApp() {
+        #expect(LiensChaines.appBlueTV(emission: "t0369167512d3a40")?.absoluteString == "tvguide://T=tvguide&I=t0369167512d3a40&AssetType=tvBroadcast")
+        #expect(LiensChaines.appBlueTV()?.absoluteString == "tvguide://T=tvguide")
+        // Un identifiant inattendu ne compose pas une adresse : l'app s'ouvre sur son guide.
+        #expect(LiensChaines.appBlueTV(emission: "t036&x=1")?.absoluteString == "tvguide://T=tvguide")
+        #expect(LiensChaines.numero(chaine: "RTSUn.ch") == 369)
+        #expect(LiensChaines.siteBlueTV(chaine: "TF1.fr")?.absoluteString == "https://tv.blue.ch/player/livetv/601")
+        #expect(LiensChaines.siteBlueTV(chaine: "Inconnue.ch") == nil)
+    }
+
+    @Test func requeteDuCatalogue() {
+        let requete = CatalogueBlueTV.requete(chaine: 369, autour: .iso("2026-09-22T18:30:00Z"))
+        let adresse = requete.url?.absoluteString.removingPercentEncoding ?? ""
+        #expect(adresse.contains("ids=369") && adresse.contains("start=202609221829") && adresse.contains("end=202609221831"))
+        #expect(requete.value(forHTTPHeaderField: "User-Agent")?.contains("Seance") == true)
+    }
+
+    @Test func emissionEnCours() async throws {
+        let donnees = try Fixture.donnees("bluetv-emissions")
+        // Le créneau de la fixture : « A bon entendeur » sur RTS 1.
+        #expect(CatalogueBlueTV.lire(donnees, a: .iso("2026-09-22T18:30:00Z")) == "t03690bf3a92e397")
+        // Hors créneau : la première émission connue, faute de mieux.
+        #expect(CatalogueBlueTV.lire(donnees, a: .iso("2020-01-01T00:00:00Z")) == "t03690bf3a92e397")
+        #expect(CatalogueBlueTV.lire(Data("rien".utf8), a: .now) == nil)
+        let transport = TransportSimule([.init(code: 200, corps: donnees)])
+        #expect(await CatalogueBlueTV(transport: transport).emission(chaine: 369, a: .iso("2026-09-22T18:30:00Z")) == "t03690bf3a92e397")
+        #expect(await CatalogueBlueTV(transport: TransportSimule([.init(code: 500)])).emission(chaine: 369) == nil)
     }
 }

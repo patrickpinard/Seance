@@ -46,6 +46,10 @@ struct NASView: View {
         case films = "Films"
         case series = "Séries"
         case nouveautes = "NEW"
+        /// Les vidéos personnelles, au même rang que Films et Séries (6.3, demande de Patrick) : on filtre ce que
+        /// montre la page au lieu de descendre dans une tuile à part.
+        case perso = "Perso"
+        /// Pas un rayon mais un entretien : hors du sélecteur, en petite puce sous le résumé.
         case nonReconnus = "Non reconnus"
 
         var id: String { rawValue }
@@ -120,36 +124,11 @@ struct NASView: View {
         }
     }
 
-    /// Les vidéos personnelles ont leur propre accès (EF-157) : l'entrée n'existe que si l'option est cochée.
-    @ViewBuilder
-    private var lienVideosPerso: some View {
-        if etat.videosPerso.actif {
-            NavigationLink(value: DossierVideosPerso()) {
-                HStack(spacing: 12) {
-                    Image(systemName: "video.fill").font(.title3).foregroundStyle(Theme.accentClair)
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Vidéos personnelles").font(.subheadline.weight(.semibold))
-                        Text(etat.videosPerso.videos.isEmpty ? "Tes films de famille" : Format.pluriel(etat.videosPerso.videos.count, "vidéo"))
-                            .font(.caption).foregroundStyle(.secondary)
-                    }
-                    Spacer()
-                    Image(systemName: "chevron.right").font(.caption.weight(.bold)).foregroundStyle(.tertiary)
-                }
-                .padding(12)
-                .frame(minHeight: 44)
-                .background(Theme.surface, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-                .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-            }
-            .buttonStyle(.plain)
-        }
-    }
-
     private var bibliotheque: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 SelecteurCases(selection: $rayon, cases: rayonsMontres.map { .init(valeur: $0, nom: libelle($0)) })
 
-                lienVideosPerso
                 resume
                 if let erreur = etat.nas.erreur {
                     MessageEtat(texte: erreur, ton: .probleme, libelleAction: "Réessayer") { analyser() }
@@ -158,6 +137,9 @@ struct NASView: View {
 
                 if rayon == .nonReconnus {
                     nonReconnus
+                } else if rayon == .perso {
+                    VideosPersoView(dossier: DossierVideosPerso(), integree: true)
+                        .padding(.horizontal, -20)
                 } else {
                     let oeuvres = oeuvres(du: rayon)
                     let marques = MarqueListe.marques(suivis)
@@ -216,16 +198,27 @@ struct NASView: View {
     }
 
     private var resume: some View {
-        HStack(spacing: 6) {
+        HStack(spacing: 8) {
             let reconnus = fichiers.filter { $0.tmdbID != nil }
-            Text("\(Set(reconnus.compactMap(\.reference)).count) titres · \(fichiers.count) vidéos")
-            if let date = etat.nas.derniereAnalyse {
-                Text("· analysé \(date.formatted(.relative(presentation: .named)))")
+            VStack(alignment: .leading, spacing: 2) {
+                Text("\(Set(reconnus.compactMap(\.reference)).count) titres · \(fichiers.count) vidéos")
+                if let date = etat.nas.derniereAnalyse {
+                    Text("Analysé \(date.formatted(.relative(presentation: .named)))")
+                }
             }
+            .font(.caption)
+            .foregroundStyle(.secondary)
             Spacer()
+            // « Non reconnus » est un travail d'entretien, pas un rayon : une petite puce suffit (6.3).
+            let restent = compte(.nonReconnus)
+            if restent > 0 || rayon == .nonReconnus {
+                PuceFiltre(libelle: rayon == .nonReconnus ? "Revenir aux titres" : "\(restent) non reconnus",
+                           active: rayon == .nonReconnus) {
+                    rayon = rayon == .nonReconnus ? (rayonsMontres.first ?? .films) : .nonReconnus
+                }
+                .font(.caption)
+            }
         }
-        .font(.caption)
-        .foregroundStyle(.secondary)
     }
 
     private var nonReconnus: some View {
@@ -262,16 +255,24 @@ struct NASView: View {
     /// « Séries 15 » : le nombre de titres du rayon, pour voir d'un coup d'œil ce que l'analyse a trouvé.
     /// Les rayons qui ont quelque chose, plus celui qu'on regarde : un dossier supprimé sur le NAS sort du menu
     /// dès l'analyse suivante, au lieu d'y laisser une case vide.
+    /// Les cases du sélecteur : les rayons qui ont quelque chose, « Non reconnus » à part (il a sa puce).
     private var rayonsMontres: [Rayon] {
-        let pleins = Rayon.allCases.filter { compte($0) > 0 }
-        return pleins.isEmpty ? [.films] : (pleins.contains(rayon) ? pleins : pleins + [rayon])
+        let pleins = Rayon.allCases.filter { $0 != .nonReconnus && compte($0) > 0 }
+        return pleins.isEmpty ? [.films] : pleins
     }
 
     private func compte(_ rayon: Rayon) -> Int {
-        rayon == .nonReconnus ? fichiers.filter { $0.tmdbID == nil }.count : oeuvres(du: rayon).count
+        switch rayon {
+        case .nonReconnus: fichiers.filter { $0.tmdbID == nil }.count
+        // L'option décochée, le rayon n'existe pas ; cochée mais pas encore lue, il s'affiche quand même.
+        case .perso: etat.videosPerso.actif ? max(etat.videosPerso.albums.count, 1) : 0
+        default: oeuvres(du: rayon).count
+        }
     }
 
     private func libelle(_ rayon: Rayon) -> String {
+        // « Perso » dit le nombre de souvenirs, pas un nombre de titres TMDB.
+        if rayon == .perso { return etat.videosPerso.albums.isEmpty ? "Perso" : "Perso \(etat.videosPerso.albums.count)" }
         let nombre = compte(rayon)
         return nombre == 0 ? rayon.rawValue : "\(rayon.rawValue) \(nombre)"
     }
@@ -283,7 +284,7 @@ struct NASView: View {
             case .films: return fichier.type == .film
             case .series: return fichier.type == .serie
             case .nouveautes: return fichier.dossier == "NEW"
-            case .nonReconnus: return false
+            case .perso, .nonReconnus: return false
             }
         }
         return OeuvreNAS.regrouper(retenus)

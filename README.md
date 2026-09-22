@@ -20,7 +20,7 @@ et par un dossier du NAS — c'est par lui que l'Apple TV reçoit tes listes.
 
 | | |
 |---|---|
-| **Où regarder, tout de suite** | Sur chaque titre : « Lire sur le NAS » lance la vidéo (Infuse ou VLC) ; « Netflix », « Apple TV » et « Disney+ » ouvrent le titre lui-même (identifiants tirés de Wikidata, sans clé), les autres plateformes leur recherche ; un passage en direct s'ouvre dans l'app blue TV, sur la bonne chaîne. Seuls **tes** abonnements comptent. |
+| **Où regarder, tout de suite** | Sur chaque titre : « Lire sur le NAS » lance la vidéo (Infuse ou VLC) ; « Netflix », « Apple TV » et « Disney+ » ouvrent le titre lui-même (identifiants tirés de Wikidata, sans clé), les autres plateformes leur recherche ; un passage en direct s'ouvre dans l'app blue TV, sur l'émission en cours. Un sablier dit ce que Séance attend, et jamais plus de deux secondes et demie. Seuls **tes** abonnements comptent. |
 | **Streaming et télé, bien séparés** | Le streaming se regarde quand tu veux ; la télé (blue TV, antenne) passe à une date et une heure fixes. Séance ne mélange pas les deux. |
 | **Ce soir** | Ta soirée en grandes cartes : un film, l'épisode suivant d'une série (le premier, si tu ne l'as jamais commencée), la durée totale. « Regardé », puis ta note. Une rangée de jours prépare les soirées à venir, avec un rappel le jour venu. |
 | **Famille** | Un profil par personne — listes, notes, pouces, idées du soir — sur tous les appareils ; « Qui regarde ce soir ? » mêle les goûts de plusieurs pour proposer ce qui plaît à tous, et « Vu avec qui ? » inscrit un film vu ensemble chez chacun. Le foyer (plateformes, chaînes, NAS, clés) est commun. |
@@ -28,7 +28,7 @@ et par un dossier du NAS — c'est par lui que l'Apple TV reçoit tes listes.
 | **Des idées selon tes goûts** | Des titres regardables sur tes plateformes, classés sur l'appareil d'après tes notes — ou par Claude si tu ajoutes une clé d'API, pour lire une envie (« un truc nerveux, pas trop long »). « Je n'aime pas » écarte un titre pour de bon ; les Réglages permettent de tout reproposer. |
 | **Suivi des séries** | Épisode par épisode, « vu jusqu'ici », notes, prochain épisode, alertes à chaque épisode ou à chaque saison. |
 | **Programme télé** | Les chaînes que tu choisis, en grandes cartes, avec une cloche pour être prévenu avant le début. |
-| **NAS** | Ta bibliothèque de films et de séries lue en SMB, rattachée à TMDB, et tes vidéos personnelles. |
+| **NAS** | Ta bibliothèque de films et de séries lue en SMB, rattachée à TMDB — Films, Séries, NEW et Perso du même geste. Tes vidéos personnelles sont des **albums de souvenirs** : un dossier d'événement par album, une icône devinée d'après le nom (ou choisie), rangés par année ; elles se lisent dans Séance même, sans les copier, et le lecteur dit pourquoi quand un codec ne passe pas. |
 | **Explorer** | Tout TMDB, tes plateformes, ton NAS ou la télé ; filtres par genre, période, note, acteur ; filtres enregistrés. |
 | **Mes listes, statistiques, bilan de l'année** | À voir, en cours, terminés, listes nommées, à venir ; heures regardées, genres, acteurs. |
 | **L'e-mail de la semaine** | Une fois par semaine, les sorties, épisodes et passages à la TV de tes titres, les nouveautés de tes plateformes et tes soirées prévues, en HTML aux couleurs de Séance, à plusieurs destinataires. Il part de ton appareil, par ton compte de messagerie (SMTP, port 465). |
@@ -56,8 +56,9 @@ pour les actions rapides. Sur un Mac qui reste allumé, Séance peut devenir la 
 
 Une interface à part, faite pour la télécommande, aussi complète que celle de l'iPhone : le menu en haut de l'écran,
 l'accueil en grande image, ta soirée et des idées, tes listes, le programme TV, le NAS et tes vidéos personnelles, la fiche
-complète (où regarder, épisodes, pouces, note, casting) et la fiche des acteurs, et des réglages en grandes cartes. La TV se configure
-depuis l'iPhone, par un code à six chiffres.
+complète (où regarder, épisodes, pouces, note, casting) et la fiche des acteurs, et des réglages en grandes cartes. Les cartes portent
+les mêmes logos de plateformes et de chaînes que sur l'iPhone, les questions se posent dans des pages de Séance (lisibles à trois
+mètres), et l'historique des versions s'y lit aussi. La TV se configure depuis l'iPhone, par un code à six chiffres.
 
 <p align="center">
   <img src="Documentation/Captures/apple-tv-accueil.jpg" alt="Séance sur Apple TV : l'accueil" width="49%">

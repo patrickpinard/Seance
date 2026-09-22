@@ -40,7 +40,7 @@ struct AccueilTV: View {
                                 CarteLargeTV(surtitre: surLeNAS(selection.reference) ? "Sur ton NAS" : nil, titre: selection.titre,
                                              detail: nil, cheminImage: selection.cheminAffiche,
                                              marque: surLeNAS(selection.reference) ? "externaldrive.fill" : nil,
-                                             largeur: CarteLargeTV.largeurGrille)
+                                             largeur: CarteLargeTV.largeurGrille, reference: selection.reference)
                             }
                             .buttonStyle(.card)
                         }
@@ -52,7 +52,7 @@ struct AccueilTV: View {
                             NavigationLink(value: oeuvre.reference) {
                                 CarteLargeTV(surtitre: oeuvre.qualite, titre: oeuvre.titre, detail: oeuvre.detail,
                                              cheminImage: oeuvre.cheminFond ?? oeuvre.cheminAffiche, marque: marque(oeuvre.reference),
-                                             largeur: CarteLargeTV.largeurGrille)
+                                             largeur: CarteLargeTV.largeurGrille, reference: oeuvre.reference)
                             }
                             .buttonStyle(.card)
                         }
@@ -79,7 +79,7 @@ struct AccueilTV: View {
                                 CarteLargeTV(surtitre: surLeNAS(suivi.reference) ? "Sur ton NAS" : nil, titre: suivi.titre,
                                              detail: suivi.type == .film ? "Film" : "Série", cheminImage: suivi.cheminAffiche,
                                              marque: surLeNAS(suivi.reference) ? "externaldrive.fill" : nil,
-                                             largeur: CarteLargeTV.largeurGrille)
+                                             largeur: CarteLargeTV.largeurGrille, reference: suivi.reference)
                             }
                             .buttonStyle(.card)
                         }
@@ -103,7 +103,7 @@ struct AccueilTV: View {
                     NavigationLink(value: apercu.reference) {
                         CarteLargeTV(surtitre: nil, titre: apercu.titre, detail: apercu.sousTitre,
                                      cheminImage: apercu.cheminFond ?? apercu.cheminAffiche, marque: marque(apercu.reference),
-                                     largeur: CarteLargeTV.largeurGrille)
+                                     largeur: CarteLargeTV.largeurGrille, reference: apercu.reference)
                     }
                     .buttonStyle(.card)
                 }

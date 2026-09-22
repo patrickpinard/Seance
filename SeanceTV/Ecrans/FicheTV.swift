@@ -129,10 +129,12 @@ struct FicheTV: View {
             } else if sourcesTV.count > 1 {
                 Button { choixSource = true } label: { Label("Regarder…", systemImage: "play.fill") }
                     .buttonStyle(BoutonTV(principal: true))
-                    .confirmationDialog("Regarder « \(titre) »", isPresented: $choixSource, titleVisibility: .visible) {
-                        ForEach(sourcesTV, id: \.nom) { source in
-                            Button(source.nom) { source.lancer() }
-                        }
+                    // Une fenêtre de Séance, lisible sur la TV (6.3).
+                    .fullScreenCover(isPresented: $choixSource) {
+                        DialogueTV(titre: "Regarder « \(titre) »", message: "Où veux-tu le lancer ?",
+                                   choix: sourcesTV.map { source in
+                                       DialogueTV.Choix(libelle: source.nom, principal: source.nom.hasPrefix("Sur ton NAS")) { source.lancer() }
+                                   })
                     }
             }
             Button { basculerSoiree() } label: {
@@ -233,8 +235,8 @@ struct FicheTV: View {
                 VStack(alignment: .leading, spacing: 6) {
                     Text("À la TV · en direct, à heure fixe").font(.system(size: 24, weight: .bold)).foregroundStyle(.secondary)
                     ForEach(prochainsPassages, id: \.self) { Label($0, systemImage: "tv").font(.system(size: 28, weight: .medium)) }
-                    if let (lien, chaine) = directBlueTV {
-                        Button { ouvrirBlueTV(lien, chaine: chaine) } label: { Label("Regarder \(chaine) dans blue TV", systemImage: "play.tv.fill") }
+                    if let (idGuide, chaine) = chaineBlueTV {
+                        Button { ouvrirBlueTV(idGuide, nom: chaine) } label: { Label("Regarder \(chaine) dans blue TV", systemImage: "play.tv.fill") }
                             .buttonStyle(BoutonTV())
                             .padding(.top, 8)
                     }
@@ -251,7 +253,7 @@ struct FicheTV: View {
         .frame(maxWidth: 1500, alignment: .leading)
         // Une section de focus sans rien à choisir (un film du NAS ou de la TV : que des étiquettes) arrêtait la
         // télécommande : on ne descendait plus jusqu'au casting. Elle n'existe que s'il y a des plateformes à ouvrir.
-        .sectionDeFocus(si: !plateformesIncluses.isEmpty || directBlueTV != nil)
+        .sectionDeFocus(si: !plateformesIncluses.isEmpty || chaineBlueTV != nil)
     }
 
     /// Ce qui se lance d'ici (6.1) : le film du NAS, les plateformes incluses qui ont un lien, la chaîne en direct.
@@ -268,23 +270,30 @@ struct FicheTV: View {
         for plateforme in plateformesIncluses where LiensPlateformes.lien(plateforme: plateforme.id, titre: titre) != nil {
             sources.append((plateforme.nom, "Regarder sur \(plateforme.nom)", { ouvrirPlateforme(plateforme) }))
         }
-        if let (lien, chaine) = directBlueTV {
-            sources.append(("\(chaine) en direct · blue TV", "\(chaine) en direct", { ouvrirBlueTV(lien, chaine: chaine) }))
+        if let (idGuide, chaine) = chaineBlueTV {
+            sources.append(("\(chaine) en direct · blue TV", "\(chaine) en direct", { ouvrirBlueTV(idGuide, nom: chaine) }))
         }
         return sources
     }
 
     /// Le passage en cours, ou qui commence dans le quart d'heure, à ouvrir dans l'app blue TV (6.1).
-    private var directBlueTV: (URL, String)? {
+    private var chaineBlueTV: (String, String)? {
         guard UserDefaults.standard.object(forKey: "tele.blueTV") as? Bool ?? true,
               let passage = passages.first, passage.debut <= .now.addingTimeInterval(15 * 60), passage.fin > .now,
-              let lien = LiensChaines.blueTV(chaine: passage.chaine, app: true) else { return nil }
-        return (lien, NomChaineTV.lire(passage.chaine, parmi: chaines))
+              LiensChaines.numero(chaine: passage.chaine) != nil else { return nil }
+        return (passage.chaine, NomChaineTV.lire(passage.chaine, parmi: chaines))
     }
 
-    private func ouvrirBlueTV(_ lien: URL, chaine: String) {
-        ouvrir(lien) { accepte in
-            if !accepte { etat.dire("blue TV ne s'ouvre pas d'ici : lance l'app et choisis \(chaine).") }
+    /// L'app blue TV s'ouvre sur une émission, pas sur une chaîne (6.3) : Séance demande d'abord au catalogue public de
+    /// Swisscom ce qui passe, puis ouvre `tvguide://…`. Sans réponse, l'app s'ouvre sur son guide.
+    private func ouvrirBlueTV(_ idGuide: String, nom: String) {
+        guard let numero = LiensChaines.numero(chaine: idGuide) else { return }
+        Task {
+            let emission = await CatalogueBlueTV(transport: URLSession.shared).emission(chaine: numero)
+            guard let lien = LiensChaines.appBlueTV(emission: emission) else { return }
+            ouvrir(lien) { accepte in
+                if !accepte { etat.dire("blue TV ne s'ouvre pas d'ici : lance l'app et choisis \(nom).") }
+            }
         }
     }
 

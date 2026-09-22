@@ -146,6 +146,36 @@ final class EtatApp {
         genres.sorted { $0.nom.localizedStandardCompare($1.nom) == .orderedAscending }
     }
 
+    /// Ce que Séance est en train d'ouvrir au-dehors (6.3) : Netflix, Disney+, blue TV… Le temps d'y arriver,
+    /// l'écran le dit, avec ce que l'app est en train de faire — retrouver la page exacte du titre demande une
+    /// requête à Wikidata, qui prend parfois quelques secondes.
+    struct Ouverture: Equatable, Identifiable {
+        let id = UUID()
+        let plateforme: String
+        var etape: String
+    }
+
+    var ouverture: Ouverture?
+
+    /// Montre le sablier, avec ce que l'app est en train de faire. Un garde-fou l'efface au bout de huit secondes :
+    /// une app qui ne rend jamais la main ne doit pas laisser Séance bloquée sous un voile.
+    func annoncerOuverture(_ plateforme: String, etape: String) {
+        let annonce = Ouverture(plateforme: plateforme, etape: etape)
+        ouverture = annonce
+        Task {
+            try? await Task.sleep(for: .seconds(8))
+            if ouverture == annonce { ouverture = nil }
+        }
+    }
+
+    /// Annonce l'ouverture, fait le travail, puis retire le sablier — même si le travail échoue.
+    func pendantLOuverture<T>(de plateforme: String, etape: String, _ travail: () async -> T) async -> T {
+        annoncerOuverture(plateforme, etape: etape)
+        let resultat = await travail()
+        ouverture = nil
+        return resultat
+    }
+
     struct Confirmation: Equatable, Identifiable {
         let id = UUID()
         let texte: String

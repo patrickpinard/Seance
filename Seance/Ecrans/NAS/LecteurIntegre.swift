@@ -22,6 +22,9 @@ struct LecteurIntegre: View {
     @State private var relais: RelaisVideo?
     @State private var source: SourceVideoSMB?
     @State private var message: String?
+    /// Image sans son : le fichier a bien une piste audio, mais iOS ne sait pas la décoder (6.3) ; son codec, s'il se nomme.
+    @State private var sansSon = false
+    @State private var sonIllisible: String?
 
     /// Les formats qu'AVFoundation ouvre sans extension ni conversion. Un MKV, un AVI ou un WMV n'en font pas
     /// partie : ils passent par VLC, qui les lit tous.
@@ -51,6 +54,23 @@ struct LecteurIntegre: View {
                 }
             } else {
                 ProgressView().tint(.white)
+            }
+        }
+        .overlay(alignment: .bottom) {
+            if sansSon {
+                VStack(spacing: 10) {
+                    Text("Cette vidéo a un son \(sonIllisible ?? "que l'iPhone ne sait pas décoder") : l'image passe, le son non.")
+                        .font(.footnote)
+                        .multilineTextAlignment(.center)
+                        .foregroundStyle(.white)
+                    Button("L'ouvrir avec le son") { surEchec("Le son de cette vidéo ne se décode pas ici.") }
+                        .buttonStyle(.borderedProminent)
+                        .tint(Theme.accent)
+                }
+                .padding(16)
+                .background(.black.opacity(0.75), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .padding(.horizontal, 24)
+                .padding(.bottom, 90)
             }
         }
         .overlay(alignment: .topLeading) {
@@ -86,6 +106,7 @@ struct LecteurIntegre: View {
             relais = nouveau
             let element = AVPlayerItem(url: adresse)
             let joueur = AVPlayer(playerItem: element)
+            preparerLeSon()
             joueur.play()
             lecteur = joueur
             await surveiller(element)
@@ -95,6 +116,25 @@ struct LecteurIntegre: View {
             surEchec(texte)
             await nouvelle.fermer()
         }
+    }
+
+    /// Le son (6.3). Sans catégorie déclarée, une app est en « soloAmbient » : le commutateur latéral de l'iPhone
+    /// coupe alors le son de la vidéo — l'image tournait sans un bruit —, et le son s'arrête dès que l'écran se
+    /// verrouille. « Playback » est la catégorie d'un lecteur : il sonne même en silencieux, et met en pause la
+    /// musique qui jouait. Le Mac n'a pas de commutateur, et sa session audio n'a rien à régler.
+    private func preparerLeSon() {
+        #if !targetEnvironment(macCatalyst)
+        let session = AVAudioSession.sharedInstance()
+        try? session.setCategory(.playback, mode: .moviePlayback)
+        try? session.setActive(true)
+        #endif
+    }
+
+    private func rendreLeSon() {
+        #if !targetEnvironment(macCatalyst)
+        // La musique interrompue peut reprendre.
+        try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+        #endif
     }
 
     /// La vidéo démarre-t-elle vraiment ? Un fichier au codec inconnu d'iOS reste sur un écran noir sans rien dire :
@@ -110,12 +150,40 @@ struct LecteurIntegre: View {
                 let lisible = (try? await element.asset.load(.isPlayable)) ?? false
                 let images = (try? await element.asset.loadTracks(withMediaType: .video)) ?? []
                 if !lisible || images.isEmpty { return echouer("Le lecteur d'iOS ne sait pas décoder cette vidéo.") }
+                // Un « .mp4 » n'est qu'une boîte : ce qui compte est le codec dedans. Du Xvid ou du DivX y passe
+                // encore souvent, et iOS ne le décode pas — l'écran restait noir sans un mot (6.3). On le nomme.
+                var decodable = false
+                for piste in images where ((try? await piste.load(.isDecodable)) ?? false) { decodable = true }
+                if !decodable {
+                    let codec = await Self.codec(images[0]) ?? "dans un format"
+                    return echouer("Cette vidéo est \(codec), qu'iOS ne sait pas décoder.")
+                }
+                // L'image passe, le son pas toujours : un MP4 à piste AC-3 ou DTS se lit en silence (6.3). Plutôt que
+                // de tout arrêter, on le dit et on propose d'ouvrir la vidéo là où elle s'entend.
+                let sons = (try? await element.asset.loadTracks(withMediaType: .audio)) ?? []
+                var entendu = sons.isEmpty
+                for piste in sons where ((try? await piste.load(.isDecodable)) ?? false) { entendu = true }
+                if !entendu, let son = sons.first { sonIllisible = await Self.codec(son) }
+                sansSon = !entendu
                 return
             default:
                 continue
             }
         }
         echouer("Cette vidéo ne démarre pas dans Séance.")
+    }
+
+    /// Le nom lisible du codec d'une piste, tiré de son identifiant à quatre lettres — « mp4v » pour du MPEG-4
+    /// Part 2 (Xvid, DivX), « avc1 » pour du H.264. Sert à dire pourquoi une vidéo ne passe pas.
+    static func codec(_ piste: AVAssetTrack) async -> String? {
+        guard let format = (try? await piste.load(.formatDescriptions))?.first else { return nil }
+        let type = CMFormatDescriptionGetMediaSubType(format)
+        let lettres = String(UnicodeScalar((type >> 24) & 255)!) + String(UnicodeScalar((type >> 16) & 255)!)
+            + String(UnicodeScalar((type >> 8) & 255)!) + String(UnicodeScalar(type & 255)!)
+        let noms = ["mp4v": "du MPEG-4 Part 2 (Xvid ou DivX)", "avc1": "du H.264", "hvc1": "du HEVC", "hev1": "du HEVC",
+                    "vp09": "du VP9", "av01": "de l'AV1", "mjpa": "du Motion JPEG", "mjpb": "du Motion JPEG",
+                    "ac-3": "de l'AC-3", "ec-3": "de l'E-AC-3", "dtsc": "du DTS", "mp4a": "de l'AAC"]
+        return noms[lettres] ?? "au format « \(lettres.trimmingCharacters(in: .whitespaces)) »"
     }
 
     private func echouer(_ texte: String) {
@@ -128,6 +196,7 @@ struct LecteurIntegre: View {
     private func ranger() async {
         lecteur?.pause()
         lecteur = nil
+        rendreLeSon()
         await relais?.arreter()
         relais = nil
         await source?.fermer()

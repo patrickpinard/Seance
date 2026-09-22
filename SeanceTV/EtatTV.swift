@@ -23,6 +23,8 @@ final class EtatTV {
     private(set) var tmdb: TMDBClient?
     /// Le second accès au NAS, facultatif : les vidéos personnelles (EF-157).
     let videosPerso: EtatVideosPerso
+    /// Où regarder chaque titre (6.3) : les petits logos sur les cartes, comme sur l'iPhone.
+    let ou = EtatOu()
     private(set) var nas: ReglagesNAS
     private(set) var motDePasseNAS = false
     private(set) var analyseEnCours = false

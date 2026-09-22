@@ -76,6 +76,7 @@
 	<array>
 		<string>infuse</string>
 		<string>vlc-x-callback</string>
+		<string>tvguide</string>
 	</array>
 	<key>LSSupportsOpeningDocumentsInPlace</key>
 	<true/>

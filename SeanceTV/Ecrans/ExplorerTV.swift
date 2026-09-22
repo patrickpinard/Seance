@@ -88,7 +88,7 @@ struct ExplorerTV: View {
                 ForEach(resultats) { apercu in
                     NavigationLink(value: apercu.reference) {
                         CarteLargeTV(surtitre: nil, titre: apercu.titre, detail: apercu.sousTitre, cheminImage: apercu.cheminAffiche,
-                                     marque: marque(apercu.reference), largeur: CarteLargeTV.largeurGrille)
+                                     marque: marque(apercu.reference), largeur: CarteLargeTV.largeurGrille, reference: apercu.reference)
                     }
                     .buttonStyle(.card)
                 }

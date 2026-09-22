@@ -4,7 +4,7 @@ import SwiftData
 import SwiftUI
 
 enum ReglageTV: Hashable {
-    case cle, plateformes, tele, nas, videosPerso, lecture, gouts, aPropos
+    case cle, plateformes, tele, nas, videosPerso, lecture, gouts, aPropos, versions
 }
 
 /// Les Réglages de la TV, sur le modèle de l'iPhone (piste B, EF-169) : en tête, l'état — ce qui est en ordre en vert,
@@ -23,7 +23,7 @@ struct ReglagesTV: View {
     @State private var quiRegarde = false
     @State private var chemin: [ReglageTV] = DepartTV.reglage.flatMap { nom in
         ["cle": ReglageTV.cle, "plateformes": .plateformes, "tele": .tele, "nas": .nas, "videosPerso": .videosPerso,
-         "lecture": .lecture, "gouts": .gouts, "aPropos": .aPropos][nom].map { [$0] }
+         "lecture": .lecture, "gouts": .gouts, "aPropos": .aPropos, "versions": .versions][nom].map { [$0] }
     } ?? []
 
     var body: some View {
@@ -306,6 +306,7 @@ struct PageReglageTV: View {
         case .lecture: PageLectureTV()
         case .gouts: PageGoutsTV()
         case .aPropos: PageAProposTV()
+        case .versions: PageVersionsTV()
         }
     }
 }
@@ -509,6 +510,14 @@ private struct PageAProposTV: View {
         PageTV(titre: "À propos", sousTitre: "Séance \(ReglagesTV.version) sur cette Apple TV.") {
             SectionTV(explication: "Avec un compte Apple gratuit, l'app cesse de s'ouvrir au bout de sept jours : relance l'installation depuis le Mac, tes réglages restent.") {
                 LigneTVReglage(titre: "Version", symbole: "number") { BoutTV(forme: .valeur(ReglagesTV.version)) }
+                // Le même historique que sur l'iPhone (6.3).
+                NavigationLink(value: ReglageTV.versions) {
+                    LigneTVReglage(titre: "Ce que chaque version a apporté", detail: "L'historique de Séance, version par version",
+                                   symbole: "list.bullet.rectangle") {
+                        BoutTV(forme: .chevron)
+                    }
+                }
+                .buttonStyle(LigneTV())
             }
             SectionTV(explication: "Ce produit utilise l'API TMDB mais n'est ni approuvé ni certifié par TMDB. Disponibilités en Suisse fournies par JustWatch, via TMDB. Programme TV : XML TV Fr.") {
                 LigneTVReglage(titre: "Retour aux réglages", symbole: "chevron.left", action: { fermer() })

@@ -25,7 +25,7 @@ struct ProfilTV: View {
                         ForEach(notes) { suivi in
                             NavigationLink(value: suivi.reference) {
                                 CarteLargeTV(surtitre: "★ \(suivi.note ?? 0)/10", titre: suivi.titre, detail: nil,
-                                             cheminImage: suivi.cheminAffiche, largeur: CarteLargeTV.largeurGrille)
+                                             cheminImage: suivi.cheminAffiche, largeur: CarteLargeTV.largeurGrille, reference: suivi.reference)
                             }
                             .buttonStyle(.card)
                         }
@@ -36,7 +36,7 @@ struct ProfilTV: View {
                         ForEach(aimes.prefix(30), id: \.reference) { aime in
                             NavigationLink(value: aime.reference) {
                                 CarteLargeTV(surtitre: nil, titre: aime.titre, detail: aime.reference.type == .film ? "Film" : "Série",
-                                             cheminImage: aime.cheminAffiche, largeur: CarteLargeTV.largeurGrille)
+                                             cheminImage: aime.cheminAffiche, largeur: CarteLargeTV.largeurGrille, reference: aime.reference)
                             }
                             .buttonStyle(.card)
                         }

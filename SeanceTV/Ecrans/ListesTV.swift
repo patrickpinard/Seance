@@ -54,7 +54,7 @@ struct ListesTV: View {
                                 ForEach(liste.apercus, id: \.reference) { apercu in
                                     NavigationLink(value: apercu.reference) {
                                         CarteLargeTV(surtitre: nil, titre: apercu.titre, detail: nil, cheminImage: apercu.cheminAffiche,
-                                                     marque: marque(apercu.reference))
+                                                     marque: marque(apercu.reference), reference: apercu.reference)
                                     }
                                     .buttonStyle(.card)
                                 }
@@ -84,7 +84,7 @@ struct ListesTV: View {
                     NavigationLink(value: echeance.reference) {
                         CarteLargeTV(surtitre: echeance.libelle, titre: echeance.titre, detail: nil,
                                      cheminImage: echeance.cheminAffiche, marque: marque(echeance.reference),
-                                     largeur: CarteLargeTV.largeurGrille)
+                                     largeur: CarteLargeTV.largeurGrille, reference: echeance.reference)
                     }
                     .buttonStyle(.card)
                 }
@@ -111,7 +111,7 @@ struct ListesTV: View {
                     NavigationLink(value: suivi.reference) {
                         CarteLargeTV(surtitre: suivi.note.map { "★ \($0)/10" }, titre: suivi.titre,
                                      detail: suivi.type == .film ? "Film" : "Série", cheminImage: suivi.cheminAffiche,
-                                     marque: marque(suivi.reference), largeur: CarteLargeTV.largeurGrille)
+                                     marque: marque(suivi.reference), largeur: CarteLargeTV.largeurGrille, reference: suivi.reference)
                     }
                     .buttonStyle(.card)
                 }

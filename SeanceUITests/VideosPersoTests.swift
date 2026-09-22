@@ -2,6 +2,7 @@ import XCTest
 
 /// Les vidéos personnelles (EF-157 à EF-159), avec les exemples de la démonstration : l'entrée depuis la page NAS, les
 /// albums de souvenirs (6.2) et leur couverture, un retour qui ramène aux albums, et le réglage avec sa case à cocher.
+/// Depuis la 6.3, ils sont un rayon de la page NAS (« Perso »), pas une tuile à part.
 @MainActor
 final class VideosPersoTests: XCTestCase {
     private var app = XCUIApplication()
@@ -19,10 +20,10 @@ final class VideosPersoTests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Nouveautés"].firstMatch.waitForExistence(timeout: 20))
         XCTAssertTrue(app.amener(app.buttons["boutonNAS"].firstMatch), "L'étagère « Sur ton NAS » n'a pas de « Tout voir »")
         app.buttons["boutonNAS"].firstMatch.tap()
-        let entree = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Vidéos personnelles'")).firstMatch
-        XCTAssertTrue(entree.waitForExistence(timeout: 10), "La page NAS ne propose pas les vidéos personnelles")
-        entree.tap()
-        XCTAssertTrue(app.navigationBars["Vidéos personnelles"].waitForExistence(timeout: 8))
+        // 6.3 : « Perso » est un rayon du sélecteur, au même rang que Films et Séries.
+        let perso = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Perso'")).firstMatch
+        XCTAssertTrue(perso.waitForExistence(timeout: 10), "La page NAS n'a pas de rayon « Perso »")
+        perso.tap()
         capture("videos-racine")
 
         // 6.2 (piste B) : des albums de souvenirs, rangés par année, en grandes cartes à icône.
@@ -44,7 +45,7 @@ final class VideosPersoTests: XCTestCase {
                       "La vidéo de l'album est absente")
         capture("videos-album")
         app.navigationBars.buttons.firstMatch.tap()
-        XCTAssertTrue(app.navigationBars["Vidéos personnelles"].waitForExistence(timeout: 8), "Un retour ne ramène pas aux albums")
+        XCTAssertTrue(vacances.waitForExistence(timeout: 8), "Un retour ne ramène pas aux albums")
 
         // La feuille « Couverture » : un appui long, une autre icône, et l'album la porte.
         vacances.press(forDuration: 1.2)

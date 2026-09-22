@@ -56,9 +56,15 @@ final class TelecommandeTests: XCTestCase {
 
     /// Sur la fiche d'un film du NAS, on descend jusqu'au casting et un visage ouvre la fiche de la personne, où on
     /// peut la suivre. (4.8.2 : une section de focus vide arrêtait la télécommande avant le casting.)
+    /// Le bouton de lecture en tête de fiche : « Lire » pour un seul accès, « Regarder… » quand il y en a plusieurs (6.3 : la
+    /// démonstration a des abonnements, John Wick est sur le NAS et sur deux plateformes).
+    private var boutonLecture: XCUIElement {
+        app.buttons.matching(NSPredicate(format: "label == 'Lire' OR label BEGINSWITH 'Regarder'")).firstMatch
+    }
+
     func testDeLaFicheAuCastingPuisALActeur() throws {
         lancer(["SEANCE_TV_FICHE": "film:324552"])
-        XCTAssertTrue(app.buttons["Lire"].waitForExistence(timeout: 30), "La fiche du film du NAS ne s'ouvre pas")
+        XCTAssertTrue(boutonLecture.waitForExistence(timeout: 30), "La fiche du film du NAS ne s'ouvre pas")
         XCTAssertTrue(descendreJusqua(["Edward Norton", "Brad Pitt", "Helena Bonham Carter", "Meat Loaf", "Jared Leto"]), "La télécommande n'atteint pas le casting")
         capture("tv-casting")
         telecommande.press(.select)
@@ -66,7 +72,7 @@ final class TelecommandeTests: XCTestCase {
         capture("tv-acteur")
         // La touche Retour referme la page, sans quitter l'app.
         telecommande.press(.menu)
-        XCTAssertTrue(app.buttons["Lire"].waitForExistence(timeout: 10), "Retour ne ramène pas à la fiche")
+        XCTAssertTrue(boutonLecture.waitForExistence(timeout: 10), "Retour ne ramène pas à la fiche")
     }
 
     /// Les Réglages en grandes cartes : la première carte à régler s'ouvre, et Retour en revient.
@@ -126,5 +132,38 @@ final class TelecommandeTests: XCTestCase {
         XCTAssertTrue(app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS 'Plage, premier jour'")).firstMatch.waitForExistence(timeout: 10),
                       "L'album ne s'ouvre pas sur ses vidéos")
         capture("tv-souvenirs-album")
+    }
+
+    /// 6.3 : l'historique des versions sur la TV, la même liste que sur l'iPhone ; une ligne s'ouvre sur ce qu'elle apporte.
+    func testHistoriqueDesVersions() throws {
+        lancer(["SEANCE_TV_ONGLET": "reglages", "SEANCE_TV_REGLAGE": "versions"])
+        let liste = app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS 'Version 6.3'")).firstMatch
+        XCTAssertTrue(liste.waitForExistence(timeout: 30), "La page Versions ne s'ouvre pas sur la TV")
+        capture("tv-versions")
+        XCTAssertTrue(descendreJusqua(["Version 6.3"], essais: 4), "La télécommande n'atteint pas la version installée")
+        telecommande.press(.select)
+        XCTAssertTrue(app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS 'Les logos sur les cartes de la TV'")).firstMatch
+            .waitForExistence(timeout: 10), "La version ne s'ouvre pas sur ce qu'elle apporte")
+        capture("tv-versions-ouverte")
+    }
+
+
+    /// 6.3 : « Regarder » ouvre le choix de la source dans une page de Séance (`DialogueTV`), lisible — les fenêtres du
+    /// système écrivaient blanc sur blanc —, et la touche Retour la referme.
+    func testLeChoixDeLaSourceEstLisible() throws {
+        lancer(["SEANCE_TV_FICHE": "film:324552"])
+        let regarder = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Regarder'")).firstMatch
+        XCTAssertTrue(regarder.waitForExistence(timeout: 30), "Pas de bouton « Regarder » sur la fiche")
+        // Le focus sur le bouton lui-même — pas sur un autre élément qui dirait « Regarder » plus bas.
+        let aLeFocus = { regarder.value(forKey: "hasFocus") as? Bool == true }
+        for _ in 0..<6 where !aLeFocus() { telecommande.press(.down); Thread.sleep(forTimeInterval: 0.6) }
+        for _ in 0..<6 where !aLeFocus() { telecommande.press(.up); Thread.sleep(forTimeInterval: 0.6) }
+        XCTAssertTrue(aLeFocus(), "La télécommande n'atteint pas « Regarder »")
+        capture("tv-fiche-regarder")
+        telecommande.press(.select)
+        XCTAssertTrue(app.staticTexts["Où veux-tu le lancer ?"].waitForExistence(timeout: 10), "Le choix de la source ne s'ouvre pas")
+        capture("tv-choix-source")
+        telecommande.press(.menu)
+        XCTAssertFalse(app.staticTexts["Où veux-tu le lancer ?"].waitForExistence(timeout: 3), "Retour ne referme pas le choix de la source")
     }
 }
