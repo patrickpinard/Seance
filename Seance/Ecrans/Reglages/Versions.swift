@@ -20,6 +20,25 @@ struct NoteVersion: Identifiable {
 
     static let historique: [NoteVersion] = [
         NoteVersion(
+            numero: "6.2",
+            date: "22 septembre 2026",
+            resume: "Tes vidéos personnelles deviennent des albums de souvenirs, chacun avec son icône — et une vidéo que Séance ne sait pas lire part d'elle-même dans Infuse ou VLC.",
+            fonctionnalites: [
+                Fonctionnalite(symbole: "rectangle.stack.fill", titre: "Des albums de souvenirs",
+                               detail: "Chaque dossier d'événement du NAS (« 2026 › Vacances d'été ») devient un album : une grande carte 16/9 avec son icône, ses dates et ses vidéos, rangée par année. Une vidéo seule, hors dossier, fait carte à elle seule et se lance d'un toucher. Dans l'album, les vidéos se suivent dans l'ordre où elles ont été filmées."),
+                Fonctionnalite(symbole: "wand.and.stars", titre: "L'icône devinée d'après le nom",
+                               detail: "« Anniversaire de Camille » : un gâteau ; « Ski à Verbier » : un skieur ; « Noël » : un sapin. Vingt-quatre icônes — naissance, mariage, vacances, voyage, montagne, école, spectacle, animaux… —, toutes celles de la charte, en orange."),
+                Fonctionnalite(symbole: "photo.badge.checkmark", titre: "La feuille « Couverture »",
+                               detail: "Un appui long (clic droit sur le Mac), ou le crayon d'un album : l'icône, le titre et la date. Pour une vidéo, « Pour tout l'album » donne l'icône à l'album entier ; « Rétablir » revient à ce que Séance propose. Tes choix voyagent entre tes appareils, Apple TV comprise, le plus récent l'emportant."),
+                Fonctionnalite(symbole: "calendar", titre: "La bonne année",
+                               detail: "La date d'un fichier est souvent celle de sa copie sur le NAS : quand elle contredit l'année du dossier (« 2025 › Ski », copié en 2026), c'est l'année du dossier qui compte."),
+                Fonctionnalite(symbole: "play.circle", titre: "Une vidéo qui ne se lit pas ici part ailleurs",
+                               detail: "Le lecteur de Séance vérifie qu'une vidéo démarre vraiment ; sinon — un codec qu'iOS ne décode pas —, il se referme et la vidéo s'ouvre dans l'app de Réglages › Lecture, puis dans l'autre si la première n'est pas installée. Avant, l'écran restait noir, et l'alerte qui proposait VLC restait cachée derrière le lecteur. Sur l'Apple TV aussi : Infuse, puis VLC."),
+                Fonctionnalite(symbole: "appletv", titre: "Apple TV : les mêmes albums",
+                               detail: "Rangés par année, en grandes cartes à icône ; un album s'ouvre sur ses vidéos, une vidéo seule se lance d'un clic. VoiceOver lit maintenant le titre des cartes et des tuiles de la TV."),
+            ]
+        ),
+        NoteVersion(
             numero: "6.1.1",
             date: "22 septembre 2026",
             resume: "Un bouton ▶︎ sur chaque grande carte et en tête de fiche : on voit enfin comment lancer un film — et Séance demande où, quand il est à plusieurs endroits.",

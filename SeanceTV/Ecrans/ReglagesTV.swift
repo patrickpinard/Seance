@@ -286,6 +286,8 @@ struct TuileTV: View {
         .frame(width: 420, alignment: .leading)
         .padding(28)
         .background(Theme.surface)
+        // Un seul élément, qui dit son titre et sa valeur : VoiceOver (et la télécommande des tests) le lisent.
+        .accessibilityElement(children: .combine)
     }
 }
 

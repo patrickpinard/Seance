@@ -174,6 +174,8 @@ final class EtatTV {
             let bilan = try await moteur.synchroniser(appliquer: { remplacees, recues in
                 for reglages in recues + [remplacees] {
                     if case .donnees(let brut)? = reglages[ProfilsFamille.cleSynchro] { ConteneurTV.famille.fusionner(brut) }
+                    // Les couvertures des souvenirs, choisies sur l'iPhone (6.2) : les plus récentes, entrée par entrée.
+                    if case .donnees(let brut)? = reglages[CouverturesSouvenirs.cle] { videosPerso.recevoirCouvertures(brut) }
                 }
             })
             derniereSynchro = .now

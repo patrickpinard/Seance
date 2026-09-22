@@ -1,12 +1,14 @@
 import SeanceKit
 import SwiftUI
 
-/// Un dossier de vidéos personnelles, comme destination de navigation (par valeur).
+/// Un album de vidéos personnelles, comme destination de navigation (par valeur) ; `chemin` vide : tous les albums.
 struct DossierVideosPerso: Hashable {
     var chemin = ""
 }
 
-/// Les vidéos personnelles (EF-159) : on parcourt les dossiers tels qu'ils sont sur le NAS, le plus récent d'abord.
+/// Les vidéos personnelles (EF-159), en albums de souvenirs (6.2, piste B choisie par Patrick) : un dossier d'événement
+/// est un album, une vidéo seule fait carte à elle seule ; tout est rangé par année, en grandes cartes 16/9 à icône. Un
+/// appui long (clic droit sur le Mac) ouvre la feuille « Couverture » : l'icône, le titre, la date.
 struct VideosPersoView: View {
     let dossier: DossierVideosPerso
 
@@ -15,104 +17,191 @@ struct VideosPersoView: View {
     @State private var illisible: VideoPerso?
     /// La vidéo ouverte dans le lecteur de Séance (Réglages › Vidéos personnelles).
     @State private var aLire: VideoPerso?
+    @State private var aCouvrir: CibleCouverture?
 
     var body: some View {
-        let arbre = etat.videosPerso.arbre
-        let dossiers = arbre.dossiers(dans: dossier.chemin)
-        let videos = arbre.videos(dans: dossier.chemin)
+        let albums = etat.videosPerso.albums
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 if let erreur = etat.videosPerso.erreur {
                     MessageEtat(texte: erreur, ton: .probleme, libelleAction: "Réessayer") { relire(force: true) }
                 }
-                if dossiers.isEmpty, videos.isEmpty {
-                    if etat.videosPerso.enCours {
-                        ProgressView("Lecture de tes vidéos…").frame(maxWidth: .infinity).padding(.top, 60)
-                    } else if etat.videosPerso.aConfigurer(films: etat.nas.reglages) {
-                        EtatVide(symbole: "video.badge.ellipsis", titre: "Accès à terminer",
-                                 message: "Il manque l'adresse, le partage ou le mot de passe de tes vidéos personnelles.",
-                                 libelleAction: "Ouvrir le réglage", symboleAction: "gearshape") { etat.ongletDemande = .reglages }
-                            .padding(.horizontal, 20)
-                    } else {
-                        EtatVide(symbole: "video", titre: "Aucune vidéo ici",
-                                 message: "Ce dossier ne contient pas de vidéo, ou le NAS n'a pas encore été lu.",
-                                 libelleAction: "Relire le NAS", symboleAction: "arrow.clockwise") { relire(force: true) }
-                            .padding(.horizontal, 20)
-                    }
-                }
-                if !dossiers.isEmpty {
-                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 158, maximum: 320), spacing: 12, alignment: .top)], spacing: 12) {
-                        ForEach(dossiers) { sous in
-                            NavigationLink(value: DossierVideosPerso(chemin: sous.chemin)) {
-                                TuileReglage(titre: sous.nom, symbole: "folder.fill",
-                                             valeur: [Format.pluriel(sous.nombre, "vidéo"), sous.plusRecente.map(Self.date)].compactMap { $0 }.joined(separator: " · "))
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-                    .padding(.horizontal, 20)
-                }
-                if !videos.isEmpty {
-                    VStack(spacing: 10) {
-                        ForEach(videos) { video in
-                            Button { lire(video) } label: { ligne(video) }.buttonStyle(.plain)
-                        }
-                    }
-                    .padding(.horizontal, 20)
+                if dossier.chemin.isEmpty {
+                    racine(albums)
+                } else if let album = albums.first(where: { $0.id == dossier.chemin }) {
+                    page(album)
+                } else {
+                    EtatVide(symbole: "rectangle.stack", titre: "Album introuvable",
+                             message: "Ce dossier n'est plus sur le NAS, ou il n'a pas encore été relu.",
+                             libelleAction: "Relire le NAS", symboleAction: "arrow.clockwise") { relire(force: true) }
+                        .padding(.horizontal, 20)
                 }
             }
             .padding(.vertical, 16)
-            .frame(maxWidth: 1180, alignment: .leading)
-            .frame(maxWidth: .infinity)
         }
         .background(Theme.fond)
-        .navigationTitle(dossier.chemin.isEmpty ? "Vidéos personnelles" : (dossier.chemin as NSString).lastPathComponent)
+        .navigationTitle(titrePage(albums))
         .toolbar {
-            ToolbarItem(placement: .primaryAction) {
-                Button { relire(force: true) } label: { Label("Relire le NAS", systemImage: "arrow.clockwise") }
-                    .disabled(etat.videosPerso.enCours)
+            if !dossier.chemin.isEmpty, let album = albums.first(where: { $0.id == dossier.chemin }) {
+                ToolbarItem(placement: .primaryAction) {
+                    Button { aCouvrir = cible(album) } label: { Label("Couverture de l'album", systemImage: "pencil") }
+                }
+            } else {
+                ToolbarItem(placement: .primaryAction) {
+                    Button { relire(force: true) } label: { Label("Relire le NAS", systemImage: "arrow.clockwise") }
+                        .disabled(etat.videosPerso.enCours)
+                }
             }
         }
         .task { await etat.videosPerso.lire(films: etat.nas.reglages) }
-        .alert("\(etat.nas.lecteur.nom) n'a pas ouvert cette vidéo", isPresented: Binding { illisible != nil } set: { if !$0 { illisible = nil } }) {
-            if let video = illisible, !LecteurIntegre.lisible(video.chemin) {
-                Button("Ouvrir dans VLC") {
-                    guard let lien = etat.videosPerso.lien(pour: video, films: etat.nas.reglages, lecteur: .vlc) else { return }
-                    ouvrir(lien)
-                }
-            }
-            Button("Ouvrir l'App Store") { ouvrir(etat.nas.lecteur.appStore) }
+        .sheet(item: $aCouvrir) { cible in
+            FeuilleCouverture(cible: cible)
+        }
+        .alert("Cette vidéo ne s'ouvre pas", isPresented: Binding { illisible != nil } set: { if !$0 { illisible = nil } }) {
+            Button("Installer VLC") { ouvrir(LecteurVideo.vlc.appStore) }
+            Button("Installer Infuse") { ouvrir(LecteurVideo.infuse.appStore) }
             Button("OK", role: .cancel) {}
         } message: {
-            Text("Vérifie qu'elle est installée, et que le mot de passe de l'accès est enregistré dans Réglages › Vidéos personnelles. Une vidéo de famille n'a pas de fiche TMDB : Infuse doit la lire par son adresse, ce qu'il ne sait peut-être pas faire — dans ce cas, choisis VLC dans Réglages › Lecture.")
+            Text("Ni le lecteur de Séance, ni Infuse, ni VLC n'ont pu l'ouvrir. VLC lit tous les formats directement sur le NAS : installe-le, et vérifie que le mot de passe de l'accès est enregistré dans Réglages › Vidéos personnelles.")
         }
         .fullScreenCover(item: $aLire) { video in
             LecteurIntegre(video: video, acces: etat.videosPerso.reglages.acces,
                            motDePasse: etat.videosPerso.motDePasse(films: etat.nas.reglages) ?? "") { _ in
-                // Format que le lecteur d'iOS ne sait pas ouvrir : l'écran d'appel proposera VLC.
-                illisible = video
+                // Le lecteur d'iOS ne sait pas la lire (6.2) : il se referme, et la vidéo part dans Infuse ou VLC. L'alerte
+                // ouverte pendant que le lecteur était à l'écran ne se voyait pas.
+                aLire = nil
+                Task {
+                    try? await Task.sleep(for: .milliseconds(700))
+                    lireAilleurs(video)
+                }
             }
         }
     }
 
-    private func ligne(_ video: VideoPerso) -> some View {
-        HStack(spacing: 12) {
-            RondIcone(symbole: "play.fill", principal: true, taille: 38)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(video.nom).font(.subheadline.weight(.semibold)).lineLimit(2).multilineTextAlignment(.leading)
-                Text([video.modifieLe.map(Self.date), Self.taille(video.taille)].compactMap { $0 }.joined(separator: " · "))
-                    .font(.caption).foregroundStyle(.secondary)
-            }
-            Spacer(minLength: 0)
-        }
-        .padding(12)
-        .frame(minHeight: 44)
-        .background(Theme.surface, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Lire \(video.nom)")
-        .accessibilityAddTraits(.isButton)
+    private func titrePage(_ albums: [AlbumSouvenirs]) -> String {
+        guard !dossier.chemin.isEmpty else { return "Vidéos personnelles" }
+        return albums.first { $0.id == dossier.chemin }?.titre ?? (dossier.chemin as NSString).lastPathComponent
     }
+
+    // MARK: Tous les albums
+
+    @ViewBuilder
+    private func racine(_ albums: [AlbumSouvenirs]) -> some View {
+        if albums.isEmpty {
+            vide
+        }
+        ForEach(ArbreVideosPerso.parAnnee(albums), id: \.titre) { section in
+            HStack(alignment: .firstTextBaseline) {
+                Text(section.titre).font(.title2.weight(.bold))
+                Spacer()
+                Text(Format.pluriel(section.albums.count, "souvenir")).font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+            }
+            .padding(.horizontal, 20)
+            .accessibilityElement(children: .combine)
+            .accessibilityAddTraits(.isHeader)
+            LazyVGrid(columns: CarteLargeTitre.colonnes, spacing: 14) {
+                ForEach(section.albums) { album in
+                    carteAlbum(album)
+                }
+            }
+            .padding(.horizontal, 16)
+        }
+    }
+
+    @ViewBuilder
+    private var vide: some View {
+        if etat.videosPerso.enCours {
+            ProgressView("Lecture de tes vidéos…").frame(maxWidth: .infinity).padding(.top, 60)
+        } else if etat.videosPerso.aConfigurer(films: etat.nas.reglages) {
+            EtatVide(symbole: "video.badge.ellipsis", titre: "Accès à terminer",
+                     message: "Il manque l'adresse, le partage ou le mot de passe de tes vidéos personnelles.",
+                     libelleAction: "Ouvrir le réglage", symboleAction: "gearshape") { etat.ongletDemande = .reglages }
+                .padding(.horizontal, 20)
+        } else {
+            EtatVide(symbole: "video", titre: "Aucune vidéo pour l'instant",
+                     message: "Le NAS n'a pas encore été lu, ou ses dossiers de vidéos sont vides.",
+                     libelleAction: "Relire le NAS", symboleAction: "arrow.clockwise") { relire(force: true) }
+                .padding(.horizontal, 20)
+        }
+    }
+
+    /// Un album s'ouvre ; une vidéo seule se lance d'un toucher.
+    @ViewBuilder
+    private func carteAlbum(_ album: AlbumSouvenirs) -> some View {
+        let carte = CarteLargeTitre(reference: nil, titre: album.titre, accroche: album.periode,
+                                    faits: faits(album), lecture: false, icone: album.symbole,
+                                    etiquette: album.estVideoSeule ? "VIDÉO" : "ALBUM", lectureEnCoin: album.estVideoSeule)
+        if album.estVideoSeule, let video = album.videos.first {
+            Button { lire(video) } label: { carte }
+                .buttonStyle(.plain)
+                .accessibilityHint("Lit la vidéo")
+                .contextMenu { boutonCouverture(album) }
+        } else {
+            NavigationLink(value: DossierVideosPerso(chemin: album.id)) { carte }
+                .buttonStyle(.plain)
+                .contextMenu { boutonCouverture(album) }
+        }
+    }
+
+    private func faits(_ album: AlbumSouvenirs) -> [String] {
+        let nombre = album.estVideoSeule ? nil : Format.pluriel(album.videos.count, "vidéo")
+        let format = album.estVideoSeule ? album.videos.first.map { ($0.chemin as NSString).pathExtension.uppercased() } : nil
+        return [nombre, format, Self.taille(album.taille)].compactMap { $0 }.filter { !$0.isEmpty }
+    }
+
+    private func boutonCouverture(_ album: AlbumSouvenirs) -> some View {
+        Button { aCouvrir = cible(album) } label: { Label("Couverture…", systemImage: "photo.badge.checkmark") }
+    }
+
+    // MARK: Un album
+
+    @ViewBuilder
+    private func page(_ album: AlbumSouvenirs) -> some View {
+        CarteLargeTitre(reference: nil, titre: album.titre, accroche: ["Album", album.periode].compactMap { $0 }.joined(separator: " · "),
+                        faits: faits(album), lecture: false, icone: album.symbole, etiquette: "ALBUM")
+            .frame(maxWidth: 620)
+            .padding(.horizontal, 16)
+            .contextMenu { boutonCouverture(album) }
+        Text("Les vidéos").font(.title3.weight(.bold)).padding(.horizontal, 20).accessibilityAddTraits(.isHeader)
+        LazyVGrid(columns: CarteLargeTitre.colonnes, spacing: 14) {
+            ForEach(album.videos) { video in
+                let choisie = etat.videosPerso.couvertures.couverture(video.chemin)
+                Button { lire(video) } label: {
+                    CarteLargeTitre(reference: nil, titre: choisie?.titre ?? video.nom,
+                                    accroche: (choisie?.date ?? video.modifieLe).map(Self.date),
+                                    faits: [(video.chemin as NSString).pathExtension.uppercased(), Self.taille(video.taille)].compactMap { $0 }.filter { !$0.isEmpty },
+                                    lecture: false, icone: ArbreVideosPerso.symbole(de: video, dans: album, couvertures: etat.videosPerso.couvertures),
+                                    etiquette: "VIDÉO", lectureEnCoin: true)
+                }
+                .buttonStyle(.plain)
+                .accessibilityHint("Lit la vidéo")
+                .contextMenu {
+                    Button { aCouvrir = cible(video, dans: album) } label: { Label("Couverture…", systemImage: "photo.badge.checkmark") }
+                }
+            }
+        }
+        .padding(.horizontal, 16)
+    }
+
+    // MARK: Couverture
+
+    private func cible(_ album: AlbumSouvenirs) -> CibleCouverture {
+        let choisie = etat.videosPerso.couvertures.couverture(album.id)
+        let nomParDefaut = album.estVideoSeule ? (album.videos.first?.nom ?? album.titre) : (album.id as NSString).lastPathComponent
+        return CibleCouverture(chemin: album.id, titreParDefaut: nomParDefaut, titre: choisie?.titre ?? "", symbole: album.symbole,
+                               suggestion: IconesSouvenirs.suggerer(album.titre), date: choisie?.date, dateParDefaut: album.fin ?? .now,
+                               etiquette: album.estVideoSeule ? "VIDÉO" : "ALBUM", album: nil)
+    }
+
+    private func cible(_ video: VideoPerso, dans album: AlbumSouvenirs) -> CibleCouverture {
+        let choisie = etat.videosPerso.couvertures.couverture(video.chemin)
+        return CibleCouverture(chemin: video.chemin, titreParDefaut: video.nom, titre: choisie?.titre ?? "",
+                               symbole: ArbreVideosPerso.symbole(de: video, dans: album, couvertures: etat.videosPerso.couvertures),
+                               suggestion: IconesSouvenirs.suggerer(video.nom), date: choisie?.date, dateParDefaut: video.modifieLe ?? .now,
+                               etiquette: "VIDÉO", album: album)
+    }
+
+    // MARK: Lecture
 
     private func relire(force: Bool) {
         Task { await etat.videosPerso.lire(films: etat.nas.reglages, force: force) }
@@ -127,16 +216,159 @@ struct VideosPersoView: View {
             aLire = video
             return
         }
-        guard let lien = etat.videosPerso.lien(pour: video, films: etat.nas.reglages, lecteur: etat.nas.lecteur) else { illisible = video; return }
-        ouvrir(lien) { accepte in if !accepte { illisible = video } }
+        lireAilleurs(video)
+    }
+
+    /// Hors de Séance : l'app choisie dans Réglages › Lecture, puis l'autre si elle ne s'ouvre pas (pas installée) ;
+    /// si aucune ne s'ouvre, l'alerte propose l'App Store.
+    private func lireAilleurs(_ video: VideoPerso) {
+        let prefere = etat.nas.lecteur
+        let autre: LecteurVideo = prefere == .vlc ? .infuse : .vlc
+        func essayer(_ lecteurs: [LecteurVideo]) {
+            guard let lecteur = lecteurs.first else { illisible = video; return }
+            guard let lien = etat.videosPerso.lien(pour: video, films: etat.nas.reglages, lecteur: lecteur) else { illisible = video; return }
+            ouvrir(lien) { accepte in
+                if !accepte { essayer(Array(lecteurs.dropFirst())) }
+            }
+        }
+        essayer([prefere, autre])
     }
 
     static func date(_ date: Date) -> String {
-        date.formatted(.dateTime.day().month(.abbreviated).year().locale(Locale(identifier: "fr_CH")))
+        date.formatted(.dateTime.day().month(.wide).year().locale(Locale(identifier: "fr_CH")))
     }
 
     static func taille(_ octets: Int64) -> String? {
         octets > 0 ? ByteCountFormatter.string(fromByteCount: octets, countStyle: .file) : nil
+    }
+}
+
+/// Ce que la feuille « Couverture » modifie : un album, ou une vidéo d'un album.
+struct CibleCouverture: Identifiable {
+    let chemin: String
+    let titreParDefaut: String
+    let titre: String
+    let symbole: String
+    let suggestion: String?
+    let date: Date?
+    let dateParDefaut: Date
+    let etiquette: String
+    /// Pour une vidéo : son album, dont on peut changer l'icône d'un coup (« Pour tout l'album »).
+    let album: AlbumSouvenirs?
+
+    var id: String { chemin }
+}
+
+/// La feuille « Couverture » (6.2) : l'icône parmi les vingt-quatre de la charte, le titre et la date ; pour une vidéo
+/// d'un album, « Pour tout l'album » donne l'icône à l'album entier. « Rétablir » revient à ce que Séance propose.
+struct FeuilleCouverture: View {
+    let cible: CibleCouverture
+
+    @Environment(EtatApp.self) private var etat
+    @Environment(\.dismiss) private var fermer
+    @State private var symbole = IconesSouvenirs.parDefaut
+    @State private var titre = ""
+    @State private var avecDate = false
+    @State private var date = Date.now
+    @State private var pourToutLAlbum = false
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    CarteLargeTitre(reference: nil, titre: titre.isEmpty ? cible.titreParDefaut : titre,
+                                    accroche: avecDate ? VideosPersoView.date(date) : nil, lecture: false, icone: symbole,
+                                    etiquette: pourToutLAlbum ? "ALBUM" : cible.etiquette)
+                        .frame(maxWidth: 520)
+                    if let suggestion = cible.suggestion {
+                        Label("Proposé d'après le nom : \(IconesSouvenirs.libelle(suggestion))", systemImage: "wand.and.stars")
+                            .font(.footnote.weight(.semibold))
+                            .foregroundStyle(Theme.accentClair)
+                    }
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 76), spacing: 8)], spacing: 14) {
+                        ForEach(IconesSouvenirs.toutes) { icone in
+                            let choisie = icone.symbole == symbole
+                            Button { symbole = icone.symbole } label: {
+                                VStack(spacing: 6) {
+                                    Image(systemName: icone.symbole)
+                                        .font(.system(size: 24, weight: .semibold))
+                                        .foregroundStyle(choisie ? Color.black : Theme.accentClair)
+                                        .frame(width: 58, height: 58)
+                                        .background(choisie ? AnyShapeStyle(Theme.degradeAccent) : AnyShapeStyle(Theme.accent.opacity(0.16)), in: Circle())
+                                    Text(icone.libelle)
+                                        .font(.caption.weight(.semibold))
+                                        .foregroundStyle(choisie ? Theme.accentClair : Color.secondary)
+                                        .lineLimit(1)
+                                        .minimumScaleFactor(0.8)
+                                }
+                                .frame(maxWidth: .infinity)
+                                .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel(icone.libelle)
+                            .accessibilityAddTraits(choisie ? .isSelected : [])
+                        }
+                    }
+                    VStack(spacing: 0) {
+                        TextField(cible.titreParDefaut, text: $titre)
+                            .accessibilityLabel("Titre")
+                            .padding(14)
+                        Divider().overlay(Theme.trait)
+                        Toggle("Choisir la date", isOn: $avecDate).padding(14).tint(Theme.accent)
+                        if avecDate {
+                            DatePicker("Date", selection: $date, displayedComponents: .date)
+                                .environment(\.locale, Locale(identifier: "fr_CH"))
+                                .padding(.horizontal, 14).padding(.bottom, 12)
+                                .tint(Theme.accent)
+                        }
+                        if cible.album != nil {
+                            Divider().overlay(Theme.trait)
+                            Toggle("Pour tout l'album", isOn: $pourToutLAlbum).padding(14).tint(Theme.accent)
+                        }
+                    }
+                    .background(Theme.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    Button(role: .destructive) { retablir() } label: {
+                        Label("Rétablir ce que Séance propose", systemImage: "arrow.uturn.backward")
+                            .font(.subheadline.weight(.semibold))
+                            .frame(maxWidth: .infinity, minHeight: 44)
+                    }
+                }
+                .padding(20)
+            }
+            .background(Theme.fond)
+            .titreDeFeuille("Couverture")
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button("Annuler") { fermer() } }
+                ToolbarItem(placement: .confirmationAction) { Button("OK") { valider() }.accessibilityIdentifier("validerCouverture") }
+            }
+        }
+        .presentationDetents([.large])
+        .presentationBackground(Theme.fond)
+        .onAppear {
+            symbole = cible.symbole
+            titre = cible.titre
+            avecDate = cible.date != nil
+            date = cible.date ?? cible.dateParDefaut
+        }
+    }
+
+    private func valider() {
+        let titreChoisi = titre.trimmingCharacters(in: .whitespacesAndNewlines)
+        let titreGarde = titreChoisi.isEmpty || titreChoisi == cible.titreParDefaut ? nil : titreChoisi
+        if pourToutLAlbum, let album = cible.album {
+            // L'icône va à l'album ; la vidéo garde son titre et sa date, et reprend celle de l'album.
+            let deLAlbum = etat.videosPerso.couvertures.couverture(album.id)
+            etat.videosPerso.choisirCouverture(album.id, symbole: symbole, titre: deLAlbum?.titre, date: deLAlbum?.date)
+            etat.videosPerso.choisirCouverture(cible.chemin, symbole: nil, titre: titreGarde, date: avecDate ? date : nil)
+        } else {
+            etat.videosPerso.choisirCouverture(cible.chemin, symbole: symbole, titre: titreGarde, date: avecDate ? date : nil)
+        }
+        fermer()
+    }
+
+    private func retablir() {
+        etat.videosPerso.choisirCouverture(cible.chemin, symbole: nil, titre: nil, date: nil)
+        fermer()
     }
 }
 

@@ -6,13 +6,19 @@
 #   outils/tests-interface.sh TourCompletTests/testGrandTexte   # un seul
 #   RESULTAT=.build/x.xcresult outils/tests-interface.sh …      # où ranger le résultat
 #   SIMULATEUR="iPad Air 11-inch (M4)" outils/tests-interface.sh IPadTests   # sur un autre simulateur
+#   JOURNAL=.build/mon.log outils/tests-interface.sh …          # un journal à soi
+#   SIMULATEUR_ID=<UDID> outils/tests-interface.sh …            # un simulateur à soi
 set -uo pipefail
 racine=${0:A:h:h}
 modele=${SIMULATEUR:-iPhone 17 Pro}
-simulateur=$(xcrun simctl list devices available | grep -F "    $modele (" | tail -1 | grep -o -E '[0-9A-F]{8}-[0-9A-F-]{27}')
+# Un simulateur « Séance … » s'il existe (une autre session peut piloter celui du même modèle), sinon le dernier du modèle.
+# SIMULATEUR_ID=… pour en imposer un autre.
+simulateur=${SIMULATEUR_ID:-$(xcrun simctl list devices available | grep -F "    Séance $modele (" | tail -1 | grep -o -E '[0-9A-F]{8}-[0-9A-F-]{27}')}
+[[ -n $simulateur ]] || simulateur=$(xcrun simctl list devices available | grep -F "    $modele (" | tail -1 | grep -o -E '[0-9A-F]{8}-[0-9A-F-]{27}')
 [[ -n $simulateur ]] || { echo "Simulateur « $modele » introuvable."; exit 1; }
 resultat=${RESULTAT:-$racine/.build/tests-interface.xcresult}
-journal="$racine/.build/tests-interface.log"
+# JOURNAL=… : un journal à part, quand une autre session lance aussi des tests d'interface.
+journal="${JOURNAL:-$racine/.build/tests-interface.log}"
 if (( $# )); then
   essais=(); for nom in "$@"; do essais+=(-only-testing:SeanceUITests/$nom); done
 else

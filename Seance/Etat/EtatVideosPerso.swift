@@ -16,6 +16,8 @@ final class EtatVideosPerso {
     private(set) var enCours = false
     private(set) var erreur: String?
     private(set) var derniereLecture: Date?
+    /// Les icônes, titres et dates choisis pour les albums et les vidéos (6.2) : ils voyagent entre les appareils.
+    private(set) var couvertures: CouverturesSouvenirs
 
     static let cleReglages = "videos.reglages"
     private static let cleLecture = "videos.derniereLecture"
@@ -27,6 +29,7 @@ final class EtatVideosPerso {
         reglages = defauts.data(forKey: Self.cleReglages).flatMap { try? JSONDecoder().decode(ReglagesVideosPerso.self, from: $0) } ?? ReglagesVideosPerso()
         derniereLecture = defauts.object(forKey: Self.cleLecture) as? Date
         videos = (try? Data(contentsOf: Self.cache)).flatMap { try? JSONDecoder().decode([VideoPerso].self, from: $0) } ?? []
+        couvertures = CouverturesSouvenirs(donnees: defauts.data(forKey: CouverturesSouvenirs.cle))
         #if DEBUG
         if Demonstration.active, !Demonstration.vide {
             reglages = ReglagesVideosPerso(actif: true, acces: ReglagesNAS(partage: "video", dossiers: []))
@@ -37,6 +40,26 @@ final class EtatVideosPerso {
 
     var actif: Bool { reglages.actif }
     var arbre: ArbreVideosPerso { ArbreVideosPerso(videos) }
+    /// Les albums de souvenirs (6.2), avec les couvertures choisies.
+    var albums: [AlbumSouvenirs] { arbre.albums(couvertures: couvertures) }
+
+    /// L'icône, le titre ou la date d'un album ou d'une vidéo ; tout à `nil` : ce que Séance propose.
+    func choisirCouverture(_ chemin: String, symbole: String?, titre: String?, date: Date?) {
+        if symbole == nil, (titre ?? "").isEmpty, date == nil {
+            couvertures.retablir(chemin)
+        } else {
+            couvertures.choisir(chemin, symbole: symbole, titre: titre, date: date)
+        }
+        UserDefaults.standard.set(couvertures.encoder(), forKey: CouverturesSouvenirs.cle)
+    }
+
+    /// Les choix d'un autre appareil, reçus par la synchronisation : les plus récents l'emportent, entrée par entrée.
+    @discardableResult
+    func recevoirCouvertures(_ donnees: Data) -> Bool {
+        guard couvertures.fusionner(CouverturesSouvenirs(donnees: donnees)) else { return false }
+        UserDefaults.standard.set(couvertures.encoder(), forKey: CouverturesSouvenirs.cle)
+        return true
+    }
 
     /// `aConfigurer` : la case est cochée, mais l'accès n'est pas utilisable.
     func aConfigurer(films: ReglagesNAS) -> Bool {

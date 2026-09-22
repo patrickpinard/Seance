@@ -1,57 +1,54 @@
 import SeanceKit
 import SwiftUI
 
-/// Les vidéos personnelles sur la TV (EF-159) : les dossiers du NAS en tuiles, les vidéos en lignes, le plus récent d'abord.
+/// Les vidéos personnelles sur la TV (EF-159), en albums de souvenirs comme sur l'iPhone (6.2) : un dossier d'événement
+/// est un album, une vidéo seule se lance d'un clic ; rangés par année, en grandes cartes à icône. Les couvertures se
+/// choisissent sur l'iPhone, l'iPad ou le Mac, et arrivent ici par la synchronisation.
 struct VideosPersoTV: View {
     var chemin = ""
 
     @Environment(EtatTV.self) private var etat
     @Environment(\.openURL) private var ouvrir
 
+    private let colonnes = Array(repeating: GridItem(.fixed(CarteLargeTV.largeurGrille), spacing: 40, alignment: .top), count: 3)
+
     var body: some View {
-        let arbre = etat.videosPerso.arbre
-        let dossiers = arbre.dossiers(dans: chemin)
-        let videos = arbre.videos(dans: chemin)
+        let albums = etat.videosPerso.albums
+        let album = albums.first { $0.id == chemin }
         ScrollView {
             VStack(alignment: .leading, spacing: 40) {
-                Text(chemin.isEmpty ? "Vidéos personnelles" : (chemin as NSString).lastPathComponent).font(.system(size: 58, weight: .heavy))
-                if dossiers.isEmpty, videos.isEmpty {
-                    VideTV(symbole: "video", titre: etat.videosPerso.enCours ? "Lecture de tes vidéos…" : "Aucune vidéo ici",
-                           message: etat.videosPerso.erreur ?? "Ce dossier ne contient pas de vidéo, ou le NAS n'a pas encore été lu.")
+                Text(chemin.isEmpty ? "Vidéos personnelles" : album?.titre ?? (chemin as NSString).lastPathComponent)
+                    .font(.system(size: 58, weight: .heavy))
+                if albums.isEmpty {
+                    VideTV(symbole: "video", titre: etat.videosPerso.enCours ? "Lecture de tes vidéos…" : "Aucune vidéo pour l'instant",
+                           message: etat.videosPerso.erreur ?? "Le NAS n'a pas encore été lu, ou ses dossiers de vidéos sont vides.")
                 }
-                if !dossiers.isEmpty {
-                    LazyVGrid(columns: Array(repeating: GridItem(.fixed(476), spacing: 40, alignment: .top), count: 3), spacing: 40) {
-                        ForEach(dossiers) { sous in
-                            NavigationLink(value: DossierVideosTV(chemin: sous.chemin)) {
-                                TuileTV(titre: sous.nom, symbole: "folder.fill",
-                                        valeur: [sous.nombre > 1 ? "\(sous.nombre) vidéos" : "1 vidéo", sous.plusRecente.map(Self.date)].compactMap { $0 }.joined(separator: " · "))
+                if chemin.isEmpty {
+                    ForEach(ArbreVideosPerso.parAnnee(albums), id: \.titre) { section in
+                        VStack(alignment: .leading, spacing: 18) {
+                            Text(section.titre).font(.system(size: 38, weight: .bold))
+                            LazyVGrid(columns: colonnes, alignment: .leading, spacing: 40) {
+                                ForEach(section.albums) { carte($0) }
+                            }
+                        }
+                        .focusSection()
+                    }
+                } else if let album {
+                    Text([album.periode, album.videos.count > 1 ? "\(album.videos.count) vidéos" : "1 vidéo"]
+                        .compactMap { $0 }.joined(separator: " · "))
+                        .font(.system(size: 28)).foregroundStyle(.secondary)
+                    LazyVGrid(columns: colonnes, alignment: .leading, spacing: 40) {
+                        ForEach(album.videos) { video in
+                            let choisie = etat.videosPerso.couvertures.couverture(video.chemin)
+                            Button { lire(video) } label: {
+                                CarteLargeTV(surtitre: (choisie?.date ?? video.modifieLe).map(Self.date), titre: choisie?.titre ?? video.nom,
+                                             detail: Self.taille(video.taille), cheminImage: nil, largeur: CarteLargeTV.largeurGrille,
+                                             icone: ArbreVideosPerso.symbole(de: video, dans: album, couvertures: etat.videosPerso.couvertures),
+                                             lectureEnCoin: true)
                             }
                             .buttonStyle(.card)
                         }
                     }
-                    .focusSection()
-                }
-                if !videos.isEmpty {
-                    VStack(spacing: 6) {
-                        ForEach(videos) { video in
-                            Button { lire(video) } label: {
-                                HStack(spacing: 24) {
-                                    Image(systemName: "play.fill").font(.system(size: 28))
-                                    VStack(alignment: .leading, spacing: 2) {
-                                        Text(video.nom).font(.system(size: 30, weight: .semibold)).lineLimit(1)
-                                        Text([video.modifieLe.map(Self.date), video.taille > 0 ? ByteCountFormatter.string(fromByteCount: video.taille, countStyle: .file) : nil]
-                                            .compactMap { $0 }.joined(separator: " · ")).font(.system(size: 23)).opacity(0.7)
-                                    }
-                                    Spacer()
-                                }
-                                .padding(.horizontal, 24)
-                                .frame(maxWidth: .infinity, minHeight: 92, alignment: .leading)
-                            }
-                            .buttonStyle(LigneTV())
-                        }
-                    }
-                    .padding(20)
-                    .background(Theme.surface, in: RoundedRectangle(cornerRadius: 30, style: .continuous))
                     .focusSection()
                 }
             }
@@ -61,19 +58,43 @@ struct VideosPersoTV: View {
         .task { await etat.videosPerso.lire(films: etat.nas) }
     }
 
-    private func lire(_ video: VideoPerso) {
-        guard let lien = etat.videosPerso.lien(pour: video, films: etat.nas, lecteur: etat.lecteur) else {
-            return etat.dire("Le mot de passe de cet accès manque : vois Réglages › Vidéos personnelles.")
-        }
-        ouvrir(lien) { accepte in
-            if !accepte {
-                etat.dire("\(etat.lecteur.nom) n'a pas ouvert cette vidéo. Si rien ne se lance, choisis VLC dans Réglages › Lecture.")
-            }
+    /// Un album s'ouvre ; une vidéo seule se lance d'un clic.
+    @ViewBuilder
+    private func carte(_ album: AlbumSouvenirs) -> some View {
+        let carte = CarteLargeTV(surtitre: album.periode, titre: album.titre,
+                                 detail: album.estVideoSeule ? Self.taille(album.taille) : (album.videos.count > 1 ? "Album · \(album.videos.count) vidéos" : "Album · 1 vidéo"),
+                                 cheminImage: nil, largeur: CarteLargeTV.largeurGrille, icone: album.symbole, lectureEnCoin: album.estVideoSeule)
+        if album.estVideoSeule, let video = album.videos.first {
+            Button { lire(video) } label: { carte }.buttonStyle(.card)
+        } else {
+            NavigationLink(value: DossierVideosTV(chemin: album.id)) { carte }.buttonStyle(.card)
         }
     }
 
+    /// L'app choisie dans Réglages › Lecture, puis l'autre si elle ne s'ouvre pas (6.2).
+    private func lire(_ video: VideoPerso) {
+        let prefere = etat.lecteur
+        let autre: LecteurVideo = prefere == .vlc ? .infuse : .vlc
+        func essayer(_ lecteurs: [LecteurVideo]) {
+            guard let lecteur = lecteurs.first else {
+                return etat.dire("Ni Infuse ni VLC n'ont pu ouvrir cette vidéo : installe VLC sur l'Apple TV, il lit tous les formats.")
+            }
+            guard let lien = etat.videosPerso.lien(pour: video, films: etat.nas, lecteur: lecteur) else {
+                return etat.dire("Le mot de passe de cet accès manque : vois Réglages › Vidéos personnelles.")
+            }
+            ouvrir(lien) { accepte in
+                if !accepte { essayer(Array(lecteurs.dropFirst())) }
+            }
+        }
+        essayer([prefere, autre])
+    }
+
     static func date(_ date: Date) -> String {
-        date.formatted(.dateTime.day().month(.abbreviated).year().locale(Locale(identifier: "fr_CH")))
+        date.formatted(.dateTime.day().month(.wide).year().locale(Locale(identifier: "fr_CH")))
+    }
+
+    static func taille(_ octets: Int64) -> String? {
+        octets > 0 ? ByteCountFormatter.string(fromByteCount: octets, countStyle: .file) : nil
     }
 }
 

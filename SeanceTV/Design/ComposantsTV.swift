@@ -90,16 +90,37 @@ struct CarteLargeTV: View {
     var marque: String?
     /// Une carte de grille, plus petite que celle d'une étagère d'accueil.
     var largeur: CGFloat = CarteLargeTV.largeur
+    /// Souvenirs (6.2) : pas d'image, un halo orange et ce grand SF Symbol à droite, comme sur l'iPhone.
+    var icone: String?
+    /// Un ▶︎ en haut à gauche : la carte lance la vidéo.
+    var lectureEnCoin = false
 
     static let largeur: CGFloat = 620
     /// Trois par rangée sur un écran de télévision, avec les marges.
     static let largeurGrille: CGFloat = 520
 
     var body: some View {
-        ImageTV(url: ImageTMDB.url(cheminImage, .fondGrand))
+        Color.clear
             .aspectRatio(16 / 9, contentMode: .fit)
             .overlay {
+                if let icone {
+                    FondSouvenirTV(symbole: icone)
+                } else {
+                    ImageTV(url: ImageTMDB.url(cheminImage, .fondGrand))
+                }
+            }
+            .overlay {
                 LinearGradient(colors: [.clear, .black.opacity(0.25), .black.opacity(0.88)], startPoint: .top, endPoint: .bottom)
+            }
+            .overlay(alignment: .topLeading) {
+                if lectureEnCoin {
+                    Image(systemName: "play.fill")
+                        .font(.system(size: 24, weight: .bold))
+                        .foregroundStyle(.black)
+                        .frame(width: 56, height: 56)
+                        .background(Theme.degradeAccent, in: Circle())
+                        .padding(16)
+                }
             }
             .overlay(alignment: .topTrailing) {
                 if let marque {
@@ -125,6 +146,28 @@ struct CarteLargeTV: View {
                 .padding(24)
             }
             .frame(width: largeur)
+            .accessibilityElement(children: .combine)
+    }
+}
+
+/// Le fond d'une carte de souvenir sur la TV (6.2) : le halo orange et la grande icône de l'iPhone.
+struct FondSouvenirTV: View {
+    let symbole: String
+
+    var body: some View {
+        GeometryReader { cadre in
+            ZStack {
+                Color(red: 0.08, green: 0.08, blue: 0.1)
+                RadialGradient(colors: [Theme.accentClair.opacity(0.36), Theme.accent.opacity(0.10), .clear],
+                               center: UnitPoint(x: 0.78, y: 0.42), startRadius: 0, endRadius: cadre.size.width * 0.55)
+                Image(systemName: symbole)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: cadre.size.width * 0.3, height: cadre.size.height * 0.46)
+                    .foregroundStyle(Theme.accentClair)
+                    .position(x: cadre.size.width * 0.78, y: cadre.size.height * 0.37)
+            }
+        }
     }
 }
 

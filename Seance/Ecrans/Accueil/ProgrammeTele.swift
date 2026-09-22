@@ -71,14 +71,16 @@ struct PastilleChaine: View {
 /// « FILM » en couleur, « SÉRIE » en retrait : le film du soir se repère d'un coup d'œil.
 struct PastilleType: View {
     let film: Bool
+    /// « ALBUM », « VIDÉO » (6.2) : dessinée comme « FILM ».
+    var texte: String?
 
     var body: some View {
-        Text(film ? "FILM" : "SÉRIE")
+        Text(texte ?? (film ? "FILM" : "SÉRIE"))
             .font(.caption2.weight(.black))
             .padding(.horizontal, 6).padding(.vertical, 3)
-            .background(film ? AnyShapeStyle(Theme.degradeAccent) : AnyShapeStyle(Color.gray.opacity(0.55)),
+            .background(film || texte != nil ? AnyShapeStyle(Theme.degradeAccent) : AnyShapeStyle(Color.gray.opacity(0.55)),
                         in: RoundedRectangle(cornerRadius: 5, style: .continuous))
-            .foregroundStyle(film ? Color.black : Color.white)
+            .foregroundStyle(film || texte != nil ? Color.black : Color.white)
     }
 }
 

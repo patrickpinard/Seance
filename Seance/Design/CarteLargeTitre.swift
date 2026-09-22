@@ -23,6 +23,12 @@ struct CarteLargeTitre: View {
     var ouApresAccroche = true
     /// ▶︎ en bas à droite (6.1) : la lecture d'un toucher, quand le titre se lance d'ici.
     var lecture = true
+    /// Souvenirs (6.2) : pas d'image, un halo orange et ce grand SF Symbol à droite.
+    var icone: String?
+    /// À la place de « FILM » ou « SÉRIE » : « ALBUM », « VIDÉO ».
+    var etiquette: String?
+    /// Un ▶︎ orange en haut à gauche : toute la carte lance la vidéo.
+    var lectureEnCoin = false
 
     @Environment(EtatApp.self) private var etat
 
@@ -57,14 +63,24 @@ struct CarteLargeTitre: View {
         let avecLecture = lecture && reference.map { BoutonLectureCarte.aUneSource($0, titre: titre, etat: etat) } == true
         Color.clear
             .aspectRatio(16 / 9, contentMode: .fit)
-            .overlay { ImageDistante(url: image, coins: 0) }
+            .overlay {
+                if let icone {
+                    FondSouvenir(symbole: icone)
+                } else {
+                    ImageDistante(url: image, coins: 0)
+                }
+            }
             .overlay {
                 LinearGradient(stops: [.init(color: .black.opacity(0.45), location: 0), .init(color: .clear, location: 0.35),
                                        .init(color: .black.opacity(0.92), location: 1)],
                                startPoint: .top, endPoint: .bottom)
             }
             .overlay(alignment: .topLeading) {
-                if let reference { BadgeOu(reference: reference).padding(12) }
+                if lectureEnCoin {
+                    RondIcone(symbole: "play.fill", principal: true, taille: 34).padding(10).accessibilityHidden(true)
+                } else if let reference {
+                    BadgeOu(reference: reference).padding(12)
+                }
             }
             .overlay(alignment: .topTrailing) {
                 if let symboleCoin, rang == nil {
@@ -95,7 +111,7 @@ struct CarteLargeTitre: View {
                     }
                     Text(titre).font(.headline).lineLimit(2).multilineTextAlignment(.leading)
                     HStack(spacing: 7) {
-                        PastilleType(film: film)
+                        PastilleType(film: film, texte: etiquette)
                         Text((faits + [duree].compactMap { $0 }).joined(separator: " · "))
                             .font(.caption)
                             .foregroundStyle(.white.opacity(0.78))
@@ -112,7 +128,8 @@ struct CarteLargeTitre: View {
             .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).strokeBorder(.white.opacity(0.1), lineWidth: 1))
             .contentShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
             .accessibilityElement(children: .ignore)
-            .accessibilityLabel(([titre, film ? "film" : "série"] + [ligneOrange].compactMap { $0 } + faits).joined(separator: ", "))
+            .accessibilityLabel(([titre, etiquette?.lowercased() ?? (film ? "film" : "série")] + [icone.map(IconesSouvenirs.libelle), ligneOrange].compactMap { $0 } + faits)
+                .joined(separator: ", "))
             .accessibilityAddTraits(.isButton)
             .task(id: reference) {
                 guard let reference else { return }
@@ -125,6 +142,29 @@ struct CarteLargeTitre: View {
                     BoutonLectureCarte(reference: reference, titre: titre).padding(10)
                 }
             }
+    }
+}
+
+/// Le fond d'une carte de souvenir (6.2) : un halo orange sur le noir de Séance, et la grande icône choisie à droite —
+/// la même dans l'app de l'iPhone, de l'iPad et du Mac.
+struct FondSouvenir: View {
+    let symbole: String
+
+    var body: some View {
+        GeometryReader { cadre in
+            ZStack {
+                Color(red: 0.08, green: 0.08, blue: 0.1)
+                RadialGradient(colors: [Theme.accentClair.opacity(0.36), Theme.accent.opacity(0.10), .clear],
+                               center: UnitPoint(x: 0.78, y: 0.42), startRadius: 0, endRadius: cadre.size.width * 0.55)
+                Image(systemName: symbole)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: cadre.size.width * 0.3, height: cadre.size.height * 0.46)
+                    .foregroundStyle(Theme.accentClair)
+                    .position(x: cadre.size.width * 0.78, y: cadre.size.height * 0.37)
+            }
+        }
+        .accessibilityHidden(true)
     }
 }
 

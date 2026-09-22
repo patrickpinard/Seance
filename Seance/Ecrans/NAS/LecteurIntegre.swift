@@ -8,7 +8,8 @@ import SwiftUI
 /// extérieure à convaincre d'ouvrir un chemin SMB — ce qui ne démarrait pas toujours sur l'iPhone.
 ///
 /// Les formats sont ceux qu'AVFoundation sait lire : MP4, MOV, M4V — donc ce que filme un iPhone. Un MKV ou un AVI
-/// ne s'ouvrira pas ; l'écran le dit et propose de passer à VLC.
+/// ne s'ouvrira pas. Un MP4 au codec qu'iOS ne décode pas non plus (6.2) : le lecteur surveille que la vidéo démarre
+/// vraiment, et sinon passe la main (`surEchec`) — l'écran d'appel l'ouvre alors dans Infuse ou VLC.
 struct LecteurIntegre: View {
     let video: VideoPerso
     let acces: ReglagesNAS
@@ -83,15 +84,45 @@ struct LecteurIntegre: View {
         do {
             let adresse = try await nouveau.demarrer()
             relais = nouveau
-            let joueur = AVPlayer(url: adresse)
+            let element = AVPlayerItem(url: adresse)
+            let joueur = AVPlayer(playerItem: element)
             joueur.play()
             lecteur = joueur
+            await surveiller(element)
         } catch {
             let texte = ErreurNAS.message(error)
             message = texte
             surEchec(texte)
             await nouvelle.fermer()
         }
+    }
+
+    /// La vidéo démarre-t-elle vraiment ? Un fichier au codec inconnu d'iOS reste sur un écran noir sans rien dire :
+    /// au bout de douze secondes sans image lisible, ou dès qu'AVFoundation renonce, on passe la main.
+    private func surveiller(_ element: AVPlayerItem) async {
+        for _ in 0..<40 {
+            try? await Task.sleep(for: .milliseconds(300))
+            if Task.isCancelled || lecteur == nil { return }
+            switch element.status {
+            case .failed:
+                return echouer("Le lecteur d'iOS ne sait pas lire cette vidéo.")
+            case .readyToPlay:
+                let lisible = (try? await element.asset.load(.isPlayable)) ?? false
+                let images = (try? await element.asset.loadTracks(withMediaType: .video)) ?? []
+                if !lisible || images.isEmpty { return echouer("Le lecteur d'iOS ne sait pas décoder cette vidéo.") }
+                return
+            default:
+                continue
+            }
+        }
+        echouer("Cette vidéo ne démarre pas dans Séance.")
+    }
+
+    private func echouer(_ texte: String) {
+        lecteur?.pause()
+        lecteur = nil
+        message = texte
+        surEchec(texte)
     }
 
     private func ranger() async {

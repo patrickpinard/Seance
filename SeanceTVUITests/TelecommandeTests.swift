@@ -104,4 +104,27 @@ final class TelecommandeTests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Qui regarde ?"].waitForExistence(timeout: 10), "Le prénom n'ouvre pas « Qui regarde ? »")
         capture("tv-qui-regarde-depuis-pastille")
     }
+
+    /// 6.2 : les vidéos personnelles en albums de souvenirs, rangés par année, comme sur l'iPhone.
+    func testVideosPersonnellesEnAlbums() throws {
+        lancer(["SEANCE_TV_ONGLET": "nas"])
+        // La tuile est en tête de la page NAS : on attend qu'elle soit là, puis on remonte jusqu'à elle si besoin.
+        XCTAssertTrue(app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS 'Vidéos personnelles'")).firstMatch
+            .waitForExistence(timeout: 30), "Pas de tuile « Vidéos personnelles » sur la page NAS")
+        for _ in 0..<4 where !focusSur(["Vidéos personnelles"]) { telecommande.press(.down); Thread.sleep(forTimeInterval: 0.6) }
+        for _ in 0..<4 where !focusSur(["Vidéos personnelles"]) { telecommande.press(.up); Thread.sleep(forTimeInterval: 0.6) }
+        XCTAssertTrue(focusSur(["Vidéos personnelles"]), "La télécommande n'atteint pas « Vidéos personnelles »")
+        telecommande.press(.select)
+        XCTAssertTrue(app.staticTexts["2026"].firstMatch.waitForExistence(timeout: 15), "Pas de section « 2026 »")
+        XCTAssertTrue(app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS \"Vacances d'été\"")).firstMatch.exists,
+                      "L'album « Vacances d'été » est absent")
+        capture("tv-souvenirs")
+        // L'anniversaire, plus récent, est la première carte de « 2026 » : l'album est à sa droite.
+        for _ in 0..<3 where !focusSur(["Vacances d'été"]) { telecommande.press(.right); Thread.sleep(forTimeInterval: 0.6) }
+        XCTAssertTrue(focusSur(["Vacances d'été"]) || descendreJusqua(["Vacances d'été"], essais: 4), "La télécommande n'atteint pas l'album")
+        telecommande.press(.select)
+        XCTAssertTrue(app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS 'Plage, premier jour'")).firstMatch.waitForExistence(timeout: 10),
+                      "L'album ne s'ouvre pas sur ses vidéos")
+        capture("tv-souvenirs-album")
+    }
 }
