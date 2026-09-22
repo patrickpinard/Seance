@@ -20,6 +20,21 @@ struct NoteVersion: Identifiable {
 
     static let historique: [NoteVersion] = [
         NoteVersion(
+            numero: "6.1.1",
+            date: "22 septembre 2026",
+            resume: "Un bouton ▶︎ sur chaque grande carte et en tête de fiche : on voit enfin comment lancer un film — et Séance demande où, quand il est à plusieurs endroits.",
+            fonctionnalites: [
+                Fonctionnalite(symbole: "play.circle.fill", titre: "▶︎ sur les cartes",
+                               detail: "Accueil, listes, NAS, Explorer : une grande carte porte un rond ▶︎ en bas à droite quand le titre se lance d'ici — le fichier du NAS, la plateforme (le titre lui-même, comme Kill Bill sur Netflix), la chaîne en direct dans blue TV. Toucher la carte ailleurs ouvre toujours la fiche."),
+                Fonctionnalite(symbole: "play.rectangle.fill", titre: "▶︎ en tête de fiche",
+                               detail: "Une capsule orange, sous le titre : « ▶︎ Netflix », « ▶︎ Sur ton NAS » — ou « ▶︎ Lecture ▾ » quand il faut choisir. Les autres accès (un passage TV à venir) restent à côté. À la TV, le ▶︎ n'apparaît que pendant la diffusion, ou dans le quart d'heure qui la précède : blue TV n'ouvre que le direct."),
+                Fonctionnalite(symbole: "list.bullet", titre: "Plusieurs accès ? Séance demande",
+                               detail: "Un titre sur ton NAS et sur Netflix, ou sur deux plateformes : ▶︎ et « Regarder… » ouvrent la liste des accès, et tu choisis. Pareil sur la carte d'une soirée et sur l'Apple TV."),
+                Fonctionnalite(symbole: "appletv", titre: "Apple TV : lancer d'abord",
+                               detail: "En tête de fiche, « Lire » pour le NAS — le prochain épisode d'une série aussi —, « Regarder sur Netflix » pour une plateforme, ou « Regarder… » pour choisir. « Marquer vu » devient « Terminé », comme sur l'iPhone."),
+            ]
+        ),
+        NoteVersion(
             numero: "6.1",
             date: "22 septembre 2026",
             resume: "« Regarder » ouvre le titre lui-même sur Netflix, Apple TV et Disney+, et la chaîne en direct dans blue TV ; « Terminé » d'un geste, Terminés par mois ; un film vu ensemble s'inscrit chez chacun.",

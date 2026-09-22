@@ -21,6 +21,8 @@ struct CarteLargeTitre: View {
     var symboleCoin: String?
     /// `false` quand l'accroche dit déjà où regarder (« Sur W9 à 18:14 ») : la chaîne ne se répète pas derrière.
     var ouApresAccroche = true
+    /// ▶︎ en bas à droite (6.1) : la lecture d'un toucher, quand le titre se lance d'ici.
+    var lecture = true
 
     @Environment(EtatApp.self) private var etat
 
@@ -52,6 +54,7 @@ struct CarteLargeTitre: View {
         let decor = reference.flatMap { etat.decors.decor($0) }
         let image = ImageTMDB.url(cheminFond ?? decor?.fond, .fond) ?? ImageTMDB.url(cheminAffiche, .fond)
         let duree = decor?.minutes.flatMap { $0 > 0 ? HeuresTele.duree($0) : nil }
+        let avecLecture = lecture && reference.map { BoutonLectureCarte.aUneSource($0, titre: titre, etat: etat) } == true
         Color.clear
             .aspectRatio(16 / 9, contentMode: .fit)
             .overlay { ImageDistante(url: image, coins: 0) }
@@ -100,6 +103,8 @@ struct CarteLargeTitre: View {
                     }
                 }
                 .padding(12)
+                // Le texte laisse la place au ▶︎ en bas à droite.
+                .padding(.trailing, avecLecture ? 50 : 0)
             }
             .foregroundStyle(.white)
             .surImage()
@@ -112,6 +117,13 @@ struct CarteLargeTitre: View {
             .task(id: reference) {
                 guard let reference else { return }
                 etat.ou.demander(reference, client: etat.tmdb)
+            }
+            // ▶︎ (6.1) : hors de l'élément d'accessibilité de la carte, pour rester un bouton à part — la carte ouvre la
+            // fiche, le rond lance la lecture, ou demande où quand le titre est à plusieurs endroits.
+            .overlay(alignment: .bottomTrailing) {
+                if avecLecture, let reference {
+                    BoutonLectureCarte(reference: reference, titre: titre).padding(10)
+                }
             }
     }
 }

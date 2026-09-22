@@ -15,6 +15,7 @@ struct FicheTV: View {
     @Environment(\.openURL) private var ouvrir
     /// Netflix, Apple TV, Disney+ : l'identifiant du titre chez eux, lu sur Wikidata (6.1).
     @State private var identifiants: IdentifiantsPlateformes?
+    @State private var choixSource = false
     @Query private var fichiers: [FichierNAS]
     @Query private var suivis: [Suivi]
     @Query private var soirees: [SelectionSoir]
@@ -120,10 +121,19 @@ struct FicheTV: View {
 
     private var actions: some View {
         HStack(spacing: 28) {
-            // Un film du NAS : la lecture d'abord, c'est pour elle qu'on est devant la TV.
-            if reference.type == .film, let fichier = siens.first {
-                Button { lire(fichier) } label: { Label("Lire", systemImage: "play.fill") }
+            // La lecture d'abord, c'est pour elle qu'on est devant la TV (6.1) : un seul accès, le bouton le lance ; plusieurs
+            // (le NAS et Netflix…), « Regarder… » demande lequel.
+            if sourcesTV.count == 1, let seule = sourcesTV.first {
+                Button { seule.lancer() } label: { Label(seule.bouton, systemImage: "play.fill") }
                     .buttonStyle(BoutonTV(principal: true))
+            } else if sourcesTV.count > 1 {
+                Button { choixSource = true } label: { Label("Regarder…", systemImage: "play.fill") }
+                    .buttonStyle(BoutonTV(principal: true))
+                    .confirmationDialog("Regarder « \(titre) »", isPresented: $choixSource, titleVisibility: .visible) {
+                        ForEach(sourcesTV, id: \.nom) { source in
+                            Button(source.nom) { source.lancer() }
+                        }
+                    }
             }
             Button { basculerSoiree() } label: {
                 Label(prevuCeSoir ? "Retirer de ce soir" : "Ce soir", systemImage: prevuCeSoir ? "moon.stars.fill" : "moon.stars")
@@ -133,7 +143,7 @@ struct FicheTV: View {
             }
             Button { choixDuSoir = true } label: { Label("Un autre soir…", systemImage: "calendar") }
             if reference.type == .film {
-                Button { basculerVu() } label: { Label(vu ? "Vu" : "Marquer vu", systemImage: vu ? "checkmark.circle.fill" : "checkmark.circle") }
+                Button { basculerVu() } label: { Label(vu ? "Terminé ✓" : "Terminé", systemImage: vu ? "checkmark.circle.fill" : "checkmark.circle") }
             }
             if let suivi {
                 Button { basculerAlertes(suivi) } label: {
@@ -242,6 +252,26 @@ struct FicheTV: View {
         // Une section de focus sans rien à choisir (un film du NAS ou de la TV : que des étiquettes) arrêtait la
         // télécommande : on ne descendait plus jusqu'au casting. Elle n'existe que s'il y a des plateformes à ouvrir.
         .sectionDeFocus(si: !plateformesIncluses.isEmpty || directBlueTV != nil)
+    }
+
+    /// Ce qui se lance d'ici (6.1) : le film du NAS, les plateformes incluses qui ont un lien, la chaîne en direct.
+    private var sourcesTV: [(nom: String, bouton: String, lancer: () -> Void)] {
+        var sources: [(nom: String, bouton: String, lancer: () -> Void)] = []
+        if reference.type == .film, let fichier = siens.first {
+            sources.append((["Sur ton NAS", fichier.qualite].compactMap { $0 }.joined(separator: " · "), "Lire", { lire(fichier) }))
+        }
+        // Une série du NAS : l'épisode à regarder, s'il y est (6.1.1) — il n'y avait pas de bouton en tête de fiche.
+        if reference.type == .serie, let numero = prochain?.numero, let fichier = fichierNAS(numero) {
+            let code = "S\(String(format: "%02d", numero.saison))E\(String(format: "%02d", numero.episode))"
+            sources.append(("\(code) sur ton NAS", "Lire \(code)", { lire(fichier) }))
+        }
+        for plateforme in plateformesIncluses where LiensPlateformes.lien(plateforme: plateforme.id, titre: titre) != nil {
+            sources.append((plateforme.nom, "Regarder sur \(plateforme.nom)", { ouvrirPlateforme(plateforme) }))
+        }
+        if let (lien, chaine) = directBlueTV {
+            sources.append(("\(chaine) en direct · blue TV", "\(chaine) en direct", { ouvrirBlueTV(lien, chaine: chaine) }))
+        }
+        return sources
     }
 
     /// Le passage en cours, ou qui commence dans le quart d'heure, à ouvrir dans l'app blue TV (6.1).

@@ -327,7 +327,8 @@ private struct ContenuFiche: View {
     /// En tête de fiche : où regarder, et y aller d'un toucher. « Lire sur le NAS » lance le film (ou le prochain épisode
     /// de la série) ; avant, la pastille « Sur ton NAS » n'était qu'une étiquette, qu'on touchait pour rien.
     private var ouEnTete: some View {
-        ActionsOuRegarder(reference: fiche.reference, titre: fiche.titre, episode: prochainEpisode)
+        // 6.1 : un grand bouton ▶︎ — un seul accès, il le lance ; plusieurs, il demande lequel —, puis le reste en pastilles.
+        ActionsOuRegarder(reference: fiche.reference, titre: fiche.titre, episode: prochainEpisode, presentation: .enTete)
             .padding(.horizontal, 20)
     }
 
