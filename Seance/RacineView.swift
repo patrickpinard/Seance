@@ -128,6 +128,9 @@ struct RacineView: View {
                 PrevoirSoiree.prevoir(titre, le: jour, etat: etat, contexte: contexte)
             }
         }
+        .sheet(item: Binding { etat.avecQui } set: { etat.avecQui = $0 }) { demande in
+            FeuilleAvecQui(demande: demande)
+        }
         .sheet(item: Binding { etat.titrePourListe } set: { etat.titrePourListe = $0 }) { titre in
             AjoutAListeView(titre: titre)
         }

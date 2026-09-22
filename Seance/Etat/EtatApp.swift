@@ -15,6 +15,10 @@ final class EtatApp {
     /// Mes listes : la feuille s'ouvre au-dessus de l'écran en cours.
     var titreADater: TitreChoisi?
     var titrePourListe: TitreChoisi?
+    /// « Vu avec qui ? » (6.1) : la feuille qui inscrit un visionnage chez d'autres personnes de la famille.
+    var avecQui: DemandeAvecQui?
+    /// « Qui regarde ce soir ? » : les personnes cochées dans les idées du soir, proposées d'office dans « Vu avec qui ? ».
+    var invitesDuSoir: [ProfilFamille] = []
     /// ⌘F ou une demande d'un autre écran : Explorer s'ouvre, le champ de recherche actif.
     var rechercheDemandee = false
     /// Date d'expiration de l'installation (compte Apple gratuit : 7 jours), lue dans le profil de l'app.
@@ -47,6 +51,14 @@ final class EtatApp {
     /// Badges « où regarder » des affiches.
     static let cacheTMDB = CacheTMDB(dossier: DossiersSeance.reponsesTMDB)
     let ou = EtatOu()
+    /// Les identifiants des titres chez Netflix, Apple TV et Disney+, lus sur Wikidata (6.1) : de quoi ouvrir le titre
+    /// lui-même plutôt que la recherche de la plateforme. En démonstration, rien ne part sur le réseau.
+    static let identifiants: ReserveIdentifiants = {
+        #if DEBUG
+        if Demonstration.active { return ReserveIdentifiants(transport: nil, fichier: nil) }
+        #endif
+        return ReserveIdentifiants(transport: URLSession.shared, fichier: URL.cachesDirectory.appending(path: "identifiants-plateformes.json"))
+    }()
     /// Images de fond et durées des titres, pour les grandes cartes.
     let decors = EtatDecors()
     /// Les documentaires : thèmes cochés et titres du moment (EF-151 à EF-156).

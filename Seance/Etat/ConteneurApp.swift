@@ -58,6 +58,21 @@ enum ConteneurApp {
     static var conteneur: ModelContainer? {
         try? resultat.get()
     }
+
+    /// Le magasin d'une autre personne de la famille (6.1, « Vu avec qui ? ») : ouvert le temps d'y inscrire un
+    /// visionnage et de le synchroniser, puis relâché — le profil en cours garde seul son magasin ouvert en continu.
+    static func conteneur(de profil: ProfilFamille) -> ModelContainer? {
+        if profil.id == ProfilsFamille().actif.id { return conteneur }
+        #if DEBUG
+        if Demonstration.active {
+            if let connu = demonstrations[profil.id] { return connu }
+            let nouveau = try? EntrepotSeance.conteneur(.memoire)
+            demonstrations[profil.id] = nouveau
+            return nouveau
+        }
+        #endif
+        return try? EntrepotSeance.conteneur(profil.emplacement)
+    }
 }
 
 /// Nom commun avec le widget : le ✓ des épisodes s'exécute dans l'un ou l'autre processus.

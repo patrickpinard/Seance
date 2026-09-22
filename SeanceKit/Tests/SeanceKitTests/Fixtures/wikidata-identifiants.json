@@ -1,0 +1,90 @@
+{
+  "head" : {
+    "vars" : [ "film", "serie", "netflix", "prime", "apple", "disney" ]
+  },
+  "results" : {
+    "bindings" : [ {
+      "film" : {
+        "type" : "literal",
+        "value" : "27205"
+      },
+      "apple" : {
+        "type" : "literal",
+        "value" : "umc.cmc.6loas01ow0w4lkatxxloz7a6e"
+      },
+      "netflix" : {
+        "type" : "literal",
+        "value" : "70131314"
+      }
+    }, {
+      "film" : {
+        "type" : "literal",
+        "value" : "550"
+      },
+      "apple" : {
+        "type" : "literal",
+        "value" : "umc.cmc.70dbl3043tb6ealg0u12k1pih"
+      },
+      "netflix" : {
+        "type" : "literal",
+        "value" : "26004747"
+      },
+      "disney" : {
+        "type" : "literal",
+        "value" : "38HCX4uW3BlA"
+      }
+    }, {
+      "film" : {
+        "type" : "literal",
+        "value" : "324552"
+      },
+      "apple" : {
+        "type" : "literal",
+        "value" : "umc.cmc.dwfq3iu2xmm7lkzh4ao9cxpp"
+      },
+      "netflix" : {
+        "type" : "literal",
+        "value" : "80131552"
+      },
+      "prime" : {
+        "type" : "literal",
+        "value" : "B01MUZ1MIA"
+      }
+    }, {
+      "serie" : {
+        "type" : "literal",
+        "value" : "66732"
+      },
+      "apple" : {
+        "type" : "literal",
+        "value" : "umc.cmc.6a4s868u4ocy2a9zg6ochi2nd"
+      },
+      "netflix" : {
+        "type" : "literal",
+        "value" : "80057281"
+      }
+    }, {
+      "serie" : {
+        "type" : "literal",
+        "value" : "84958"
+      },
+      "apple" : {
+        "type" : "literal",
+        "value" : "umc.cmc.63ibkmntcp76r7siqgltmhaw6"
+      },
+      "disney" : {
+        "type" : "literal",
+        "value" : "6pARMvILBGzF"
+      }
+    }, {
+      "serie" : {
+        "type" : "literal",
+        "value" : "108978"
+      },
+      "prime" : {
+        "type" : "literal",
+        "value" : "B09MKZTJF4"
+      }
+    } ]
+  }
+}

@@ -36,6 +36,8 @@ final class EtatOu {
     private var tele: [ReferenceTitre: String] = [:]
     /// Le prochain passage de chaque titre dans le guide (sept jours) : chaîne, et quand.
     private var teleSemaine: [ReferenceTitre: (chaine: String, quand: String)] = [:]
+    /// Le même passage, avec l'identifiant de la chaîne dans le guide et ses heures : de quoi l'ouvrir dans blue TV (6.1).
+    private var passages: [ReferenceTitre: (idGuide: String, debut: Date, fin: Date)] = [:]
     private var abonnements: Set<Int> = []
 
     @ObservationIgnored private var demandes: Set<ReferenceTitre> = []
@@ -70,10 +72,11 @@ final class EtatOu {
         for diffusion in aVenir where diffusion.debut < finDeSoiree {
             guard let id = diffusion.tmdbID else { continue }
             let reference = ReferenceTitre(type: TypeTitre(rawValue: diffusion.typeBrut) ?? .film, tmdbID: id)
-            if ceSoir[reference] == nil { ceSoir[reference] = chaines[diffusion.chaine] ?? diffusion.chaine }
+            if ceSoir[reference] == nil { ceSoir[reference] = chaines[diffusion.chaine] ?? ChaineGuide.nom(diffusion.chaine) ?? diffusion.chaine }
         }
         tele = ceSoir
         var semaine: [ReferenceTitre: (chaine: String, quand: String)] = [:]
+        var prochains: [ReferenceTitre: (idGuide: String, debut: Date, fin: Date)] = [:]
         for diffusion in aVenir {
             guard let id = diffusion.tmdbID else { continue }
             let reference = ReferenceTitre(type: TypeTitre(rawValue: diffusion.typeBrut) ?? .film, tmdbID: id)
@@ -82,9 +85,11 @@ final class EtatOu {
             let quand = diffusion.debut <= maintenant ? "en ce moment"
                 : ceSoir[reference] != nil ? "ce soir à \(heure)"
                 : diffusion.debut.formatted(.dateTime.weekday(.abbreviated).day().month(.abbreviated).locale(Locale(identifier: "fr_CH"))) + " à \(heure)"
-            semaine[reference] = (chaines[diffusion.chaine] ?? diffusion.chaine, quand)
+            semaine[reference] = (chaines[diffusion.chaine] ?? ChaineGuide.nom(diffusion.chaine) ?? diffusion.chaine, quand)
+            prochains[reference] = (diffusion.chaine, diffusion.debut, diffusion.fin)
         }
         teleSemaine = semaine
+        passages = prochains
     }
 
     /// Tous les endroits où regarder ce titre, dans l'ordre où on y pense : le NAS, tes plateformes (deux au plus),
@@ -106,6 +111,22 @@ final class EtatOu {
     }
 
     var aDesAbonnements: Bool { !abonnements.isEmpty }
+
+    /// Au moins une plateforme cochée sait ouvrir un titre précis (Netflix, Apple TV, Disney+) : les identifiants de
+    /// Wikidata valent alors la peine d'être demandés (6.1).
+    var aUnePlateformeDirecte: Bool { !abonnements.isDisjoint(with: LiensPlateformes.avecLienDirect) }
+
+    /// La chaîne à ouvrir dans blue TV (6.1) : seulement quand le passage a commencé ou commence dans le quart d'heure —
+    /// ouvrir la chaîne plus tôt montrerait autre chose. Sur le Mac, faute d'app blue TV, le lecteur web.
+    func lienBlueTV(_ reference: ReferenceTitre, maintenant: Date = .now) -> URL? {
+        guard BlueTV.actif, let passage = passages[reference],
+              passage.debut <= maintenant.addingTimeInterval(15 * 60), passage.fin > maintenant else { return nil }
+        #if targetEnvironment(macCatalyst)
+        return LiensChaines.blueTV(chaine: passage.idGuide, app: false)
+        #else
+        return LiensChaines.blueTV(chaine: passage.idGuide, app: true)
+        #endif
+    }
 
     /// Le badge d'une affiche : le NAS d'abord, puis la première plateforme cochée, puis la TV de ce soir.
     func badge(_ reference: ReferenceTitre) -> Badge? {

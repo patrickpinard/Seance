@@ -146,6 +146,11 @@ enum QuiRegardeActuel {
         if !actif.prenom.isEmpty { return actif.prenom }
         return Prenom.lire() ?? "Moi"
     }
+
+    /// Le nom d'une personne de la famille, tel que « Qui regarde ? » le montre.
+    static func nomDe(_ profil: ProfilFamille) -> String {
+        ProfilFamille.nomAffiche(profil, actif: ProfilsFamille().actif, prenomDeLAppareil: UserDefaults.standard.string(forKey: Prenom.cle) ?? "")
+    }
 }
 
 /// En haut à gauche de chaque page, quand la maison a plusieurs profils : qui regarde, et un toucher pour changer. Sur le

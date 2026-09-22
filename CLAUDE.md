@@ -16,7 +16,7 @@ outils/tester.sh --filter "Fusion"            # une suite ou un test (arguments 
 
 outils/tests-interface.sh                                  # tests d'interface sans clé, simulateur iPhone 17 Pro
 outils/tests-interface.sh TourCompletTests/testGrandTexte  # un seul (Classe ou Classe/test, plusieurs possibles)
-SIMULATEUR="iPad Air 11-inch (M3)" outils/tests-interface.sh IPadTests
+SIMULATEUR="iPad Air 11-inch (M4)" outils/tests-interface.sh IPadTests
 RESULTAT=.build/x.xcresult outils/tests-interface.sh …     # où ranger le résultat ; journal : .build/tests-interface.log
 
 outils/generer-projet.sh      # régénère Seance.xcodeproj (XcodeGen, téléchargé dans outils/.bin)
@@ -58,6 +58,9 @@ Un test d'interface ne doit pas dépendre de l'heure : le guide télé fictif a 
 - **👍 👎** : « J'aime » est un `TitreAime` (schéma version 3), hors des listes ; « Je n'aime pas » est un `Suivi` de statut `.exclu` (`ServiceGouts.aimer / jamais / reproposer`). Les deux nourrissent le profil de goûts ; passer les genres à `jamais` quand on les a.
 - **E-mail de la semaine** : `LettreHebdo`, `MessageMail`, `ClientSMTP` (SeanceKit/Lettre, TLS implicite port 465 seulement) ; `EtatLettre` l'envoie à l'ouverture ou au réveil en fond après l'échéance, depuis l'appareil — pas de serveur. `SEANCE_SMTP_ESSAI=1 swift test --filter SMTPReel` éprouve la conversation sans identifiants.
 - **Famille (6.0)** : un magasin « Utilisateur » par profil (`EntrepotSeance.Emplacement.profil`, registre `ProfilsFamille` dans les réglages du groupe d'apps), cache commun, aucun changement de schéma. `ConteneurApp.changerDeProfil` rouvre le magasin, recopie le foyer (plateformes, chaînes) et prévient l'app, qui recrée `EtatApp` et ses écrans. Tout ce qui garde un repère par appareil doit être pensé par profil (`EtatSynchro` : espace, état, sous-dossier).
+- **« Vu avec qui ? » (6.1)** : un visionnage s'inscrit directement chez d'autres profils (`VuEnsemble`, `ConteneurApp.conteneur(de:)`), puis `EtatSynchro(profil:).synchroniser(…, pourUnAutre: true)` dépose leur sous-dossier sans lire ni appliquer les réglages de cet appareil (on redépose ceux de leur dernier état connu).
+- **Liens directs (6.1)** : `ReserveIdentifiants` (SeanceKit) lit sur Wikidata, sans clé, les identifiants Netflix, Apple TV et Disney+ d'un titre (en lot, gardés 30 jours) ; `LiensPlateformes.lien(plateforme:titre:reference:identifiants:)` ouvre le titre, sinon la recherche. Prime Video reste en recherche (références d'Amazon.com). `LiensChaines.blueTV` ouvre une chaîne en direct dans blue TV (numéros tirés de la liste publique de Swisscom). Rien de personnel dans ces requêtes ; pas de réseau en démonstration. `SEANCE_WIKIDATA_REEL=1` active le test réel.
+- **Terminés** : une série passe seule dans Terminés quand elle est finie chez TMDB et que son dernier épisode est vu (`ProgressionSerie.estTerminee`, `ServiceSuivi.rangerSiTerminee`) ; la liste se range par mois (`TerminesParMois`).
 - **Centrale de la maison** (`EtatCentrale`, Mac seulement) : passage tous les quarts d'heure, `beginActivity` contre la veille, `SMAppService` pour l'ouverture de session.
 - **Tests de l'Apple TV** : `SeanceTVUITests` (XCUIRemote), lancés par `outils/verifier.sh`. Une pile dont le chemin est typé (`[ReferenceTitre]`) refuse en silence toute autre destination : utiliser `NavigationPath`.
 - **Charte graphique** : `Documentation/Charte graphique.md` dit quel composant utiliser pour quoi (couleurs de `Theme`, `SelecteurCases` pour choisir ce que la page montre, `TuileReglage`, `EtatVide`, `BoutonTV`…). Pas de composant « maison » qui double un composant de la charte, pas d'icônes multicolores, pas de contrôle segmenté hors des formulaires de réglage.

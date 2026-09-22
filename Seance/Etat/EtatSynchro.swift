@@ -80,7 +80,7 @@ enum ImportSauvegarde {
 final class EtatSynchro {
     /// Famille (6.0) : chaque profil synchronise dans son sous-dossier (« Famille/Anne »), avec ses propres repères ; le
     /// profil principal reste à la racine, comme avant. Un changement de profil recrée cet état.
-    let profil = ProfilsFamille().actif
+    let profil: ProfilFamille
     private var suffixe: String { profil.estPrincipal ? "" : ".p.\(profil.id)" }
     private var espaceDossier: String { "synchro" + suffixe }
     private var espaceNAS: String { "synchro.nas" + suffixe }
@@ -121,7 +121,9 @@ final class EtatSynchro {
     /// Pas plus d'une synchronisation automatique toutes les deux minutes.
     private static let intervalleMinimal: TimeInterval = 120
 
-    init() {
+    /// `profil` : celui en cours, d'ordinaire ; un autre pour « Vu avec qui ? » (6.1), le temps d'un passage.
+    init(profil: ProfilFamille = ProfilsFamille().actif) {
+        self.profil = profil
         let defauts = UserDefaults.standard
         nomDossier = defauts.data(forKey: Cle.signet) == nil ? nil : defauts.string(forKey: Cle.nomDossier)
         automatique = defauts.object(forKey: Cle.automatique) == nil ? true : defauts.bool(forKey: Cle.automatique)
@@ -132,7 +134,7 @@ final class EtatSynchro {
         derniereSynchroNAS = defauts.object(forKey: Cle.derniereNAS) as? Date
         #if DEBUG
         // Tests d'interface : le dossier est imposé au lancement, sans sélecteur de fichiers ni iCloud Drive.
-        if let chemin = ProcessInfo.processInfo.environment["SEANCE_SYNCHRO_DOSSIER"] {
+        if let chemin = ProcessInfo.processInfo.environment["SEANCE_SYNCHRO_DOSSIER"], profil.id == ProfilsFamille().actif.id {
             try? choisir(URL(fileURLWithPath: chemin, isDirectory: true))
         }
         #endif
@@ -180,7 +182,10 @@ final class EtatSynchro {
     /// Importe les fichiers des autres appareils qui ont changé, puis dépose le nôtre s'il a changé — dans le dossier
     /// choisi (iCloud Drive, Fichiers), puis dans celui du NAS s'il est activé : c'est par lui que l'Apple TV reçoit tout.
     /// `automatique` : au retour dans l'app ; silencieuse s'il n'y a rien, et pas plus d'une fois toutes les deux minutes.
-    func synchroniser(etat: EtatApp, contexte: ModelContext, automatique declenchementAuto: Bool = false) async {
+    /// `pourUnAutre` (6.1, « Vu avec qui ? ») : un passage au nom d'une autre personne de la famille, dont le magasin vient
+    /// de changer ici. Ses réglages ne sont ni lus ni appliqués sur cet appareil — son prénom n'est pas celui d'ici — : on
+    /// redépose tels quels ceux de son dernier état connu. Rien d'autre ne bouge : ni essai d'alerte, ni archive, ni message.
+    func synchroniser(etat: EtatApp, contexte: ModelContext, automatique declenchementAuto: Bool = false, pourUnAutre: Bool = false) async {
         #if DEBUG
         if Demonstration.coupeeDuMonde { return }
         #endif
@@ -196,8 +201,10 @@ final class EtatSynchro {
         var recus: [String] = []
         var depose = false
         var echecs: [String] = []
-        let preferences = { PreferencesSauvegardees.lire() }
+        let connues = pourUnAutre ? ((try? Data(contentsOf: fichierEtat)).flatMap { try? Sauvegarde.decoder($0) }?.preferences ?? [:]) : [:]
+        let preferences = { pourUnAutre ? connues : PreferencesSauvegardees.lire() }
         let appliquer: ([String: Sauvegarde.Preference], [[String: Sauvegarde.Preference]]) -> Void = { remplacees, recues in
+            guard !pourUnAutre else { return }
             _ = PreferencesSauvegardees.appliquer(remplacees, etat: etat, remplacer: true)
             // Les réglages jamais touchés ici se reprennent aussi, comme à l'import d'un fichier.
             for reglages in recues { _ = PreferencesSauvegardees.appliquer(reglages, etat: etat) }
@@ -222,6 +229,7 @@ final class EtatSynchro {
                                            espace: espaceDossier, fichierEtat: fichierEtat)
                 let bilan = try await moteur.synchroniser(preferences: preferences, appliquer: appliquer)
                 noter(bilan)
+                guard !pourUnAutre else { throw PassageTermine() }
                 await traiterEssaiAlerte(bilan.presents, transport: transportLocal, espace: espaceDossier, etat: etat)
                 // Un filet de sécurité : l'état du jour, daté, à côté ; les cinq derniers de cet appareil sont gardés.
                 if let donnees = bilan.deposees {
@@ -229,6 +237,7 @@ final class EtatSynchro {
                     let jour = DateTMDB(.now).description
                     try? await Task.detached { try Self.archiver(donnees, dossier: dossier, appareil: nomAppareil, jour: jour) }.value
                 }
+            } catch is PassageTermine {
             } catch {
                 echecs.append("le dossier est-il toujours là, et iCloud Drive disponible ?")
                 etat.journal.noter(.general, "La synchronisation par le dossier n'a pas abouti.", erreur: error)
@@ -244,11 +253,13 @@ final class EtatSynchro {
                                                espace: espaceNAS, fichierEtat: fichierEtat)
                     let bilan = try await moteur.synchroniser(preferences: preferences, appliquer: appliquer)
                     noter(bilan)
+                    guard !pourUnAutre else { return }
                     await traiterEssaiAlerte(bilan.presents, transport: transport, espace: espaceNAS, etat: etat)
                     derniereSynchroNAS = .now
                     UserDefaults.standard.set(Date.now, forKey: Cle.derniereNAS)
                     messageNAS = nil
                 } catch {
+                    guard !pourUnAutre else { return }
                     messageNAS = ErreurNAS.message(error)
                     if !declenchementAuto { echecs.append("NAS : \(ErreurNAS.message(error))") }
                     if !EtatNAS.injoignable(error) {
@@ -256,10 +267,11 @@ final class EtatSynchro {
                                            conseil: "Le compte du NAS doit pouvoir écrire dans le partage : Séance y crée le dossier « \(DossierSynchroSMB.dossierParDefaut) ».")
                     }
                 }
-            } else {
+            } else if !pourUnAutre {
                 messageNAS = "Complète d'abord Réglages › NAS (adresse, partage, mot de passe)."
             }
         }
+        guard !pourUnAutre else { return }
 
         if !recus.isEmpty {
             etat.ou.actualiserLocal(contexte: contexte)
@@ -277,6 +289,9 @@ final class EtatSynchro {
             dernierMessage = depose ? "Tes données ont été déposées. Rien de nouveau des autres appareils." : "Tout est à jour."
         }
     }
+
+    /// Le passage au nom d'un autre s'arrête là, sans archive : ce n'est pas une panne.
+    private struct PassageTermine: Error {}
 
     // MARK: Essai d'alerte entre appareils
 

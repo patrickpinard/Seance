@@ -220,6 +220,30 @@ struct BoutonTV: ButtonStyle {
     }
 }
 
+/// Le prénom de qui regarde, en haut à gauche (6.1) : une capsule discrète, orange sur fond sombre ; au focus, blanche
+/// et agrandie comme les autres boutons de la TV.
+struct PastilleQuiRegardeTV: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        Corps(configuration: configuration)
+    }
+
+    private struct Corps: View {
+        let configuration: Configuration
+        @Environment(\.isFocused) private var aLeFocus
+
+        var body: some View {
+            configuration.label
+                .font(.system(size: 26, weight: .semibold))
+                .foregroundStyle(aLeFocus ? Color.black : Theme.accentClair)
+                .padding(.horizontal, 22)
+                .frame(height: 56)
+                .background(aLeFocus ? AnyShapeStyle(Color.white) : AnyShapeStyle(Color.black.opacity(0.45)), in: Capsule())
+                .scaleEffect(aLeFocus ? 1.08 : (configuration.isPressed ? 0.97 : 1))
+                .animation(.easeOut(duration: 0.15), value: aLeFocus)
+        }
+    }
+}
+
 /// Une page ouverte depuis une autre doit toujours pouvoir se refermer à la télécommande. tvOS n'envoie la touche
 /// Retour (Menu) à une page que si un de ses éléments a le focus : une page faite seulement de texte — « À propos » —
 /// laissait la touche partir au système, qui quittait l'app. Ici la page la traite elle-même.

@@ -33,6 +33,7 @@
 		20FA4ABD083DC6765765CA01 /* SeanceDonnees in Frameworks */ = {isa = PBXBuildFile; productRef = 2CAE51A8CC0DF6130D32359E /* SeanceDonnees */; };
 		234F7F0C219075B2EB1E85A8 /* ContentProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = EBB25F5115A5BA4FF7D114B9 /* ContentProvider.swift */; };
 		235FD4AE7A62D4B74525FB9D /* ProgrammeTeleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EAE8B788413B4185E79D6B4 /* ProgrammeTeleTests.swift */; };
+		2384CA1DA66D49A0371C3AE6 /* VuEnsemble.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1CB5839E847146BF6DA994EB /* VuEnsemble.swift */; };
 		251E1E9A4053E9869F193746 /* PersonneTV.swift in Sources */ = {isa = PBXBuildFile; fileRef = 051C2BE31C08E94AC2FB3AC6 /* PersonneTV.swift */; };
 		25A3FF7733438DD82EE78618 /* ParcoursSoireeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06FFBF0A7DCCC85A19A1CEE6 /* ParcoursSoireeTests.swift */; };
 		27E5B9CB098F2C9B33F23190 /* EtatVideosPerso.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8F13EA7630B92FF4E4FA3F7 /* EtatVideosPerso.swift */; };
@@ -236,6 +237,7 @@
 		175681010BEED29FC95F0172 /* FamilleTV.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FamilleTV.swift; sourceTree = "<group>"; };
 		1987D3867BA078091BC7D8A1 /* VideosPersoTV.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideosPersoTV.swift; sourceTree = "<group>"; };
 		1A183D5A1A3FBB515C991256 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		1CB5839E847146BF6DA994EB /* VuEnsemble.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VuEnsemble.swift; sourceTree = "<group>"; };
 		1E397E973BF02CB68B97C4AA /* ReglagesLettreView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReglagesLettreView.swift; sourceTree = "<group>"; };
 		1EAE8B788413B4185E79D6B4 /* ProgrammeTeleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgrammeTeleTests.swift; sourceTree = "<group>"; };
 		1F58DEFF9DE77F1E7284865B /* SeanceTVEtagere.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = SeanceTVEtagere.appex; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -746,6 +748,7 @@
 			isa = PBXGroup;
 			children = (
 				069F223EF3422117B3EE2BE7 /* FamilleView.swift */,
+				1CB5839E847146BF6DA994EB /* VuEnsemble.swift */,
 			);
 			path = Famille;
 			sourceTree = "<group>";
@@ -1137,6 +1140,7 @@
 				B8A8D629CB5D53A0C47BFA2E /* Versions.swift in Sources */,
 				F339B5F2EDD3CEBDAE165E66 /* VideosPerso.swift in Sources */,
 				66EC72C9104BABDB4099B867 /* Volumetrie.swift in Sources */,
+				2384CA1DA66D49A0371C3AE6 /* VuEnsemble.swift in Sources */,
 				07DCF7A5BF7DE657CD13FAE2 /* VuesWidgets.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -1376,7 +1380,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 45;
+				CURRENT_PROJECT_VERSION = 46;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = GATK475J3P;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -1396,7 +1400,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 6.0.2;
+				MARKETING_VERSION = 6.1;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -1497,7 +1501,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 45;
+				CURRENT_PROJECT_VERSION = 46;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = GATK475J3P;
 				ENABLE_NS_ASSERTIONS = NO;
@@ -1511,7 +1515,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 6.0.2;
+				MARKETING_VERSION = 6.1;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";

@@ -42,13 +42,22 @@ enum NombreIdees {
     }
 }
 
+/// blue TV (6.1) : une chaîne en direct s'ouvre dans l'app blue TV de Swisscom — activé d'office, la maison la reçoit.
+enum BlueTV {
+    static let cle = "tele.blueTV"
+
+    static var actif: Bool {
+        UserDefaults.standard.object(forKey: cle) as? Bool ?? true
+    }
+}
+
 /// Les réglages qui voyagent dans la sauvegarde : prénom, personnalisation de l'accueil, tri et présentation des listes,
 /// réglages des alertes, adresse et dossiers du NAS. Jamais une clé ni un mot de passe : ils restent dans le trousseau.
 @MainActor
 enum PreferencesSauvegardees {
     private static let textes = [Prenom.cle, "listes.tri", Apparence.cle]
     private static let entiers = [NombreIdees.cle]
-    private static let booleens = ["listes.grille", "explorer.liste"]
+    private static let booleens = ["listes.grille", "explorer.liste", BlueTV.cle]
     private static let donnees = ["accueil.sources"]
     static let cleAlertes = "alertes.reglages"
     static let cleNAS = "nas.reglages"

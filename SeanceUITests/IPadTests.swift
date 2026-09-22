@@ -2,7 +2,7 @@ import XCTest
 
 /// L'iPad au lancement : en paysage, la barre latérale s'ouvre à côté de la page et montre tous les onglets ; en
 /// portrait, où le système la poserait par-dessus le contenu, elle reste fermée et l'accueil est visible.
-/// À lancer sur un simulateur d'iPad : `SIMULATEUR="iPad Air 11-inch (M3)" outils/tests-interface.sh IPadTests`.
+/// À lancer sur un simulateur d'iPad : `SIMULATEUR="iPad Air 11-inch (M4)" outils/tests-interface.sh IPadTests`.
 @MainActor
 final class IPadTests: XCTestCase {
     private var app = XCUIApplication()

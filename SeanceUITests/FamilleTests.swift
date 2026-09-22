@@ -87,5 +87,37 @@ final class FamilleTests: XCTestCase {
         anne.tap()
         XCTAssertTrue(anne.isSelected, "Anne n'est pas cochée")
         capture("famille-ce-soir", attente: 4)
+        app.buttons["OK"].firstMatch.tap()
+
+        // 6.1 « Vu avec qui ? » : un film terminé depuis sa fiche s'inscrit aussi chez Anne, cochée d'office puisqu'elle
+        // regarde ce soir.
+        app.tabBars.buttons["Mes listes"].firstMatch.tap()
+        let film = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'John Wick'")).firstMatch
+        XCTAssertTrue(film.waitForExistence(timeout: 10))
+        film.tap()
+        let termine = app.buttons["Terminé"].firstMatch
+        XCTAssertTrue(app.amener(termine, versLeHaut: true, essais: 4), "Pas de bouton « Terminé » sur la fiche du film")
+        termine.tap()
+        XCTAssertTrue(app.staticTexts["Vu avec qui ?"].firstMatch.waitForExistence(timeout: 8), "« Vu avec qui ? » ne s'ouvre pas")
+        XCTAssertTrue(app.buttons["Anne l'a vu aussi"].firstMatch.isSelected, "Anne, qui regarde ce soir, n'est pas cochée d'office")
+        capture("famille-vu-avec-qui")
+        app.buttons["validerAvecQui"].firstMatch.tap()
+        XCTAssertTrue(app.staticTexts["Vu avec qui ?"].firstMatch.waitForNonExistence(timeout: 10), "La feuille ne se referme pas")
+
+        // Chez Anne, le film est dans Terminés, sous le mois en cours.
+        app.navigationBars.buttons.firstMatch.tap()
+        ouvrirFamille()
+        app.buttons["Passer au profil de Anne"].firstMatch.tap()
+        XCTAssertTrue(app.tabBars.buttons["Accueil"].firstMatch.waitForExistence(timeout: 15))
+        app.tabBars.buttons["Mes listes"].firstMatch.tap()
+        app.buttons["Terminés"].firstMatch.tap()
+        let format = DateFormatter()
+        format.locale = Locale(identifier: "fr_CH")
+        format.dateFormat = "LLLL yyyy"
+        let mois = format.string(from: .now)
+        let entete = mois.prefix(1).uppercased() + mois.dropFirst()
+        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH %@", entete)).firstMatch.waitForExistence(timeout: 10),
+                      "Le film vu ensemble n'est pas dans les Terminés d'Anne, sous « \(entete) »")
+        capture("famille-termines-anne")
     }
 }

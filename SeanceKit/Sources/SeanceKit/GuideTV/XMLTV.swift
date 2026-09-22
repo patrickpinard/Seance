@@ -34,6 +34,11 @@ public struct ChaineGuide: Sendable, Hashable, Identifiable {
     /// Toutes les chaînes proposées dans les réglages.
     public static var catalogue: [ChaineGuide] { suisses + tntParDefaut }
 
+    /// Le nom d'une chaîne du catalogue : « W9 » pour `W9.fr`, quand le magasin ne la connaît pas (encore) par son nom.
+    public static func nom(_ id: String) -> String? {
+        catalogue.first { $0.id == id }?.nom
+    }
+
     /// Cochées au premier lancement : RTS, TF1, France 2, France 3, M6 et Arte.
     public static var parDefaut: [ChaineGuide] {
         let ids: Set = ["RTSUn.ch", "RTSDeux.ch", "TF1.fr", "France2.fr", "France3.fr", "M6.fr", "Arte.fr"]

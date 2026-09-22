@@ -22,9 +22,12 @@ etape "Interface, iPhone"
 
 etape "Interface, iPad"
 # Après plusieurs séries de tests, le simulateur d'iPad ne pivote plus et le test du paysage échoue à tort : on le redémarre.
-ipad=$(xcrun simctl list devices available | grep -F "    iPad Air 11-inch (M3) (" | head -1 | grep -o -E '[0-9A-F]{8}-[0-9A-F-]{27}')
+# L'iPad Air 11 pouces, quelle que soit sa puce : une mise à jour de Xcode remplace le M3 par le M4 (septembre 2026).
+nomIPad=$(xcrun simctl list devices available | grep -o -E "iPad Air 11-inch \(M[0-9]+\)" | sort -V | tail -1)
+[[ -n $nomIPad ]] || { echo "Échec : aucun simulateur d'iPad Air 11 pouces."; exit 1; }
+ipad=$(xcrun simctl list devices available | grep -F "    $nomIPad (" | tail -1 | grep -o -E '[0-9A-F]{8}-[0-9A-F-]{27}')
 [[ -n $ipad ]] && { xcrun simctl shutdown $ipad > /dev/null 2>&1; xcrun simctl boot $ipad > /dev/null 2>&1; }
-SIMULATEUR="iPad Air 11-inch (M3)" RESULTAT="$racine/.build/ipad.xcresult" "$racine/outils/tests-interface.sh" IPadTests \
+SIMULATEUR="$nomIPad" RESULTAT="$racine/.build/ipad.xcresult" "$racine/outils/tests-interface.sh" IPadTests \
   || { echo "Échec : interface iPad."; exit 1; }
 # Un test sauté (mauvais simulateur) n'a rien vérifié : ce n'est pas une réussite.
 grep -q "Test Case .* skipped" "$racine/.build/tests-interface.log" && { echo "Échec : tests iPad sautés, rien n'a été vérifié."; exit 1; }

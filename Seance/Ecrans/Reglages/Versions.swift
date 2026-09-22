@@ -20,6 +20,29 @@ struct NoteVersion: Identifiable {
 
     static let historique: [NoteVersion] = [
         NoteVersion(
+            numero: "6.1",
+            date: "22 septembre 2026",
+            resume: "« Regarder » ouvre le titre lui-même sur Netflix, Apple TV et Disney+, et la chaîne en direct dans blue TV ; « Terminé » d'un geste, Terminés par mois ; un film vu ensemble s'inscrit chez chacun.",
+            fonctionnalites: [
+                Fonctionnalite(symbole: "play.fill", titre: "Le titre lui-même, plus sa recherche",
+                               detail: "Sur Netflix, Apple TV et Disney+, « Regarder » ouvre la page du titre — un film Netflix se lance directement, un film Apple TV+ aussi. Séance trouve l'identifiant de chaque titre chez ces plateformes dans Wikidata, base publique et gratuite : sans clé ni compte, et rien de personnel ne part avec la demande. Un titre inconnu de Wikidata garde la recherche de la plateforme. Prime Video aussi : Wikidata n'y connaît que les références d'Amazon.com, introuvables en Suisse."),
+                Fonctionnalite(symbole: "play.tv.fill", titre: "La chaîne en direct dans blue TV",
+                               detail: "Quand un titre passe en ce moment à la TV, ou dans le quart d'heure, son bouton devient « RTS 1 en direct · blue TV » : l'app blue TV de Swisscom s'ouvre sur la chaîne, sur l'iPhone, l'iPad et l'Apple TV ; sur le Mac, le lecteur web tv.blue.ch. Réglages › Télévision › « Ouvrir les chaînes dans blue TV » l'éteint. Swisscom n'a pas d'API publique : ni replay ni enregistrement."),
+                Fonctionnalite(symbole: "checkmark", titre: "« Terminé », d'un geste",
+                               detail: "Sur la fiche d'un film, l'œil devient « Terminé » : un toucher, et le film rejoint tes Terminés, daté du jour (appui long : « Déjà vu avant », hors statistiques). Sur la carte d'une soirée aussi. Une série finie chez TMDB a son bouton « Terminé », qui coche les épisodes restants."),
+                Fonctionnalite(symbole: "checkmark.rectangle.stack", titre: "Les séries finies se rangent seules",
+                               detail: "Le dernier épisode vu d'une série terminée ou annulée la range dans Terminés ; tant qu'une série continue, elle reste « En cours », même à jour. Les séries déjà vues jusqu'au bout se rangent au prochain calcul des alertes ou en ouvrant leur fiche. Décocher un épisode la remet en cours."),
+                Fonctionnalite(symbole: "calendar", titre: "Terminés, par mois",
+                               detail: "Septembre 2026, août 2026… : chaque titre sous le mois où tu l'as fini, avec le compte du mois — « 3 films · 1 série · 7 h 40 ». Ce qui n'a pas de date (« déjà vu avant ») va dans « Plus tôt ». Les tris par titre ou par durée gardent la liste d'un seul tenant."),
+                Fonctionnalite(symbole: "person.2.fill", titre: "Vu avec qui ?",
+                               detail: "Un film terminé, un épisode regardé, une série finie : Séance demande qui l'a vu avec toi, en cochant d'office les personnes de « Qui regarde ce soir ? ». Le titre s'inscrit directement chez elles — dans leurs Terminés, hors de leur « À voir » — et leur sous-dossier se synchronise aussitôt, pour qu'elles le retrouvent sur leurs appareils."),
+                Fonctionnalite(symbole: "appletv", titre: "Apple TV : changer de personne",
+                               detail: "Le prénom en haut à gauche est un bouton : depuis le menu du haut, vers la gauche, la télécommande l'atteint et rouvre « Qui regarde ? », comme sur l'iPad."),
+                Fonctionnalite(symbole: "tv", titre: "« W9 », plus « W9.fr »",
+                               detail: "Une chaîne du guide pas encore connue par son nom s'affichait avec son identifiant technique ; elle prend le nom du catalogue."),
+            ]
+        ),
+        NoteVersion(
             numero: "6.0.2",
             date: "21 septembre 2026",
             resume: "Tu vois qui regarde, en haut à gauche de chaque page ; « Aujourd'hui » passe aux grandes cartes ; la fiche de présentation parle de la version 6.",

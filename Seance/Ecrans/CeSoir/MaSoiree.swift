@@ -105,14 +105,16 @@ final class SoireeModele {
         }
     }
 
-    /// Coche le prochain épisode : la fiche de sa saison donne sa durée.
-    func marquerVu(_ episode: Episode, etat: EtatApp, contexte: ModelContext) async {
+    /// Coche le prochain épisode : la fiche de sa saison donne sa durée. Rend l'épisode coché, pour « Vu avec qui ? ».
+    @discardableResult
+    func marquerVu(_ episode: Episode, etat: EtatApp, contexte: ModelContext) async -> EpisodeTMDB? {
         guard let tmdb = etat.tmdb,
               let saison = try? await tmdb.saison(episode.numero.saison, serie: episode.serie.id),
               let detail = saison.episodes.first(where: { $0.numeroEpisode == episode.numero })
-        else { return }
+        else { return nil }
         _ = try? ServiceSuivi(contexte: contexte).cocher([detail], serie: episode.serie)
         await charger(etat: etat, contexte: contexte)
+        return detail
     }
 
     private static func series(_ ids: [Int], client: TMDBClient) async -> [SerieDetail] {

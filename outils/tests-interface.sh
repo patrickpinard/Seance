@@ -5,11 +5,11 @@
 #   outils/tests-interface.sh                                   # tous les tests sans clé TMDB
 #   outils/tests-interface.sh TourCompletTests/testGrandTexte   # un seul
 #   RESULTAT=.build/x.xcresult outils/tests-interface.sh …      # où ranger le résultat
-#   SIMULATEUR="iPad Air 11-inch (M3)" outils/tests-interface.sh IPadTests   # sur un autre simulateur
+#   SIMULATEUR="iPad Air 11-inch (M4)" outils/tests-interface.sh IPadTests   # sur un autre simulateur
 set -uo pipefail
 racine=${0:A:h:h}
 modele=${SIMULATEUR:-iPhone 17 Pro}
-simulateur=$(xcrun simctl list devices available | grep -F "    $modele (" | head -1 | grep -o -E '[0-9A-F]{8}-[0-9A-F-]{27}')
+simulateur=$(xcrun simctl list devices available | grep -F "    $modele (" | tail -1 | grep -o -E '[0-9A-F]{8}-[0-9A-F-]{27}')
 [[ -n $simulateur ]] || { echo "Simulateur « $modele » introuvable."; exit 1; }
 resultat=${RESULTAT:-$racine/.build/tests-interface.xcresult}
 journal="$racine/.build/tests-interface.log"

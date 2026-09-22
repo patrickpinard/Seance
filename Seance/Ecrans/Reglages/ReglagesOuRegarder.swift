@@ -57,6 +57,7 @@ struct ReglagesTeleView: View {
     @Environment(\.modelContext) private var contexte
     @Query private var chaines: [Chaine]
     @State private var nonReconnusVisibles = false
+    @AppStorage(BlueTV.cle) private var blueTV = true
 
     var body: some View {
         Form {
@@ -96,6 +97,14 @@ struct ReglagesTeleView: View {
                 Text("Guide des programmes")
             } footer: {
                 Text("Le guide est relu toutes les 12 heures et dès que tu changes de chaînes. Un film n'apparaît que s'il est reconnu dans TMDB sans hésitation.")
+            }
+
+            Section {
+                Toggle("Ouvrir les chaînes dans blue TV", isOn: $blueTV)
+            } header: {
+                Text("En direct")
+            } footer: {
+                Text("Quand un film ou une série passe en ce moment, ou dans le quart d'heure, son bouton ouvre la chaîne dans l'app blue TV de Swisscom (sur le Mac, dans le lecteur web tv.blue.ch).")
             }
 
             Section {

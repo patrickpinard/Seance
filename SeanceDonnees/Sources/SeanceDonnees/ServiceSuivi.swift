@@ -92,18 +92,55 @@ public struct ServiceSuivi {
     /// `anterieur` : des épisodes déjà vus avant, hors statistiques.
     @discardableResult
     public func cocher(_ episodes: [EpisodeTMDB], serie: SerieDetail, le date: Date = .now, anterieur: Bool = false) throws -> Int {
-        let dejaVus = try episodesVus(serie.reference)
+        var vus = try episodesVus(serie.reference)
         let suivi = try suivre(serie: serie, statut: .enCours)
         var ajoutes = 0
-        for episode in episodes where episode.saison > 0 && !dejaVus.contains(episode.numeroEpisode) {
+        for episode in episodes where episode.saison > 0 && !vus.contains(episode.numeroEpisode) {
             let duree = episode.dureeMinutes ?? serie.dureesEpisode.first ?? 0
             contexte.insert(Visionnage(reference: serie.reference, saison: episode.saison, episode: episode.numero, dureeMinutes: duree,
                                        vuLe: date, anterieur: anterieur))
+            vus.insert(episode.numeroEpisode)
             ajoutes += 1
         }
-        if suivi.statut == .aVoir { suivi.statut = .enCours }
+        // 6.1 : le dernier épisode d'une série finie range la série dans Terminés ; sinon elle est « En cours ».
+        if ProgressionSerie.estTerminee(vus: vus, serie: serie), suivi.statut != .exclu {
+            suivi.statut = .termine
+        } else if suivi.statut == .aVoir {
+            suivi.statut = .enCours
+        }
         try contexte.save()
         return ajoutes
+    }
+
+    /// « Terminé » sur une série finie (6.1) : les épisodes pas encore cochés le sont, à la durée habituelle d'un épisode,
+    /// et la série se range dans Terminés. Renvoie le nombre d'épisodes ajoutés.
+    @discardableResult
+    public func terminer(serie: SerieDetail, le date: Date = .now) throws -> Int {
+        let vus = try episodesVus(serie.reference)
+        let suivi = try suivre(serie: serie, statut: .termine)
+        var ajoutes = 0
+        for saison in serie.saisons where saison.numero > 0 {
+            for numero in stride(from: 1, through: saison.nombreEpisodes, by: 1) where !vus.contains(NumeroEpisode(saison: saison.numero, episode: numero)) {
+                contexte.insert(Visionnage(reference: serie.reference, saison: saison.numero, episode: numero,
+                                           dureeMinutes: serie.dureesEpisode.first ?? 0, vuLe: date))
+                ajoutes += 1
+            }
+        }
+        suivi.statut = .termine
+        suivi.masque = false
+        try contexte.save()
+        return ajoutes
+    }
+
+    /// Une série finie dont le dernier épisode est vu passe dans Terminés (6.1) — au calcul des alertes, à l'ouverture
+    /// de sa fiche : les séries vues avant la règle se rangent ainsi d'elles-mêmes. Vrai si elle vient d'y passer.
+    @discardableResult
+    public func rangerSiTerminee(_ serie: SerieDetail) throws -> Bool {
+        guard let suivi = try suivi(serie.reference), suivi.statut == .enCours || suivi.statut == .aVoir,
+              ProgressionSerie.estTerminee(vus: try episodesVus(serie.reference), serie: serie) else { return false }
+        suivi.statut = .termine
+        try contexte.save()
+        return true
     }
 
     /// Coche un épisode connu par son seul numéro, depuis un widget ou Siri, sans fiche TMDB ;
@@ -122,11 +159,15 @@ public struct ServiceSuivi {
             contexte.delete(visionnage)
         }
         try contexte.save()
-        // Plus aucun épisode vu : la série redevient « à voir », comme avant le premier épisode coché.
-        if try visionnages(serie).isEmpty, let suivi = try suivi(serie), suivi.statut == .enCours {
+        // Plus aucun épisode vu : la série redevient « à voir », comme avant le premier épisode coché. Un épisode décoché
+        // dans une série terminée la remet « En cours » (6.1).
+        guard let suivi = try suivi(serie), suivi.statut == .enCours || suivi.statut == .termine else { return }
+        if try visionnages(serie).isEmpty {
             suivi.statut = .aVoir
-            try contexte.save()
+        } else if suivi.statut == .termine {
+            suivi.statut = .enCours
         }
+        try contexte.save()
     }
 
     /// EF-66 : note d'un épisode déjà vu.

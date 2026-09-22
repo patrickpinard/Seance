@@ -76,6 +76,43 @@ struct ProchainEpisodeTests {
     }
 }
 
+@Suite("Série terminée et Terminés par mois (6.1)")
+struct SerieTermineeTests {
+    private let fin = NumeroEpisode(saison: 8, episode: 6)
+
+    @Test func finieEtDernierEpisodeVu() throws {
+        #expect(ProgressionSerie.estTerminee(vus: [fin], serie: try Construire.serie(statut: "Ended")))
+        #expect(ProgressionSerie.estTerminee(vus: [fin], serie: try Construire.serie(statut: "Canceled")))
+    }
+
+    @Test func tantQuElleContinueEllePasseEnAttente() throws {
+        #expect(!ProgressionSerie.estTerminee(vus: [fin], serie: try Construire.serie(statut: "Returning Series")))
+        let annonce = Construire.episode(9, 1, diffuse: "2027-04-01")
+        #expect(!ProgressionSerie.estTerminee(vus: [fin], serie: try Construire.serie(statut: "Ended", prochain: annonce)))
+    }
+
+    @Test func pasAvantLeDernierEpisode() throws {
+        let finie = try Construire.serie(statut: "Ended")
+        #expect(!ProgressionSerie.estTerminee(vus: [], serie: finie))
+        #expect(!ProgressionSerie.estTerminee(vus: [NumeroEpisode(saison: 8, episode: 5)], serie: finie))
+        #expect(ProgressionSerie.estFinie(finie))
+    }
+
+    @Test func rangesParMoisDuPlusRecent() {
+        var calendrier = Calendar(identifier: .gregorian)
+        calendrier.timeZone = .suisse
+        let titres: [(String, Date?)] = [
+            ("Heat", .suisse("2026-08-30 22:00")), ("Reacher", .suisse("2026-09-20 21:00")), ("Ancien", nil),
+            ("Drive", .suisse("2026-09-02 20:30")), ("Collateral", .suisse("2025-12-24 20:00")),
+        ]
+        let groupes = TerminesParMois.grouper(titres, fini: \.1, calendrier: calendrier)
+        #expect(groupes.map(\.titre) == ["Septembre 2026", "Août 2026", "Décembre 2025", "Plus tôt"])
+        #expect(groupes[0].elements.map(\.0) == ["Reacher", "Drive"])
+        #expect(groupes.last?.mois == nil && groupes.last?.elements.map(\.0) == ["Ancien"])
+        #expect(TerminesParMois.grouper([String](), fini: { _ in nil }).isEmpty)
+    }
+}
+
 @Suite("Langue et disponibilité")
 struct DisponibiliteTests {
     private let maintenant = Date.suisse("2026-09-17 19:00")

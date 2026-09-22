@@ -94,5 +94,14 @@ final class TelecommandeTests: XCTestCase {
         XCTAssertTrue(app.descendants(matching: .any).matching(NSPredicate(format: "label == 'Qui regarde : Anne'")).firstMatch.waitForExistence(timeout: 5),
                       "Le prénom d'Anne n'est pas affiché en haut à gauche")
         capture("tv-listes-anne")
+
+        // 6.1 : le prénom est un bouton. Du menu du haut, vers la gauche, la télécommande l'atteint et rouvre « Qui regarde ? ».
+        for _ in 0..<3 where !focusSur(["Mes listes", "Accueil", "Ce soir"]) { telecommande.press(.up); Thread.sleep(forTimeInterval: 0.6) }
+        for _ in 0..<8 where !focusSur(["Qui regarde : Anne"]) { telecommande.press(.left); Thread.sleep(forTimeInterval: 0.6) }
+        XCTAssertTrue(focusSur(["Qui regarde : Anne"]), "La télécommande n'atteint pas le prénom en haut à gauche")
+        capture("tv-pastille-focus")
+        telecommande.press(.select)
+        XCTAssertTrue(app.staticTexts["Qui regarde ?"].waitForExistence(timeout: 10), "Le prénom n'ouvre pas « Qui regarde ? »")
+        capture("tv-qui-regarde-depuis-pastille")
     }
 }

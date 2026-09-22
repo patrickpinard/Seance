@@ -285,6 +285,7 @@ struct SectionIdees: View {
                         let present = modele.invites.contains(profil)
                         Button {
                             if present { modele.invites.removeAll { $0 == profil } } else { modele.invites.append(profil) }
+                            etat.invitesDuSoir = modele.invites
                             Task { await modele.chercher(etat: etat, contexte: contexte, precise: !modele.demande.envieNettoyee.isEmpty) }
                         } label: {
                             Label(profil.prenom.isEmpty ? "Moi" : profil.prenom, systemImage: present ? "checkmark.circle.fill" : profil.symbole)

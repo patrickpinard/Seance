@@ -110,7 +110,7 @@ struct CarteSoiree: View {
                     .accessibilityLabel("Regarder ce soir")
                 } else if peutMarquerVu {
                     Button(action: vu) {
-                        Label("Regardé", systemImage: "checkmark")
+                        Label(titre.reference.type == .film ? "Terminé" : "Regardé", systemImage: "checkmark")
                             .font(.subheadline.weight(.bold))
                             .foregroundStyle(.black)
                             .padding(.horizontal, 16)
@@ -119,8 +119,9 @@ struct CarteSoiree: View {
                             .contentShape(Capsule())
                     }
                     .buttonStyle(.plain)
-                    .help("Marquer comme regardé : le film est vu, ou l'épisode coché, et le titre quitte ta soirée.")
-                    .accessibilityHint("Le film est marqué vu, ou l'épisode coché, et le titre quitte ta soirée")
+                    .help("Terminé : le film rejoint tes Terminés, ou l'épisode est coché, et le titre quitte ta soirée.")
+                    .accessibilityHint("Le film rejoint tes Terminés, ou l'épisode est coché, et le titre quitte ta soirée")
+                    .accessibilityIdentifier("Regardé")
                 } else if let note {
                     Text(note)
                         .font(.caption)
@@ -191,7 +192,7 @@ struct CarteSoireePassee: View {
             // En texte agrandi, les trois réponses passent à la ligne plutôt que de se tronquer.
             Flux(espacement: 10) {
                 Button(action: regarde) {
-                    Label("Regardé", systemImage: "checkmark")
+                    Label(titre.reference.type == .film ? "Terminé" : "Regardé", systemImage: "checkmark")
                         .font(.subheadline.weight(.bold))
                         .fixedSize()
                         .foregroundStyle(.black)

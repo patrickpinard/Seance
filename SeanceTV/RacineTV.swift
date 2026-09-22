@@ -48,18 +48,20 @@ struct RacineTV: View {
         // de tvOS, qui se replie quand on descend dans la page et revient quand on remonte.
         .tabViewStyle(.tabBarOnly)
         .background(Theme.fond.ignoresSafeArea())
-        // Qui regarde, en haut à gauche, à la hauteur du menu : seulement quand la maison a plusieurs profils.
+        // Qui regarde, en haut à gauche, à la hauteur du menu : seulement quand la maison a plusieurs profils. C'est un
+        // bouton (6.1) : à gauche de « Accueil », la télécommande l'atteint et rouvre « Qui regarde ? », comme sur l'iPad.
         .overlay(alignment: .topLeading) {
             if ConteneurTV.famille.aPlusieursProfils {
-                Label(QuiRegardeTV.nom(ConteneurTV.famille.actif), systemImage: ConteneurTV.famille.actif.symbole)
-                    .font(.system(size: 26, weight: .semibold))
-                    .foregroundStyle(Theme.accentClair)
-                    .padding(.horizontal, 22).frame(height: 56)
-                    .background(.black.opacity(0.45), in: Capsule())
-                    .padding(.leading, MargesTV.bord)
-                    .padding(.top, 52)
-                    .ignoresSafeArea()
-                    .accessibilityLabel("Qui regarde : \(QuiRegardeTV.nom(ConteneurTV.famille.actif))")
+                let actif = ConteneurTV.famille.actif
+                Button { quiRegarde = true } label: {
+                    Label(QuiRegardeTV.nom(actif), systemImage: actif.symbole)
+                }
+                .buttonStyle(PastilleQuiRegardeTV())
+                .padding(.leading, MargesTV.bord)
+                .padding(.top, 52)
+                .ignoresSafeArea()
+                .accessibilityLabel("Qui regarde : \(QuiRegardeTV.nom(actif))")
+                .accessibilityHint("Change de personne")
             }
         }
         .overlay(alignment: .bottom) {

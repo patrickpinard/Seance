@@ -13,6 +13,8 @@ struct FicheTV: View {
     @Environment(EtatTV.self) private var etat
     @Environment(\.modelContext) private var contexte
     @Environment(\.openURL) private var ouvrir
+    /// Netflix, Apple TV, Disney+ : l'identifiant du titre chez eux, lu sur Wikidata (6.1).
+    @State private var identifiants: IdentifiantsPlateformes?
     @Query private var fichiers: [FichierNAS]
     @Query private var suivis: [Suivi]
     @Query private var soirees: [SelectionSoir]
@@ -80,6 +82,7 @@ struct FicheTV: View {
         }
         .background(Theme.fond.ignoresSafeArea())
         .task(id: reference) { await charger() }
+        .task(id: reference) { identifiants = await EtatTV.identifiants.identifiants([reference])[reference] }
         .task(id: saisonAffichee) { await chargerSaison() }
         .fullScreenCover(isPresented: $choixDuSoir) { ChoixSoireeTV(titre: titre) { jour in prevoir(jour) } }
     }
@@ -220,6 +223,11 @@ struct FicheTV: View {
                 VStack(alignment: .leading, spacing: 6) {
                     Text("À la TV · en direct, à heure fixe").font(.system(size: 24, weight: .bold)).foregroundStyle(.secondary)
                     ForEach(prochainsPassages, id: \.self) { Label($0, systemImage: "tv").font(.system(size: 28, weight: .medium)) }
+                    if let (lien, chaine) = directBlueTV {
+                        Button { ouvrirBlueTV(lien, chaine: chaine) } label: { Label("Regarder \(chaine) dans blue TV", systemImage: "play.tv.fill") }
+                            .buttonStyle(BoutonTV())
+                            .padding(.top, 8)
+                    }
                 }
             }
             if siens.isEmpty, plateformesIncluses.isEmpty, prochainsPassages.isEmpty {
@@ -233,7 +241,21 @@ struct FicheTV: View {
         .frame(maxWidth: 1500, alignment: .leading)
         // Une section de focus sans rien à choisir (un film du NAS ou de la TV : que des étiquettes) arrêtait la
         // télécommande : on ne descendait plus jusqu'au casting. Elle n'existe que s'il y a des plateformes à ouvrir.
-        .sectionDeFocus(si: !plateformesIncluses.isEmpty)
+        .sectionDeFocus(si: !plateformesIncluses.isEmpty || directBlueTV != nil)
+    }
+
+    /// Le passage en cours, ou qui commence dans le quart d'heure, à ouvrir dans l'app blue TV (6.1).
+    private var directBlueTV: (URL, String)? {
+        guard UserDefaults.standard.object(forKey: "tele.blueTV") as? Bool ?? true,
+              let passage = passages.first, passage.debut <= .now.addingTimeInterval(15 * 60), passage.fin > .now,
+              let lien = LiensChaines.blueTV(chaine: passage.chaine, app: true) else { return nil }
+        return (lien, NomChaineTV.lire(passage.chaine, parmi: chaines))
+    }
+
+    private func ouvrirBlueTV(_ lien: URL, chaine: String) {
+        ouvrir(lien) { accepte in
+            if !accepte { etat.dire("blue TV ne s'ouvre pas d'ici : lance l'app et choisis \(chaine).") }
+        }
     }
 
     // MARK: Épisodes (EF-11 à EF-13)
@@ -503,7 +525,7 @@ struct FicheTV: View {
     }
 
     private func ouvrirPlateforme(_ plateforme: Fournisseur) {
-        guard let lien = LiensPlateformes.lien(plateforme: plateforme.id, titre: titre) else {
+        guard let lien = LiensPlateformes.lien(plateforme: plateforme.id, titre: titre, reference: reference, identifiants: identifiants) else {
             return etat.dire("Ouvre \(plateforme.nom) sur l'Apple TV et cherche « \(titre) ».")
         }
         ouvrir(lien) { accepte in

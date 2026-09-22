@@ -391,7 +391,11 @@ struct CeSoirView: View {
     private func marquerVu(_ titre: SelectionSoir) async {
         let reference = titre.reference
         if let episode = episode(reference) {
-            await soiree.marquerVu(episode, etat: etat, contexte: contexte)
+            let coche = await soiree.marquerVu(episode, etat: etat, contexte: contexte)
+            if let coche {
+                let serie = episode.serie
+                VuEnsemble.demander(etat, reference: reference, titre: titre.titre) { try $0.cocher([coche], serie: serie) }
+            }
             // Un épisode, pas la série : elle quitte la soirée, et un toucher suffit pour enchaîner sur le suivant.
             let nom = titre.titre
             let affiche = titre.cheminAffiche
@@ -412,7 +416,8 @@ struct CeSoirView: View {
             let affiche = titre.cheminAffiche
             let jour = titre.soiree
             try? ServiceSuivi(contexte: contexte).marquerVu(film: film, le: quand ?? .now)
-            etat.confirmer("« \(titre.titre) » marqué vu", symbole: "eye.fill") { [contexte] in
+            VuEnsemble.demander(etat, reference: reference, titre: titre.titre) { try $0.marquerVu(film: film, le: quand ?? .now) }
+            etat.confirmer("« \(titre.titre) » dans Terminés", symbole: "checkmark") { [contexte] in
                 try? ServiceSuivi(contexte: contexte).marquerNonVu(film: reference)
                 AnnulationTitre.restaurer(reference, existait: avant != nil, statut: statutAvant, contexte: contexte)
                 try? ServiceSoiree(contexte: contexte).retenir(reference, titre: nom, cheminAffiche: affiche, soiree: jour)

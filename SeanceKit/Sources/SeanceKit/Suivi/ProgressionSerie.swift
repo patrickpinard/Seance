@@ -67,6 +67,18 @@ public enum ProgressionSerie {
         return (candidat, disponible)
     }
 
+    /// 6.1 : une série est terminée pour toi quand elle est finie chez TMDB (terminée ou annulée, plus rien d'annoncé) et
+    /// que son dernier épisode est vu. Tant qu'elle continue, elle reste « En cours », même à jour.
+    public static func estTerminee(vus: Set<NumeroEpisode>, serie: SerieDetail) -> Bool {
+        guard statutsFinaux.contains(serie.statut), serie.prochainEpisode == nil, total(serie.saisons) > 0, !vus.isEmpty else { return false }
+        return suivant(vus: vus, saisons: serie.saisons, dernierDiffuse: serie.dernierEpisode) == nil
+    }
+
+    /// Finie chez TMDB : plus d'épisode à venir.
+    public static func estFinie(_ serie: SerieDetail) -> Bool {
+        statutsFinaux.contains(serie.statut) && serie.prochainEpisode == nil
+    }
+
     /// Nombre d'épisodes connus, saisons spéciales exclues.
     public static func total(_ saisons: [SaisonResume]) -> Int {
         saisons.filter { $0.numero > 0 }.reduce(0) { $0 + $1.nombreEpisodes }

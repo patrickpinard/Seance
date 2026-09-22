@@ -20,10 +20,10 @@ et par un dossier du NAS — c'est par lui que l'Apple TV reçoit tes listes.
 
 | | |
 |---|---|
-| **Où regarder, tout de suite** | Sur chaque titre : « Lire sur le NAS » lance la vidéo (Infuse ou VLC), « Netflix », « Prime Video » ou « Apple TV » ouvrent la plateforme sur le titre, et la télé donne la chaîne, le jour et l'heure. Seuls **tes** abonnements comptent. |
+| **Où regarder, tout de suite** | Sur chaque titre : « Lire sur le NAS » lance la vidéo (Infuse ou VLC) ; « Netflix », « Apple TV » et « Disney+ » ouvrent le titre lui-même (identifiants tirés de Wikidata, sans clé), les autres plateformes leur recherche ; un passage en direct s'ouvre dans l'app blue TV, sur la bonne chaîne. Seuls **tes** abonnements comptent. |
 | **Streaming et télé, bien séparés** | Le streaming se regarde quand tu veux ; la télé (blue TV, antenne) passe à une date et une heure fixes. Séance ne mélange pas les deux. |
 | **Ce soir** | Ta soirée en grandes cartes : un film, l'épisode suivant d'une série (le premier, si tu ne l'as jamais commencée), la durée totale. « Regardé », puis ta note. Une rangée de jours prépare les soirées à venir, avec un rappel le jour venu. |
-| **Famille** | Un profil par personne — listes, notes, pouces, idées du soir — sur le même appareil ; « Qui regarde ce soir ? » mêle les goûts de plusieurs pour proposer ce qui plaît à tous. Le foyer (plateformes, chaînes, NAS, clés) est commun. |
+| **Famille** | Un profil par personne — listes, notes, pouces, idées du soir — sur tous les appareils ; « Qui regarde ce soir ? » mêle les goûts de plusieurs pour proposer ce qui plaît à tous, et « Vu avec qui ? » inscrit un film vu ensemble chez chacun. Le foyer (plateformes, chaînes, NAS, clés) est commun. |
 | **👍 👎 et suggestions** | Un pouce levé ou baissé, comme sur Netflix, sans avoir vu le titre ; la note de 1 à 10 vient après. « Suggestions pour toi », sur la page Ce soir, part d'abord des acteurs que tu suis, puis de tes pouces et de tes notes. |
 | **Des idées selon tes goûts** | Des titres regardables sur tes plateformes, classés sur l'appareil d'après tes notes — ou par Claude si tu ajoutes une clé d'API, pour lire une envie (« un truc nerveux, pas trop long »). « Je n'aime pas » écarte un titre pour de bon ; les Réglages permettent de tout reproposer. |
 | **Suivi des séries** | Épisode par épisode, « vu jusqu'ici », notes, prochain épisode, alertes à chaque épisode ou à chaque saison. |

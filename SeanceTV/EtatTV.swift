@@ -12,6 +12,13 @@ import SwiftData
 final class EtatTV {
     private let coffre: any CoffreCles = Trousseau()
     private static let cacheTMDB = CacheTMDB(dossier: URL.cachesDirectory.appending(path: "Seance-TMDB"))
+    /// Les identifiants des titres chez Netflix, Apple TV et Disney+ (6.1), comme sur l'iPhone.
+    static let identifiants: ReserveIdentifiants = {
+        #if DEBUG
+        if Demonstration.active { return ReserveIdentifiants(transport: nil, fichier: nil) }
+        #endif
+        return ReserveIdentifiants(transport: URLSession.shared, fichier: URL.cachesDirectory.appending(path: "identifiants-plateformes.json"))
+    }()
 
     private(set) var tmdb: TMDBClient?
     /// Le second accès au NAS, facultatif : les vidéos personnelles (EF-157).

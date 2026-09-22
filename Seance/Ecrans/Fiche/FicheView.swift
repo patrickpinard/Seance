@@ -122,6 +122,7 @@ private struct ContenuFiche: View {
     @State private var detailVu = "Vu"
     @State private var videoChoisie: Video?
     @State private var dansSoiree = false
+    @State private var confirmationSerieTerminee = false
 
     @Environment(\.horizontalSizeClass) private var largeur
     /// Largeur réelle : une fenêtre de Mac étroite reste « regular » mais n'a pas la place pour deux colonnes.
@@ -394,12 +395,29 @@ private struct ContenuFiche: View {
             }
 
             if let film = fiche.film {
-                legende(vu ? "Vu" : "Marquer vu") {
+                legende(vu ? "Terminé ✓" : "Terminé") {
                     if vu {
                         boutonDejaVu(film)
                     } else {
                         boutonMarquerVu(film)
                     }
+                }
+            }
+
+            // 6.1 : une série finie chez TMDB se range dans Terminés d'un geste ; tant qu'elle continue, pas de bouton.
+            if let serie = fiche.serie, ProgressionSerie.estFinie(serie) {
+                let terminee = suivi?.statut == .termine && suivi?.masque == false
+                legende(terminee ? "Terminé ✓" : "Terminé") {
+                    BoutonIcone(symbole: "checkmark", libelle: terminee ? "Série terminée" : "Série terminée ?", actif: terminee,
+                                explication: terminee ? "Cette série est dans tes Terminés : décoche un épisode pour la remettre en cours."
+                                                      : "Ranger la série dans Terminés : les épisodes pas encore cochés le seront.") {
+                        if !terminee { confirmationSerieTerminee = true }
+                    }
+                }
+                .confirmationDialog("Ranger « \(serie.nom) » dans Terminés ?", isPresented: $confirmationSerieTerminee, titleVisibility: .visible) {
+                    Button("Terminé") { terminerSerie(serie) }
+                } message: {
+                    Text("Les épisodes pas encore cochés le seront, à la date d'aujourd'hui.")
                 }
             }
 
@@ -425,23 +443,19 @@ private struct ContenuFiche: View {
         .padding(.horizontal, 20)
     }
 
-    /// 👁 Vu ce soir, ou vu il y a longtemps : les deux sortent le film des suggestions,
-    /// seul le premier entre dans les statistiques.
+    /// ✓ Terminé (6.1) : un toucher, et le film rejoint Terminés, daté d'aujourd'hui — il compte dans tes statistiques.
+    /// « Déjà vu avant », à l'appui long, le sort des suggestions sans fausser tes heures.
     private func boutonMarquerVu(_ film: FicheFilm) -> some View {
-        Menu {
-            Section("Ne plus me le proposer") {
-                Button { marquerVu(film, anterieur: false) } label: {
-                    Label("Vu aujourd'hui", systemImage: "eye")
-                }
-                Button { marquerVu(film, anterieur: true) } label: {
-                    Label("Déjà vu avant", systemImage: "clock.arrow.circlepath")
-                }
-            }
-        } label: {
-            RondIcone(symbole: "eye")
+        BoutonIcone(symbole: "checkmark", libelle: "Terminé",
+                    explication: "Terminé : le film rejoint tes Terminés, daté d'aujourd'hui. Appui long : « Déjà vu avant », hors statistiques.") {
+            marquerVu(film, anterieur: false)
         }
-        .help("Marquer vu : aujourd'hui compte dans tes statistiques ; « déjà vu avant » sort le film des suggestions sans fausser tes heures")
-        .accessibilityLabel("Marquer vu")
+        .contextMenu {
+            Button { marquerVu(film, anterieur: true) } label: {
+                Label("Déjà vu avant", systemImage: "clock.arrow.circlepath")
+            }
+        }
+        .accessibilityAction(named: "Déjà vu avant") { marquerVu(film, anterieur: true) }
     }
 
     /// 👁 Déjà marqué : le menu dit quand, et permet d'annuler une erreur.
@@ -457,7 +471,7 @@ private struct ContenuFiche: View {
                 }
             }
         } label: {
-            RondIcone(symbole: "eye.fill", actif: true)
+            RondIcone(symbole: "checkmark", actif: true)
         }
         .help("Tu as vu ce film : il compte dans tes goûts et ne revient plus dans les suggestions. Touche pour annuler.")
         .accessibilityLabel(detailVu)
@@ -579,6 +593,8 @@ private struct ContenuFiche: View {
 
     private func rafraichir() {
         let suiviService = ServiceSuivi(contexte: contexte)
+        // 6.1 : une série finie et vue jusqu'au bout avant la règle se range dans Terminés en ouvrant sa fiche.
+        if let serie = fiche.serie { try? suiviService.rangerSiTerminee(serie) }
         suivi = try? suiviService.suivi(fiche.reference)
         let visionnages = (try? suiviService.visionnages(fiche.reference)) ?? []
         vu = !visionnages.isEmpty
@@ -657,10 +673,29 @@ private struct ContenuFiche: View {
         guard !vu else { return }
         try? ServiceSuivi(contexte: contexte).marquerVu(film: film, anterieur: anterieur)
         rafraichir()
-        etat.confirmer(anterieur ? "Marqué déjà vu avant" : "Marqué vu aujourd'hui", symbole: "eye.fill") { [contexte] in
+        etat.confirmer(anterieur ? "Marqué déjà vu avant" : "« \(film.titre) » dans Terminés", symbole: "checkmark") { [contexte] in
             try? ServiceSuivi(contexte: contexte).marquerNonVu(film: film.reference)
             rafraichir()
         }
+        // 6.1 : vu à plusieurs ? Le film s'inscrit aussi chez les autres personnes de la famille.
+        if !anterieur {
+            VuEnsemble.demander(etat, reference: film.reference, titre: film.titre) { try $0.marquerVu(film: film) }
+        }
+    }
+
+    /// « Terminé » sur une série finie (6.1) : les épisodes manquants se cochent, la série va dans Terminés.
+    private func terminerSerie(_ serie: SerieDetail) {
+        let service = ServiceSuivi(contexte: contexte)
+        let avant = (try? service.episodesVus(serie.reference)) ?? []
+        try? service.terminer(serie: serie)
+        let ajoutes = ((try? service.episodesVus(serie.reference)) ?? []).subtracting(avant)
+        rafraichir()
+        etat.confirmer("« \(serie.nom) » dans Terminés", symbole: "checkmark") { [contexte] in
+            let service = ServiceSuivi(contexte: contexte)
+            for numero in ajoutes { try? service.decocher(numero, serie: serie.reference) }
+            rafraichir()
+        }
+        VuEnsemble.demander(etat, reference: serie.reference, titre: serie.nom) { try $0.terminer(serie: serie) }
     }
 }
 

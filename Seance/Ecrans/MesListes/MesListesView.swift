@@ -335,6 +335,21 @@ struct MesListesView: View {
                                    message: "Un film marqué vu, une série finie : ils se rangent ici, avec ta note."))
             }
         }
+        if statut == .termine, tri == .ajout, !titres.isEmpty {
+            // 6.1 : Terminés, rangés par mois — celui où tu as fini chaque titre.
+            let finis = finis
+            ForEach(TerminesParMois.grouper(titres, fini: { finis[$0.reference] }), id: \.titre) { groupe in
+                enTeteMois(groupe)
+                cartes(groupe.elements, statut, reperes)
+            }
+        } else {
+            cartes(titres, statut, reperes)
+        }
+    }
+
+    /// Les titres d'une liste, en grandes cartes ou en lignes.
+    @ViewBuilder
+    private func cartes(_ titres: [Suivi], _ statut: StatutSuivi, _ reperes: Reperes) -> some View {
         if enGrille, !titres.isEmpty {
             // Le format unique de l'app : la grande carte 16/9, où l'on voit d'un coup l'image, où regarder et les faits.
             LazyVGrid(columns: CarteLargeTitre.colonnes, spacing: 14) {
@@ -381,6 +396,44 @@ struct MesListesView: View {
             // Clic droit sur le Mac, appui long sur l'iPhone : les mêmes actions que le glissement.
             .contextMenu { menu(suivi, statut) }
         }
+    }
+
+    /// Le jour où chaque titre terminé l'a été : son dernier visionnage compté (pas « déjà vu avant »).
+    private var finis: [ReferenceTitre: Date] {
+        var resultat: [ReferenceTitre: Date] = [:]
+        for visionnage in visionnages where !visionnage.anterieur {
+            let reference = ReferenceTitre(type: visionnage.type, tmdbID: visionnage.tmdbID)
+            resultat[reference] = max(resultat[reference] ?? .distantPast, visionnage.vuLe)
+        }
+        return resultat
+    }
+
+    /// « Septembre 2026 » et, à droite, « 3 films · 1 série · 7 h 40 » : ce que le mois a compté.
+    private func enTeteMois(_ groupe: TerminesParMois.Groupe<Suivi>) -> some View {
+        let films = groupe.elements.filter { $0.type == .film }.count
+        let series = groupe.elements.count - films
+        var morceaux = [films > 0 ? Format.pluriel(films, "film") : nil, series > 0 ? Format.pluriel(series, "série") : nil].compactMap { $0 }
+        if let mois = groupe.mois {
+            let references = Set(groupe.elements.map(\.reference))
+            let calendrier = Calendar.current
+            let minutes = visionnages.filter {
+                !$0.anterieur && references.contains(ReferenceTitre(type: $0.type, tmdbID: $0.tmdbID))
+                    && calendrier.isDate($0.vuLe, equalTo: mois, toGranularity: .month)
+            }.reduce(0) { $0 + $1.dureeMinutes }
+            if minutes > 0 { morceaux.append(HeuresTele.duree(minutes)) }
+        }
+        return HStack(alignment: .firstTextBaseline) {
+            Text(groupe.titre).font(.title3.weight(.bold))
+            Spacer(minLength: 8)
+            Text(morceaux.joined(separator: " · ")).font(.caption).foregroundStyle(.secondary)
+        }
+        .padding(.horizontal, enGrille ? 16 : 0)
+        .padding(.top, 10)
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(.isHeader)
+        .listRowBackground(Color.clear)
+        .listRowSeparator(.hidden)
+        .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 2, trailing: 16))
     }
 
     /// Les actions d'un titre, les mêmes en liste et en grille.

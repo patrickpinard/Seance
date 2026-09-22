@@ -120,7 +120,7 @@ public struct ServiceDisponibilite {
             nas: fichiers.map { CopieNAS(chemin: $0.chemin, qualite: $0.qualite.flatMap(QualiteVideo.init(description:))) },
             offres: offres,
             abonnements: Set(abonnements.map(\.providerID)),
-            diffusions: diffusions.map { DiffusionPrevue(chaine: nomsDeChaines[$0.chaine] ?? $0.chaine, debut: $0.debut, fin: $0.fin) }
+            diffusions: diffusions.map { DiffusionPrevue(chaine: nomsDeChaines[$0.chaine] ?? ChaineGuide.nom($0.chaine) ?? $0.chaine, debut: $0.debut, fin: $0.fin) }
         )
     }
 

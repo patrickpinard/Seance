@@ -28,6 +28,19 @@ private enum TMDB {
         """#)
     }
 
+    /// Une mini-série finie : deux saisons de trois épisodes, plus rien d'annoncé.
+    static func serieFinie() throws -> SerieDetail {
+        try decoder(#"""
+        {"id": 2316, "name": "The Office", "original_name": "The Office", "original_language": "en", "overview": "",
+         "status": "Ended", "in_production": false, "number_of_seasons": 2, "number_of_episodes": 6,
+         "episode_run_time": [22], "vote_average": 8.5, "vote_count": 3000, "genres": [], "poster_path": "/office.jpg",
+         "last_episode_to_air": {"id": 203, "name": "Fin", "overview": "", "episode_number": 3, "season_number": 2, "air_date": "2013-05-16"},
+         "next_episode_to_air": null,
+         "seasons": [{"id": 1, "name": "Saison 1", "season_number": 1, "episode_count": 3},
+                     {"id": 2, "name": "Saison 2", "season_number": 2, "episode_count": 3}]}
+        """#)
+    }
+
     static func episodes(saison: Int, nombre: Int) throws -> [EpisodeTMDB] {
         try (1...nombre).map { n in
             try decoder(#"{"id": \#(saison * 100 + n), "name": "E\#(n)", "overview": "", "episode_number": \#(n), "season_number": \#(saison), "runtime": \#(n == 2 ? "null" : "48"), "air_date": "2022-02-04"}"#)
@@ -84,6 +97,58 @@ struct ServicesTests {
         try service.decocher(NumeroEpisode(saison: 1, episode: 1), serie: serie.reference)
         #expect(try service.episodesVus(serie.reference).count == 2)
         #expect(try service.visionnages(serie.reference).compactMap(\.note) == [9])
+    }
+
+    /// 6.1 : le dernier épisode d'une série finie la range dans Terminés ; en décocher un la remet en cours.
+    @Test func serieFinieSeRangeDansTermines() throws {
+        let conteneur = try EntrepotSeance.conteneur(.memoire)
+        let service = ServiceSuivi(contexte: conteneur.mainContext)
+        let serie = try TMDB.serieFinie()
+        try service.cocher(try TMDB.episodes(saison: 1, nombre: 3), serie: serie)
+        #expect(try service.suivi(serie.reference)?.statut == .enCours)
+        try service.cocher(try TMDB.episodes(saison: 2, nombre: 3), serie: serie)
+        #expect(try service.suivi(serie.reference)?.statut == .termine)
+        try service.decocher(NumeroEpisode(saison: 2, episode: 3), serie: serie.reference)
+        #expect(try service.suivi(serie.reference)?.statut == .enCours)
+    }
+
+    /// Une série qui continue reste en cours, même à jour.
+    @Test func serieQuiContinueResteEnCours() throws {
+        let conteneur = try EntrepotSeance.conteneur(.memoire)
+        let service = ServiceSuivi(contexte: conteneur.mainContext)
+        let serie = try TMDB.serie()
+        try service.cocher(try TMDB.episodes(saison: 1, nombre: 3), serie: serie)
+        #expect(try service.suivi(serie.reference)?.statut == .enCours)
+        #expect(try !service.rangerSiTerminee(serie))
+    }
+
+    /// « Terminé » : tout ce qui manque est coché, la série va dans Terminés.
+    @Test func terminerUneSerieFinie() throws {
+        let conteneur = try EntrepotSeance.conteneur(.memoire)
+        let service = ServiceSuivi(contexte: conteneur.mainContext)
+        let serie = try TMDB.serieFinie()
+        try service.cocher(Array(try TMDB.episodes(saison: 1, nombre: 3).prefix(1)), serie: serie)
+        #expect(try service.terminer(serie: serie) == 5)
+        #expect(try service.episodesVus(serie.reference).count == 6)
+        #expect(try service.suivi(serie.reference)?.statut == .termine)
+        #expect(try service.visionnages(serie.reference).filter { $0.dureeMinutes == 22 }.count == 5)
+    }
+
+    /// Une série vue jusqu'au bout avant la règle se range au passage.
+    @Test func rangerUneSerieDejaVue() throws {
+        let conteneur = try EntrepotSeance.conteneur(.memoire)
+        let service = ServiceSuivi(contexte: conteneur.mainContext)
+        let serie = try TMDB.serieFinie()
+        try service.suivre(serie: serie, statut: .enCours)
+        for saison in 1...2 {
+            for episode in 1...3 {
+                try service.cocher(NumeroEpisode(saison: saison, episode: episode), serie: serie.reference, dureeMinutes: 22)
+            }
+        }
+        #expect(try service.suivi(serie.reference)?.statut == .enCours)
+        #expect(try service.rangerSiTerminee(serie))
+        #expect(try service.suivi(serie.reference)?.statut == .termine)
+        #expect(try !service.rangerSiTerminee(serie))
     }
 
     @Test func cocherDepuisUnWidget() throws {

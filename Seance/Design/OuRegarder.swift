@@ -59,6 +59,8 @@ struct ActionsOuRegarder: View {
     @Environment(EtatApp.self) private var etat
     @Environment(\.openURL) private var openURL
     @Query private var fichiers: [FichierNAS]
+    /// Netflix, Apple TV, Disney+ : l'identifiant du titre chez eux, s'il est connu (6.1).
+    @State private var identifiants: IdentifiantsPlateformes?
 
     init(reference: ReferenceTitre, titre: String, episode: NumeroEpisode? = nil, secours: String? = nil,
          presentation: Presentation = .pastilles) {
@@ -96,7 +98,23 @@ struct ActionsOuRegarder: View {
                 pastilles(badges)
             }
         }
-        .task(id: reference) { etat.ou.demander(reference, client: etat.tmdb) }
+        .task(id: reference) {
+            etat.ou.demander(reference, client: etat.tmdb)
+            guard etat.ou.aUnePlateformeDirecte else { return }
+            identifiants = await EtatApp.identifiants.identifiants([reference])[reference]
+        }
+    }
+
+    /// Le titre lui-même quand Wikidata connaît son identifiant chez la plateforme, sa recherche sinon.
+    private func lien(plateforme id: Int) -> URL? {
+        LiensPlateformes.lien(plateforme: id, titre: titre, reference: reference, identifiants: identifiants)
+    }
+
+    /// Ouvre la chaîne en direct dans blue TV (6.1).
+    private func ouvrirChaine(_ lien: URL, chaine: String) {
+        openURL(lien) { acceptee in
+            if !acceptee { etat.confirmer("blue TV ne s'ouvre pas d'ici : lance l'app et choisis \(chaine)", symbole: "exclamationmark.triangle") }
+        }
     }
 
     /// Ouvre la plateforme sur le titre, et retient ce que cela a donné (6.0) : une plateforme qui refuse le lien le dit tout de
@@ -119,7 +137,7 @@ struct ActionsOuRegarder: View {
                 PastilleOuRegarder(symbole: "externaldrive.fill", texte: reference.type == .serie ? "Sur ton NAS, en partie" : "Sur ton NAS")
             }
         case .plateforme(let id, let nom, let logo):
-            if let lien = LiensPlateformes.lien(plateforme: id, titre: titre) {
+            if let lien = lien(plateforme: id) {
                 Button { ouvrirPlateforme(lien, id: id, nom: nom) } label: { EtiquetteGrandBouton(symbole: "play.fill", texte: "Regarder sur \(nom)") }
                     .buttonStyle(.plain)
                     .accessibilityLabel("Regarder sur \(nom)")
@@ -128,13 +146,20 @@ struct ActionsOuRegarder: View {
                 PastilleOuRegarder(logo: logo, texte: nom).accessibilityLabel("Inclus sur \(nom)")
             }
         case .tele(let chaine, let quand):
-            Button {
-                etat.ongletDemande = .accueil
-                etat.programmeTeleDemande = true
-            } label: { EtiquetteGrandBouton(symbole: "tv.fill", texte: "\(chaine) · \(quand)") }
-                .buttonStyle(.plain)
-                .accessibilityLabel("À la TV : \(chaine), \(quand)")
-                .accessibilityHint("Ouvre le programme TV")
+            if let direct = etat.ou.lienBlueTV(reference) {
+                Button { ouvrirChaine(direct, chaine: chaine) } label: { EtiquetteGrandBouton(symbole: "play.tv.fill", texte: "\(chaine) en direct · blue TV") }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Regarder \(chaine) en direct dans blue TV")
+                    .accessibilityHint("Ouvre la chaîne dans l'app blue TV")
+            } else {
+                Button {
+                    etat.ongletDemande = .accueil
+                    etat.programmeTeleDemande = true
+                } label: { EtiquetteGrandBouton(symbole: "tv.fill", texte: "\(chaine) · \(quand)") }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("À la TV : \(chaine), \(quand)")
+                    .accessibilityHint("Ouvre le programme TV")
+            }
         }
     }
 
@@ -159,7 +184,7 @@ struct ActionsOuRegarder: View {
                         PastilleOuRegarder(symbole: "externaldrive.fill", texte: reference.type == .serie ? "Sur ton NAS, en partie" : "Sur ton NAS")
                     }
                 case .plateforme(let id, let nom, let logo):
-                    if let lien = LiensPlateformes.lien(plateforme: id, titre: titre) {
+                    if let lien = lien(plateforme: id) {
                         Button { ouvrirPlateforme(lien, id: id, nom: nom) } label: { PastilleOuRegarder(logo: logo, texte: nom, ouvre: true) }
                             .buttonStyle(.plain)
                             .accessibilityLabel("Regarder sur \(nom)")
@@ -168,15 +193,24 @@ struct ActionsOuRegarder: View {
                         PastilleOuRegarder(logo: logo, texte: nom).accessibilityLabel("Inclus sur \(nom)")
                     }
                 case .tele(let chaine, let quand):
-                    Button {
-                        etat.ongletDemande = .accueil
-                        etat.programmeTeleDemande = true
-                    } label: {
-                        PastilleOuRegarder(symbole: "tv.fill", texte: "\(chaine) · \(quand)")
+                    if let direct = etat.ou.lienBlueTV(reference) {
+                        Button { ouvrirChaine(direct, chaine: chaine) } label: {
+                            PastilleOuRegarder(symbole: "play.tv.fill", texte: "\(chaine) en direct · blue TV", ouvre: true)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("Regarder \(chaine) en direct dans blue TV")
+                        .accessibilityHint("Ouvre la chaîne dans l'app blue TV")
+                    } else {
+                        Button {
+                            etat.ongletDemande = .accueil
+                            etat.programmeTeleDemande = true
+                        } label: {
+                            PastilleOuRegarder(symbole: "tv.fill", texte: "\(chaine) · \(quand)")
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("À la TV : \(chaine), \(quand)")
+                        .accessibilityHint("Ouvre le programme TV")
                     }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("À la TV : \(chaine), \(quand)")
-                    .accessibilityHint("Ouvre le programme TV")
                 }
             }
             if badges.isEmpty, let texte = secoursAffiche {
