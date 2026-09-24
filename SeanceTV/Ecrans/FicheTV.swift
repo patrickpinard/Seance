@@ -10,6 +10,8 @@ import SwiftUI
 struct FicheTV: View {
     let reference: ReferenceTitre
 
+    /// Le film du NAS ouvert dans le lecteur de Séance (6.6).
+    @State private var filmALire: FichierNAS?
     @Environment(EtatTV.self) private var etat
     @Environment(\.modelContext) private var contexte
     @Environment(\.openURL) private var ouvrir
@@ -84,6 +86,14 @@ struct FicheTV: View {
         .background(Theme.fond.ignoresSafeArea())
         .task(id: reference) { await charger() }
         .task(id: reference) { identifiants = await EtatTV.identifiants.identifiants([reference])[reference] }
+        .fullScreenCover(item: $filmALire) { fichier in
+            LecteurVLCTV(video: VideoPerso(chemin: fichier.chemin, taille: fichier.tailleOctets),
+                         acces: etat.nas, motDePasse: etat.motDePasseDuNAS ?? "") { _ in
+                // Même VLC n'y arrive pas : l'app de Réglages › Lecture, comme avant.
+                filmALire = nil
+                lireDehors(fichier)
+            }
+        }
         .task(id: saisonAffichee) { await chargerSaison() }
         .fullScreenCover(isPresented: $choixDuSoir) { ChoixSoireeTV(titre: titre) { jour in prevoir(jour) } }
     }
@@ -287,14 +297,7 @@ struct FicheTV: View {
     /// L'app blue TV s'ouvre sur une émission, pas sur une chaîne (6.3) : Séance demande d'abord au catalogue public de
     /// Swisscom ce qui passe, puis ouvre `tvguide://…`. Sans réponse, l'app s'ouvre sur son guide.
     private func ouvrirBlueTV(_ idGuide: String, nom: String) {
-        guard let numero = LiensChaines.numero(chaine: idGuide) else { return }
-        Task {
-            let emission = await CatalogueBlueTV(transport: URLSession.shared).emission(chaine: numero)
-            guard let lien = LiensChaines.appBlueTV(emission: emission) else { return }
-            ouvrir(lien) { accepte in
-                if !accepte { etat.dire("blue TV ne s'ouvre pas d'ici : lance l'app et choisis \(nom).") }
-            }
-        }
+        BlueTVSurTV.ouvrir(idGuide, nom: nom, etat: etat, ouvrir: ouvrir)
     }
 
     // MARK: Épisodes (EF-11 à EF-13)
@@ -492,7 +495,17 @@ struct FicheTV: View {
     }
 
     /// Dans l'app choisie dans Réglages › Lecture, et elle seule.
+    /// Le film du NAS dans Séance même, par le moteur de VLC (6.6) : la touche Retour ramène ici, sur la fiche.
+    /// Infuse ou VLC ne servent plus que si même VLCKit échoue.
     private func lire(_ fichier: FichierNAS) {
+        guard etat.motDePasseDuNAS != nil else {
+            return etat.dire("Le mot de passe du NAS manque : vois Réglages › NAS.")
+        }
+        etat.noterLecture(fichier)
+        filmALire = fichier
+    }
+
+    private func lireDehors(_ fichier: FichierNAS) {
         guard let url = etat.lien(pour: fichier) else {
             etat.dire(etat.lecteur == .infuse ? "Infuse ne s'ouvre que sur un titre reconnu. Choisis VLC dans Réglages › Lecture."
                                               : "Le mot de passe du NAS manque : vois Réglages › NAS.")
@@ -563,13 +576,22 @@ struct FicheTV: View {
         etat.dire("« \(titre) » prévu \(jour.formatted(.dateTime.weekday(.wide).day().month(.wide).locale(Locale(identifier: "fr_CH"))))")
     }
 
+    /// Le titre lui-même, pas la page d'accueil (6.6) : sur tvOS, le lien universel de Netflix n'ouvre que son
+    /// accueil. On essaie le schéma de l'app d'abord, puis les autres adresses tant que la précédente est refusée.
     private func ouvrirPlateforme(_ plateforme: Fournisseur) {
-        guard let lien = LiensPlateformes.lien(plateforme: plateforme.id, titre: titre, reference: reference, identifiants: identifiants) else {
+        let liens = LiensPlateformes.liensTV(plateforme: plateforme.id, titre: titre, reference: reference, identifiants: identifiants)
+        guard !liens.isEmpty else {
             return etat.dire("Ouvre \(plateforme.nom) sur l'Apple TV et cherche « \(titre) ».")
         }
-        ouvrir(lien) { accepte in
-            if !accepte { etat.dire("\(plateforme.nom) ne s'ouvre pas d'ici : lance l'app et cherche « \(titre) ».") }
+        func essayer(_ reste: [URL]) {
+            guard let lien = reste.first else {
+                return etat.dire("\(plateforme.nom) ne s'ouvre pas d'ici : lance l'app et cherche « \(titre) ».")
+            }
+            ouvrir(lien) { accepte in
+                if !accepte { essayer(Array(reste.dropFirst())) }
+            }
         }
+        essayer(liens)
     }
 
     private func ouvrirVideo(_ video: Video) {
@@ -602,5 +624,25 @@ struct FicheTV: View {
         if vu { try? service.marquerNonVu(film: reference) } else { try? service.marquerVu(film: film) }
         vu.toggle()
         etat.dire(vu ? "« \(titre) » marqué vu" : "« \(titre) » de nouveau à voir")
+    }
+}
+
+/// Ouvrir une chaîne dans l'app blue TV, depuis n'importe quelle page de la TV (6.6). L'app ne s'ouvre pas sur une
+/// chaîne mais sur une émission : Séance demande d'abord au catalogue public de Swisscom ce qui passe en ce moment.
+@MainActor
+enum BlueTVSurTV {
+    static func ouvrir(_ idGuide: String, nom: String, etat: EtatTV, ouvrir: OpenURLAction) {
+        guard let numero = LiensChaines.numero(chaine: idGuide) else {
+            return etat.dire("\(nom) n'est pas dans blue TV.")
+        }
+        Task {
+            let emission = await CatalogueBlueTV(transport: URLSession.shared).emission(chaine: numero)
+            guard let lien = LiensChaines.appBlueTV(emission: emission) else {
+                return etat.dire("blue TV ne répond pas : lance l'app et choisis \(nom).")
+            }
+            ouvrir(lien) { accepte in
+                if !accepte { etat.dire("Installe blue TV sur l'Apple TV pour regarder \(nom) en direct.") }
+            }
+        }
     }
 }

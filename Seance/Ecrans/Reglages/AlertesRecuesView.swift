@@ -26,7 +26,7 @@ struct AlertesRecuesView: View {
         Group {
             if envoyees.isEmpty, aVenir.isEmpty {
                 EtatVide(symbole: "bell.slash", titre: "Aucune alerte pour l'instant",
-                         message: "Les alertes arrivent pour les titres dont la cloche est activée sur la fiche : sorties, nouveaux épisodes, passages à la télé.",
+                         message: "Les alertes arrivent pour les titres dont la cloche est activée sur la fiche : sorties, nouveaux épisodes, passages à la TV.",
                          libelleAction: "Régler les alertes", symboleAction: "bell.badge") { etat.ongletDemande = .reglages }
             } else {
                 List {
@@ -88,7 +88,7 @@ struct AlertesRecuesView: View {
     }
 
     static func libelle(_ motif: String) -> String {
-        if motif.contains("tele") { return "Passage à la télé" }
+        if motif.contains("tele") { return "Passage à la TV" }
         if motif.contains("episode") { return "Nouvel épisode" }
         if motif.contains("acteur") { return "Un acteur que tu suis" }
         if motif.contains("soiree") { return "Ta soirée" }

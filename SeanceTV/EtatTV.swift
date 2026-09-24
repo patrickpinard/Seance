@@ -61,6 +61,9 @@ final class EtatTV {
     }
 
     var nasPret: Bool { nas.estComplet && motDePasseNAS }
+
+    /// Le mot de passe du NAS des films, pour le lecteur de Séance (6.6).
+    var motDePasseDuNAS: String? { (try? coffre.lire(.nas)) ?? nil }
     var enDemonstration: Bool {
         #if DEBUG
         Demonstration.active
@@ -195,7 +198,7 @@ final class EtatTV {
         }
     }
 
-    /// « À venir » sur la TV (EF-142) : les rendez-vous de tes titres — nouvel épisode, sortie, passage télé — sont
+    /// « À venir » sur la TV (EF-142) : les rendez-vous de tes titres — nouvel épisode, sortie, passage TV — sont
     /// calculés ici comme sur l'iPhone, mais sans notification : tvOS n'en a pas. Une fois par heure suffit.
     func actualiserAVenir(contexte: ModelContext) async {
         guard !enDemonstration, let tmdb, !aVenirEnCours else { return }

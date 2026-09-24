@@ -20,7 +20,7 @@ et par un dossier du NAS — c'est par lui que l'Apple TV reçoit tes listes.
 
 | | |
 |---|---|
-| **Où regarder, tout de suite** | Sur chaque titre : « Lire sur le NAS » lance la vidéo (Infuse ou VLC) ; « Netflix », « Apple TV » et « Disney+ » ouvrent le titre lui-même (identifiants tirés de Wikidata, sans clé), les autres plateformes leur recherche ; un passage en direct s'ouvre dans l'app blue TV, sur l'émission en cours. Un sablier dit ce que Séance attend, et jamais plus de deux secondes et demie. Seuls **tes** abonnements comptent. |
+| **Où regarder, tout de suite** | Sur chaque titre : « Lire sur le NAS » lance la vidéo dans Séance même — AVI, WMV, MKV, DV et MJPEG compris, grâce au moteur de VLC (sur le Mac, Infuse ou VLC prennent le relais pour ce que macOS ne lit pas) ; « Netflix », « Apple TV » et « Disney+ » ouvrent le titre lui-même (identifiants tirés de Wikidata, sans clé), les autres plateformes leur recherche ; un passage en direct s'ouvre dans l'app blue TV, sur l'émission en cours. Un sablier dit ce que Séance attend, et jamais plus de deux secondes et demie. Seuls **tes** abonnements comptent ; un titre qui n'est que sur une plateforme où tu n'es pas abonné le dit, au lieu de se faire introuvable. |
 | **Streaming et télé, bien séparés** | Le streaming se regarde quand tu veux ; la télé (blue TV, antenne) passe à une date et une heure fixes. Séance ne mélange pas les deux. |
 | **Ce soir** | Ta soirée en grandes cartes : un film, l'épisode suivant d'une série (le premier, si tu ne l'as jamais commencée), la durée totale. « Regardé », puis ta note. Une rangée de jours prépare les soirées à venir, avec un rappel le jour venu. |
 | **Famille** | Un profil par personne — listes, notes, pouces, idées du soir — sur tous les appareils ; « Qui regarde ce soir ? » mêle les goûts de plusieurs pour proposer ce qui plaît à tous, et « Vu avec qui ? » inscrit un film vu ensemble chez chacun. Le foyer (plateformes, chaînes, NAS, clés) est commun. |
@@ -32,7 +32,7 @@ et par un dossier du NAS — c'est par lui que l'Apple TV reçoit tes listes.
 | **Explorer** | Tout TMDB, tes plateformes, ton NAS ou la télé ; filtres par genre, période, note, acteur ; filtres enregistrés. |
 | **Mes listes, statistiques, bilan de l'année** | À voir, en cours, terminés, listes nommées, à venir ; heures regardées, genres, acteurs. |
 | **L'e-mail de la semaine** | Les jours que tu choisis — un ou plusieurs par semaine —, avec les seules rubriques qui t'intéressent : épisodes, sorties, passages à la TV (sur les chaînes que tu désignes), nouveautés de tes plateformes (celles que tu désignes), acteurs suivis, soirées prévues. En HTML aux couleurs de Séance, à plusieurs destinataires. Il part de ton appareil, par ton compte de messagerie (SMTP, port 465) ; le mot de passe passe d'un appareil à l'autre par le transfert chiffré, jamais par un fichier. |
-| **Alertes** | Notifications locales sur l'iPhone — et l'Apple Watch quand il est verrouillé : épisodes, sorties, passages à la TV, nouveaux films et séries des acteurs suivis. |
+| **Alertes** | Notifications locales sur l'iPhone — et l'Apple Watch quand il est verrouillé : épisodes, sorties, passages à la TV, nouveaux films et séries des acteurs suivis. Réglages › Alertes › « Alertes reçues » retrouve ce qui a été envoyé, et ce qui le sera. |
 | **Widgets, Siri, raccourcis** | Le prochain épisode se coche depuis l'écran d'accueil ; « Qu'est-ce que je regarde ce soir avec Séance ? ». |
 | **Accessibilité** | Texte très agrandi, VoiceOver, zones de toucher de 44 points, apparence sombre ou claire — vérifiés par des tests automatiques. |
 
@@ -44,8 +44,9 @@ et par un dossier du NAS — c'est par lui que l'Apple TV reçoit tes listes.
 
 ### iPad et Mac
 
-La même app. Sur l'iPad, les onglets en haut et une barre latérale à la demande ; sur le Mac (Mac Catalyst), le menu en haut,
-la roue dentée des réglages en haut à droite, des raccourcis clavier (⌘1 à ⌘6, ⌘F, ⌘,) et le clic droit sur une affiche
+La même app, et depuis la 7.0 le même menu que l'Apple TV : Accueil, Ce soir, **Streaming**, **TV**, **NAS**, Mes listes, la
+loupe d'Explorer et la roue dentée des réglages ; les Préférences s'ouvrent par le portrait, en haut à gauche. Sur l'iPhone, les
+trois sources se partagent l'onglet « Regarder ». Sur le Mac (Mac Catalyst), des raccourcis clavier (⌘1 à ⌘9, ⌘F, ⌘,) et le clic droit sur une affiche
 pour les actions rapides. Sur un Mac qui reste allumé, Séance peut devenir la **centrale de la maison** : elle synchronise, relit le guide et le NAS, et envoie l'e-mail de la semaine à l'heure, pour tous les appareils.
 
 <p align="center">

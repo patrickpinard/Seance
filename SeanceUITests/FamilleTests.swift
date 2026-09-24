@@ -14,8 +14,7 @@ final class FamilleTests: XCTestCase {
     }
 
     private func ouvrirFamille() {
-        app.tabBars.buttons["Préférences"].firstMatch.tap()
-        app.navigationBars.buttons["Réglages"].firstMatch.tap()
+        app.ouvrirReglages()
         let tuile = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Famille'")).firstMatch
         XCTAssertTrue(app.amener(tuile), "Pas de tuile « Famille » dans les Réglages")
         tuile.tap()
@@ -51,15 +50,18 @@ final class FamilleTests: XCTestCase {
         app.tabBars.buttons["Mes listes"].firstMatch.tap()
         XCTAssertFalse(app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'John Wick'")).firstMatch.waitForExistence(timeout: 4),
                        "Les listes du profil principal se voient dans celui d'Anne")
-        // En haut à gauche de la page : qui regarde.
-        let quiRegarde = app.buttons.matching(NSPredicate(format: "identifier == 'quiRegarde' OR label CONTAINS 'Anne'")).firstMatch
+        // En haut à gauche de la page : un seul bonhomme, avec le prénom de qui regarde (7.0).
+        let quiRegarde = app.buttons["preferences"].firstMatch
         XCTAssertTrue(quiRegarde.waitForExistence(timeout: 5), "Le nom de la personne n'est pas affiché en haut de la page")
         XCTAssertTrue(quiRegarde.label.contains("Anne"), "La pastille ne dit pas qui regarde : « \(quiRegarde.label) »")
         capture("famille-listes-anne")
 
-        // La pastille ouvre « Qui regarde ? » ; rechoisir Anne referme sans rien changer.
+        // Le bonhomme ouvre les Préférences, où l'on change de personne ; rechoisir Anne referme sans rien changer.
         quiRegarde.tap()
-        XCTAssertTrue(app.staticTexts["Qui regarde ?"].waitForExistence(timeout: 5), "La pastille n'ouvre pas « Qui regarde ? »")
+        let changer = app.buttons["quiRegarde"].firstMatch
+        XCTAssertTrue(changer.waitForExistence(timeout: 5), "Pas de « Changer de personne » dans les Préférences")
+        changer.tap()
+        XCTAssertTrue(app.staticTexts["Qui regarde ?"].waitForExistence(timeout: 5), "« Changer de personne » n'ouvre pas « Qui regarde ? »")
         capture("famille-qui-regarde")
         // Le profil principal garde son nom : il prenait le prénom de la personne en cours (deux « Anne »).
         XCTAssertEqual(app.buttons.matching(NSPredicate(format: "label == 'Anne'")).count, 1, "Deux profils s'appellent « Anne » dans « Qui regarde ? »")

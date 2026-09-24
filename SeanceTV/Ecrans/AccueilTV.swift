@@ -6,6 +6,7 @@ import SwiftUI
 /// L'accueil de la TV : la soirée d'abord, puis ce qui se regarde tout de suite (le NAS), puis de quoi choisir.
 struct AccueilTV: View {
     @Environment(EtatTV.self) private var etat
+    @Environment(\.openURL) private var ouvrir
     @Environment(\.modelContext) private var contexte
     @Query(sort: \SelectionSoir.ajouteLe) private var soirees: [SelectionSoir]
     @Query(sort: \FichierNAS.indexeLe, order: .reverse) private var fichiers: [FichierNAS]
@@ -58,8 +59,24 @@ struct AccueilTV: View {
                         }
                     }
                 }
+                // En ce moment (6.6) : ce qui passe maintenant sur tes chaînes, et le clic lance blue TV sur la chaîne.
+                if !enDirect.isEmpty {
+                    EtagereTV(titre: "En ce moment sur tes chaînes", sousTitre: "Un clic et blue TV s'ouvre sur la chaîne, en direct") {
+                        ForEach(enDirect) { bloc in
+                            let chaine = nomChaine(bloc.premiere.chaine)
+                            Button { BlueTVSurTV.ouvrir(bloc.premiere.chaine, nom: chaine, etat: etat, ouvrir: ouvrir) } label: {
+                                CarteLargeTV(surtitre: "EN DIRECT · \(chaine.uppercased())", titre: bloc.premiere.titreGuide,
+                                             detail: Self.reste(bloc.fin),
+                                             cheminImage: bloc.premiere.cheminFond ?? bloc.premiere.cheminAffiche,
+                                             lectureEnCoin: true)
+                            }
+                            .buttonStyle(.card)
+                            .accessibilityHint("Ouvre \(chaine) en direct dans blue TV")
+                        }
+                    }
+                }
                 if !teleCeSoir.isEmpty {
-                    EtagereTV(titre: "Ce soir à la TV", sousTitre: "Films et séries de tes chaînes, à partir de maintenant") {
+                    EtagereTV(titre: "Ce soir à la TV", sousTitre: "Films et séries de tes chaînes, à venir") {
                         ForEach(teleCeSoir) { bloc in
                             let carte = CarteLargeTV(surtitre: bloc.debut <= .now ? "EN DIRECT" : bloc.debut.formatted(.dateTime.hour().minute().locale(Locale(identifier: "fr_CH"))),
                                                      titre: bloc.premiere.titreGuide, detail: nomChaine(bloc.premiere.chaine),
@@ -171,13 +188,27 @@ struct AccueilTV: View {
                        cheminImage: premier.cheminFond ?? premier.cheminAffiche, large: premier.cheminFond != nil)
     }
 
-    /// Ce soir à la TV : en cours ou à venir dans la journée TV d'aujourd'hui.
+    /// En ce moment : les films et séries qui passent maintenant, sur une chaîne que blue TV connaît (6.6).
+    private var enDirect: [BlocDiffusion] {
+        let maintenant = Date.now
+        return GrilleTele.blocs(diffusions.filter { $0.debut <= maintenant && $0.fin > maintenant })
+            .filter { LiensChaines.numero(chaine: $0.premiere.chaine) != nil }
+            .sorted { $0.fin < $1.fin }.prefix(12).map { $0 }
+    }
+
+    /// Ce soir à la TV : à venir dans la journée TV d'aujourd'hui — ce qui passe déjà est dans « En ce moment ».
     private var teleCeSoir: [BlocDiffusion] {
         let maintenant = Date.now
         let aujourdhui = GrilleTele.jourTele(maintenant)
-        return GrilleTele.blocs(diffusions.filter { $0.fin > maintenant })
+        return GrilleTele.blocs(diffusions.filter { $0.debut > maintenant })
             .filter { GrilleTele.jourAffiche($0, maintenant: maintenant) == aujourdhui }
             .sorted { $0.debut < $1.debut }.prefix(12).map { $0 }
+    }
+
+    /// « Encore 42 min » : ce qu'il reste à voir.
+    static func reste(_ fin: Date) -> String {
+        let minutes = max(1, Int(fin.timeIntervalSinceNow / 60))
+        return minutes >= 60 ? "Encore \(minutes / 60) h \(String(format: "%02d", minutes % 60))" : "Encore \(minutes) min"
     }
 
     private func nomChaine(_ identifiant: String) -> String {

@@ -87,8 +87,7 @@ final class ParcoursSoireeTests: XCTestCase {
         capture("soiree-finie", attente: 3)
 
         // 7. Réglages › Toi : l'idée écartée y figure, « Tout reproposer » lève les exclusions.
-        app.tabBars.buttons["Préférences"].firstMatch.tap()
-        app.navigationBars.buttons["Réglages"].firstMatch.tap()
+        app.ouvrirReglages()
         let toi = bouton("label BEGINSWITH 'Prénom et idées'")
         XCTAssertTrue(app.amener(toi, essais: 16), "Tuile « Prénom et idées » introuvable")
         toi.tap()
@@ -100,6 +99,7 @@ final class ParcoursSoireeTests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Aucun titre écarté"].firstMatch.waitForExistence(timeout: 5), "Les exclusions ne sont pas levées")
         capture("reglages-ecartes-leves", attente: 1)
 
+        app.fermerPreferences()
         // 8. Explorer en dernier (sa barre d'onglets se replie) : la fiche dit l'ajout à la soirée ; « Je n'aime pas » fait sortir le titre d'Explorer.
         app.tabBars.buttons["Explorer"].firstMatch.tap()
         let affiche = bouton("label CONTAINS 'Creed III'")

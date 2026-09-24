@@ -40,6 +40,8 @@
 		<string>infuse</string>
 		<string>vlc-x-callback</string>
 		<string>tvguide</string>
+		<string>nflx</string>
+		<string>disneyplus</string>
 	</array>
 	<key>NSBonjourServices</key>
 	<array>

@@ -124,7 +124,7 @@ struct ProfilTitreTests {
         verifier(false) { $0.votesMin = 10_000 }
         verifier(false) { $0.dureeMax = 150 }
         verifier(false) { $0.langue = "fr" }
-        // Le réglage par défaut d'Explorer, « français ou anglais », ne doit pas vider les listes du NAS et de la télé.
+        // Le réglage par défaut d'Explorer, « français ou anglais », ne doit pas vider les listes du NAS et de la TV.
         verifier(true) { $0.langue = FiltresExplorer.francaisOuAnglais }
         verifier(false) { $0.langue = "fr|de" }
         verifier(true) { $0.mesPlateformes = true }
@@ -162,7 +162,7 @@ struct ProfilTitreTests {
         #expect(f.locaux.tele == .cetteSemaine)
         f.locaux.tele = .ceSoir
         f.source = .tele
-        #expect(f.locaux.tele == .ceSoir, "Rechoisir la télé garde « ce soir »")
+        #expect(f.locaux.tele == .ceSoir, "Rechoisir la TV garde « ce soir »")
         #expect(f.ditParLaSource(.tele))
 
         f.locaux.chaines = ["TF1.fr"]

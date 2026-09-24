@@ -11,7 +11,10 @@ enum DestinationProfil: Hashable {
 }
 
 struct ProfilView: View {
+    /// 7.0 : ouvertes par le portrait, en feuille, et non plus comme un onglet.
+    var enFeuille = false
     @Environment(EtatApp.self) private var etat
+    @Environment(\.dismiss) private var fermer
     @Environment(\.horizontalSizeClass) private var classeTaille
     @Environment(\.modelContext) private var contexte
     @Query private var interets: [Interet]
@@ -20,6 +23,7 @@ struct ProfilView: View {
     @Query private var acteursSuivis: [ActeurSuivi]
     @AppStorage(Prenom.cle) private var prenom = ""
     @State private var gouts = false
+    @State private var quiRegarde = false
     /// Le classement des acteurs parcourt tous les visionnages et leurs castings : calculé une fois, puis seulement
     /// quand ce qu'il compte a changé, pas à chaque rendu de la page.
     @State private var favoris: [Classement<ActeurStat>] = []
@@ -47,8 +51,22 @@ struct ProfilView: View {
             }
             .background(Theme.fond)
             .navigationTitle("Préférences")
-            .boutonBarreLaterale()
+            .boutonBarreLaterale(preferences: false, reglages: false)
             .toolbar {
+                if enFeuille {
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("OK") { fermer() }
+                    }
+                }
+                // Changer de personne (7.0) : le bonhomme du haut ouvre maintenant les Préférences, le choix est ici.
+                if ProfilsFamille().aPlusieursProfils {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button { quiRegarde = true } label: {
+                            Label("Changer de personne", systemImage: "person.2")
+                        }
+                        .accessibilityIdentifier("quiRegarde")
+                    }
+                }
                 // Sur l'iPhone, Réglages n'a pas d'onglet à lui : l'engrenage l'ouvre.
                 if classeTaille == .compact {
                     ToolbarItem(placement: .topBarTrailing) {
@@ -72,6 +90,14 @@ struct ProfilView: View {
             }
             .navigationDestination(for: TitresAvecActeur.self) { comptes in
                 PersonneView(personne: comptes.personne, comptes: comptes)
+            }
+            .fullScreenCover(isPresented: $quiRegarde) {
+                QuiRegardeView { profil in
+                    quiRegarde = false
+                    // Le choix fait, retour à la page : même si c'est la même personne, les Préférences se referment.
+                    etat.preferencesOuvertes = false
+                    ConteneurApp.changerDeProfil(vers: profil)
+                }
             }
             .sheet(isPresented: $gouts) {
                 BienvenueView(mode: .gouts) { gouts = false }

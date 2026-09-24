@@ -101,6 +101,7 @@
 		9367AAE21A1FCC728F655B0A /* AlertesRecuesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C4B6689B3F01DE3275F6184 /* AlertesRecuesView.swift */; };
 		9465DF498AFBE22D12E9EC5E /* FicheView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 003B43F4A3CFECED924F22EE /* FicheView.swift */; };
 		9867FB00F0D6DD9089B21C75 /* ExplorerTV.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D15356F74B00927F6949939 /* ExplorerTV.swift */; };
+		9B42BD02C3CD9559F1A1B2B5 /* StreamingTV.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5453BA88DED7FB9DE9A90CC5 /* StreamingTV.swift */; };
 		9B9A908F82B4C7E4F5A1F7D2 /* ConfigurationTV.swift in Sources */ = {isa = PBXBuildFile; fileRef = A683B780160AA62BE42AD9C1 /* ConfigurationTV.swift */; };
 		9B9D518CBB779E2321545F3B /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6507C62249A2769DB1E60E0 /* Theme.swift */; };
 		9D5E919DE0559CD12DD8AB23 /* SeanceTVApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDABBFFE0299F9E2180E680B /* SeanceTVApp.swift */; };
@@ -113,6 +114,7 @@
 		A413904B2FFE4A73FEE12672 /* VersionsTV.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EFED69699E50F3169D6EA9C /* VersionsTV.swift */; };
 		A58AFB806058CB8363012E8F /* PoucesTitre.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2298F5234FA2A50B5FD985BB /* PoucesTitre.swift */; };
 		A861577F856FCEDF01F8C566 /* CarteReglageTV.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A301A4B4AB1816D72C3C693 /* CarteReglageTV.swift */; };
+		A8D872DFC40F62A8ED3416AB /* LecteurVLCTV.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E842527E53D34450323EC04 /* LecteurVLCTV.swift */; };
 		A9536F4C9B5ABE97BDFE231D /* EtatDecors.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7706567EB9521978C37DCC4 /* EtatDecors.swift */; };
 		A9D5AB82F1CA559285C218B3 /* VuesWidgets.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12C540EB67C8BD5BA63EA997 /* VuesWidgets.swift */; };
 		AA701A167F40782C9D8FF60D /* VignettesSouvenirs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AE10CA9BFA6AF63B1BB2D8D /* VignettesSouvenirs.swift */; };
@@ -159,6 +161,7 @@
 		E73943D3F2FC9A1C1C9E15AB /* EtatTV.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8D712A6F922DE489158A5E7 /* EtatTV.swift */; };
 		E88382E40DBA182DAA361F71 /* BandesAnnonces.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA91FBA795C5F100C03F8CC6 /* BandesAnnonces.swift */; };
 		E90B1B398ADDFE4E1DE18A19 /* EtatCentrale.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C0C8A74971337065B3F6249 /* EtatCentrale.swift */; };
+		EA6D54848C6540918E7FD7A4 /* Sources.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA2DE5978336A2E0AE921BBB /* Sources.swift */; };
 		EB5C447131F05A6754775E34 /* VisiteTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3719B49FCFBACBABA76DF8AD /* VisiteTests.swift */; };
 		EDBBE1D377840342A321B6B8 /* TourCompletTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED072241FDDEE5DC57D56512 /* TourCompletTests.swift */; };
 		F0BC104982496F4B989F98CB /* LecteurIntegre.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5AEDB40E8F08A0608A8ED1BF /* LecteurIntegre.swift */; };
@@ -265,6 +268,7 @@
 		0A301A4B4AB1816D72C3C693 /* CarteReglageTV.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CarteReglageTV.swift; sourceTree = "<group>"; };
 		0AE10CA9BFA6AF63B1BB2D8D /* VignettesSouvenirs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VignettesSouvenirs.swift; sourceTree = "<group>"; };
 		0B91968F8C13F8CECB709FC5 /* EtagereDuHaut.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EtagereDuHaut.swift; sourceTree = "<group>"; };
+		0E842527E53D34450323EC04 /* LecteurVLCTV.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LecteurVLCTV.swift; sourceTree = "<group>"; };
 		0EDD37B39A84ADA0B97BEB0F /* EnvoiAppleTVTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnvoiAppleTVTests.swift; sourceTree = "<group>"; };
 		0F0A5CECA4CE808ED4DF352C /* IdeesCeSoir.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IdeesCeSoir.swift; sourceTree = "<group>"; };
 		0FF991D92C556A3C1303E019 /* EpisodesSerie.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EpisodesSerie.swift; sourceTree = "<group>"; };
@@ -312,6 +316,7 @@
 		50E6C3ED562D0B27CFEF522C /* ExplorerModele.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExplorerModele.swift; sourceTree = "<group>"; };
 		51B21A23E9E47516765D2FE0 /* EtatApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EtatApp.swift; sourceTree = "<group>"; };
 		540314EE6294B3465B1CB83B /* ComposantsTV.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComposantsTV.swift; sourceTree = "<group>"; };
+		5453BA88DED7FB9DE9A90CC5 /* StreamingTV.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamingTV.swift; sourceTree = "<group>"; };
 		54B4F4189EFFF7CA18A4B017 /* ReglagesTV.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReglagesTV.swift; sourceTree = "<group>"; };
 		562FA0BC92C87B80E5980C1F /* LectureNAS.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LectureNAS.swift; sourceTree = "<group>"; };
 		58EBC481C41A43E2C270B750 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
@@ -396,6 +401,7 @@
 		E44F427370D5E25552689ED0 /* PublicationEtagere.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PublicationEtagere.swift; sourceTree = "<group>"; };
 		E818541C3B3B900062945DAE /* NASView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NASView.swift; sourceTree = "<group>"; };
 		E8C7895F09DBDD48755EC03B /* ReglagesComposantsTV.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReglagesComposantsTV.swift; sourceTree = "<group>"; };
+		EA2DE5978336A2E0AE921BBB /* Sources.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources.swift; sourceTree = "<group>"; };
 		EA30C09730EC83C1DD2B3771 /* AProposView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AProposView.swift; sourceTree = "<group>"; };
 		EA63DB73B5CFE0DDF5658A19 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		EB6B5B72BF540F4FCF396BEB /* Volumetrie.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Volumetrie.swift; sourceTree = "<group>"; };
@@ -627,6 +633,7 @@
 				F28A6AE81AE5504FEEB60C17 /* Personne */,
 				88A9BAFEC0B33A53512B6637 /* Profil */,
 				3E8CCCB14E6EF33B29FB9242 /* Reglages */,
+				E2C6E33BA57129DA93BB66FE /* Sources */,
 				3354B406ECCE18E0FF7FF4C9 /* Statistiques */,
 			);
 			path = Ecrans;
@@ -776,11 +783,13 @@
 				8D15356F74B00927F6949939 /* ExplorerTV.swift */,
 				175681010BEED29FC95F0172 /* FamilleTV.swift */,
 				EC28EF8C6F8FD3DBA038A6B1 /* FicheTV.swift */,
+				0E842527E53D34450323EC04 /* LecteurVLCTV.swift */,
 				7F2F9E228CF6FD8AD2ABB788 /* ListesTV.swift */,
 				2DE009439CA55CCDE58B6A92 /* NASTV.swift */,
 				051C2BE31C08E94AC2FB3AC6 /* PersonneTV.swift */,
 				8D777738E8169D1D6CBA2E0A /* ProfilTV.swift */,
 				54B4F4189EFFF7CA18A4B017 /* ReglagesTV.swift */,
+				5453BA88DED7FB9DE9A90CC5 /* StreamingTV.swift */,
 				76E95955E82BF0843BEFC076 /* TeleTV.swift */,
 				5EFED69699E50F3169D6EA9C /* VersionsTV.swift */,
 				1987D3867BA078091BC7D8A1 /* VideosPersoTV.swift */,
@@ -826,6 +835,14 @@
 				C7971FD6500EC30161EA83E4 /* SeanceNAS */,
 			);
 			name = Packages;
+			sourceTree = "<group>";
+		};
+		E2C6E33BA57129DA93BB66FE /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				EA2DE5978336A2E0AE921BBB /* Sources.swift */,
+			);
+			path = Sources;
 			sourceTree = "<group>";
 		};
 		F28A6AE81AE5504FEEB60C17 /* Personne */ = {
@@ -1094,6 +1111,7 @@
 				3ACD7AF63174915B43570296 /* FauxTMDB.swift in Sources */,
 				8F8CD3C44264D47470182C69 /* FicheTV.swift in Sources */,
 				CF9E1E93D06F26359CB61324 /* FondTV.swift in Sources */,
+				A8D872DFC40F62A8ED3416AB /* LecteurVLCTV.swift in Sources */,
 				5DDD07F40FFE3335AC49B8AF /* ListesTV.swift in Sources */,
 				AF221D726CDAD5B2E1814E93 /* NASTV.swift in Sources */,
 				251E1E9A4053E9869F193746 /* PersonneTV.swift in Sources */,
@@ -1103,6 +1121,7 @@
 				E3C2E603DD238FA97AD800D6 /* ReglagesComposantsTV.swift in Sources */,
 				82B7699785ED31DA68C754A9 /* ReglagesTV.swift in Sources */,
 				9D5E919DE0559CD12DD8AB23 /* SeanceTVApp.swift in Sources */,
+				9B42BD02C3CD9559F1A1B2B5 /* StreamingTV.swift in Sources */,
 				2A0E12E18C94B91D230F7950 /* TeleTV.swift in Sources */,
 				F3631B58722536201E41B063 /* Theme.swift in Sources */,
 				9D686CB11A2D31B958D5A9CB /* Versions.swift in Sources */,
@@ -1209,6 +1228,7 @@
 				CC898EF9BC0F2AB4B3062CF4 /* SeanceApp.swift in Sources */,
 				36BD505CB5A8BD22FAF40C8F /* SectionFavoris.swift in Sources */,
 				8770272C3FEE7FA90176BBDB /* SelecteurCases.swift in Sources */,
+				EA6D54848C6540918E7FD7A4 /* Sources.swift in Sources */,
 				DD832CF1C927F9D08CAC9673 /* StatistiquesView.swift in Sources */,
 				9B9D518CBB779E2321545F3B /* Theme.swift in Sources */,
 				B8A8D629CB5D53A0C47BFA2E /* Versions.swift in Sources */,
@@ -1470,7 +1490,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 51;
+				CURRENT_PROJECT_VERSION = 53;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = GATK475J3P;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -1490,7 +1510,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 6.5;
+				MARKETING_VERSION = 7.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -1591,7 +1611,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 51;
+				CURRENT_PROJECT_VERSION = 53;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = GATK475J3P;
 				ENABLE_NS_ASSERTIONS = NO;
@@ -1605,7 +1625,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 6.5;
+				MARKETING_VERSION = 7.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";

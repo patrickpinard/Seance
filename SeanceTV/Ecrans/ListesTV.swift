@@ -77,7 +77,7 @@ struct ListesTV: View {
     private var aVenir: some View {
         if echeances.isEmpty {
             VideTV(symbole: "calendar.badge.clock", titre: "Rien de prévu pour l'instant",
-                   message: "Les sorties, les nouveaux épisodes et les passages à la télé de tes titres apparaîtront ici.")
+                   message: "Les sorties, les nouveaux épisodes et les passages à la TV de tes titres apparaîtront ici.")
         } else {
             LazyVGrid(columns: Array(repeating: GridItem(.fixed(CarteLargeTV.largeurGrille), spacing: 40, alignment: .top), count: 3), spacing: 50) {
                 ForEach(echeances) { echeance in

@@ -62,8 +62,7 @@ final class VideosPersoTests: XCTestCase {
         XCTAssertTrue(apres.label.contains("Montagne"), "L'icône choisie n'est pas celle de l'album : « \(apres.label) »")
 
         // Le réglage : une ligne de l'état, et une case à cocher.
-        app.tabBars.buttons["Préférences"].firstMatch.tap()
-        app.navigationBars.buttons["Réglages"].firstMatch.tap()
+        app.ouvrirReglages()
         let ligne = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Vidéos personnelles'")).firstMatch
         XCTAssertTrue(app.amener(ligne), "La ligne « Vidéos personnelles » est absente de l'état")
         ligne.tap()

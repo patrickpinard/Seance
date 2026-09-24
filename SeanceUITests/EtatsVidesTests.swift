@@ -39,7 +39,7 @@ final class EtatsVidesTests: XCTestCase {
             capture("0\(4 + rang)-listes-\(onglet)")
         }
 
-        app.tabBars.buttons["Préférences"].firstMatch.tap()
+        app.ouvrirPreferences()
         capture("09-profil", attente: 3)
         app.swipeUp()
         capture("10-profil-bas")
@@ -58,7 +58,7 @@ final class EtatsVidesTests: XCTestCase {
         let chaines = app.buttons["Choisir mes chaînes"].firstMatch
         XCTAssertTrue(chaines.waitForExistence(timeout: 5), "Le programme TV vide ne propose pas de choisir ses chaînes")
         chaines.tap()
-        XCTAssertTrue(app.navigationBars["Télévision"].waitForExistence(timeout: 8), "« Choisir mes chaînes » n'ouvre pas les réglages de télévision")
+        XCTAssertTrue(app.navigationBars["TV"].waitForExistence(timeout: 8), "« Choisir mes chaînes » n'ouvre pas les réglages de télévision")
         capture("12b-tele-reglages", attente: 1)
         app.navigationBars.buttons.firstMatch.tap()
         if app.navigationBars["Programme TV"].waitForExistence(timeout: 5) { app.navigationBars.buttons.firstMatch.tap() }

@@ -9,9 +9,8 @@ final class EnvoiAppleTVTests: XCTestCase {
         let app = XCUIApplication()
         Lancement.demonstration(app)
         app.launch()
-        XCTAssertTrue(app.tabBars.buttons["Préférences"].firstMatch.waitForExistence(timeout: 20))
-        app.tabBars.buttons["Préférences"].firstMatch.tap()
-        app.navigationBars.buttons["Réglages"].firstMatch.tap()
+        XCTAssertTrue(app.buttons["preferences"].firstMatch.waitForExistence(timeout: 20))
+        app.ouvrirReglages()
         let carte = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Envoyer à un appareil'")).firstMatch
         XCTAssertTrue(app.amener(carte), "La tuile « Envoyer à un appareil » est absente des Réglages")
         carte.tap()

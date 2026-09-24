@@ -50,6 +50,22 @@ Les tests d'interface et les captures tournent sans clé ni réseau : `Lancement
 
 Un test d'interface ne doit pas dépendre de l'heure : le guide télé fictif a des heures fixes « ce soir », ce qui doit être « à venir » se teste sur Demain. Dans les grilles paresseuses, utiliser `app.amener(element)` plutôt que `swipeUp`.
 
+## Charte 8.0 — prérequis de toute interface
+
+Toute page, sur tous les appareils, **et** tout ce qui porte le nom de Séance hors de l'app (widgets, notifications, e-mail de la semaine, étagère de l'Apple TV) suit la charte validée le 24.09.2026. Les maquettes font foi : `Documentation/Maquette — charte commune.png` et `Maquette — Séance 7, iPhone / iPad et Mac / Apple TV.png` (sources `.build/charte/`). Une interface qui s'en écarte n'est pas terminée.
+
+- **Sombre seulement** : les couleurs viennent des jetons de `Theme`, jamais en dur (`Color(red:…)`, `.system(size:)` interdits dans les vues) ; plus d'apparence claire.
+- **L'orange est réservé à ce qui se touche** : bouton principal, liens, onglet choisi, interrupteurs. Dates, lignes d'origine, badges, barres de statistiques : blanc ou gris. Vert = vu, en ordre ; rouge = retirer, en direct.
+- **Texte** : styles du système (Dynamic Type) sur l'iPhone et l'iPad, tailles de tvOS sur la TV.
+- **Icônes** : SF Symbols seulement, une graisse (demi-gras), une couleur ; contour au repos, plein quand c'est choisi. Pas d'emoji dans l'interface. Les logos des plateformes ne servent qu'à dire « où ».
+- **Un seul bouton principal par écran**, qui dit ce qu'il fait (« Regarder sur Prime Video », « Reprendre à 1:03:12 ») ; le reste en boutons secondaires gris ou en liens. Sur la TV, le focus est blanc et soulève l'élément.
+- **Navigation** : trois onglets partout — Accueil · Regarder · Mes listes — et la loupe. Le portrait en haut à gauche (qui regarde, Préférences), **la roue des réglages en haut à droite de chaque page**, une seule par page.
+- **Regarder** = la rangée de jours (première tuile « Auj. », jamais « Ce soir ») + Tout · Streaming · TV · NAS. Un autre jour sert à planifier.
+- **Composants communs** à l'app et à la TV, qui ne changent que de taille : carte 16/9 (ligne d'origine, titre, faits, ▶︎ blanc — ni badge, ni étoile, ni rangée de logos), bouton principal, rangée de jours, en-tête de section (un titre et « Tout voir », sans phrase dessous), ligne « Où regarder ». La fiche garde partout le même ordre : image, titre et faits, action principale, Ma liste · Ce soir · ⋯, ton avis, où regarder, résumé, épisodes, casting.
+- **Gestes nommés** : glisser et appui long (clic droit sur le Mac, appui long à la télécommande) montrent les mêmes actions, dans les mêmes mots ; retour au toucher sur les actions (Terminé, Ma liste).
+- **Vocabulaire** : « Suggestions » (jamais « Idées »), « Ma liste », « Ce soir », « Terminé », « Me prévenir », « TV ». Les explications sont derrière « ⓘ », pas sous les titres.
+- **Vérifiée par les tests** : un test de la charte (à écrire dans la 8.0) refuse une couleur ou une taille en dur et tout emoji dans les vues, comme `AccessibiliteTests` refuse une zone de toucher trop petite.
+
 ## Règles propres au projet
 
 - **Navigation par valeur uniquement** : `NavigationLink(value:)`, avec les destinations déclarées à la racine de chaque pile par `destinationsTitres()` (`RacineView.swift` : `ReferenceTitre`, `ReferencePersonne`, `DestinationReglage`). Jamais `NavigationLink { Vue() }` ni `navigationDestination(isPresented:)` : un lien « par vue » a figé l'app sur l'iPhone.
@@ -68,6 +84,8 @@ Un test d'interface ne doit pas dépendre de l'heure : le guide télé fictif a 
 - **Centrale de la maison** (`EtatCentrale`, Mac seulement) : passage tous les quarts d'heure, `beginActivity` contre la veille, `SMAppService` pour l'ouverture de session.
 - **Apple TV, les mêmes informations que l'iPhone (6.3)** : `EtatOu` et les notes de version (`Seance/Ecrans/Reglages/Versions.swift`) sont compilés dans la cible TV par `project.yml` — les logos des plateformes sur les cartes (`BadgeOuTV`) et Réglages › À propos › Versions (`PageVersionsTV`) en viennent. Toute question se pose avec `DialogueTV` ; `alert` et `confirmationDialog` écrivent blanc sur blanc sur tvOS.
 - **Tests de l'Apple TV** : `SeanceTVUITests` (XCUIRemote), lancés par `outils/verifier.sh`. Une pile dont le chemin est typé (`[ReferenceTitre]`) refuse en silence toute autre destination : utiliser `NavigationPath`.
+- **Menu 7.0** (maquette 1) : `OngletRacine` a `streaming`, `tele`, `nas` (iPad, Mac) et `regarder` (iPhone, qui ne tient que quatre onglets et la loupe) ; `RacineView.aller(a:)` traduit une demande d'onglet selon la taille. Préférences n'est plus un onglet : `etat.preferencesOuvertes` ouvre `ProfilView(enFeuille: true)`, par le portrait que pose `boutonBarreLaterale()`. Pages : `Seance/Ecrans/Sources/Sources.swift`, `StreamingTV`. Les tests d'interface passent par `app.ouvrirPreferences()`. On écrit « TV », jamais « Télé ». Réglages en liste groupée (`LigneReglage`, piste A).
+- **Lecteur de l'iPhone (7.0)** : `LecteurVLC` lit le NAS en SMB directement (`:smb-user`, `:smb-pwd`), le relais HTTP en secours ; `EtatNAS.dansSeance` (par défaut) ou Infuse, dans Réglages › Lecture ; `OrientationLecture` et `DelegueApp` laissent tourner l'iPhone le temps du lecteur.
 - **Charte graphique** : `Documentation/Charte graphique.md` dit quel composant utiliser pour quoi (couleurs de `Theme`, `SelecteurCases` pour choisir ce que la page montre, `TuileReglage`, `EtatVide`, `BoutonTV`…). Pas de composant « maison » qui double un composant de la charte, pas d'icônes multicolores, pas de contrôle segmenté hors des formulaires de réglage.
 - **Accessibilité** : `AccessibiliteTests` est bloquant (descriptions, zones de toucher de 44 points) ; utiliser `BasculeGrilleListe` et `.zoneDeToucher()` de `Seance/Design/`.
 - Sur l'iPad, toute interface se vérifie en portrait **et** en paysage (`IPadTests`) ; le Mac s'appuie sur l'interface iPad.

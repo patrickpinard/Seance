@@ -129,10 +129,10 @@ extension View {
         .onDisappear { TitreFenetre.retablir() }
     }
 
-    /// Le bouton qui masque ou affiche le menu de gauche, en tête de la barre d'un onglet ; rien sur l'iPhone.
-    /// Posé à la racine de chaque onglet ; ne fait plus rien depuis la 5.1.
-    func boutonBarreLaterale() -> some View {
-        modifier(PastilleQuiRegardeModifier())
+    /// En tête de la barre de chaque onglet : le portrait des Préférences (7.0) et, quand la maison a plusieurs profils,
+    /// qui regarde. (Le bouton du menu de gauche, qui donnait son nom au modificateur, a disparu en 5.1.)
+    func boutonBarreLaterale(preferences: Bool = true, reglages: Bool = true) -> some View {
+        modifier(PastilleQuiRegardeModifier(preferences: preferences, reglages: reglages))
     }
 }
 
@@ -153,37 +153,46 @@ enum QuiRegardeActuel {
     }
 }
 
-/// En haut à gauche de chaque page, quand la maison a plusieurs profils : qui regarde, et un toucher pour changer. Sur le
-/// Mac, le nom est dans le titre de la fenêtre, à hauteur du menu ; la pastille, elle, garde le geste pour changer.
+/// En haut de chaque page (7.0) : à gauche, un seul bonhomme avec ton prénom, qui ouvre les Préférences (changer de
+/// personne s'y fait aussi) ; à droite, la roue dentée des Réglages, sur tous les appareils.
 private struct PastilleQuiRegardeModifier: ViewModifier {
-    @State private var choix = false
+    let preferences: Bool
+    let reglages: Bool
+    @Environment(EtatApp.self) private var etat
+
+    private var nom: String? {
+        QuiRegardeActuel.nom ?? Prenom.lire()
+    }
 
     func body(content: Content) -> some View {
         content
             .toolbar {
-                if let nom = QuiRegardeActuel.nom {
+                if preferences {
                     ToolbarItem(placement: .topBarLeading) {
                         // Pas un `Label` : dans la barre d'iOS 26, il se réduit à son icône et le prénom disparaît.
-                        Button { choix = true } label: {
+                        Button { etat.preferencesOuvertes = true } label: {
                             HStack(spacing: 6) {
-                                Image(systemName: ProfilsFamille().actif.symbole)
-                                Text(nom).lineLimit(1)
+                                Image(systemName: ProfilsFamille().aPlusieursProfils ? ProfilsFamille().actif.symbole : "person.crop.circle")
+                                if let nom { Text(nom).lineLimit(1) }
                             }
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(Theme.accentClair)
                             .padding(.horizontal, 6)
                         }
-                        .help("Qui regarde : \(nom). Toucher pour changer de personne.")
-                        .accessibilityLabel("Qui regarde : \(nom)")
-                        .accessibilityHint("Change de personne")
-                        .accessibilityIdentifier("quiRegarde")
+                        .help("Préférences : tes goûts, tes notes, tes statistiques")
+                        .accessibilityLabel(nom.map { "Préférences de \($0)" } ?? "Préférences")
+                        .accessibilityIdentifier("preferences")
                     }
                 }
-            }
-            .fullScreenCover(isPresented: $choix) {
-                QuiRegardeView { profil in
-                    choix = false
-                    ConteneurApp.changerDeProfil(vers: profil)
+                if reglages {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button { etat.ongletDemande = .reglages } label: {
+                            Image(systemName: "gearshape")
+                        }
+                        .help("Réglages")
+                        .accessibilityLabel("Réglages")
+                        .accessibilityIdentifier("reglages")
+                    }
                 }
             }
             .onAppear { TitreFenetre.retablir() }

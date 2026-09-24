@@ -180,8 +180,7 @@ struct ActionsOuRegarder: View {
                     .accessibilityHint("Ouvre la chaîne dans l'app blue TV")
             } else {
                 Button {
-                    etat.ongletDemande = .accueil
-                    etat.programmeTeleDemande = true
+                    etat.ongletDemande = .tele
                 } label: { EtiquetteGrandBouton(symbole: "tv.fill", texte: "\(chaine) · \(quand)") }
                     .buttonStyle(.plain)
                     .accessibilityLabel("À la TV : \(chaine), \(quand)")
@@ -241,8 +240,7 @@ struct ActionsOuRegarder: View {
                 .accessibilityHint("Ouvre la chaîne dans l'app blue TV")
             } else {
                 Button {
-                    etat.ongletDemande = .accueil
-                    etat.programmeTeleDemande = true
+                    etat.ongletDemande = .tele
                 } label: {
                     PastilleOuRegarder(symbole: "tv.fill", texte: "\(chaine) · \(quand)")
                 }
@@ -415,8 +413,19 @@ struct ChoixLecture: View {
         }
     }
 
-    /// Le fichier du NAS dans l'app de Réglages › Lecture, comme le bouton « Lire » ; un souci se dit dans le bandeau.
+    /// Le fichier du NAS : dans Séance même, par VLCKit (6.6, par défaut) ; sinon, et toujours sur le Mac, dans l'app
+    /// de Réglages › Lecture.
     private func lire(_ fichier: FichierNAS) {
+        #if !targetEnvironment(macCatalyst)
+        if etat.nas.dansSeance {
+            guard etat.nas.motDePasse != nil else {
+                return etat.confirmer("Mot de passe du NAS manquant : enregistre-le dans Réglages › NAS.", symbole: "exclamationmark.triangle")
+            }
+            etat.filmALire = fichier
+            etat.nas.noterLecture(fichier)
+            return
+        }
+        #endif
         let lecteur = etat.nas.lecteur
         switch etat.nas.lien(pour: fichier, avec: lecteur) {
         case .pret(let lien):

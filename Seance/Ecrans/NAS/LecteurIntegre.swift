@@ -95,8 +95,13 @@ struct LecteurIntegre: View {
                     if glissement.translation.height > 80 { fermer() }
                 }
         )
+        // L'iPhone tourne à l'horizontale le temps de la vidéo (7.0).
+        .onAppear { OrientationLecture.ouvrir() }
         .task { await ouvrir() }
-        .onDisappear { Task { await ranger() } }
+        .onDisappear {
+            OrientationLecture.fermer()
+            Task { await ranger() }
+        }
     }
 
     private func ouvrir() async {

@@ -46,10 +46,8 @@ final class ParcoursUtilisateurTests: XCTestCase {
         try lancer(neuf: false)
         XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 30), "Pas de barre d'onglets")
 
-        // Réglages : sur l'iPhone, ils s'ouvrent depuis Préférences.
-        app.tabBars.buttons["Préférences"].firstMatch.tap()
-        let entreeReglages = app.navigationBars.buttons["Réglages"].firstMatch
-        if entreeReglages.waitForExistence(timeout: 5) { entreeReglages.tap() }
+        // Réglages : la roue dentée en haut de chaque page (7.0).
+        app.ouvrirReglages()
         capture("10-reglages", attente: 2)
 
         let ligneNAS = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'NAS'")).firstMatch

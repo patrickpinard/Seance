@@ -163,7 +163,7 @@ struct AccueilView: View {
     /// Les rendez-vous de tes titres, sur huit jours : l'accueil résume ceux d'aujourd'hui, « À venir » les montre tous.
     @Query private var echeances: [Echeance]
 
-    /// Les quatre requêtes ci-dessus sont bornées ici : sans cela, l'accueil relisait tout le guide télé, toutes
+    /// Les quatre requêtes ci-dessus sont bornées ici : sans cela, l'accueil relisait tout le guide TV, toutes
     /// les listes et toutes les échéances à chaque affichage, pour n'en montrer que quelques lignes.
     init() {
         let jour = Calendar.current.startOfDay(for: .now)
@@ -305,14 +305,7 @@ struct AccueilView: View {
                 for suivi in candidatsRegardables { etat.ou.demander(suivi.reference, client: etat.tmdb) }
             }
             .destinationsTitres()
-            .navigationDestination(for: DestinationAccueil.self) { destination in
-                switch destination {
-                case .nas: NASView()
-                case .tele: ProgrammeTeleView()
-                case .duMoment(let plateformes): DuMomentView(plateformes: plateformes)
-                case .documentaires: DocumentairesView()
-                }
-            }
+            .destinationsAccueil()
             .toolbar {
                 ToolbarItemGroup(placement: .topBarTrailing) {
                     Button { reglageSources = true } label: {
@@ -335,11 +328,6 @@ struct AccueilView: View {
             guard let reference else { return }
             chemin.append(reference)
             etat.ficheDemandee = nil
-        }
-        .onChange(of: etat.programmeTeleDemande, initial: true) { _, demande in
-            guard demande else { return }
-            chemin.append(DestinationAccueil.tele)
-            etat.programmeTeleDemande = false
         }
     }
 
@@ -405,7 +393,8 @@ struct AccueilView: View {
                 if sources.tele {
                     SectionTele(diffusions: sources.seriesTele ? diffusions : diffusions.filter { $0.typeBrut == TypeTitre.film.rawValue },
                                 lectureEnCours: etat.teleEnCours) {
-                        chemin.append(DestinationAccueil.tele)
+                        // 7.0 : le programme a son entrée dans le menu.
+                        etat.ongletDemande = .tele
                     }
                 }
 
@@ -437,7 +426,7 @@ struct AccueilView: View {
                 }
 
                 if sources.nas {
-                    SectionNAS { chemin.append(DestinationAccueil.nas) }
+                    SectionNAS { etat.ongletDemande = .nas }
                 }
 
             }
@@ -820,7 +809,7 @@ private struct SectionTele: View {
                 if lectureEnCours {
                     MessageEtat(texte: "Lecture des programmes de tes chaînes…", ton: .attente)
                 } else {
-                    MessageEtat(texte: "Aucun film reconnu sur tes chaînes pour l'instant. Choisis-les dans Réglages › Télévision.", symbole: "tv")
+                    MessageEtat(texte: "Aucun film reconnu sur tes chaînes pour l'instant. Choisis-les dans Réglages › TV.", symbole: "tv")
                 }
             } else {
                 DefilementHorizontal {

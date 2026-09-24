@@ -44,11 +44,11 @@ final class TelecommandeTests: XCTestCase {
         return focusSur(textes)
     }
 
-    /// Le menu est en haut, et ses huit entrées sont là.
+    /// Le menu est en haut, et ses neuf entrées sont là (7.0 : la même barre que sur l'iPad).
     func testLeMenuDuHaut() throws {
         lancer()
         XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 30), "Pas de barre d'onglets en haut")
-        for onglet in ["Accueil", "Ce soir", "Mes listes", "Explorer", "TV", "NAS", "Préférences", "Réglages"] {
+        for onglet in ["Préférences", "Accueil", "Ce soir", "Streaming", "TV", "NAS", "Mes listes", "Explorer", "Réglages"] {
             XCTAssertTrue(app.tabBars.buttons[onglet].exists, "« \(onglet) » absent du menu")
         }
         capture("tv-menu")
@@ -78,13 +78,13 @@ final class TelecommandeTests: XCTestCase {
     /// Les Réglages en grandes cartes : la première carte à régler s'ouvre, et Retour en revient.
     func testLesReglagesSOuvrentEtSeReferment() throws {
         lancer(["SEANCE_TV_ONGLET": "reglages"])
-        XCTAssertTrue(app.staticTexts["État de Séance sur cette TV"].waitForExistence(timeout: 30))
-        XCTAssertTrue(descendreJusqua(["TMDB", "Plateformes", "Télévision"]), "La télécommande n'atteint pas les cartes des réglages")
+        XCTAssertTrue(app.staticTexts["Où regarder"].waitForExistence(timeout: 30))
+        XCTAssertTrue(descendreJusqua(["Plateformes", "TV", "NAS"]), "La télécommande n'atteint pas les cartes des réglages")
         telecommande.press(.select)
-        XCTAssertFalse(app.staticTexts["État de Séance sur cette TV"].waitForExistence(timeout: 3), "La carte choisie n'ouvre rien")
+        XCTAssertFalse(app.staticTexts["Où regarder"].waitForExistence(timeout: 3), "La carte choisie n'ouvre rien")
         capture("tv-reglage-tmdb")
         telecommande.press(.menu)
-        XCTAssertTrue(app.staticTexts["État de Séance sur cette TV"].waitForExistence(timeout: 10), "Retour ne ramène pas aux Réglages")
+        XCTAssertTrue(app.staticTexts["Où regarder"].waitForExistence(timeout: 10), "Retour ne ramène pas aux Réglages")
     }
 
     /// Famille : « Qui regarde ? » à l'ouverture ; choisir Anne ouvre ses listes à elle, vides, pas celles du profil principal.
@@ -140,7 +140,7 @@ final class TelecommandeTests: XCTestCase {
         let liste = app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS 'Version 6.3'")).firstMatch
         XCTAssertTrue(liste.waitForExistence(timeout: 30), "La page Versions ne s'ouvre pas sur la TV")
         capture("tv-versions")
-        XCTAssertTrue(descendreJusqua(["Version 6.3"], essais: 4), "La télécommande n'atteint pas la version installée")
+        XCTAssertTrue(descendreJusqua(["Version 6.3"], essais: 8), "La télécommande n'atteint pas la version installée")
         telecommande.press(.select)
         XCTAssertTrue(app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS 'Les logos sur les cartes de la TV'")).firstMatch
             .waitForExistence(timeout: 10), "La version ne s'ouvre pas sur ce qu'elle apporte")
@@ -153,7 +153,7 @@ final class TelecommandeTests: XCTestCase {
     func testLeChoixDeLaSourceEstLisible() throws {
         lancer(["SEANCE_TV_FICHE": "film:324552"])
         // Le bouton de la rangée d'actions, pas celui de blue TV plus bas, qui commence aussi par « Regarder ».
-        // La fiche ne pose pas toujours le focus au même endroit (elle change avec les passages télé du jour) :
+        // La fiche ne pose pas toujours le focus au même endroit (elle change avec les passages TV du jour) :
         // on remonte vers le haut et on essaie, jusqu'à ce que le choix des sources s'ouvre.
         let regarder = app.buttons.matching(NSPredicate(format: "label == 'Regarder…' OR label BEGINSWITH 'Regarder maintenant'")).firstMatch
         XCTAssertTrue(regarder.waitForExistence(timeout: 30), "Pas de bouton « Regarder » sur la fiche")

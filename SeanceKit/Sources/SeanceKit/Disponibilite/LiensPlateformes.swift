@@ -49,6 +49,33 @@ public enum LiensPlateformes {
         }
     }
 
+    /// Les adresses à essayer sur l'Apple TV (6.6), dans l'ordre. tvOS ne se comporte pas comme iOS : un lien
+    /// universel `https://www.netflix.com/watch/…` y ouvre Netflix sur sa page d'accueil, jamais sur le titre. Le
+    /// schéma de l'app — `nflx://` — lance, lui, le bon film. On essaie donc d'abord le schéma natif avec l'identifiant
+    /// exact, puis le lien universel (que l'app TV d'Apple, elle, comprend), puis la recherche.
+    public static func liensTV(plateforme id: Int, titre: String, reference: ReferenceTitre,
+                               identifiants: IdentifiantsPlateformes?) -> [URL] {
+        var liens: [URL] = []
+        let film = reference.type == .film
+        if let identifiants {
+            switch id {
+            case 8, 1796:
+                if let netflix = identifiants.netflix {
+                    liens.append(URL(string: "nflx://www.netflix.com/\(film ? "watch" : "title")/\(netflix)")!)
+                }
+            case 337:
+                if let disney = identifiants.disney {
+                    liens.append(URL(string: "disneyplus://\(film ? "movies/wd" : "series/wp")/\(disney)")!)
+                }
+            default:
+                break
+            }
+            if let direct = direct(plateforme: id, reference: reference, identifiants: identifiants) { liens.append(direct) }
+        }
+        if let recherche = lien(plateforme: id, titre: titre) { liens.append(recherche) }
+        return liens
+    }
+
     /// Les plateformes dont Séance sait ouvrir un titre précis : ce n'est que pour elles que Wikidata vaut la peine.
     public static let avecLienDirect: Set<Int> = [8, 1796, 350, 2, 337]
 

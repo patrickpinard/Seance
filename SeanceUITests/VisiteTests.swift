@@ -15,8 +15,7 @@ final class VisiteTests: XCTestCase {
 
     /// Sur l'iPhone, Réglages s'ouvre depuis l'engrenage de Profil.
     private func ouvrirReglages() {
-        app.tabBars.buttons["Préférences"].firstMatch.tap()
-        app.navigationBars.buttons["Réglages"].firstMatch.tap()
+        app.ouvrirReglages()
     }
 
     func testPremierLancement() throws {
@@ -58,7 +57,7 @@ final class VisiteTests: XCTestCase {
         }
         app.launchEnvironment["SEANCE_DEMO"] = "1"
         app.launch()
-        app.tabBars.buttons["Préférences"].firstMatch.tap()
+        app.ouvrirPreferences()
         capture("80-profil")
         app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Tes statistiques'")).firstMatch.tap()
         XCTAssertTrue(app.staticTexts["Mois par mois"].waitForExistence(timeout: 5))
@@ -155,7 +154,7 @@ final class VisiteTests: XCTestCase {
         capture("A3-fiche-serie", attente: 6)
         app.swipeUp()
         capture("A4-fiche-serie-bas", attente: 2)
-        onglet("Préférences")
+        app.ouvrirPreferences()
         app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Tes statistiques'")).firstMatch.tap()
         capture("A5-statistiques", attente: 3)
         onglet("Explorer")

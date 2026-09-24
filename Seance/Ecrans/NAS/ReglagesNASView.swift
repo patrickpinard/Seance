@@ -163,10 +163,10 @@ struct ReglagesNASView: View {
 
             Section {
                 NavigationLink(value: DestinationReglage.lecture) {
-                    LabeledContent("App de lecture", value: etat.nas.lecteur.nom)
+                    LabeledContent("Lecteur", value: etat.nas.nomLecteur)
                 }
             } footer: {
-                Text("Infuse ou VLC lisent la vidéo directement sur le NAS, sans la copier. Le choix et ce que chaque app demande sont dans Réglages › Lecture.")
+                Text("Séance lit la vidéo directement sur le NAS, sans la copier, avec VLCKit ou Infuse. Le choix est dans Réglages › Lecture.")
             }
         }
         .scrollDismissesKeyboard(.immediately)

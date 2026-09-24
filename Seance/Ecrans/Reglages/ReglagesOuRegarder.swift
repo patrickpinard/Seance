@@ -127,7 +127,7 @@ struct ReglagesTeleView: View {
                 Text("Programmes : XML TV Fr, projet bénévole, sans garantie.")
             }
         }
-        .pageReglages("Télévision")
+        .pageReglages("TV")
         // Les chaînes ont pu changer : le guide est relu en quittant la page, si nécessaire.
         .onDisappear {
             Task { await etat.actualiserTele(contexte: contexte) }
@@ -148,7 +148,7 @@ struct ReglagesTeleView: View {
     }
 }
 
-/// L'app qui lit les vidéos du NAS : Infuse ou VLC, avec pour chacune si elle est installée et ce qu'elle demande.
+/// Le lecteur des films du NAS : Séance même par VLCKit (7.0, par défaut) ou Infuse, et ce que chacun demande.
 struct ReglagesLectureView: View {
     @Environment(EtatApp.self) private var etat
     @Environment(\.openURL) private var openURL
@@ -163,53 +163,59 @@ struct ReglagesLectureView: View {
             }
             #else
             Section {
-                ForEach(LecteurVideo.allCases) { lecteur in
-                    let installe = UIApplication.shared.canOpenURL(URL(string: "\(lecteur.schema)://")!)
-                    Button {
-                        etat.nas.choisir(lecteur)
-                    } label: {
-                        HStack(spacing: 12) {
-                            Image(systemName: etat.nas.lecteur == lecteur ? "checkmark.circle.fill" : "circle")
-                                .font(.title3)
-                                .foregroundStyle(etat.nas.lecteur == lecteur ? AnyShapeStyle(Theme.accentClair) : AnyShapeStyle(.tertiary))
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(lecteur.nom).font(.headline).foregroundStyle(Color.primary)
-                                Text(installe ? "Installée" : "Pas installée sur cet appareil")
-                                    .font(.caption)
-                                    .foregroundStyle(installe ? AnyShapeStyle(Color.green) : AnyShapeStyle(Color.orange))
-                            }
-                            Spacer()
-                        }
-                        .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("\(lecteur.nom), \(installe ? "installée" : "pas installée")")
-                    .accessibilityAddTraits(etat.nas.lecteur == lecteur ? .isSelected : [])
-                    if !installe {
-                        Button("Installer \(lecteur.nom) depuis l'App Store") { openURL(lecteur.appStore) }
-                            .font(.subheadline)
-                    }
+                choix(titre: "Séance (VLCKit)", detail: "Par défaut · intégré, rien à installer", actif: etat.nas.dansSeance) {
+                    etat.nas.lireDansSeance(true)
+                }
+                let infuse = LecteurVideo.infuse
+                let installee = UIApplication.shared.canOpenURL(URL(string: "\(infuse.schema)://")!)
+                choix(titre: infuse.nom, detail: installee ? "Installée" : "Pas installée sur cet appareil",
+                      alerte: !installee, actif: !etat.nas.dansSeance) {
+                    etat.nas.choisir(infuse)
+                }
+                if !installee {
+                    Button("Installer Infuse depuis l'App Store") { openURL(infuse.appStore) }
+                        .font(.subheadline)
                 }
             } header: {
-                Text("Ouvrir les vidéos du NAS avec")
+                Text("Lire les films du NAS avec")
             } footer: {
-                Text("Toucher un film ou un épisode « Sur ton NAS » l'ouvre dans cette app ; un appui long propose l'autre.")
+                Text("Toucher ▶︎ sur un film ou un épisode « Sur ton NAS » le lance avec ce lecteur.")
             }
 
-            Section("Ce que chaque app demande") {
+            Section("Ce que chaque lecteur demande") {
                 Label {
-                    Text("**Infuse** ouvre le titre dans sa propre bibliothèque et démarre la lecture : ajoute d'abord le partage de ton NAS dans Infuse, et laisse-le indexer tes films. Un fichier qu'Infuse n'a pas reconnu ne s'ouvre pas ; Séance propose alors VLC.")
+                    Text("**VLCKit** est le moteur de VLC, intégré à Séance : il lit tous les formats (MKV, AVI, WMV, DV…) directement sur le NAS, avec l'adresse et le mot de passe de Réglages › NAS. La touche de fermeture ramène là où tu étais.")
                 } icon: { Image(systemName: "1.circle.fill").foregroundStyle(Theme.accentClair) }
                 Label {
-                    Text("**VLC** lit directement le fichier sur le NAS, avec l'adresse et le mot de passe enregistrés dans Réglages › NAS. Rien à préparer dans VLC.")
+                    Text("**Infuse** ouvre le titre dans sa propre bibliothèque et démarre la lecture : ajoute d'abord le partage de ton NAS dans Infuse, et laisse-le indexer tes films. À la fin, c'est Infuse qui reste à l'écran.")
                 } icon: { Image(systemName: "2.circle.fill").foregroundStyle(Theme.accentClair) }
                 Label {
-                    Text("Pour lire, VLC reçoit l'adresse de la vidéo **avec** le nom et le mot de passe du NAS. Le plus sûr : un compte du NAS en lecture seule, réservé à Séance, plutôt que ton compte d'administration.")
+                    Text("Le mot de passe du NAS reste dans le trousseau de cet appareil. Le plus sûr : un compte du NAS en lecture seule, réservé à Séance.")
                 } icon: { Image(systemName: "lock.shield.fill").foregroundStyle(.green) }
             }
             .font(.subheadline)
             #endif
         }
         .pageReglages("Lecture")
+    }
+
+    private func choix(titre: String, detail: String, alerte: Bool = false, actif: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 12) {
+                Image(systemName: actif ? "checkmark.circle.fill" : "circle")
+                    .font(.title3)
+                    .foregroundStyle(actif ? AnyShapeStyle(Theme.accentClair) : AnyShapeStyle(.tertiary))
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(titre).font(.headline).foregroundStyle(Color.primary)
+                    Text(detail).font(.caption)
+                        .foregroundStyle(alerte ? AnyShapeStyle(Color.orange) : AnyShapeStyle(.secondary))
+                }
+                Spacer()
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("\(titre), \(detail)")
+        .accessibilityAddTraits(actif ? .isSelected : [])
     }
 }

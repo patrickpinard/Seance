@@ -25,7 +25,12 @@ struct RacineTV: View {
 
     var body: some View {
         TabView(selection: $onglet) {
-            // Des noms seuls, sans icône, comme Netflix : les huit entrées tiennent ainsi sur une ligne, sans défiler.
+            // 7.0, maquette 1 du menu, la même barre que sur l'iPad et le Mac : le portrait des Préférences, puis
+            // Accueil, Ce soir, les trois endroits où l'on regarde — Streaming, TV, NAS —, Mes listes, la loupe
+            // d'Explorer et la roue dentée des Réglages. Des noms seuls pour les pages, des icônes pour le reste.
+            Tab(value: OngletTV.profil) { pile { ProfilTV() } } label: {
+                Image(systemName: "person.crop.circle").accessibilityLabel("Préférences")
+            }
             Tab(value: OngletTV.accueil) {
                 NavigationStack(path: $cheminAccueil) {
                     AccueilTV().sousLaPastille().background { FondTV() }.navigationDestination(for: ReferenceTitre.self) { FicheTV(reference: $0).pageOuverte() }
@@ -33,11 +38,13 @@ struct RacineTV: View {
                 }
             } label: { Text("Accueil") }
             Tab(value: OngletTV.ceSoir) { pile { CeSoirTV() } } label: { Text("Ce soir") }
-            Tab(value: OngletTV.listes) { pile { ListesTV() } } label: { Text("Mes listes") }
-            Tab(value: OngletTV.explorer) { pile { ExplorerTV() } } label: { Text("Explorer") }
+            Tab(value: OngletTV.streaming) { pile { StreamingTV() } } label: { Text("Streaming") }
             Tab(value: OngletTV.tele) { pile { TeleTV() } } label: { Text("TV") }
             Tab(value: OngletTV.nas) { pile { NASTV() } } label: { Text("NAS") }
-            Tab(value: OngletTV.profil) { pile { ProfilTV() } } label: { Text("Préférences") }
+            Tab(value: OngletTV.listes) { pile { ListesTV() } } label: { Text("Mes listes") }
+            Tab(value: OngletTV.explorer) { pile { ExplorerTV() } } label: {
+                Image(systemName: "magnifyingglass").accessibilityLabel("Explorer")
+            }
             // Les réglages : une roue dentée tout à droite, plutôt qu'un mot de plus dans le menu. Elle reste dans la barre :
             // un bouton posé par-dessus flotterait quand la barre se replie, et la télécommande s'y perdrait.
             Tab(value: OngletTV.reglages) { pile { ReglagesTV() } } label: {
@@ -144,7 +151,7 @@ struct RacineTV: View {
 }
 
 enum OngletTV: String, Hashable {
-    case accueil, ceSoir, listes, explorer, tele, nas, profil, reglages
+    case accueil, ceSoir, streaming, listes, explorer, tele, nas, profil, reglages
 }
 
 /// Où l'app s'ouvre. Toujours l'accueil — sauf dans une version de test, où `SEANCE_TV_ONGLET=nas` ou

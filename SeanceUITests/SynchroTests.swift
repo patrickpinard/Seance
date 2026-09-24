@@ -45,10 +45,9 @@ final class SynchroTests: XCTestCase {
         XCTAssertEqual(archives.filter { $0.hasPrefix("Séance — iPhone") }.count, 1, "Pas de sauvegarde datée : \(archives)")
 
         // La page de réglages dit où en est la synchronisation.
-        app.tabBars.buttons["Préférences"].firstMatch.tap()
-        app.navigationBars.buttons["Réglages"].firstMatch.tap()
-        let sauvegarde = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Sauvegarde'")).firstMatch
-        XCTAssertTrue(app.amener(sauvegarde), "La ligne « Sauvegarde et synchronisation » est absente de l'état")
+        app.ouvrirReglages()
+        let sauvegarde = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Appareils et synchronisation'")).firstMatch
+        XCTAssertTrue(app.amener(sauvegarde), "La ligne « Appareils et synchronisation » est absente des Réglages")
         sauvegarde.tap()
         XCTAssertTrue(app.buttons["Synchroniser maintenant"].firstMatch.waitForExistence(timeout: 10))
         let piece = XCTAttachment(screenshot: app.screenshot())

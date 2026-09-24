@@ -18,8 +18,8 @@ settings:
     # Équipe personnelle de Patrick (compte Apple gratuit).
     DEVELOPMENT_TEAM: GATK475J3P
     # Version affichée dans À propos › Versions ; à changer avec Seance/Ecrans/Reglages/Versions.swift.
-    MARKETING_VERSION: "6.5"
-    CURRENT_PROJECT_VERSION: "51"
+    MARKETING_VERSION: "7.0"
+    CURRENT_PROJECT_VERSION: "53"
 
 packages:
   SeanceKit:
@@ -86,8 +86,11 @@ targets:
         # Le fond du lancement : sombre, comme l'apparence d'origine.
         UILaunchScreen:
           UIColorName: FondLancement
+        # L'iPhone reste en portrait, sauf le lecteur vidéo (7.0) : `DelegueApp` choisit, écran par écran.
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
         # Format iPad, utilisé par la version Mac : toutes les orientations, fenêtre redimensionnable.
         UISupportedInterfaceOrientations~ipad:
           - UIInterfaceOrientationPortrait
@@ -176,6 +179,9 @@ targets:
           - vlc-x-callback
           # blue TV (Swisscom) : l'adresse de son app, celle que son lecteur web utilise (6.3).
           - tvguide
+          # Netflix et Disney+ par leur app (6.6) : sur tvOS, leur lien universel n'ouvre que l'accueil.
+          - nflx
+          - disneyplus
         # seance://film/603 : une affiche de l'étagère du haut ouvre sa fiche.
         CFBundleURLTypes:
           - CFBundleURLName: ch.patrick.seance.tv

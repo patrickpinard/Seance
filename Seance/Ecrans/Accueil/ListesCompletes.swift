@@ -6,23 +6,52 @@ import SwiftUI
 // Page « Tout voir » de « Nouveautés » ; le programme TV est dans ProgrammeTele.swift.
 
 /// « Nouveautés » en entier : sorties et nouveaux épisodes du mois, les plus populaires d'abord.
+/// Avec `choixPlateformes` (7.0), c'est la page Streaming du menu : tes plateformes seulement, une puce par plateforme.
 struct DuMomentView: View {
     var plateformes: [Int]?
+    var choixPlateformes = false
     @State private var type: TypeTitre?
+    @State private var plateformeChoisie: Int?
     @State private var liste = ListePaginee()
+    @Query(filter: #Predicate<Abonnement> { $0.actif }, sort: \Abonnement.nom) private var abonnements: [Abonnement]
 
     @Environment(EtatApp.self) private var etat
 
+    /// Les plateformes interrogées : celle de la puce, sinon toutes celles cochées.
+    private var plateformesRetenues: [Int]? {
+        guard choixPlateformes else { return plateformes }
+        if let plateformeChoisie { return [plateformeChoisie] }
+        return abonnements.isEmpty ? nil : abonnements.map(\.providerID).sorted()
+    }
+
+    private struct Cle: Hashable {
+        let type: TypeTitre?
+        let plateformes: [Int]?
+    }
+
     var body: some View {
         GrillePaginee(liste: liste, sousTitre: sousTitre) {
+            if choixPlateformes, abonnements.count > 1 {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        PuceFiltre(libelle: "Toutes", active: plateformeChoisie == nil) { plateformeChoisie = nil }
+                        ForEach(abonnements) { abonnement in
+                            PuceFiltre(libelle: abonnement.nom, active: plateformeChoisie == abonnement.providerID) {
+                                plateformeChoisie = abonnement.providerID
+                            }
+                        }
+                    }
+                }
+                .scrollClipDisabled()
+            }
             SelecteurCases(selection: $type, cases: [.init(valeur: TypeTitre?.none, nom: "Tout"), .init(valeur: TypeTitre?.some(.film), nom: "Films"),
                                                      .init(valeur: TypeTitre?.some(.serie), nom: "Séries et épisodes")])
         } chargerSuite: {
             await chargerSuite()
         }
-        .navigationTitle(plateformes == nil ? "Nouveautés" : "Nouveautés sur tes plateformes")
-        .navigationBarTitleDisplayMode(.inline)
-        .task(id: type) {
+        .navigationTitle(choixPlateformes ? "Streaming" : plateformes == nil ? "Nouveautés" : "Nouveautés sur tes plateformes")
+        .navigationBarTitleDisplayMode(choixPlateformes ? .large : .inline)
+        .task(id: Cle(type: type, plateformes: plateformesRetenues)) {
             liste = ListePaginee()
             await chargerSuite()
         }
@@ -35,8 +64,9 @@ struct DuMomentView: View {
     private func chargerSuite() async {
         guard let client = etat.tmdb else { return }
         let typeDemande = type
-        let pourFilms = AccueilModele.surPlateformes(CriteresDecouverte.duMoment(.film), plateformes)
-        let pourSeries = AccueilModele.surPlateformes(CriteresDecouverte.duMoment(.serie), plateformes)
+        let retenues = plateformesRetenues
+        let pourFilms = AccueilModele.surPlateformes(CriteresDecouverte.duMoment(.film), retenues)
+        let pourSeries = AccueilModele.surPlateformes(CriteresDecouverte.duMoment(.serie), retenues)
         await liste.charger { page in
             var criteresFilms = pourFilms
             criteresFilms.page = page

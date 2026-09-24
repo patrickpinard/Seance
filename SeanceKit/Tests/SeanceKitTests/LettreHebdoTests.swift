@@ -20,7 +20,7 @@ struct LettreHebdoTests {
             .init(titre: "Vide", lignes: []),
         ])
         #expect(lettre.html.contains("Tom &amp; Jerry &lt;2&gt;") && !lettre.html.contains("<2>"))
-        #expect(lettre.html.contains("#ff7a3d") && lettre.html.contains("Bonsoir Patrick,") && !lettre.html.contains(">Vide<"))
+        #expect(lettre.html.contains("#ff7a3d") && lettre.html.contains("\(LettreHebdo.salutation(lettre.envoyeLe)) Patrick,") && !lettre.html.contains(">Vide<"))
         #expect(lettre.texte.contains("• Tom & Jerry <2> — Nouvel épisode S02E04 (Jeudi 24 septembre)"))
         #expect(!lettre.estVide && LettreHebdo(prenom: nil, periode: "", sections: []).estVide)
         #expect(LettreHebdo(prenom: nil, periode: "", sections: [], essai: true).sujet.hasPrefix("[Essai] "))
@@ -59,5 +59,24 @@ struct SMTPReelTests {
         } catch {
             Issue.record("Erreur inattendue : \(error)")
         }
+    }
+}
+
+@Suite("Salutation de l'e-mail")
+struct SalutationLettreTests {
+    private func a(_ heure: Int) -> Date {
+        var composants = DateComponents(year: 2026, month: 9, day: 24, hour: heure)
+        composants.timeZone = TimeZone(identifier: "Europe/Zurich")
+        return Calendar(identifier: .gregorian).date(from: composants)!
+    }
+
+    @Test("Bonjour avant 18 heures, Bonsoir ensuite")
+    func selonLHeure() {
+        var calendrier = Calendar(identifier: .gregorian)
+        calendrier.timeZone = TimeZone(identifier: "Europe/Zurich")!
+        #expect(LettreHebdo.salutation(a(9), calendrier: calendrier) == "Bonjour")
+        #expect(LettreHebdo.salutation(a(17), calendrier: calendrier) == "Bonjour")
+        #expect(LettreHebdo.salutation(a(18), calendrier: calendrier) == "Bonsoir")
+        #expect(LettreHebdo.salutation(a(22), calendrier: calendrier) == "Bonsoir")
     }
 }

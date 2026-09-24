@@ -26,7 +26,7 @@ struct TeleTV: View {
                     if jours.isEmpty {
                         VideTV(symbole: "tv", titre: etat.teleEnCours ? "Lecture du programme…" : "Rien à venir",
                                message: chaines.contains(where: \.active) ? "Aucun film ni série reconnu sur tes chaînes pour l'instant."
-                                                                          : "Choisis tes chaînes dans Réglages › Télévision : Séance lira leur programme.")
+                                                                          : "Choisis tes chaînes dans Réglages › TV : Séance lira leur programme.")
                     } else {
                         rangeeDeJours(jours, choisi: jour, parJour: parJour, maintenant: maintenant)
                         if let jour, let blocs = parJour[jour] {

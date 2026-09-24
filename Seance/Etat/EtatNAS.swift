@@ -12,6 +12,9 @@ final class EtatNAS {
     private(set) var reglages: ReglagesNAS
     private(set) var motDePasseEnregistre: Bool
     private(set) var lecteur: LecteurVideo
+    /// 7.0 : les films du NAS se lisent dans Séance, par VLCKit (par défaut) ; sinon dans l'app `lecteur` (Infuse).
+    /// Sans effet sur le Mac, où VLCKit n'existe pas.
+    private(set) var dansSeance: Bool
     private(set) var enCours = false
     private(set) var rapport: ServiceBibliotheque.Rapport?
     private(set) var erreur: String?
@@ -33,6 +36,7 @@ final class EtatNAS {
     private enum Cle {
         static let reglages = "nas.reglages"
         static let lecteur = "nas.lecteur"
+        static let dansSeance = "nas.dansSeance"
         static let derniereAnalyse = "nas.derniereAnalyse"
         static let reglagesAnalyses = "nas.reglagesAnalyses"
         static let lectureEnCours = "nas.lectureEnCours"
@@ -43,6 +47,7 @@ final class EtatNAS {
         let defauts = UserDefaults.standard
         reglages = defauts.data(forKey: Cle.reglages).flatMap { try? JSONDecoder().decode(ReglagesNAS.self, from: $0) } ?? ReglagesNAS()
         lecteur = defauts.string(forKey: Cle.lecteur).flatMap(LecteurVideo.init(rawValue:)) ?? .infuse
+        dansSeance = defauts.object(forKey: Cle.dansSeance) as? Bool ?? true
         derniereAnalyse = defauts.object(forKey: Cle.derniereAnalyse) as? Date
         reglagesAnalyses = defauts.data(forKey: Cle.reglagesAnalyses).flatMap { try? JSONDecoder().decode(ReglagesNAS.self, from: $0) }
         motDePasseEnregistre = ((try? coffre.lire(.nas)) ?? nil) != nil
@@ -127,12 +132,30 @@ final class EtatNAS {
     func choisir(_ nouveau: LecteurVideo) {
         lecteur = nouveau
         UserDefaults.standard.set(nouveau.rawValue, forKey: Cle.lecteur)
+        lireDansSeance(false)
+    }
+
+    func lireDansSeance(_ oui: Bool) {
+        dansSeance = oui
+        UserDefaults.standard.set(oui, forKey: Cle.dansSeance)
+    }
+
+    /// Le lecteur tel que les réglages le nomment.
+    var nomLecteur: String {
+        #if targetEnvironment(macCatalyst)
+        lecteur.nom
+        #else
+        dansSeance ? "Séance (VLCKit)" : lecteur.nom
+        #endif
     }
 
     /// EF-87 : ouvre le partage et compte les éléments de chaque dossier déclaré.
     func tester() async throws -> [String: Int] {
         try await explorateur().tester()
     }
+
+    /// Le mot de passe du NAS des films, pour le lecteur de Séance (6.6).
+    var motDePasse: String? { (try? coffre.lire(.nas)) ?? nil }
 
     /// Les dossiers présents à la racine du partage (6.4), pour les cocher au lieu de les taper.
     func dossiersDuPartage() async throws -> [String] {

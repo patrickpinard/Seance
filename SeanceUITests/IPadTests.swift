@@ -36,13 +36,14 @@ final class IPadTests: XCTestCase {
         // qui existent aussi quand la barre latérale est fermée : cette assertion-là ne prouvait rien.
         XCTAssertTrue(app.cells.containing(.staticText, identifier: "Réglages").firstMatch.waitForExistence(timeout: 8),
                       "La barre latérale n'est pas ouverte en paysage")
-        for onglet in ["Accueil", "Ce soir", "Mes listes", "Préférences", "Réglages", "Explorer"] {
+        // 7.0 : le menu de la maquette 1 ; Préférences est passé au portrait, en haut de chaque page.
+        for onglet in ["Accueil", "Ce soir", "Streaming", "TV", "NAS", "Mes listes", "Réglages", "Explorer"] {
             XCTAssertTrue(app.cells.containing(.staticText, identifier: onglet).firstMatch.exists, "« \(onglet) » absent de la barre latérale")
         }
         // Et la page reste utilisable à côté : un onglet s'ouvre sans avoir à refermer quoi que ce soit.
         let reglages = app.cells.containing(.staticText, identifier: "Réglages").firstMatch
         if reglages.exists { reglages.tap() } else { app.buttons["Réglages"].firstMatch.tap() }
-        XCTAssertTrue(app.staticTexts["Tes appareils"].firstMatch.waitForExistence(timeout: 8), "Réglages ne s'ouvre pas depuis la barre latérale")
+        XCTAssertTrue(app.staticTexts["La maison"].firstMatch.waitForExistence(timeout: 8), "Réglages ne s'ouvre pas depuis la barre latérale")
         capture("ipad-paysage-reglages")
     }
 
@@ -52,7 +53,7 @@ final class IPadTests: XCTestCase {
         try lancer(.landscapeLeft, arguments: ["-apparence", "clair", "-profil.prenom", "Camille"])
         capture("ipad-clair-accueil")
         // Un parcours pour relire les captures, pas une vérification : on attend le repère sans en faire une condition.
-        for (onglet, repere) in [("Réglages", "Tes appareils"), ("Ce soir", "Ce soir"), ("Mes listes", "Mes listes"), ("Préférences", "Tes goûts")] {
+        for (onglet, repere) in [("Réglages", "La maison"), ("Ce soir", "Ce soir"), ("Mes listes", "Mes listes"), ("Streaming", "Streaming"), ("TV", "Programme TV"), ("NAS", "Sur ton NAS")] {
             let ligne = app.cells.containing(.staticText, identifier: onglet).firstMatch
             if ligne.exists { ligne.tap() } else { app.buttons[onglet].firstMatch.tap() }
             _ = app.staticTexts[repere].firstMatch.waitForExistence(timeout: 8)

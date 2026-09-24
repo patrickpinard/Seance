@@ -38,12 +38,20 @@ public struct LettreHebdo: Sendable, Equatable {
     public var periode: String
     public var sections: [Section]
     public var essai = false
+    /// L'heure de l'envoi (6.6), pour saluer juste : l'e-mail peut partir le matin comme le soir.
+    public var envoyeLe: Date
 
-    public init(prenom: String?, periode: String, sections: [Section], essai: Bool = false) {
+    public init(prenom: String?, periode: String, sections: [Section], essai: Bool = false, envoyeLe: Date = .now) {
         self.prenom = prenom
         self.periode = periode
         self.sections = sections
         self.essai = essai
+        self.envoyeLe = envoyeLe
+    }
+
+    /// « Bonjour » avant 18 h, « Bonsoir » ensuite (6.6) — toujours « Bonsoir » jusque-là, même à 9 h du matin.
+    public static func salutation(_ date: Date, calendrier: Calendar = .current) -> String {
+        calendrier.component(.hour, from: date) < 18 ? "Bonjour" : "Bonsoir"
     }
 
     public var estVide: Bool { sections.allSatisfy(\.lignes.isEmpty) }
@@ -56,7 +64,10 @@ public struct LettreHebdo: Sendable, Equatable {
 
     public var texte: String {
         var lignes = ["Séance — \(periode)", ""]
-        if estVide { lignes.append("Rien de prévu cette semaine pour tes titres. Bonne soirée quand même !") }
+        if estVide {
+            let voeu = Self.salutation(envoyeLe) == "Bonjour" ? "Bonne journée" : "Bonne soirée"
+            lignes.append("Rien de prévu cette semaine pour tes titres. \(voeu) quand même !")
+        }
         for section in sections where !section.lignes.isEmpty {
             lignes.append(section.titre.uppercased())
             for ligne in section.lignes { lignes.append("• \(ligne.titre) — \(ligne.detail) (\(ligne.quand))") }
@@ -79,7 +90,8 @@ public struct LettreHebdo: Sendable, Equatable {
     }
 
     public var html: String {
-        let salut = prenom.map { "Bonsoir \(Self.echapper($0))," } ?? "Bonsoir,"
+        let bonjour = Self.salutation(envoyeLe)
+        let salut = prenom.map { "\(bonjour) \(Self.echapper($0))," } ?? "\(bonjour),"
         var corps = ""
         if estVide {
             corps += "<tr><td style=\"padding:24px 28px;color:\(Couleur.secondaire);font-size:16px;line-height:1.5\">Rien de prévu cette semaine pour tes titres. Ouvre Séance : « Idées pour ce soir » a sûrement quelque chose pour toi.</td></tr>"

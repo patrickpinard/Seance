@@ -64,7 +64,7 @@ struct BoutonLectureNAS: View {
     private var menu: some View {
         Button { lire(avec: etat.nas.lecteur) } label: { etiquette }
         .buttonStyle(.plain)
-        .accessibilityLabel(ligne.map { "Lire \($0.titre) avec \(etat.nas.lecteur.nom)" } ?? libelle)
+        .accessibilityLabel(ligne.map { "Lire \($0.titre) avec \(etat.nas.nomLecteur)" } ?? libelle)
         .alert("\(absent?.nom ?? "") n'est pas installée", isPresented: Binding { absent != nil } set: { if !$0 { absent = nil } }) {
             if let absent {
                 Button("Ouvrir l'App Store") { openURL(absent.appStore) }
@@ -86,6 +86,19 @@ struct BoutonLectureNAS: View {
     }
 
     private func lire(avec lecteur: LecteurVideo) {
+        // Dans Séance, par le moteur de VLC (6.6) : sur l'iPad, VLC ouvert de l'extérieur restait bloqué.
+        // Sauf si Réglages › Lecture a choisi Infuse.
+        #if !targetEnvironment(macCatalyst)
+        if etat.nas.dansSeance {
+            guard etat.nas.motDePasse != nil else {
+                sansMotDePasse = true
+                return
+            }
+            etat.filmALire = fichier
+            etat.nas.noterLecture(fichier)
+            return
+        }
+        #endif
         let lien: URL
         switch etat.nas.lien(pour: fichier, avec: lecteur) {
         case .pret(let pret):

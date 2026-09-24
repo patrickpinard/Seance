@@ -38,10 +38,11 @@ final class AccessibiliteTests: XCTestCase {
         app.buttons["À venir"].firstMatch.tap()
         Thread.sleep(forTimeInterval: 2)
         auditer("À venir")
-        app.tabBars.buttons["Préférences"].firstMatch.tap()
+        app.ouvrirPreferences()
         Thread.sleep(forTimeInterval: 3)
         auditer("Préférences")
-        app.navigationBars.buttons["Réglages"].firstMatch.tap()
+        app.fermerPreferences()
+        app.ouvrirReglages()
         Thread.sleep(forTimeInterval: 2)
         auditer("Réglages")
     }

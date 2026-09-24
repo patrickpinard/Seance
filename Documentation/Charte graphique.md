@@ -65,7 +65,7 @@ d'un passage télé, un code).
 | **Un souvenir** (vidéos personnelles, 6.2) | `CarteLargeTitre` en mode icône (`icone`, `etiquette` ALBUM ou VIDÉO, `lectureEnCoin`) : pas d'image, `FondSouvenir` — un halo orange sur le noir et la grande icône choisie, un SF Symbol de `IconesSouvenirs` (vingt-quatre, en orange). Feuille « Couverture » pour la choisir. Sur la TV : `CarteLargeTV(icone:)` | `Seance/Design/CarteLargeTitre.swift`, `Seance/Ecrans/NAS/VideosPerso.swift` |
 | Un titre du NAS | `CarteLargeNAS` (même carte, avec « NEW » et la qualité) | `Seance/Ecrans/NAS/NASView.swift` |
 | Un passage à la TV | `CarteDiffusion` (même carte, avec l'heure, la durée, la chaîne et la cloche) | `Seance/Ecrans/Accueil/ProgrammeTele.swift` |
-| Un réglage surveillé (en ordre / à régler), en grande carte | `CarteReglage` (affiche floutée en fond, symbole orange, pastille d'état) ; `CarteReglageTV` sur l'Apple TV | idem ; `SeanceTV/Design/CarteReglageTV.swift` |
+| Une ligne de la page Réglages (7.0, piste A) : symbole orange, nom, valeur à droite, point vert ou orange pour ce que Séance surveille | `LigneReglage`, dans les groupes Où regarder, Toi, La maison, L'app ; `CarteReglageTV` sur l'Apple TV, mêmes groupes | `Seance/Ecrans/Reglages/ReglagesView.swift` ; `SeanceTV/Design/CarteReglageTV.swift` |
 | Une ligne d'état (en ordre / à régler) | `LigneEtat` | idem |
 | Une page sans contenu | `EtatVide` : symbole, titre, phrase, action | `Seance/Design/EtatVide.swift` |
 | Un titre de section | `TitreSection` | `Seance/Design/Composants.swift` |
@@ -110,7 +110,9 @@ Règles :
   télécommande. L'historique des versions, par exemple, fait de chaque version un bouton qui s'ouvre (`PageVersionsTV`).
 - **« Où regarder » se montre avant tout le reste** : c'est la raison d'être de Séance. Partout où un titre est proposé
   pour être regardé, `ActionsOuRegarder` dit où — selon les seules plateformes cochées — et permet d'y aller d'un toucher.
-- **Sur l'Apple TV, le menu est en haut, à l'horizontale, en noms seuls** (comme Netflix) : huit entrées au plus, sans icône.
+- **Un seul menu, le même sur l'iPad, le Mac et l'Apple TV (7.0, maquette 1)** : Accueil, Ce soir, Streaming, TV, NAS,
+  Mes listes en noms seuls ; le portrait des Préférences, la loupe d'Explorer et la roue dentée des Réglages en icônes.
+- **« TV », jamais « Télé » ni « Télévision »** dans les textes de l'app.
 - **Les listes de dates et les agendas mensuels sont proscrits** : un jour se choisit dans une rangée de tuiles.
 
 ## 6. Navigation
@@ -118,7 +120,9 @@ Règles :
 - Apple TV : la grande image d'accueil occupe toute la largeur, avec le titre et ses actions en bas à gauche, et les
   étagères dessous — comme les apps de télévision. La barre latérale repliée laisse une pastille en haut à gauche :
   les pages commencent dessous (`sousLaPastille()`), et chaque page poussée traite la touche Retour (`pageOuverte()`).
-- iPhone : barre d'onglets en bas (Accueil, Ce soir, Mes listes, Profil) et la recherche. iPad et Mac : barre latérale.
+- iPhone : barre d'onglets en bas (Accueil, Ce soir, Regarder, Mes listes) et la loupe ; « Regarder » réunit Streaming, TV
+  et NAS sous un `SelecteurCases` (iOS n'affiche que cinq onglets). iPad et Mac : le menu de l'Apple TV. Les Préférences
+  s'ouvrent partout par le portrait, en haut à gauche (`boutonBarreLaterale()`).
 - Une affiche ouvre sa fiche, partout. La navigation se fait **par valeur** (`NavigationLink(value:)`).
 - Une action confirme en bas d'écran par un bandeau court (« ajouté à ta soirée »), qui propose d'annuler quand c'est
   possible.

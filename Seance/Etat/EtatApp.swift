@@ -37,8 +37,10 @@ final class EtatApp {
     var ficheDemandee: ReferenceTitre?
     /// Demandé depuis une fiche acteur : Explorer s'ouvre filtré sur cette personne.
     var filtreExplorerDemande: PersonneFiltre?
-    /// `seance://tele` : l'accueil ouvre le programme TV puis remet la demande à zéro.
-    var programmeTeleDemande = false
+    /// Préférences (7.0) : plus un onglet, mais le portrait en haut à gauche de chaque page, qui les ouvre en feuille.
+    var preferencesOuvertes = false
+    /// Réglages en feuille, sur l'iPhone (7.0) : la roue dentée de chaque page.
+    var reglagesOuverts = false
     /// Onglet à ouvrir, demandé depuis un autre écran (Ce soir vers Explorer).
     var ongletDemande: OngletRacine?
     /// Demandé par le widget « À venir » : Mes listes s'ouvre sur cet onglet.
@@ -170,6 +172,10 @@ final class EtatApp {
     }
 
     var abonnementPropose: PropositionAbonnement?
+
+    /// Un film ou un épisode du NAS à lire dans Séance (6.6), avec le moteur de VLC : sur l'iPad, VLC et Infuse
+    /// lancés de l'extérieur restaient bloqués. La racine présente le lecteur.
+    var filmALire: FichierNAS?
 
     /// Montre le sablier, avec ce que l'app est en train de faire. Un garde-fou l'efface au bout de huit secondes :
     /// une app qui ne rend jamais la main ne doit pas laisser Séance bloquée sous un voile.

@@ -155,7 +155,7 @@ enum Demonstration {
         func a(_ heure: Int, _ minute: Int, dans jours: Int = 0) -> Date {
             aujourdhui.instant(heure: heure).addingTimeInterval(TimeInterval(jours * 86_400 + minute * 60))
         }
-        // Les passages télé se posent sur la journée TV, qui va de 6 h à 6 h (GrilleTele) : après minuit, « demain »
+        // Les passages TV se posent sur la journée TV, qui va de 6 h à 6 h (GrilleTele) : après minuit, « demain »
         // reste le lendemain de la soirée en cours, comme la rangée de jours du programme l'affiche.
         let jourTele = GrilleTele.jourTele(.now)
         func aTele(_ heure: Int, _ minute: Int, dans jours: Int = 0) -> Date {

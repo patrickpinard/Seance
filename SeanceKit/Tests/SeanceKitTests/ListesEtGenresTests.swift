@@ -14,7 +14,7 @@ struct ListesEtGenresTests {
         #expect(!RegardableCeSoir.retient(.aLouerOuAcheter(location: [netflix], achat: []), maintenant: maintenant))
         #expect(!RegardableCeSoir.retient(.introuvable, maintenant: maintenant))
 
-        // La télé : ce soir jusqu'à 2 h du matin, pas demain soir.
+        // La TV : ce soir jusqu'à 2 h du matin, pas demain soir.
         let ceSoir = DiffusionPrevue(chaine: "RTS 1", debut: Date.suisse("2026-09-17 20:55"), fin: Date.suisse("2026-09-17 23:00"))
         let tard = DiffusionPrevue(chaine: "M6", debut: Date.suisse("2026-09-18 01:30"), fin: Date.suisse("2026-09-18 03:00"))
         let demain = DiffusionPrevue(chaine: "TF1", debut: Date.suisse("2026-09-18 21:00"), fin: Date.suisse("2026-09-18 23:00"))

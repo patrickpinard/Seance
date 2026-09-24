@@ -8,6 +8,8 @@ struct VideosPersoTV: View {
     var chemin = ""
 
     @Environment(EtatTV.self) private var etat
+    /// La vidéo ouverte dans le lecteur de Séance (6.6).
+    @State private var aLire: VideoPerso?
     @Environment(\.openURL) private var ouvrir
 
     private let colonnes = Array(repeating: GridItem(.fixed(CarteLargeTV.largeurGrille), spacing: 40, alignment: .top), count: 3)
@@ -56,6 +58,14 @@ struct VideosPersoTV: View {
             .padding(.vertical, 40)
         }
         .task { await etat.videosPerso.lire(films: etat.nas) }
+        .fullScreenCover(item: $aLire) { video in
+            LecteurVLCTV(video: video, acces: etat.videosPerso.reglages.acces,
+                         motDePasse: etat.videosPerso.motDePasse(films: etat.nas) ?? "") { _ in
+                // Même VLC n'y arrive pas : on tente les apps du dehors, comme avant.
+                aLire = nil
+                lireDehors(video)
+            }
+        }
     }
 
     /// Demande la première image de la vidéo au NAS, et la rend si elle est déjà là (6.4).
@@ -81,7 +91,16 @@ struct VideosPersoTV: View {
     }
 
     /// L'app choisie dans Réglages › Lecture, puis l'autre si elle ne s'ouvre pas (6.2).
+    /// Depuis la 6.6, la vidéo se lit dans Séance : le moteur de VLC est embarqué, et la touche Retour ramène ici,
+    /// sur la page d'où l'on vient. Infuse et VLC ne servent plus que si le NAS ne répond pas.
     private func lire(_ video: VideoPerso) {
+        guard etat.videosPerso.motDePasse(films: etat.nas) != nil else {
+            return etat.dire("Le mot de passe de cet accès manque : vois Réglages › Vidéos personnelles.")
+        }
+        aLire = video
+    }
+
+    private func lireDehors(_ video: VideoPerso) {
         let prefere = etat.lecteur
         let autre: LecteurVideo = prefere == .vlc ? .infuse : .vlc
         func essayer(_ lecteurs: [LecteurVideo]) {

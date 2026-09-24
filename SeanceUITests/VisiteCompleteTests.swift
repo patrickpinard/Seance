@@ -104,7 +104,7 @@ final class VisiteCompleteTests: XCTestCase {
         }
 
         // ── Préférences (profil, goûts, statistiques)
-        onglet("Préférences")
+        app.ouvrirPreferences()
         capture("D1-preferences", attente: 3)
         app.swipeUp(); capture("D2-preferences", attente: 1.2)
         app.swipeUp(); capture("D3-preferences", attente: 1.2)

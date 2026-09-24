@@ -21,7 +21,7 @@ final class EtatLettre {
             switch self {
             case .episodes: "Nouveaux épisodes de mes séries"
             case .sorties: "Sorties des titres que je suis"
-            case .passagesTele: "Passages à la télé de mes titres"
+            case .passagesTele: "Passages à la TV de mes titres"
             case .acteurs: "Nouveaux films de mes acteurs"
             case .nouveautes: "Nouveautés de mes plateformes"
             case .soirees: "Mes soirées prévues"

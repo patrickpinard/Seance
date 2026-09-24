@@ -31,11 +31,12 @@ struct ReglagesTV: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 40) {
                     heros
-                    // Piste B de la maquette : une grande carte par réglage, trois de front, comme les cartes de « Ce soir ».
+                    // 7.0 : les groupes de la piste A de l'iPhone — Où regarder, Toi, La maison, L'app —, en grandes cartes
+                    // pour la télécommande, trois de front.
                     VStack(alignment: .leading, spacing: 18) {
-                        Text("État de Séance sur cette TV").font(.system(size: 34, weight: .bold))
+                        Text("Où regarder").font(.system(size: 34, weight: .bold))
                         LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 36), count: 3), spacing: 36) {
-                            ForEach(Array(points.enumerated()), id: \.offset) { rang, point in
+                            ForEach(Array(points.filter { $0.reglage != .cle }.enumerated()), id: \.offset) { rang, point in
                                 NavigationLink(value: point.reglage) {
                                     CarteReglageTV(titre: point.titre, symbole: point.symbole, detail: point.detail, enOrdre: point.enOrdre, cheminAffiche: affiche(rang))
                                 }
@@ -45,7 +46,24 @@ struct ReglagesTV: View {
                     }
                     .focusSection()
                     VStack(alignment: .leading, spacing: 18) {
-                        Text("Cet appareil").font(.system(size: 34, weight: .bold))
+                        Text("Toi").font(.system(size: 34, weight: .bold))
+                        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 36), count: 3), spacing: 36) {
+                            NavigationLink(value: ReglageTV.gouts) {
+                                CarteReglageTV(titre: "Tes goûts", symbole: "heart.fill",
+                                               detail: interets.isEmpty ? "Genres à choisir" : interets.map(\.libelle).sorted().joined(separator: ", "), enOrdre: nil, cheminAffiche: affiche(14))
+                            }
+                            .buttonStyle(.card)
+                            Button { Task { await etat.demanderEssaiAlerte() } } label: {
+                                CarteReglageTV(titre: "Tester une alerte", symbole: "bell.badge.fill",
+                                               detail: "Ton iPhone et ta montre préviennent, à la prochaine ouverture de Séance", enOrdre: nil, cheminAffiche: affiche(12))
+                            }
+                            .buttonStyle(.card)
+                            .disabled(!etat.nasPret)
+                        }
+                    }
+                    .focusSection()
+                    VStack(alignment: .leading, spacing: 18) {
+                        Text("La maison").font(.system(size: 34, weight: .bold))
                         LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 36), count: 3), spacing: 36) {
                             Button { Task { await etat.synchroniser(contexte: contexte, bavard: true) } } label: {
                                 CarteReglageTV(titre: etat.synchroEnCours ? "Synchronisation…" : "Synchroniser maintenant", symbole: "arrow.triangle.2.circlepath",
@@ -53,12 +71,6 @@ struct ReglagesTV: View {
                             }
                             .buttonStyle(.card)
                             .disabled(etat.synchroEnCours)
-                            Button { Task { await etat.demanderEssaiAlerte() } } label: {
-                                CarteReglageTV(titre: "Tester une alerte", symbole: "bell.badge.fill",
-                                               detail: "Ton iPhone et ta montre préviennent, à la prochaine ouverture de Séance", enOrdre: nil, cheminAffiche: affiche(12))
-                            }
-                            .buttonStyle(.card)
-                            .disabled(!etat.nasPret)
                             Button { configuration = true } label: {
                                 CarteReglageTV(titre: "Configurer depuis mon iPhone", symbole: "iphone.and.arrow.forward",
                                                detail: "Un code ici, et tout arrive : clé, NAS, listes", enOrdre: nil, cheminAffiche: affiche(13))
@@ -72,11 +84,18 @@ struct ReglagesTV: View {
                                                enOrdre: nil, cheminAffiche: affiche(16))
                             }
                             .buttonStyle(.card)
-                            NavigationLink(value: ReglageTV.gouts) {
-                                CarteReglageTV(titre: "Tes goûts", symbole: "heart.fill",
-                                               detail: interets.isEmpty ? "Genres à choisir" : interets.map(\.libelle).sorted().joined(separator: ", "), enOrdre: nil, cheminAffiche: affiche(14))
+                        }
+                    }
+                    .focusSection()
+                    VStack(alignment: .leading, spacing: 18) {
+                        Text("L'app").font(.system(size: 34, weight: .bold))
+                        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 36), count: 3), spacing: 36) {
+                            if let tmdb = points.first(where: { $0.reglage == .cle }) {
+                                NavigationLink(value: tmdb.reglage) {
+                                    CarteReglageTV(titre: tmdb.titre, symbole: tmdb.symbole, detail: tmdb.detail, enOrdre: tmdb.enOrdre, cheminAffiche: affiche(9))
+                                }
+                                .buttonStyle(.card)
                             }
-                            .buttonStyle(.card)
                             NavigationLink(value: ReglageTV.aPropos) {
                                 CarteReglageTV(titre: "À propos", symbole: "info.circle.fill", detail: "Version \(Self.version)", enOrdre: nil, cheminAffiche: affiche(15))
                             }
@@ -116,10 +135,10 @@ struct ReglagesTV: View {
         [Point(reglage: .cle, titre: "TMDB", symbole: "film.stack", detail: etat.tmdb != nil ? "Fiches, affiches et plateformes" : "Les fiches et les affiches en viennent", enOrdre: etat.tmdb != nil),
          Point(reglage: .plateformes, titre: "Plateformes", symbole: "play.tv.fill",
                detail: abonnements.isEmpty ? "Pour savoir ce que tu peux regarder" : abonnements.map(\.nom).joined(separator: ", "), enOrdre: !abonnements.isEmpty),
-         Point(reglage: .tele, titre: "Télévision", symbole: "tv.fill", detail: chaines.isEmpty ? "Choisis tes chaînes" : "\(chaines.count) chaînes · \(libelleGuide)", enOrdre: !chaines.isEmpty),
+         Point(reglage: .tele, titre: "TV", symbole: "tv.fill", detail: chaines.isEmpty ? "Choisis tes chaînes" : "\(chaines.count) chaînes · \(libelleGuide)", enOrdre: !chaines.isEmpty),
          Point(reglage: .nas, titre: "NAS", symbole: "externaldrive.fill", detail: etat.nasPret ? "\(etat.nas.hote) · partage « \(etat.nas.partage) »" : "Tes films déjà téléchargés", enOrdre: etat.nasPret),
          Point(reglage: .videosPerso, titre: "Vidéos personnelles", symbole: "video.fill", detail: libelleVideos, enOrdre: !etat.videosPerso.aConfigurer(films: etat.nas)),
-         Point(reglage: .lecture, titre: "Lecture", symbole: "play.circle.fill", detail: "Tes vidéos du NAS s'ouvrent dans \(etat.lecteur.nom)", enOrdre: true)]
+         Point(reglage: .lecture, titre: "Lecture", symbole: "play.circle.fill", detail: "Séance (VLCKit) : tous les formats, dans l'app", enOrdre: true)]
     }
 
     private var affiches: [String] {
@@ -380,7 +399,7 @@ private struct PageChainesTV: View {
     @Query(sort: \Chaine.nom) private var chaines: [Chaine]
 
     var body: some View {
-        PageTV(titre: "Télévision", sousTitre: "Les chaînes que tu reçois : leur programme alimente « Ce soir à la TV » et l'onglet TV.") {
+        PageTV(titre: "TV", sousTitre: "Les chaînes que tu reçois : leur programme alimente « Ce soir à la TV » et l'onglet TV.") {
             SectionTV(titre: "Tes chaînes") {
                 ForEach(chaines) { chaine in
                     LigneTVReglage(titre: chaine.nom.isEmpty ? chaine.identifiantGuide : chaine.nom,

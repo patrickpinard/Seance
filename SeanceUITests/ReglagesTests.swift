@@ -17,10 +17,8 @@ final class ReglagesTests: XCTestCase {
         continueAfterFailure = true
         app.launchEnvironment["SEANCE_DEMO"] = "1"
         app.launch()
-        app.tabBars.buttons["Préférences"].firstMatch.tap()
-        XCTAssertTrue(app.navigationBars.buttons["Réglages"].firstMatch.waitForExistence(timeout: 10))
-        app.navigationBars.buttons["Réglages"].firstMatch.tap()
-        XCTAssertTrue(app.staticTexts["Tes appareils"].firstMatch.waitForExistence(timeout: 10), "Réglages ne s'ouvre pas")
+        app.ouvrirReglages()
+        XCTAssertTrue(app.staticTexts["La maison"].firstMatch.waitForExistence(timeout: 10), "Réglages ne s'ouvre pas")
         capture("reglages")
 
         // Le prénom se saisit et se retrouve sur sa ligne.
@@ -43,11 +41,11 @@ final class ReglagesTests: XCTestCase {
             ("TMDB", "Clé TMDB"),
             ("Claude", "Clé Claude"),
             ("Plateformes", "Plateformes"),
-            ("Télévision", "Guide des programmes"),
+            ("TV", "Guide des programmes"),
             ("NAS", "NAS"),
             ("Lecture", "Lecture"),
             ("Alertes", "Alertes"),
-            ("Sauvegarde", "Sauvegarde"),
+            ("Appareils et synchronisation", "Sauvegarde"),
             ("Séance", "L'application"),
             ("Versions", "Versions"),
             ("Journal", "Journal"),
@@ -64,14 +62,13 @@ final class ReglagesTests: XCTestCase {
             XCTAssertTrue(ouverte, "La page « \(page.ligne) » ne s'ouvre pas")
             capture("reglages-\(page.ligne)")
             app.navigationBars.buttons.firstMatch.tap()
-            XCTAssertTrue(app.staticTexts["Tes appareils"].firstMatch.waitForExistence(timeout: 8)
+            XCTAssertTrue(app.staticTexts["La maison"].firstMatch.waitForExistence(timeout: 8)
                           || app.staticTexts["L'app"].firstMatch.waitForExistence(timeout: 2),
                           "Retour à Réglages impossible depuis « \(page.ligne) »")
         }
 
-        // Retour au Profil, puis un autre onglet : l'app répond toujours.
-        app.navigationBars.buttons.firstMatch.tap()
-        XCTAssertTrue(app.staticTexts["Tes goûts"].firstMatch.waitForExistence(timeout: 8), "Retour aux Préférences impossible")
+        // Réglages refermés, puis un autre onglet : l'app répond toujours.
+        app.fermerPreferences()
         app.tabBars.buttons["Accueil"].firstMatch.tap()
         XCTAssertTrue(app.tabBars.buttons["Accueil"].firstMatch.isSelected)
     }

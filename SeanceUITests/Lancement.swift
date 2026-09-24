@@ -34,4 +34,32 @@ extension XCUIApplication {
         }
         return element.exists && element.isHittable
     }
+
+    /// Les Préférences (7.0) : le portrait en haut à gauche de chaque page, qui les ouvre en feuille.
+    @MainActor
+    func ouvrirPreferences() {
+        let portrait = buttons["preferences"].firstMatch
+        _ = portrait.waitForExistence(timeout: 20)
+        portrait.tap()
+    }
+
+    /// Réglages (7.0) : la roue dentée en haut à droite de chaque page ; en feuille sur l'iPhone, en onglet sur l'iPad.
+    @MainActor
+    func ouvrirReglages() {
+        let roue = buttons["reglages"].firstMatch
+        _ = roue.waitForExistence(timeout: 20)
+        roue.tap()
+    }
+
+    /// Referme la feuille des Préférences ou des Réglages, en remontant d'abord les pages ouvertes dedans.
+    @MainActor
+    func fermerPreferences() {
+        for _ in 0..<5 {
+            let ok = navigationBars.buttons["OK"].firstMatch
+            if ok.waitForExistence(timeout: 2) { ok.tap(); return }
+            let retour = navigationBars.buttons.firstMatch
+            guard retour.exists else { return }
+            retour.tap()
+        }
+    }
 }

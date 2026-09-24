@@ -23,6 +23,42 @@ struct NoteVersion: Identifiable {
 
     static let historique: [NoteVersion] = [
         NoteVersion(
+            numero: "7.0",
+            date: "25 septembre 2026",
+            resume: "Un nouveau menu, le même partout : Streaming, TV et NAS y ont chacun leur entrée. Des Réglages en une liste, et tes films du NAS lus dans Séance, à l'horizontale, avec le son, les langues et les sous-titres.",
+            fonctionnalites: [
+                Fonctionnalite(symbole: "menubar.rectangle", titre: "Streaming, TV, NAS dans le menu",
+                               detail: "Sur l'iPad, le Mac et l'Apple TV, la même barre : Accueil, Ce soir, Streaming, TV, NAS, Mes listes, puis la loupe et la roue dentée. Sur l'iPhone, les trois sources se partagent l'onglet « Regarder ». Streaming est une page neuve : ce que tes abonnements proposent de nouveau, plateforme par plateforme."),
+                Fonctionnalite(symbole: "person.crop.circle", titre: "Préférences au portrait",
+                               detail: "Tes goûts, tes notes et tes statistiques s'ouvrent par le portrait, en haut à gauche de chaque page, au lieu d'occuper un onglet."),
+                Fonctionnalite(symbole: "list.bullet", titre: "Les Réglages en une liste",
+                               detail: "Une ligne par réglage, sa valeur à droite, un point vert ou orange pour ce que Séance surveille, rangés en quatre groupes : Où regarder, Toi, La maison, L'app. Tout tient en un écran et demi au lieu de six. Le bouton « Synchroniser » prend sa taille normale, à côté du geste du moment."),
+                Fonctionnalite(symbole: "tv", titre: "« TV » partout",
+                               detail: "« Télé » et « Télévision » deviennent « TV » dans tous les textes, sur tous les appareils."),
+                Fonctionnalite(symbole: "play.rectangle.fill", titre: "VLCKit par défaut, Infuse au choix",
+                               detail: "Réglages › Lecture propose Séance (VLCKit), réglage d'origine, ou Infuse. VLCKit lit directement sur le NAS, sans relais : plus rapide au démarrage comme en cours de lecture."),
+                Fonctionnalite(symbole: "rectangle.landscape.rotate", titre: "Le lecteur de l'iPhone, à l'horizontale",
+                               detail: "Le film passe à l'horizontale et suit l'iPhone ; un sablier dit où en est le chargement ; les commandes et la croix s'effacent au bout de trois secondes, un toucher les ramène. Le volume et AirPlay sont sous la barre, et un menu choisit la langue, les sous-titres, la vitesse et le cadrage."),
+            ]
+        ),
+        NoteVersion(
+            numero: "6.6",
+            date: "25 septembre 2026",
+            resume: "Les films du NAS se lisent dans Séance sur l'iPad et l'Apple TV, Netflix ouvre le bon titre sur la TV, et ce qui passe en direct se lance d'un clic dans blue TV.",
+            fonctionnalites: [
+                Fonctionnalite(symbole: "play.rectangle.fill", titre: "Les films du NAS, dans Séance",
+                               detail: "Sur l'iPhone, l'iPad et l'Apple TV, un film ou un épisode du NAS s'ouvre dans le lecteur de Séance, par le moteur de VLC — y compris les MKV. Sur l'iPad, VLC lancé de l'extérieur restait bloqué ; ce n'est plus lui qui lit. Le Mac garde Infuse."),
+                Fonctionnalite(symbole: "arrow.uturn.backward", titre: "Retour là où tu étais, sur l'Apple TV",
+                               detail: "Une vidéo personnelle ou un film du NAS se lit dans Séance, et la touche Retour ramène à la page d'où tu l'as lancé. Avant, Infuse lisait, et on restait chez lui."),
+                Fonctionnalite(symbole: "play.tv.fill", titre: "Netflix ouvre le bon film, sur la TV",
+                               detail: "Sur tvOS, le lien universel de Netflix n'ouvre que sa page d'accueil. Séance passe maintenant par l'adresse de l'app (nflx://) avec l'identifiant exact du titre ; Disney+ de même. Si l'app refuse, Séance essaie l'adresse suivante, puis la recherche."),
+                Fonctionnalite(symbole: "dot.radiowaves.left.and.right", titre: "En ce moment sur tes chaînes",
+                               detail: "Sur l'accueil de l'Apple TV, une étagère montre les films et séries en cours sur tes chaînes, avec le temps qui reste. Un clic, et blue TV s'ouvre sur la chaîne, en direct. « Ce soir à la TV » ne garde que ce qui est à venir."),
+                Fonctionnalite(symbole: "sun.max", titre: "Bonjour ou Bonsoir",
+                               detail: "L'e-mail de la semaine salue selon l'heure de l'envoi : « Bonjour » avant 18 h, « Bonsoir » ensuite."),
+            ]
+        ),
+        NoteVersion(
             numero: "6.5",
             date: "24 septembre 2026",
             resume: "Séance lit désormais tout elle-même — AVI, WMV, MKV compris — et ne renvoie plus vers Infuse ou VLC.",

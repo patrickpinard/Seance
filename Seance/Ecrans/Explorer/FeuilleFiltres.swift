@@ -47,7 +47,7 @@ enum LibellesFiltres {
         case .salles: "Salles"
         case .numerique: "Numérique"
         case .physique: "DVD, Blu-ray"
-        case .television: "Télévision"
+        case .television: "TV"
         }
     }
 
