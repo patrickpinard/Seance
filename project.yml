@@ -18,8 +18,8 @@ settings:
     # Équipe personnelle de Patrick (compte Apple gratuit).
     DEVELOPMENT_TEAM: GATK475J3P
     # Version affichée dans À propos › Versions ; à changer avec Seance/Ecrans/Reglages/Versions.swift.
-    MARKETING_VERSION: "6.3"
-    CURRENT_PROJECT_VERSION: "49"
+    MARKETING_VERSION: "6.5"
+    CURRENT_PROJECT_VERSION: "51"
 
 packages:
   SeanceKit:
@@ -28,7 +28,6 @@ packages:
     path: SeanceDonnees
   SeanceNAS:
     path: SeanceNAS
-
 targets:
   Seance:
     type: application
@@ -41,6 +40,9 @@ targets:
       - package: SeanceKit
       - package: SeanceDonnees
       - package: SeanceNAS
+      # Le moteur de VLC (6.5), pour tout ce que l'Apple TV ne sait pas lire seule.
+      - framework: .build/vlckit/VLCKit.xcframework
+        embed: true
       - target: SeanceWidget
     entitlements:
       path: Seance/Seance.entitlements
@@ -139,10 +141,15 @@ targets:
       - path: Seance/Etat/EtatOu.swift
       # Les notes de version, les mêmes que sur l'iPhone (6.3) ; la vue repliable, elle, reste à l'app.
       - path: Seance/Ecrans/Reglages/Versions.swift
+      # Les premières images des vidéos personnelles (6.4) : le même état que sur l'iPhone.
+      - path: Seance/Etat/VignettesSouvenirs.swift
     dependencies:
       - package: SeanceKit
       - package: SeanceDonnees
       - package: SeanceNAS
+      # Le moteur de VLC (6.5), pour tout ce que l'Apple TV ne sait pas lire seule.
+      - framework: .build/vlckit/VLCKit.xcframework
+        embed: true
       - target: SeanceTVEtagere
     entitlements:
       path: SeanceTV/SeanceTV.entitlements

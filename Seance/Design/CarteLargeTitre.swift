@@ -25,6 +25,8 @@ struct CarteLargeTitre: View {
     var lecture = true
     /// Souvenirs (6.2) : pas d'image, un halo orange et ce grand SF Symbol à droite.
     var icone: String?
+    /// Souvenirs (6.4) : la première image de la vidéo, quand Séance a pu la tirer du NAS. Elle remplace le halo.
+    var vignette: Image?
     /// À la place de « FILM » ou « SÉRIE » : « ALBUM », « VIDÉO ».
     var etiquette: String?
     /// Un ▶︎ orange en haut à gauche : toute la carte lance la vidéo.
@@ -69,7 +71,9 @@ struct CarteLargeTitre: View {
         Color.clear
             .aspectRatio(16 / 9, contentMode: .fit)
             .overlay {
-                if let icone {
+                if let vignette {
+                    vignette.resizable().scaledToFill().clipped()
+                } else if let icone {
                     FondSouvenir(symbole: icone)
                 } else {
                     ImageDistante(url: image, coins: 0)

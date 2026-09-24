@@ -18,6 +18,8 @@ final class EtatVideosPerso {
     private(set) var derniereLecture: Date?
     /// Les icônes, titres et dates choisis pour les albums et les vidéos (6.2) : ils voyagent entre les appareils.
     private(set) var couvertures: CouverturesSouvenirs
+    /// Les premières images des vidéos, tirées du NAS (6.4).
+    let vignettes = VignettesSouvenirs()
 
     static let cleReglages = "videos.reglages"
     private static let cleLecture = "videos.derniereLecture"
@@ -140,6 +142,19 @@ final class EtatVideosPerso {
     private func lienDirect(pour video: VideoPerso, films: ReglagesNAS, lecteur: LecteurVideo) -> URL? {
         guard let motDePasse = motDePasse(films: films), let adresse = reglages.acces.url(chemin: video.chemin, motDePasse: motDePasse) else { return nil }
         return lecteur.lien(pour: adresse)
+    }
+
+    /// Les adresses à essayer, dans l'ordre (6.4) : pour VLC, son adresse simple d'abord — `x-callback-url/stream`
+    /// ouvrait VLC sur sa médiathèque vide sans lire le fichier (parcours du 23 septembre).
+    func liens(pour video: VideoPerso, films: ReglagesNAS, lecteur: LecteurVideo) -> [URL] {
+        guard let motDePasse = motDePasse(films: films),
+              let adresse = reglages.acces.url(chemin: video.chemin, motDePasse: motDePasse)
+        else { return [] }
+        #if targetEnvironment(macCatalyst)
+        return [lien(pour: video, films: films, lecteur: lecteur)].compactMap { $0 }
+        #else
+        return [lecteur.lienSimple(pour: adresse), lecteur.lien(pour: adresse)].compactMap { $0 }
+        #endif
     }
 
     #if DEBUG

@@ -20,7 +20,10 @@ struct RacineView: View {
         #if DEBUG
         if Demonstration.active { return false }
         #endif
-        guard !dejaDemande, famille.aPlusieursProfils, famille.demanderAuLancement else { return false }
+        // Sur un appareil partagé (iPad de la maison, Mac), Séance demande qui regarde ; sur l'iPhone, non (6.4) —
+        // sauf si Patrick l'a demandé dans Réglages › Famille.
+        let partage = UIDevice.current.userInterfaceIdiom != .phone
+        guard !dejaDemande, famille.aPlusieursProfils, famille.demanderAuLancement(parDefaut: partage) else { return false }
         return true
     }
     @State private var onglet = OngletRacine.accueil
@@ -126,17 +129,7 @@ struct RacineView: View {
                 bienvenue = true
             }
         }
-        .sheet(item: Binding { etat.titreADater } set: { etat.titreADater = $0 }) { titre in
-            ChoixSoiree(titre: titre.titre, depart: .now) { jour in
-                PrevoirSoiree.prevoir(titre, le: jour, etat: etat, contexte: contexte)
-            }
-        }
-        .sheet(item: Binding { etat.avecQui } set: { etat.avecQui = $0 }) { demande in
-            FeuilleAvecQui(demande: demande)
-        }
-        .sheet(item: Binding { etat.titrePourListe } set: { etat.titrePourListe = $0 }) { titre in
-            AjoutAListeView(titre: titre)
-        }
+        .modifier(FeuillesDeLApp())
         .modifier(ReceptionEtSynchro())
         .fullScreenCover(isPresented: $quiRegarde) {
             QuiRegardeView { profil in
@@ -253,6 +246,30 @@ struct RacineView: View {
             onglet = .accueil
             etat.ficheDemandee = reference
         }
+    }
+}
+
+/// Les panneaux que l'app peut ouvrir de partout : prévoir un soir, dire avec qui on a vu, ranger dans une liste.
+/// Ils vivent ici plutôt que dans le corps de `RacineView` : empilés là-bas, ils faisaient renoncer le vérificateur
+/// de types de Swift — l'empilement de modificateurs devient un type trop grand pour être vérifié d'un coup.
+private struct FeuillesDeLApp: ViewModifier {
+    @Environment(EtatApp.self) private var etat
+    @Environment(\.modelContext) private var contexte
+
+    func body(content: Content) -> some View {
+        content
+            .sheet(item: Binding { etat.titreADater } set: { etat.titreADater = $0 }) { titre in
+                ChoixSoiree(titre: titre.titre, depart: .now) { jour in
+                    PrevoirSoiree.prevoir(titre, le: jour, etat: etat, contexte: contexte)
+                }
+            }
+            .sheet(item: Binding { etat.avecQui } set: { etat.avecQui = $0 }) { demande in
+                FeuilleAvecQui(demande: demande)
+            }
+            .sheet(item: Binding { etat.titrePourListe } set: { etat.titrePourListe = $0 }) { titre in
+                AjoutAListeView(titre: titre)
+            }
+            .modifier(ProposerUnAbonnement())
     }
 }
 

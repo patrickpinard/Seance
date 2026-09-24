@@ -19,11 +19,23 @@ final class EtatOu {
         case tele(chaine: String, quand: String)
     }
 
-    private struct Plateforme: Codable {
+    struct Plateforme: Codable, Identifiable, Hashable {
         let id: Int
         let nom: String
         let logo: String?
         let priorite: Int
+    }
+
+    /// Où s'abonner, pour les plateformes que Séance sait ouvrir. Rien de personnel dans ces adresses.
+    static func pageAbonnement(_ id: Int) -> URL? {
+        switch id {
+        case 8, 1796: URL(string: "https://www.netflix.com/ch-fr/")
+        case 350: URL(string: "https://tv.apple.com/ch/channel/tvs.sbd.4000")
+        case 337: URL(string: "https://www.disneyplus.com/fr-ch")
+        case 119: URL(string: "https://www.primevideo.com")
+        case 2: URL(string: "https://tv.apple.com/ch")
+        default: nil
+        }
     }
 
     private struct Entree: Codable {
@@ -94,6 +106,15 @@ final class EtatOu {
 
     /// Tous les endroits où regarder ce titre, dans l'ordre où on y pense : le NAS, tes plateformes (deux au plus),
     /// la TV. Une affiche d'Explorer › TV qui est aussi sur Netflix porte les deux : on ne la croit plus « de streaming ».
+    /// Les plateformes qui ont le titre mais que tu n'as pas cochées dans les réglages (6.5). Séance ne les met pas
+    /// en avant — seuls tes abonnements comptent —, mais elle peut dire « il est aussi sur Apple TV+ » plutôt que de
+    /// laisser croire qu'il est introuvable.
+    func horsAbonnement(_ reference: ReferenceTitre) -> [Plateforme] {
+        (entrees[Self.cle(reference)]?.plateformes ?? [])
+            .filter { !abonnements.contains($0.id) }
+            .sorted { $0.priorite < $1.priorite }
+    }
+
     func badges(_ reference: ReferenceTitre) -> [Badge] {
         var resultat: [Badge] = []
         if nas.contains(reference) { resultat.append(.nas) }

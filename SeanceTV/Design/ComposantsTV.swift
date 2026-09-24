@@ -92,6 +92,8 @@ struct CarteLargeTV: View {
     var largeur: CGFloat = CarteLargeTV.largeur
     /// Souvenirs (6.2) : pas d'image, un halo orange et ce grand SF Symbol à droite, comme sur l'iPhone.
     var icone: String?
+    /// La première image de la vidéo (6.4), quand Séance a pu la tirer du NAS : elle remplace le halo à icône.
+    var vignette: Image?
     /// Un ▶︎ en haut à gauche : la carte lance la vidéo.
     var lectureEnCoin = false
     /// Le titre, pour dire où le regarder (6.3) : les logos des plateformes, le NAS, la chaîne.
@@ -107,7 +109,9 @@ struct CarteLargeTV: View {
         Color.clear
             .aspectRatio(16 / 9, contentMode: .fit)
             .overlay {
-                if let icone {
+                if let vignette {
+                    vignette.resizable().scaledToFill().clipped()
+                } else if let icone {
                     FondSouvenirTV(symbole: icone)
                 } else {
                     ImageTV(url: ImageTMDB.url(cheminImage, .fondGrand))
@@ -168,7 +172,8 @@ struct BadgeOuTV: View {
     @Environment(EtatTV.self) private var etat
 
     var body: some View {
-        let badges = etat.ou.badges(reference)
+        // Deux pastilles au plus (6.4) : à trois mètres, quatre logos empilés dans un coin ne se lisent plus.
+        let badges = Array(etat.ou.badges(reference).prefix(2))
         HStack(spacing: 8) {
             ForEach(badges, id: \.self) { badge in
                 switch badge {

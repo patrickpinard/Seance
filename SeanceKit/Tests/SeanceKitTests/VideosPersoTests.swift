@@ -65,6 +65,9 @@ struct LectureVideoPersoTests {
         let vlc = try #require(LecteurVideo.vlc.lien(pour: video))
         #expect(infuse.absoluteString.hasPrefix("infuse://x-callback-url/play?url="))
         #expect(vlc.absoluteString.hasPrefix("vlc-x-callback://x-callback-url/stream?url="))
+        // 6.5 : le lecteur ramène à Séance quand la vidéo est finie.
+        #expect(infuse.absoluteString.hasSuffix("&x-success=seance%3A%2F%2F"))
+        #expect(vlc.absoluteString.hasSuffix("&x-success=seance%3A%2F%2F"))
         // L'adresse voyage encodée : ni « / » ni « : » ne cassent le lien, et le mot de passe y est.
         #expect(!infuse.absoluteString.contains("smb://"))
         #expect(infuse.absoluteString.contains("secret"))

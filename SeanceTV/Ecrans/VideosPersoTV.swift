@@ -44,7 +44,7 @@ struct VideosPersoTV: View {
                                 CarteLargeTV(surtitre: (choisie?.date ?? video.modifieLe).map(Self.date), titre: choisie?.titre ?? video.nom,
                                              detail: Self.taille(video.taille), cheminImage: nil, largeur: CarteLargeTV.largeurGrille,
                                              icone: ArbreVideosPerso.symbole(de: video, dans: album, couvertures: etat.videosPerso.couvertures),
-                                             lectureEnCoin: true)
+                                             vignette: vignette(video), lectureEnCoin: true)
                             }
                             .buttonStyle(.card)
                         }
@@ -58,12 +58,21 @@ struct VideosPersoTV: View {
         .task { await etat.videosPerso.lire(films: etat.nas) }
     }
 
+    /// Demande la première image de la vidéo au NAS, et la rend si elle est déjà là (6.4).
+    private func vignette(_ video: VideoPerso) -> Image? {
+        etat.videosPerso.vignettes.demander(video, acces: etat.videosPerso.reglages.acces,
+                                            motDePasse: etat.videosPerso.motDePasse(films: etat.nas))
+        return etat.videosPerso.vignettes.vignettes[video.chemin]
+    }
+
     /// Un album s'ouvre ; une vidéo seule se lance d'un clic.
     @ViewBuilder
     private func carte(_ album: AlbumSouvenirs) -> some View {
         let carte = CarteLargeTV(surtitre: album.periode, titre: album.titre,
                                  detail: album.estVideoSeule ? Self.taille(album.taille) : (album.videos.count > 1 ? "Album · \(album.videos.count) vidéos" : "Album · 1 vidéo"),
-                                 cheminImage: nil, largeur: CarteLargeTV.largeurGrille, icone: album.symbole, lectureEnCoin: album.estVideoSeule)
+                                 cheminImage: nil, largeur: CarteLargeTV.largeurGrille, icone: album.symbole,
+                                 vignette: album.videos.first { VignettesSouvenirs.possible($0.chemin) }.flatMap(vignette),
+                                 lectureEnCoin: album.estVideoSeule)
         if album.estVideoSeule, let video = album.videos.first {
             Button { lire(video) } label: { carte }.buttonStyle(.card)
         } else {

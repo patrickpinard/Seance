@@ -113,6 +113,7 @@ struct ActionsOuRegarder: View {
             } else {
                 pastilles(badges)
             }
+            ailleurs
         }
         .task(id: reference) {
             etat.ou.demander(reference, client: etat.tmdb)
@@ -252,6 +253,38 @@ struct ActionsOuRegarder: View {
         }
     }
 
+    /// Les plateformes qui ont le titre sans que tu y sois abonné (6.5) : Séance ne les met pas en avant, mais
+    /// « introuvable » serait faux. Un toucher propose de s'y abonner.
+    @ViewBuilder
+    private var ailleurs: some View {
+        let autres = etat.ou.horsAbonnement(reference).prefix(3)
+        if !autres.isEmpty, etat.ou.badges(reference).isEmpty {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Pas dans tes abonnements. Il est sur \(autres.map(\.nom).joined(separator: ", ")).")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Flux(espacement: 8) {
+                    ForEach(Array(autres)) { plateforme in
+                        Button { proposerAbonnement(plateforme) } label: {
+                            PastilleOuRegarder(logo: plateforme.logo, texte: plateforme.nom, ouvre: true)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("\(plateforme.nom) : tu n'y es pas abonné")
+                        .accessibilityHint("Propose de s'abonner ou d'y aller quand même")
+                    }
+                }
+            }
+        }
+    }
+
+    /// Ce que Séance propose quand le titre n'est que sur une plateforme que tu n'as pas : t'abonner, y aller quand
+    /// même (tu l'as peut-être en dehors de Séance), ou cocher la plateforme dans tes réglages.
+    private func proposerAbonnement(_ plateforme: EtatOu.Plateforme) {
+        etat.abonnementPropose = EtatApp.PropositionAbonnement(
+            plateforme: plateforme.nom, identifiant: plateforme.id, titre: titre, reference: reference
+        )
+    }
+
     /// Rien chez toi : le dire plutôt que de laisser un blanc — mais seulement une fois les plateformes lues.
     private var secoursAffiche: String? {
         if let secours { return secours }
@@ -271,10 +304,16 @@ enum SourceLecture {
     /// « Sur ton NAS · 1080p », « Netflix », « RTS 1 en direct · blue TV ».
     var nom: String {
         switch self {
-        case .nas(let fichier): ["Sur ton NAS", fichier.qualite].compactMap { $0 }.joined(separator: " · ")
+        case .nas(let fichier): ["Sur ton NAS", Self.episode(fichier), fichier.qualite].compactMap { $0 }.joined(separator: " · ")
         case .plateforme(_, let nom): nom
         case .blueTV(_, let chaine): "\(chaine) en direct · blue TV"
         }
+    }
+
+    /// « S01E03 » quand le fichier est un épisode (6.4) : le bouton dit ce qu'il va lancer.
+    static func episode(_ fichier: FichierNAS) -> String? {
+        guard let saison = fichier.saison, let numero = fichier.episode else { return nil }
+        return String(format: "S%02dE%02d", saison, numero)
     }
 
     var symbole: String {
@@ -288,7 +327,7 @@ enum SourceLecture {
     /// Le texte du petit bouton de la fiche : « NAS », « Netflix », « RTS 1 en direct ».
     var court: String {
         switch self {
-        case .nas: "Sur ton NAS"
+        case .nas(let fichier): Self.episode(fichier) ?? "Sur ton NAS"
         case .plateforme(_, let nom): nom
         case .blueTV(_, let chaine): "\(chaine) en direct"
         }
@@ -297,7 +336,7 @@ enum SourceLecture {
     /// Le texte du grand bouton quand c'est le seul accès.
     var action: String {
         switch self {
-        case .nas: "Regarder maintenant"
+        case .nas(let fichier): Self.episode(fichier).map { "Regarder \($0)" } ?? "Regarder maintenant"
         case .plateforme(_, let nom): "Regarder sur \(nom)"
         case .blueTV(_, let chaine): "\(chaine) en direct · blue TV"
         }
@@ -422,10 +461,11 @@ struct BoutonLectureCarte: View {
         }
     }
 
-    /// Un film sur le NAS : son fichier se lance de la carte. Une série se lance par épisode, depuis sa fiche.
+    /// Sur le NAS : un film se lance de la carte, et depuis la 6.4 une série aussi — son prochain épisode, comme le
+    /// fait déjà l'Apple TV. Le même geste donne le même résultat sur tous les appareils.
     @MainActor
     static func surNAS(_ reference: ReferenceTitre, etat: EtatApp) -> Bool {
-        reference.type == .film && etat.ou.badges(reference).contains(.nas)
+        etat.ou.badges(reference).contains(.nas)
     }
 
     @MainActor
@@ -443,12 +483,14 @@ struct BoutonLectureCarte: View {
     }
 }
 
-/// Le fichier d'un film du NAS, cherché seulement pour les cartes qui en ont un.
+/// Le fichier du NAS d'un titre, cherché seulement pour les cartes qui en ont un. Pour une série (6.4), c'est le
+/// premier épisode que tu n'as pas encore vu — le même choix que sur l'Apple TV.
 private struct AvecFichierNAS: View {
     let reference: ReferenceTitre
     let titre: String
     let autres: [SourceLecture]
     @Query private var fichiers: [FichierNAS]
+    @Query private var vus: [Visionnage]
 
     init(reference: ReferenceTitre, titre: String, autres: [SourceLecture]) {
         self.reference = reference
@@ -457,10 +499,25 @@ private struct AvecFichierNAS: View {
         let id: Int? = reference.tmdbID
         let type = reference.type.rawValue
         _fichiers = Query(filter: #Predicate<FichierNAS> { $0.tmdbID == id && $0.typeBrut == type }, sort: \FichierNAS.chemin)
+        let identifiant = reference.tmdbID
+        _vus = Query(filter: #Predicate<Visionnage> { $0.tmdbID == identifiant && $0.typeBrut == type })
+    }
+
+    /// Le fichier à lancer : pour un film, le sien ; pour une série, le premier épisode non vu présent sur le NAS.
+    private var aLancer: FichierNAS? {
+        guard reference.type == .serie else { return fichiers.first }
+        let dejaVus = Set(vus.compactMap { visionnage -> String? in
+            guard let saison = visionnage.saison, let episode = visionnage.episode else { return nil }
+            return "\(saison)-\(episode)"
+        })
+        let episodes = fichiers
+            .filter { $0.saison != nil && $0.episode != nil }
+            .sorted { ($0.saison ?? 0, $0.episode ?? 0) < ($1.saison ?? 0, $1.episode ?? 0) }
+        return episodes.first { !dejaVus.contains("\($0.saison ?? 0)-\($0.episode ?? 0)") } ?? episodes.first ?? fichiers.first
     }
 
     var body: some View {
-        ChoixLecture(reference: reference, titre: titre, sources: fichiers.prefix(1).map(SourceLecture.nas) + autres)
+        ChoixLecture(reference: reference, titre: titre, sources: [aLancer].compactMap { $0 }.map(SourceLecture.nas) + autres)
     }
 }
 
@@ -503,6 +560,41 @@ enum LancementPlateforme {
 
     private struct Reponse: Sendable {
         let identifiants: IdentifiantsPlateformes?
+    }
+}
+
+/// Le titre n'est que sur une plateforme que tu n'as pas cochée (6.5) : plutôt que de le dire introuvable, Séance
+/// propose de s'y abonner, ou de la cocher si tu l'es déjà. Posé une fois, à la racine de l'app.
+struct ProposerUnAbonnement: ViewModifier {
+    @Environment(EtatApp.self) private var etat
+    @Environment(\.modelContext) private var contexte
+
+    func body(content: Content) -> some View {
+        content.confirmationDialog(
+            etat.abonnementPropose.map { "« \($0.titre) » est sur \($0.plateforme)" } ?? "",
+            isPresented: Binding { etat.abonnementPropose != nil } set: { if !$0 { etat.abonnementPropose = nil } },
+            titleVisibility: .visible,
+            presenting: etat.abonnementPropose
+        ) { proposition in
+            boutons(proposition)
+        } message: { proposition in
+            Text("Tu n'as pas coché \(proposition.plateforme) dans tes plateformes : Séance ne propose que ce que tu peux vraiment regarder.")
+        }
+    }
+
+    @ViewBuilder
+    private func boutons(_ proposition: EtatApp.PropositionAbonnement) -> some View {
+        if let page = EtatOu.pageAbonnement(proposition.identifiant) {
+            Link("M'abonner à \(proposition.plateforme)", destination: page)
+        }
+        Button("J'y suis déjà abonné") { cocher(proposition) }
+        Button("Annuler", role: .cancel) {}
+    }
+
+    private func cocher(_ proposition: EtatApp.PropositionAbonnement) {
+        contexte.insert(Abonnement(providerID: proposition.identifiant, nom: proposition.plateforme))
+        try? contexte.save()
+        etat.ou.actualiserLocal(contexte: contexte)
     }
 }
 

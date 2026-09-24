@@ -79,6 +79,11 @@ struct ReceptionParCode: View {
             etat.videosPerso.enregistrer(videos, motDePasse: configuration.motDePasseVideos ?? "")
             recus.append("l'accès à tes vidéos personnelles")
         }
+        // L'e-mail de la semaine (6.5) : cet appareil peut l'envoyer à son tour, sans ressaisir le mot de passe.
+        if let smtp = configuration.smtp {
+            etat.lettre.recevoir(smtp, motDePasse: configuration.motDePasseSMTP)
+            recus.append("l'e-mail de la semaine")
+        }
         if let donnees = configuration.sauvegarde, let bilan = try? ImportSauvegarde.importer(donnees, etat: etat, contexte: contexte) {
             recus.append(bilan.estVide ? "tes données (déjà à jour)" : bilan.phrase)
         }

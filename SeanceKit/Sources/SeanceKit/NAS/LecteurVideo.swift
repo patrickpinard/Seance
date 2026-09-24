@@ -45,15 +45,28 @@ public enum LecteurVideo: String, Sendable, Codable, CaseIterable, Identifiable 
         }
     }
 
+    /// L'autre adresse de VLC (6.4) : `vlc://<adresse>`, celle que VLC annonce pour ouvrir un média. Sur l'iPad,
+    /// `x-callback-url/stream` avec une adresse SMB ouvrait VLC sur sa médiathèque vide, sans rien lire.
+    public func lienSimple(pour video: URL) -> URL? {
+        guard self == .vlc else { return nil }
+        return URL(string: "vlc://" + video.absoluteString)
+    }
+
     /// Lien x-callback-url : l'adresse de la vidéo, identifiants compris, voyage encodée dans `url=`.
     /// VLC lit ainsi le SMB ; Infuse, non (voir `lienBibliotheque`).
-    public func lien(pour video: URL) -> URL? {
+    ///
+    /// `retour` (6.5) : l'adresse que le lecteur ouvre quand la lecture se termine — `seance://` ramène ici, au lieu
+    /// de laisser Infuse ou VLC à l'écran. C'est le `x-success` de la convention x-callback-url, qu'Infuse et VLC
+    /// acceptent tous les deux sur cette adresse-là. La lecture d'un film par la bibliothèque d'Infuse
+    /// (`lienBibliotheque`) n'a pas cette possibilité : ces adresses ne prennent aucun rappel.
+    public func lien(pour video: URL, retour: String? = "seance://") -> URL? {
         var nonReserves = CharacterSet.alphanumerics
         nonReserves.insert(charactersIn: "-._~")
         guard let encodee = video.absoluteString.addingPercentEncoding(withAllowedCharacters: nonReserves) else { return nil }
+        let rappel = retour?.addingPercentEncoding(withAllowedCharacters: nonReserves).map { "&x-success=\($0)" } ?? ""
         switch self {
-        case .infuse: return URL(string: "infuse://x-callback-url/play?url=\(encodee)")
-        case .vlc: return URL(string: "vlc-x-callback://x-callback-url/stream?url=\(encodee)")
+        case .infuse: return URL(string: "infuse://x-callback-url/play?url=\(encodee)\(rappel)")
+        case .vlc: return URL(string: "vlc-x-callback://x-callback-url/stream?url=\(encodee)\(rappel)")
         }
     }
 }

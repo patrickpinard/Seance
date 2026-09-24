@@ -134,6 +134,11 @@ final class EtatNAS {
         try await explorateur().tester()
     }
 
+    /// Les dossiers présents à la racine du partage (6.4), pour les cocher au lieu de les taper.
+    func dossiersDuPartage() async throws -> [String] {
+        try await explorateur().dossiersDuPartage()
+    }
+
     /// Lit les dossiers déclarés, rattache les vidéos à TMDB et remplace la bibliothèque.
     /// `automatique` : lancée au démarrage, seulement si la dernière analyse date d'hier.
     func analyser(contexte: ModelContext, tmdb: TMDBClient?, automatique: Bool = false) async {

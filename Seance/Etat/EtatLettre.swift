@@ -11,14 +11,56 @@ import SwiftData
 @MainActor
 @Observable
 final class EtatLettre {
+    /// Ce que la lettre peut contenir (6.5) : chacun choisit ce qu'il veut recevoir.
+    enum Rubrique: String, Codable, CaseIterable, Identifiable, Sendable {
+        case episodes, sorties, passagesTele, acteurs, nouveautes, soirees
+
+        var id: String { rawValue }
+
+        var nom: String {
+            switch self {
+            case .episodes: "Nouveaux épisodes de mes séries"
+            case .sorties: "Sorties des titres que je suis"
+            case .passagesTele: "Passages à la télé de mes titres"
+            case .acteurs: "Nouveaux films de mes acteurs"
+            case .nouveautes: "Nouveautés de mes plateformes"
+            case .soirees: "Mes soirées prévues"
+            }
+        }
+
+        var symbole: String {
+            switch self {
+            case .episodes: "play.tv"
+            case .sorties: "sparkles"
+            case .passagesTele: "tv"
+            case .acteurs: "person.fill"
+            case .nouveautes: "rectangle.stack.badge.play"
+            case .soirees: "moon.stars"
+            }
+        }
+    }
+
     struct Reglages: Codable, Equatable {
         var actif = false
         /// « a@x.ch ; b@y.ch » : tel que saisi.
         var destinataires = ""
         var compte = CompteSMTP()
-        /// Jour de la semaine du calendrier (1 = dimanche … 6 = vendredi) et heure de l'envoi.
+        /// Jour de la semaine du calendrier (1 = dimanche … 7 = samedi) : gardé pour les réglages d'avant la 6.5.
         var jour = 6
         var heure = 17
+        /// Les jours d'envoi (6.5) : un e-mail peut partir plusieurs fois par semaine. Vide : le seul `jour`.
+        var jours: Set<Int>?
+        /// Les rubriques retenues. Absent : tout, comme avant la 6.5.
+        var rubriques: Set<Rubrique>?
+        /// Les plateformes dont on veut les nouveautés (identifiants TMDB). Vide : toutes celles cochées.
+        var plateformes: Set<Int>?
+        /// Les chaînes dont on veut les passages (identifiants du guide). Vide : toutes celles cochées.
+        var chaines: Set<String>?
+
+        /// Les jours retenus, l'ancien réglage compris.
+        var joursRetenus: Set<Int> { (jours?.isEmpty == false ? jours : nil) ?? [jour] }
+        /// Vrai si cette rubrique doit paraître.
+        func veut(_ rubrique: Rubrique) -> Bool { rubriques?.contains(rubrique) ?? true }
     }
 
     private(set) var reglages: Reglages
@@ -51,6 +93,18 @@ final class EtatLettre {
         if !motDePasse.isEmpty, (try? coffre.enregistrer(motDePasse, pour: .smtp)) != nil { aUnMotDePasse = true }
     }
 
+    /// Les réglages à passer à un autre appareil (6.5), encodés : compte, destinataires, jours, rubriques. Le mot
+    /// de passe voyage à part, dans le même message chiffré.
+    var reglagesPourTransfert: Data? {
+        reglages.compte.estComplet ? try? JSONEncoder().encode(reglages) : nil
+    }
+
+    /// Reçus d'un autre appareil : on les prend tels quels, mot de passe compris.
+    func recevoir(_ donnees: Data, motDePasse: String?) {
+        guard let recus = try? JSONDecoder().decode(Reglages.self, from: donnees) else { return }
+        enregistrer(recus, motDePasse: motDePasse ?? "")
+    }
+
     /// Un autre appareil a déjà envoyé l'e-mail de la semaine : celui-ci ne le renverra pas.
     func noterEnvoiAilleurs(_ date: Date) {
         guard date > (dernierEnvoi ?? .distantPast) else { return }
@@ -58,21 +112,31 @@ final class EtatLettre {
         UserDefaults.standard.set(date, forKey: Self.cleDernier)
     }
 
-    /// Le moment prévu de l'envoi de cette semaine : le dernier « jour à l'heure dite » déjà passé.
+    /// Le moment prévu du dernier envoi : le plus récent « jour retenu à l'heure dite » déjà passé. Avec plusieurs
+    /// jours dans la semaine (6.5), c'est le plus proche d'entre eux.
+    static func echeance(jours: Set<Int>, heure: Int, maintenant: Date, calendrier: Calendar = .current) -> Date? {
+        jours.compactMap { jour -> Date? in
+            var composants = DateComponents()
+            composants.weekday = jour
+            composants.hour = heure
+            composants.minute = 0
+            return calendrier.nextDate(after: maintenant, matching: composants, matchingPolicy: .nextTime, direction: .backward)
+        }.max()
+    }
+
+    /// Un seul jour : la forme d'avant la 6.5, gardée pour les tests et les anciens réglages.
     static func echeance(jour: Int, heure: Int, maintenant: Date, calendrier: Calendar = .current) -> Date? {
-        var composants = DateComponents()
-        composants.weekday = jour
-        composants.hour = heure
-        composants.minute = 0
-        return calendrier.nextDate(after: maintenant, matching: composants, matchingPolicy: .nextTime, direction: .backward)
+        echeance(jours: [jour], heure: heure, maintenant: maintenant, calendrier: calendrier)
     }
 
     var prochainEnvoi: Date? {
-        var composants = DateComponents()
-        composants.weekday = reglages.jour
-        composants.hour = reglages.heure
-        composants.minute = 0
-        return Calendar.current.nextDate(after: .now, matching: composants, matchingPolicy: .nextTime)
+        reglages.joursRetenus.compactMap { jour -> Date? in
+            var composants = DateComponents()
+            composants.weekday = jour
+            composants.hour = reglages.heure
+            composants.minute = 0
+            return Calendar.current.nextDate(after: .now, matching: composants, matchingPolicy: .nextTime)
+        }.min()
     }
 
     /// Au lancement, au retour dans l'app et au réveil en arrière-plan : envoie si l'échéance de la semaine est passée.
@@ -80,7 +144,8 @@ final class EtatLettre {
         #if DEBUG
         if Demonstration.coupeeDuMonde { return }
         #endif
-        guard reglages.actif, pret, !enCours, let echeance = Self.echeance(jour: reglages.jour, heure: reglages.heure, maintenant: .now),
+        guard reglages.actif, pret, !enCours,
+              let echeance = Self.echeance(jours: reglages.joursRetenus, heure: reglages.heure, maintenant: .now),
               (dernierEnvoi ?? .distantPast) < echeance else { return }
         await envoyer(etat: etat, contexte: contexte, essai: false)
     }
@@ -123,9 +188,23 @@ final class EtatLettre {
             URL(string: "https://www.themoviedb.org/\(reference.type == .film ? "movie" : "tv")/\(reference.tmdbID)")
         }
 
-        // 1. Tes titres : épisodes, sorties et passages à la TV des sept prochains jours.
-        let echeances = ((try? contexte.fetch(FetchDescriptor<Echeance>(sortBy: [SortDescriptor(\.date)]))) ?? [])
+        // 1. Tes titres : épisodes, sorties et passages à la TV des sept prochains jours — chaque nature ne paraît
+        // que si elle est cochée dans les réglages (6.5), et les passages seulement sur les chaînes retenues.
+        let chainesVoulues = reglages.chaines ?? []
+        let toutes: [Echeance] = (try? contexte.fetch(FetchDescriptor<Echeance>(sortBy: [SortDescriptor(\.date)]))) ?? []
+        let echeances = toutes
             .filter { $0.date >= maintenant.addingTimeInterval(-3600) && $0.date <= fin }
+            .filter { echeance in
+                switch echeance.nature {
+                case .episode, .saison: reglages.veut(.episodes)
+                case .sortie: reglages.veut(.sorties)
+                case .tele:
+                    // L'échéance ne garde pas l'identifiant de la chaîne, seulement son nom dans le libellé
+                    // (« RTS 1, ce soir à 21:10 ») : c'est là qu'on la reconnaît.
+                    reglages.veut(.passagesTele)
+                        && (chainesVoulues.isEmpty || chainesVoulues.contains { echeance.libelle.localizedStandardContains($0) })
+                }
+            }
         var vues = Set<String>()
         let pourToi = echeances.filter { vues.insert("\($0.reference)|\($0.libelle)").inserted }.prefix(12).map {
             LettreHebdo.Ligne(titre: $0.titre, detail: $0.libelle, quand: jour($0.date), urlAffiche: ImageTMDB.url($0.cheminAffiche, .affiche), lien: lien($0.reference))
@@ -133,8 +212,11 @@ final class EtatLettre {
 
         // 2. Sur tes plateformes : ce qui est sorti depuis sept jours ou sort d'ici sept jours.
         var nouveautes: [LettreHebdo.Ligne] = []
-        let abonnements = ((try? contexte.fetch(FetchDescriptor<Abonnement>(predicate: #Predicate { $0.actif }))) ?? []).map(\.providerID)
-        if let tmdb = etat.tmdb, !abonnements.isEmpty {
+        // Les plateformes retenues pour la lettre (6.5) : toutes celles cochées, ou la sélection faite dans ses réglages.
+        let cochees = ((try? contexte.fetch(FetchDescriptor<Abonnement>(predicate: #Predicate { $0.actif }))) ?? []).map(\.providerID)
+        let voulues = reglages.plateformes ?? []
+        let abonnements = voulues.isEmpty ? cochees : cochees.filter { voulues.contains($0) }
+        if let tmdb = etat.tmdb, !abonnements.isEmpty, reglages.veut(.nouveautes) {
             let exclus = (try? ServiceGouts(contexte: contexte).contexteCandidats()).map { $0.exclus.union($0.dejaVus) } ?? []
             var criteres = CriteresDecouverte()
             criteres.fournisseurs = abonnements
@@ -169,10 +251,19 @@ final class EtatLettre {
 
         let debut = maintenant.formatted(.dateTime.day().month(.wide).locale(locale))
         let terme = fin.formatted(.dateTime.day().month(.wide).year().locale(locale))
-        return LettreHebdo(prenom: Prenom.lire(UserDefaults.standard.string(forKey: Prenom.cle) ?? ""), periode: "Du \(debut) au \(terme)", sections: [
-            .init(titre: "Pour tes titres", sousTitre: "Épisodes, sorties et passages à la TV de ce que tu suis", lignes: Array(pourToi)),
-            .init(titre: "Nouveau sur tes plateformes", sousTitre: "Sorti depuis une semaine, ou attendu dans les sept jours", lignes: nouveautes),
-            .init(titre: "Tes soirées prévues", lignes: Array(soirees)),
-        ], essai: essai)
+        var sections: [LettreHebdo.Section] = []
+        if !pourToi.isEmpty {
+            sections.append(.init(titre: "Pour tes titres", sousTitre: "Épisodes, sorties et passages à la TV de ce que tu suis",
+                                  lignes: Array(pourToi)))
+        }
+        if !nouveautes.isEmpty {
+            sections.append(.init(titre: "Nouveau sur tes plateformes", sousTitre: "Sorti depuis une semaine, ou attendu dans les sept jours",
+                                  lignes: nouveautes))
+        }
+        if reglages.veut(.soirees), !soirees.isEmpty {
+            sections.append(.init(titre: "Tes soirées prévues", lignes: Array(soirees)))
+        }
+        return LettreHebdo(prenom: Prenom.lire(UserDefaults.standard.string(forKey: Prenom.cle) ?? ""),
+                           periode: "Du \(debut) au \(terme)", sections: sections, essai: essai)
     }
 }

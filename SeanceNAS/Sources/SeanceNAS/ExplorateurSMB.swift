@@ -122,6 +122,19 @@ public struct ExplorateurSMB: ExplorateurFichiers {
         !nom.hasPrefix(".") && !nom.hasPrefix("@") && !nom.hasPrefix("#") && nom != "Thumbs.db"
     }
 
+    /// Les dossiers à la racine du partage (6.4) : Séance les connaît, autant les proposer à cocher plutôt que de
+    /// les faire taper, séparés par des virgules — « Films, NEW, SériesFilms, Séries » est vite arrivé.
+    public func dossiersDuPartage() async throws -> [String] {
+        try await avecPartage { client in
+            let racine = try await client.contentsOfDirectory(atPath: "")
+            return racine
+                .filter { ($0[.fileResourceTypeKey] as? URLFileResourceType) == .directory }
+                .compactMap { $0[.nameKey] as? String }
+                .filter(Self.retenu)
+                .sorted { $0.localizedStandardCompare($1) == .orderedAscending }
+        }
+    }
+
     /// EF-87 : ouvre le partage et compte les éléments de premier niveau de chaque dossier déclaré.
     public func tester() async throws -> [String: Int] {
         try await avecPartage { client in

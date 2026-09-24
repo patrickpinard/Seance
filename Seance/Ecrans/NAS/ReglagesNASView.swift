@@ -11,6 +11,9 @@ struct ReglagesNASView: View {
     @State private var partage = ""
     @State private var utilisateur = ""
     @State private var dossiers = ""
+    /// Les dossiers trouvés sur le partage (6.4) : on les coche au lieu de les écrire.
+    @State private var dossiersDuPartage: [String] = []
+    @State private var lectureDesDossiers = false
     @State private var motDePasse = ""
     @State private var enTest = false
     @State private var resultatTest: String?
@@ -41,14 +44,45 @@ struct ReglagesNASView: View {
             }
 
             Section {
-                TextField("Films, NEW, Séries", text: $dossiers)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                    .submitLabel(.done)
+                // Cochés plutôt qu'écrits (6.4) : Séance connaît déjà les dossiers du partage.
+                if !dossiersDuPartage.isEmpty {
+                    let choisis = Set(dossiersChoisis)
+                    ForEach(dossiersDuPartage, id: \.self) { nom in
+                        Button { basculer(nom) } label: {
+                            HStack {
+                                Text(nom).foregroundStyle(.primary)
+                                Spacer()
+                                Image(systemName: choisis.contains(nom) ? "checkmark.circle.fill" : "circle")
+                                    .foregroundStyle(choisis.contains(nom) ? Theme.accent : .secondary)
+                            }
+                            .frame(minHeight: 44)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel(nom)
+                        .accessibilityAddTraits(choisis.contains(nom) ? [.isButton, .isSelected] : .isButton)
+                    }
+                } else {
+                    TextField("Films, NEW, Séries", text: $dossiers)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                        .submitLabel(.done)
+                    Button {
+                        Task { await lireLesDossiers() }
+                    } label: {
+                        HStack {
+                            Text(lectureDesDossiers ? "Lecture du partage…" : "Voir les dossiers du partage")
+                            if lectureDesDossiers { Spacer(); ProgressView() }
+                        }
+                    }
+                    .disabled(lectureDesDossiers || hote.isEmpty || partage.isEmpty)
+                }
             } header: {
                 Text("Dossiers analysés")
             } footer: {
-                Text("Séparés par des virgules. Seuls ces dossiers du partage sont lus.")
+                Text(dossiersDuPartage.isEmpty
+                     ? "Séparés par des virgules. Seuls ces dossiers du partage sont lus."
+                     : "Seuls les dossiers cochés sont lus.")
             }
 
             Section {
@@ -159,8 +193,39 @@ struct ReglagesNASView: View {
         dossiers = reglages.dossiers.joined(separator: ", ")
     }
 
+    /// Les dossiers retenus, qu'ils viennent des cases ou du champ.
+    private var dossiersChoisis: [String] {
+        dossiers.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
+    }
+
+    private func basculer(_ nom: String) {
+        var liste = dossiersChoisis
+        if let rang = liste.firstIndex(of: nom) { liste.remove(at: rang) } else { liste.append(nom) }
+        dossiers = liste.joined(separator: ", ")
+    }
+
+    private func lireLesDossiers() async {
+        lectureDesDossiers = true
+        defer { lectureDesDossiers = false }
+        enregistrerSansTester()
+        dossiersDuPartage = (try? await etat.nas.dossiersDuPartage()) ?? []
+        if dossiersDuPartage.isEmpty { resultatTest = "Aucun dossier lisible à la racine du partage." }
+    }
+
+    /// Enregistre la connexion sans rien tester : il faut qu'elle soit connue pour lire les dossiers du partage.
+    private func enregistrerSansTester() {
+        etat.nas.enregistrer(ReglagesNAS(
+            hote: hote.trimmingCharacters(in: .whitespaces), partage: partage.trimmingCharacters(in: .whitespaces),
+            dossiers: dossiersChoisis, utilisateur: utilisateur.trimmingCharacters(in: .whitespaces)
+        ))
+        if !motDePasse.isEmpty {
+            try? etat.nas.enregistrerMotDePasse(motDePasse)
+            motDePasse = ""
+        }
+    }
+
     private func enregistrerEtTester() async {
-        let liste = dossiers.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
+        let liste = dossiersChoisis
         etat.nas.enregistrer(ReglagesNAS(
             hote: hote.trimmingCharacters(in: .whitespaces), partage: partage.trimmingCharacters(in: .whitespaces),
             dossiers: liste, utilisateur: utilisateur.trimmingCharacters(in: .whitespaces)

@@ -66,9 +66,15 @@ public struct ProfilsFamille {
         defauts.set(profil.id, forKey: Self.cleActif)
     }
 
-    /// « Qui regarde ? » à l'ouverture de l'app, quand il y a plusieurs profils.
+    /// « Qui regarde ? » à l'ouverture de l'app, quand il y a plusieurs profils. Tant que personne n'a réglé la
+    /// question, l'appelant décide (6.4) : un appareil partagé — l'Apple TV, l'iPad de la maison — le demande, un
+    /// iPhone non, car la réponse y est toujours la même et l'écran s'interposait à chaque ouverture.
+    public func demanderAuLancement(parDefaut: Bool) -> Bool {
+        defauts.object(forKey: Self.cleDemander) == nil ? parDefaut : defauts.bool(forKey: Self.cleDemander)
+    }
+
     public var demanderAuLancement: Bool {
-        get { defauts.object(forKey: Self.cleDemander) == nil ? true : defauts.bool(forKey: Self.cleDemander) }
+        get { demanderAuLancement(parDefaut: true) }
         nonmutating set { defauts.set(newValue, forKey: Self.cleDemander) }
     }
 

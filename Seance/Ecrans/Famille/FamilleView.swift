@@ -99,10 +99,20 @@ struct PastilleProfil: View {
     var body: some View {
         Image(systemName: profil.symbole)
             .font(.system(size: taille * 0.42, weight: .semibold))
-            .foregroundStyle(actif ? Color.black : Theme.accentClair)
+            .foregroundStyle(actif ? Color.black : Self.teinte(profil))
             .frame(width: taille, height: taille)
-            .background(actif ? AnyShapeStyle(Theme.degradeAccent) : AnyShapeStyle(Theme.accent.opacity(0.18)), in: Circle())
+            .background(actif ? AnyShapeStyle(Theme.degradeAccent) : AnyShapeStyle(Self.teinte(profil).opacity(0.20)), in: Circle())
             .accessibilityHidden(true)
+    }
+
+    /// Une teinte par personne (6.4) : deux profils qui ont choisi le même symbole — deux cœurs — ne se
+    /// distinguaient que par leur prénom. La couleur vient du prénom, elle est donc la même sur tous les appareils.
+    static func teinte(_ profil: ProfilFamille) -> Color {
+        let graine = profil.prenom.isEmpty ? profil.id : profil.prenom
+        let somme = graine.unicodeScalars.reduce(0) { ($0 &* 31 &+ Int($1.value)) % 360 }
+        // Autour de l'orange de Séance, sans jamais aller au rouge d'alerte ni au vert d'état.
+        let teintes: [Double] = [24, 40, 200, 280, 320, 12, 170]
+        return Color(hue: teintes[somme % teintes.count] / 360, saturation: 0.72, brightness: 0.95)
     }
 }
 

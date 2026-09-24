@@ -115,7 +115,11 @@ struct EnvoiAppleTVView: View {
             sauvegarde: sauvegarde,
             lecteur: etat.nas.lecteur,
             videosPerso: etat.videosPerso.actif ? etat.videosPerso.reglages : nil,
-            motDePasseVideos: etat.videosPerso.actif ? ((try? coffre.lire(.nasVideos)) ?? nil) : nil
+            motDePasseVideos: etat.videosPerso.actif ? ((try? coffre.lire(.nasVideos)) ?? nil) : nil,
+            // L'e-mail de la semaine (6.5) : le compte et son mot de passe, pour que l'autre appareil puisse
+            // l'envoyer à son tour. Ils passent par ce message chiffré, jamais par un dossier partagé.
+            smtp: etat.lettre.reglagesPourTransfert,
+            motDePasseSMTP: (try? coffre.lire(.smtp)) ?? nil
         )
         Task {
             do {

@@ -7,7 +7,7 @@ import SwiftUI
 /// Un lien « par vue » vers Réglages, depuis la barre d'outils de Profil, figeait l'iPhone : SwiftUI remettait
 /// la destination à jour à chaque rendu, sans fin, jusqu'à ce qu'iOS tue l'app.
 enum DestinationReglage: Hashable {
-    case reglages, prenom, famille, centrale, apparence, tmdb, claude, plateformes, tele, nas, videosPerso, lecture, alertes, sauvegarde, lettre, aPropos, versions, journal, apercuWidgets
+    case reglages, prenom, famille, centrale, apparence, tmdb, claude, plateformes, tele, nas, videosPerso, lecture, alertes, alertesRecues, sauvegarde, lettre, aPropos, versions, journal, apercuWidgets
 }
 
 struct PageReglage: View {
@@ -28,6 +28,7 @@ struct PageReglage: View {
         case .videosPerso: ReglagesVideosPersoView()
         case .lecture: ReglagesLectureView()
         case .alertes: ReglagesAlertesView()
+        case .alertesRecues: AlertesRecuesView()
         case .sauvegarde: ReglagesSauvegardeView()
         case .lettre: ReglagesLettreView()
         case .aPropos: AProposView(contenu: .application)

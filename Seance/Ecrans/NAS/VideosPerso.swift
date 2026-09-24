@@ -20,6 +20,15 @@ struct VideosPersoView: View {
     /// La vidéo ouverte dans le lecteur de Séance (Réglages › Vidéos personnelles).
     @State private var aLire: VideoPerso?
     @State private var aCouvrir: CibleCouverture?
+    /// La vidéo confiée au moteur de VLC (6.5), quand le lecteur d'Apple ne sait pas la lire.
+    @State private var aLireAvecVLC: VideoPerso?
+    /// Quarante souvenirs, une carte par écran : on cherche par le nom (6.4).
+    @State private var recherche = ""
+
+    /// Deux colonnes sur l'iPhone : une carte pleine largeur par écran demandait quarante écrans de défilement.
+    static var colonnesSouvenirs: [GridItem] {
+        [GridItem(.adaptive(minimum: 168, maximum: 260), spacing: 12, alignment: .top)]
+    }
 
     var body: some View {
         let albums = etat.videosPerso.albums
@@ -31,6 +40,7 @@ struct VideosPersoView: View {
                     .background(Theme.fond)
                     .navigationTitle(titrePage(albums))
                     .toolbar { barre(albums) }
+                    .searchable(text: $recherche, placement: .navigationBarDrawer(displayMode: .automatic), prompt: "Un souvenir")
             }
         }
         .task { await etat.videosPerso.lire(films: etat.nas.reglages) }
@@ -45,16 +55,24 @@ struct VideosPersoView: View {
             Text("Ni le lecteur de Séance, ni Infuse, ni VLC n'ont pu l'ouvrir. VLC lit tous les formats directement sur le NAS : installe-le, et vérifie que le mot de passe de l'accès est enregistré dans Réglages › Vidéos personnelles.")
         }
         .fullScreenCover(item: $aLire) { video in
-            LecteurIntegre(video: video, acces: etat.videosPerso.reglages.acces,
-                           motDePasse: etat.videosPerso.motDePasse(films: etat.nas.reglages) ?? "") { _ in
-                // Le lecteur d'iOS ne sait pas la lire (6.2) : il se referme, et la vidéo part dans Infuse ou VLC. L'alerte
-                // ouverte pendant que le lecteur était à l'écran ne se voyait pas.
-                aLire = nil
-                Task {
-                    try? await Task.sleep(for: .milliseconds(700))
-                    lireAilleurs(video)
+            // Depuis la 6.5, Séance lit tout elle-même : le lecteur d'Apple pour ce qu'il sait lire (le plus léger,
+            // avec AirPlay et l'image dans l'image), le moteur de VLC pour le reste — AVI, WMV, MKV, DV.
+            if LecteurIntegre.lisible(video.chemin) {
+                LecteurIntegre(video: video, acces: etat.videosPerso.reglages.acces,
+                               motDePasse: etat.videosPerso.motDePasse(films: etat.nas.reglages) ?? "") { _ in
+                    // Le lecteur d'iOS ne sait pas la décoder (6.2) : on repasse par VLC, puis par les apps du dehors.
+                    aLire = nil
+                    Task {
+                        try? await Task.sleep(for: .milliseconds(700))
+                        aLireAvecVLC = video
+                    }
                 }
+            } else {
+                lecteurDeSecours(video)
             }
+        }
+        .fullScreenCover(item: $aLireAvecVLC) { video in
+            lecteurDeSecours(video)
         }
     }
 
@@ -105,7 +123,7 @@ struct VideosPersoView: View {
         if albums.isEmpty {
             vide
         }
-        ForEach(ArbreVideosPerso.parAnnee(albums), id: \.titre) { section in
+        ForEach(ArbreVideosPerso.parAnnee(filtrer(albums)), id: \.titre) { section in
             HStack(alignment: .firstTextBaseline) {
                 Text(section.titre).font(.title2.weight(.bold))
                 Spacer()
@@ -114,7 +132,7 @@ struct VideosPersoView: View {
             .padding(.horizontal, 20)
             .accessibilityElement(children: .combine)
             .accessibilityAddTraits(.isHeader)
-            LazyVGrid(columns: CarteLargeTitre.colonnes, spacing: 14) {
+            LazyVGrid(columns: Self.colonnesSouvenirs, spacing: 12) {
                 ForEach(section.albums) { album in
                     carteAlbum(album)
                 }
@@ -143,9 +161,11 @@ struct VideosPersoView: View {
     /// Un album s'ouvre ; une vidéo seule se lance d'un toucher.
     @ViewBuilder
     private func carteAlbum(_ album: AlbumSouvenirs) -> some View {
+        let apercu = album.videos.first { VignettesSouvenirs.possible($0.chemin) }
         let carte = CarteLargeTitre(reference: nil, titre: album.titre, accroche: album.periode,
                                     faits: faits(album), lecture: false, icone: album.symbole,
-                                    etiquette: album.estVideoSeule ? "VIDÉO" : "ALBUM", lectureEnCoin: album.estVideoSeule)
+                                    vignette: apercu.flatMap(vignette), etiquette: album.estVideoSeule ? "VIDÉO" : "ALBUM",
+                                    lectureEnCoin: album.estVideoSeule)
         if album.estVideoSeule, let video = album.videos.first {
             Button { lire(video) } label: { carte }
                 .buttonStyle(.plain)
@@ -156,6 +176,40 @@ struct VideosPersoView: View {
                 .buttonStyle(.plain)
                 .contextMenu { boutonCouverture(album) }
         }
+    }
+
+    /// Le moteur de VLC, ou les apps du dehors là où il n'existe pas (le Mac).
+    @ViewBuilder
+    private func lecteurDeSecours(_ video: VideoPerso) -> some View {
+        #if targetEnvironment(macCatalyst)
+        Color.clear.onAppear { aLire = nil; aLireAvecVLC = nil; lireAilleurs(video) }
+        #else
+        LecteurVLC(video: video, acces: etat.videosPerso.reglages.acces,
+                   motDePasse: etat.videosPerso.motDePasse(films: etat.nas.reglages) ?? "") { _ in
+            aLireAvecVLC = nil
+            Task {
+                try? await Task.sleep(for: .milliseconds(700))
+                lireAilleurs(video)
+            }
+        }
+        #endif
+    }
+
+    /// La recherche porte sur le nom de l'album et sur ceux de ses vidéos.
+    private func filtrer(_ albums: [AlbumSouvenirs]) -> [AlbumSouvenirs] {
+        let cherche = recherche.trimmingCharacters(in: .whitespaces)
+        guard !cherche.isEmpty else { return albums }
+        return albums.filter { album in
+            album.titre.localizedStandardContains(cherche)
+                || album.videos.contains { $0.nom.localizedStandardContains(cherche) }
+        }
+    }
+
+    /// Demande la première image de la vidéo, et la rend si elle est déjà là.
+    private func vignette(_ video: VideoPerso) -> Image? {
+        etat.videosPerso.vignettes.demander(video, acces: etat.videosPerso.reglages.acces,
+                                            motDePasse: etat.videosPerso.motDePasse(films: etat.nas.reglages))
+        return etat.videosPerso.vignettes.vignettes[video.chemin]
     }
 
     private func faits(_ album: AlbumSouvenirs) -> [String] {
@@ -178,15 +232,15 @@ struct VideosPersoView: View {
             .padding(.horizontal, 16)
             .contextMenu { boutonCouverture(album) }
         Text("Les vidéos").font(.title3.weight(.bold)).padding(.horizontal, 20).accessibilityAddTraits(.isHeader)
-        LazyVGrid(columns: CarteLargeTitre.colonnes, spacing: 14) {
+        LazyVGrid(columns: Self.colonnesSouvenirs, spacing: 12) {
             ForEach(album.videos) { video in
                 let choisie = etat.videosPerso.couvertures.couverture(video.chemin)
                 Button { lire(video) } label: {
-                    CarteLargeTitre(reference: nil, titre: choisie?.titre ?? video.nom,
+                    CarteLargeTitre(reference: nil, titre: choisie?.titre ?? Self.nomLisible(video.nom),
                                     accroche: (choisie?.date ?? video.modifieLe).map(Self.date),
                                     faits: [(video.chemin as NSString).pathExtension.uppercased(), Self.taille(video.taille)].compactMap { $0 }.filter { !$0.isEmpty },
                                     lecture: false, icone: ArbreVideosPerso.symbole(de: video, dans: album, couvertures: etat.videosPerso.couvertures),
-                                    etiquette: "VIDÉO", lectureEnCoin: true)
+                                    vignette: vignette(video), etiquette: "VIDÉO", lectureEnCoin: true)
                 }
                 .buttonStyle(.plain)
                 .accessibilityHint("Lit la vidéo")
@@ -226,12 +280,27 @@ struct VideosPersoView: View {
         // Dans Séance : la vidéo reste sur le NAS et se lit ici même, sans passer la main à une autre app.
         // Un format qu'AVFoundation ne lit pas (.avi, .mkv, .wmv) part directement dans VLC : inutile d'ouvrir
         // un lecteur pour lui annoncer qu'il ne sait pas lire.
-        if etat.videosPerso.reglages.lecteurIntegre, LecteurIntegre.lisible(video.chemin),
-           etat.videosPerso.motDePasse(films: etat.nas.reglages) != nil {
-            aLire = video
+        // 6.5 : le format ne décide plus. Séance ouvre son lecteur, qui choisit le moteur qui convient.
+        if etat.videosPerso.reglages.lecteurIntegre, etat.videosPerso.motDePasse(films: etat.nas.reglages) != nil {
+            if LecteurIntegre.lisible(video.chemin) { aLire = video } else { aLireAvecVLC = video }
             return
         }
+        // Partir ailleurs sans rien dire laissait deviner pourquoi (6.5) : on donne la raison.
+        if let raison = raisonDeSortir(video) {
+            etat.confirmer(raison, symbole: "arrow.up.forward.app")
+        }
         lireAilleurs(video)
+    }
+
+    /// Pourquoi cette vidéo ne se lit pas dans Séance, en une phrase pour l'écran.
+    private func raisonDeSortir(_ video: VideoPerso) -> String? {
+        if !etat.videosPerso.reglages.lecteurIntegre {
+            return "« Lire dans Séance » est décoché dans Réglages › Vidéos personnelles."
+        }
+        if etat.videosPerso.motDePasse(films: etat.nas.reglages) == nil {
+            return "Le mot de passe de tes vidéos personnelles manque : vois Réglages › Vidéos personnelles."
+        }
+        return nil
     }
 
     /// Hors de Séance : l'app choisie dans Réglages › Lecture, puis l'autre si elle ne s'ouvre pas (pas installée) ;
@@ -239,14 +308,29 @@ struct VideosPersoView: View {
     private func lireAilleurs(_ video: VideoPerso) {
         let prefere = etat.nas.lecteur
         let autre: LecteurVideo = prefere == .vlc ? .infuse : .vlc
-        func essayer(_ lecteurs: [LecteurVideo]) {
-            guard let lecteur = lecteurs.first else { illisible = video; return }
-            guard let lien = etat.videosPerso.lien(pour: video, films: etat.nas.reglages, lecteur: lecteur) else { illisible = video; return }
-            ouvrir(lien) { accepte in
-                if !accepte { essayer(Array(lecteurs.dropFirst())) }
+        // Chaque lecteur a plusieurs adresses possibles (6.4) : on les essaie toutes avant de passer au suivant.
+        func essayer(_ adresses: [URL], puis lecteurs: [LecteurVideo]) {
+            if let adresse = adresses.first {
+                ouvrir(adresse) { accepte in
+                    if !accepte { essayer(Array(adresses.dropFirst()), puis: lecteurs) }
+                }
+                return
             }
+            guard let lecteur = lecteurs.first else { illisible = video; return }
+            let suivantes = etat.videosPerso.liens(pour: video, films: etat.nas.reglages, lecteur: lecteur)
+            if suivantes.isEmpty { return essayer([], puis: Array(lecteurs.dropFirst())) }
+            essayer(suivantes, puis: Array(lecteurs.dropFirst()))
         }
-        essayer([prefere, autre])
+        essayer([], puis: [prefere, autre])
+    }
+
+    /// Le nom du fichier, débarrassé de ce qui ne se lit pas : tirets et soulignés deviennent des espaces (6.4).
+    static func nomLisible(_ nom: String) -> String {
+        let propre = nom.replacingOccurrences(of: "_", with: " ")
+            .replacingOccurrences(of: "-", with: " ")
+            .replacingOccurrences(of: "  ", with: " ")
+            .trimmingCharacters(in: .whitespaces)
+        return propre.isEmpty ? nom : propre
     }
 
     static func date(_ date: Date) -> String {

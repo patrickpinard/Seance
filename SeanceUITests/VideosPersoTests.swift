@@ -20,9 +20,9 @@ final class VideosPersoTests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Nouveautés"].firstMatch.waitForExistence(timeout: 20))
         XCTAssertTrue(app.amener(app.buttons["boutonNAS"].firstMatch), "L'étagère « Sur ton NAS » n'a pas de « Tout voir »")
         app.buttons["boutonNAS"].firstMatch.tap()
-        // 6.3 : « Perso » est un rayon du sélecteur, au même rang que Films et Séries.
-        let perso = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Perso'")).firstMatch
-        XCTAssertTrue(perso.waitForExistence(timeout: 10), "La page NAS n'a pas de rayon « Perso »")
+        // 6.3 : un rayon du sélecteur, au même rang que Films et Séries ; « Vidéos » depuis la 6.5.
+        let perso = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Vidéos'")).firstMatch
+        XCTAssertTrue(perso.waitForExistence(timeout: 10), "La page NAS n'a pas de rayon « Vidéos »")
         perso.tap()
         capture("videos-racine")
 

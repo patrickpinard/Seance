@@ -22,6 +22,16 @@ struct OeuvreNAS: Identifiable {
         fichiers.contains { $0.dossier == "NEW" }
     }
 
+    /// Le plus récent de ses fichiers, d'après ce que l'analyse a relevé sur le NAS.
+    func ajouteLe(_ details: DetailsNAS) -> Date? {
+        details.ajout(fichiers.map(\.chemin))
+    }
+
+    /// Les genres du titre, relevés au rattachement TMDB.
+    func genres(_ details: DetailsNAS) -> [Int] {
+        reference.flatMap { details.genres[$0.tmdbID] } ?? []
+    }
+
     /// Regroupe les fichiers reconnus par titre TMDB ; les autres restent seuls.
     static func regrouper(_ fichiers: [FichierNAS]) -> [OeuvreNAS] {
         var groupes: [String: [FichierNAS]] = [:]
@@ -40,6 +50,93 @@ struct OeuvreNAS: Identifiable {
     }
 }
 
+/// Comment la bibliothèque se range (6.4, demande de Patrick) : d'un coup d'œil ce qui vient d'arriver, ou tout
+/// par année de sortie, ou tout par genre. « Alphabétique » reste le rangement d'origine.
+enum RangementNAS: String, CaseIterable, Identifiable {
+    case alphabetique = "A→Z"
+    case ajout = "Ajouts"
+    case annee = "Année"
+    case genre = "Genre"
+
+    var id: String { rawValue }
+
+    var symbole: String {
+        switch self {
+        case .alphabetique: "textformat.abc"
+        case .ajout: "clock.arrow.circlepath"
+        case .annee: "calendar"
+        case .genre: "theatermasks"
+        }
+    }
+}
+
+/// Une tranche de la bibliothèque : « Septembre 2026 », « 2019 », « Action ».
+struct TrancheNAS: Identifiable {
+    let titre: String
+    let oeuvres: [OeuvreNAS]
+
+    var id: String { titre }
+}
+
+extension TrancheNAS {
+    /// Range la bibliothèque en tranches. Par ajout : le mois où le fichier est arrivé sur le NAS, le plus récent
+    /// d'abord — un film peut manquer de date si le NAS ne la donne pas, il va alors dans « Date inconnue ».
+    /// Par année : l'année de sortie. Par genre : un titre à plusieurs genres apparaît dans chacun.
+    @MainActor
+    static func ranger(_ oeuvres: [OeuvreNAS], par rangement: RangementNAS, details: DetailsNAS, noms: [Int: String],
+                       calendrier: Calendar = .current) -> [TrancheNAS] {
+        switch rangement {
+        case .alphabetique:
+            return [TrancheNAS(titre: "", oeuvres: oeuvres)]
+        case .ajout:
+            var parMois: [Date: [OeuvreNAS]] = [:]
+            var sansDate: [OeuvreNAS] = []
+            for oeuvre in oeuvres {
+                guard let date = oeuvre.ajouteLe(details),
+                      let mois = calendrier.date(from: calendrier.dateComponents([.year, .month], from: date))
+                else { sansDate.append(oeuvre); continue }
+                parMois[mois, default: []].append(oeuvre)
+            }
+            var sections = parMois.sorted { $0.key > $1.key }.map { mois, liste in
+                TrancheNAS(titre: Self.nomDuMois(mois), oeuvres: liste.sorted { ($0.ajouteLe(details) ?? .distantPast) > ($1.ajouteLe(details) ?? .distantPast) })
+            }
+            if !sansDate.isEmpty { sections.append(TrancheNAS(titre: "Date inconnue", oeuvres: sansDate)) }
+            return sections
+        case .annee:
+            var parAnnee: [Int: [OeuvreNAS]] = [:]
+            var sansAnnee: [OeuvreNAS] = []
+            for oeuvre in oeuvres {
+                if let annee = oeuvre.annee { parAnnee[annee, default: []].append(oeuvre) } else { sansAnnee.append(oeuvre) }
+            }
+            var sections = parAnnee.sorted { $0.key > $1.key }.map { annee, liste in
+                TrancheNAS(titre: String(annee), oeuvres: liste)
+            }
+            if !sansAnnee.isEmpty { sections.append(TrancheNAS(titre: "Année inconnue", oeuvres: sansAnnee)) }
+            return sections
+        case .genre:
+            var parGenre: [Int: [OeuvreNAS]] = [:]
+            var sansGenre: [OeuvreNAS] = []
+            for oeuvre in oeuvres {
+                let genres = oeuvre.genres(details)
+                if genres.isEmpty { sansGenre.append(oeuvre) }
+                for genre in genres { parGenre[genre, default: []].append(oeuvre) }
+            }
+            var sections = parGenre.map { genre, liste in
+                TrancheNAS(titre: noms[genre] ?? "Genre \(genre)", oeuvres: liste)
+            }
+            // Le genre le mieux fourni d'abord : c'est ce qu'on regarde le plus.
+            sections.sort { ($0.oeuvres.count, $1.titre) > ($1.oeuvres.count, $0.titre) }
+            if !sansGenre.isEmpty { sections.append(TrancheNAS(titre: "Sans genre", oeuvres: sansGenre)) }
+            return sections
+        }
+    }
+
+    static func nomDuMois(_ date: Date) -> String {
+        let texte = date.formatted(.dateTime.month(.wide).year().locale(Locale(identifier: "fr_CH")))
+        return texte.prefix(1).uppercased() + texte.dropFirst()
+    }
+}
+
 /// Bibliothèque du NAS (EF-72 à EF-79) : films, séries, dossier NEW et vidéos non reconnues.
 struct NASView: View {
     enum Rayon: String, CaseIterable, Identifiable {
@@ -47,8 +144,8 @@ struct NASView: View {
         case series = "Séries"
         case nouveautes = "NEW"
         /// Les vidéos personnelles, au même rang que Films et Séries (6.3, demande de Patrick) : on filtre ce que
-        /// montre la page au lieu de descendre dans une tuile à part.
-        case perso = "Perso"
+        /// montre la page au lieu de descendre dans une tuile à part. Le rayon s'appelle « Vidéos » depuis la 6.5.
+        case perso = "Vidéos"
         /// Pas un rayon mais un entretien : hors du sélecteur, en petite puce sous le résumé.
         case nonReconnus = "Non reconnus"
 
@@ -60,7 +157,11 @@ struct NASView: View {
     @Query(sort: \FichierNAS.titre) private var fichiers: [FichierNAS]
     @Query private var suivis: [Suivi]
     @State private var rayon = Rayon.films
+    @AppStorage("nas.rangement") private var rangementBrut = RangementNAS.alphabetique.rawValue
+    private var rangement: RangementNAS { RangementNAS(rawValue: rangementBrut) ?? .alphabetique }
     @State private var recherche = ""
+    /// Dates d'ajout et genres, relevés par la dernière analyse (6.4).
+    @State private var detailsNAS = DetailsNAS()
     @State private var fichierChoisi: FichierNAS?
 
     @Environment(\.horizontalSizeClass) private var largeurGrille
@@ -179,10 +280,32 @@ struct NASView: View {
                                 .font(.title3.weight(.bold))
                                 .padding(.top, 6)
                         }
-                        LazyVGrid(columns: CarteLargeTitre.colonnes, spacing: 14) {
-                            ForEach(oeuvres) { oeuvre in
-                                CarteLargeNAS(oeuvre: oeuvre, decor: oeuvre.reference.flatMap(etat.decors.decor),
-                                              marque: oeuvre.reference.flatMap { marques[$0] })
+                        if rangement == .alphabetique {
+                            LazyVGrid(columns: CarteLargeTitre.colonnes, spacing: 14) {
+                                ForEach(oeuvres) { oeuvre in
+                                    CarteLargeNAS(oeuvre: oeuvre, decor: oeuvre.reference.flatMap(etat.decors.decor),
+                                                  marque: oeuvre.reference.flatMap { marques[$0] })
+                                }
+                            }
+                        } else {
+                            // Rangé par ajout, par année ou par genre : une section par tranche, la plus récente d'abord.
+                            ForEach(TrancheNAS.ranger(oeuvres, par: rangement, details: detailsNAS, noms: etat.nomsGenres)) { section in
+                                VStack(alignment: .leading, spacing: 10) {
+                                    HStack(alignment: .firstTextBaseline) {
+                                        Text(section.titre).font(.title3.weight(.bold))
+                                        Spacer()
+                                        Text(Format.pluriel(section.oeuvres.count, "titre"))
+                                            .font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+                                    }
+                                    .accessibilityElement(children: .combine)
+                                    .accessibilityAddTraits(.isHeader)
+                                    LazyVGrid(columns: CarteLargeTitre.colonnes, spacing: 14) {
+                                        ForEach(section.oeuvres) { oeuvre in
+                                            CarteLargeNAS(oeuvre: oeuvre, decor: oeuvre.reference.flatMap(etat.decors.decor),
+                                                          marque: oeuvre.reference.flatMap { marques[$0] })
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
@@ -195,6 +318,9 @@ struct NASView: View {
         .task(id: referencesNouveautes) { await etat.decors.charger(referencesNouveautes, client: etat.tmdb) }
         .searchable(text: $recherche, placement: .navigationBarDrawer(displayMode: .automatic), prompt: "Titre")
         .refreshable { await etat.nas.analyser(contexte: contexte, tmdb: etat.tmdb) }
+        .task(id: etat.nas.derniereAnalyse) {
+            detailsNAS = UserDefaults.standard.data(forKey: DetailsNAS.cle).flatMap(DetailsNAS.decoder) ?? DetailsNAS()
+        }
     }
 
     private var resume: some View {
@@ -210,6 +336,27 @@ struct NASView: View {
             .foregroundStyle(.secondary)
             Spacer()
             // « Non reconnus » est un travail d'entretien, pas un rayon : une petite puce suffit (6.3).
+            // Comment ranger la bibliothèque (6.4) : ajouts, année, genre.
+            if rayon == .films || rayon == .series {
+                Menu {
+                    Picker("Ranger par", selection: $rangementBrut) {
+                        ForEach(RangementNAS.allCases) { mode in
+                            Label(mode.rawValue, systemImage: mode.symbole).tag(mode.rawValue)
+                        }
+                    }
+                } label: {
+                    HStack(spacing: 5) {
+                        Image(systemName: rangement.symbole)
+                        Text(rangement.rawValue)
+                        Image(systemName: "chevron.down").font(.caption2.weight(.heavy))
+                    }
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(Theme.accent)
+                    .frame(minHeight: 32)
+                    .zoneDeToucher()
+                }
+                .accessibilityLabel("Ranger la bibliothèque : \(rangement.rawValue)")
+            }
             let restent = compte(.nonReconnus)
             if restent > 0 || rayon == .nonReconnus {
                 PuceFiltre(libelle: rayon == .nonReconnus ? "Revenir aux titres" : "\(restent) non reconnus",
@@ -271,8 +418,8 @@ struct NASView: View {
     }
 
     private func libelle(_ rayon: Rayon) -> String {
-        // « Perso » dit le nombre de souvenirs, pas un nombre de titres TMDB.
-        if rayon == .perso { return etat.videosPerso.albums.isEmpty ? "Perso" : "Perso \(etat.videosPerso.albums.count)" }
+        // « Vidéos » dit le nombre de souvenirs, pas un nombre de titres TMDB.
+        if rayon == .perso { return etat.videosPerso.albums.isEmpty ? "Vidéos" : "Vidéos \(etat.videosPerso.albums.count)" }
         let nombre = compte(rayon)
         return nombre == 0 ? rayon.rawValue : "\(rayon.rawValue) \(nombre)"
     }
@@ -306,6 +453,22 @@ struct NASView: View {
 
 
 extension OeuvreNAS {
+    /// La ligne orange de la carte : ce que le NAS en dit — « Sur ton NAS · 4K ».
+    var accroche: String {
+        ["Sur ton NAS", nouveaute ? "NEW" : nil, qualite].compactMap { $0 }.joined(separator: " · ")
+    }
+
+    /// Sous le titre : le type, l'année, la note, le nombre d'épisodes.
+    var faits: [String] {
+        var morceaux: [String] = []
+        if reference?.type == .serie { morceaux.append(Format.pluriel(fichiers.count, "épisode")) }
+        if let annee { morceaux.append(String(annee)) }
+        if nombreVotes > 0 {
+            morceaux.append("★ " + noteMoyenne.formatted(.number.precision(.fractionLength(1)).locale(Locale(identifier: "fr_CH"))))
+        }
+        return morceaux
+    }
+
     /// « 12 épisodes », « 2019 · ★ 7,8 ».
     var detail: String {
         if reference?.type == .serie {
@@ -317,85 +480,26 @@ extension OeuvreNAS {
     }
 }
 
-/// Un titre du NAS en grande carte 16/9, le format unique de l'app : son image, « NEW » s'il vient d'arriver,
-/// la qualité, « Sur ton NAS », et si tu l'as dans ta liste ou déjà vu.
+/// Un titre du NAS en grande carte 16/9 : la carte commune de l'app (6.4), donc le ▶︎ qui lance le film et les
+/// logos « où regarder ». Jusqu'ici cette page dessinait ses propres cartes, sans bouton de lecture : sur la page
+/// même du NAS, un film ne se lançait pas (parcours du 23 septembre).
 struct CarteLargeNAS: View {
     let oeuvre: OeuvreNAS
     let decor: EtatDecors.Decor?
     let marque: MarqueListe?
 
     var body: some View {
-        let carte = Color.clear
-            .aspectRatio(16 / 9, contentMode: .fit)
-            .overlay {
-                // L'analyse du NAS garde déjà l'image de fond ; le cache de décors ne sert que si elle manque.
-                ImageDistante(url: ImageTMDB.url(oeuvre.fichiers.compactMap(\.cheminFond).first ?? decor?.fond, .fond)
-                              ?? ImageTMDB.url(oeuvre.cheminAffiche, .fond), coins: 0)
-            }
-            .overlay {
-                LinearGradient(stops: [.init(color: .black.opacity(0.45), location: 0), .init(color: .clear, location: 0.35),
-                                       .init(color: .black.opacity(0.92), location: 1)],
-                               startPoint: .top, endPoint: .bottom)
-            }
-            .overlay(alignment: .topLeading) {
-                HStack(spacing: 6) {
-                    if oeuvre.nouveaute {
-                        Text("NEW")
-                            .font(.caption2.weight(.black))
-                            .padding(.horizontal, 7).padding(.vertical, 4)
-                            .background(Theme.degradeAccent, in: Capsule())
-                            .foregroundStyle(.black)
-                    }
-                    Spacer(minLength: 4)
-                    if let qualite = oeuvre.qualite {
-                        Text(qualite)
-                            .font(.caption2.weight(.black))
-                            .padding(.horizontal, 8).padding(.vertical, 4)
-                            .background(.black.opacity(0.65), in: Capsule())
-                    }
-                }
-                .padding(12)
-            }
-            .overlay(alignment: .bottomLeading) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Label("Sur ton NAS", systemImage: "externaldrive.fill")
-                        .font(.caption.weight(.heavy))
-                        .foregroundStyle(.green)
-                    Text(oeuvre.titre)
-                        .font(.headline)
-                        .lineLimit(2)
-                        .multilineTextAlignment(.leading)
-                    HStack(spacing: 7) {
-                        PastilleType(film: oeuvre.reference?.type != .serie)
-                        Text(oeuvre.detail)
-                            .font(.caption)
-                            .foregroundStyle(.white.opacity(0.78))
-                            .lineLimit(1)
-                        if marque == .dansTaListe {
-                            Label("Dans ta liste", systemImage: "bookmark.fill")
-                                .font(.caption2.weight(.bold))
-                                .foregroundStyle(Theme.accentClair)
-                        } else if marque == .dejaVu {
-                            Label("Déjà vu", systemImage: "eye.fill")
-                                .font(.caption2.weight(.bold))
-                                .foregroundStyle(.white.opacity(0.8))
-                        }
-                    }
-                }
-                .padding(12)
-            }
-            .foregroundStyle(.white)
-            .surImage()
-            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-            .overlay {
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .strokeBorder(marque == .dansTaListe ? AnyShapeStyle(Theme.degradeAccent) : AnyShapeStyle(.white.opacity(0.1)),
-                                  lineWidth: marque == .dansTaListe ? 2 : 1)
-            }
-            .contentShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-            .accessibilityElement(children: .ignore)
-            .accessibilityLabel([oeuvre.titre, "nouveau sur ton NAS", oeuvre.detail, oeuvre.qualite].compactMap { $0 }.joined(separator: ", "))
-
+        let carte = CarteLargeTitre(
+            reference: oeuvre.reference,
+            titre: oeuvre.titre,
+            cheminFond: oeuvre.fichiers.compactMap(\.cheminFond).first ?? decor?.fond,
+            cheminAffiche: oeuvre.cheminAffiche,
+            accroche: oeuvre.accroche,
+            faits: oeuvre.faits,
+            symboleCoin: marque == .dansTaListe ? "bookmark.fill" : (marque == .dejaVu ? "eye.fill" : nil),
+            // L'accroche dit déjà le NAS et la qualité : inutile de répéter la source derrière.
+            ouApresAccroche: false
+        )
         if let reference = oeuvre.reference {
             NavigationLink(value: reference) { carte }
                 .buttonStyle(.plain)

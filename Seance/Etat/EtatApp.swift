@@ -157,6 +157,20 @@ final class EtatApp {
 
     var ouverture: Ouverture?
 
+    /// Un retour en arrière demandé au clavier (6.4, ⌘[ sur le Mac) : la pile ouverte le consomme.
+    var retourDemande = 0
+
+    /// Le titre n'est que sur une plateforme que tu n'as pas cochée (6.5) : la racine pose la question.
+    struct PropositionAbonnement: Identifiable, Equatable {
+        let id = UUID()
+        let plateforme: String
+        let identifiant: Int
+        let titre: String
+        let reference: ReferenceTitre
+    }
+
+    var abonnementPropose: PropositionAbonnement?
+
     /// Montre le sablier, avec ce que l'app est en train de faire. Un garde-fou l'efface au bout de huit secondes :
     /// une app qui ne rend jamais la main ne doit pas laisser Séance bloquée sous un voile.
     func annoncerOuverture(_ plateforme: String, etape: String) {

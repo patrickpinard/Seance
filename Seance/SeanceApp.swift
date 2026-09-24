@@ -48,6 +48,8 @@ struct SeanceApp: App {
                 Button("Explorer") { etat.ongletDemande = .explorer }.keyboardShortcut("6")
                 Divider()
                 Button("Rechercher un film, une série, un acteur") { etat.rechercheDemandee = true }.keyboardShortcut("f")
+                // ⌘[ : revenir en arrière, comme partout sur le Mac. Il manquait (parcours du 23 septembre).
+                Button("Retour") { etat.retourDemande += 1 }.keyboardShortcut("[", modifiers: .command)
             }
         }
         // Réveil accordé par iOS de temps en temps : les alertes restent à jour sans ouvrir l'app.

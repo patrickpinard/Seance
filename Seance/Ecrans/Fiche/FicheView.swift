@@ -62,6 +62,7 @@ struct FicheAffichee {
 struct FicheView: View {
     let reference: ReferenceTitre
     @Environment(EtatApp.self) private var etat
+    @Environment(\.dismiss) private var fermer
     @Environment(\.modelContext) private var contexte
     @State private var fiche: FicheAffichee?
     @State private var erreur: String?
@@ -88,6 +89,8 @@ struct FicheView: View {
         }
         .background(Theme.fond)
         .task(id: reference) { await charger() }
+        // ⌘[ sur le Mac (6.4) : la page ouverte se referme, comme dans toute app Mac.
+        .onChange(of: etat.retourDemande) { _, _ in fermer() }
     }
 
     private func charger() async {
@@ -319,7 +322,8 @@ private struct ContenuFiche: View {
 
     private var blocOuRegarder: some View {
         BlocOuRegarder(reference: fiche.reference, offres: fiche.offres, etat: etatDisponibilite, sortie: sortie, diffusion: diffusion,
-                       alertesActives: suivi?.alertesActives == true && suivi?.masque != true) {
+                       alertesActives: suivi?.alertesActives == true && suivi?.masque != true,
+                       titreDuFilm: fiche.titre) {
             reglerAlertes(.episodes)
         }
     }
@@ -714,9 +718,13 @@ private struct BlocOuRegarder: View {
 
     @Query private var passages: [Diffusion]
     @Query private var chaines: [Chaine]
+    @Environment(\.openURL) private var openURL
+    /// Le titre, pour ouvrir la boutique qui le loue (6.4).
+    var titreDuFilm: String = ""
 
     init(reference: ReferenceTitre, offres: OffresRegion?, etat: EtatDisponibilite, sortie: EtatSortie?, diffusion: EtatDiffusionSerie?,
-         alertesActives: Bool, prevenir: @escaping () -> Void) {
+         alertesActives: Bool, titreDuFilm: String = "", prevenir: @escaping () -> Void) {
+        self.titreDuFilm = titreDuFilm
         self.reference = reference
         self.offres = offres
         self.etat = etat
@@ -762,6 +770,22 @@ private struct BlocOuRegarder: View {
                         if let detail { Text(detail).font(.caption).foregroundStyle(.secondary) }
                     }
                     Spacer()
+                }
+                // Louer ou acheter (6.4) : la mention ne menait nulle part, alors que c'est le seul moyen de voir le
+                // film ce soir. Le bouton ouvre la boutique la moins chère d'abord — celle que TMDB cite en premier.
+                if case .aLouerOuAcheter(let location, let achat) = etat,
+                   let boutique = (location + achat).first,
+                   let lien = LiensPlateformes.lien(plateforme: boutique.id, titre: titreDuFilm) {
+                    Button {
+                        openURL(lien) { acceptee in
+                            PlateformesApprises.noter(boutique.id, ouverte: acceptee)
+                        }
+                    } label: {
+                        Label("Louer sur \(boutique.nom)", systemImage: "cart.fill")
+                            .font(.subheadline.weight(.semibold))
+                    }
+                    .tint(Theme.accent)
+                    .accessibilityHint("Ouvre \(boutique.nom) sur ce titre")
                 }
                 // Deux façons de regarder, bien séparées : à la demande (quand tu veux) et à la TV (date et heure fixes).
                 if aLaDemandeSurBlueTV {

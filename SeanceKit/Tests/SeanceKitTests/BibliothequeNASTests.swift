@@ -140,3 +140,25 @@ struct LecteurVideoTests {
         #expect(LecteurVideo.vlc.lien(pour: video)?.absoluteString.hasPrefix("vlc-x-callback://x-callback-url/stream?url=smb%3A%2F%2Fadmin%3A") == true)
     }
 }
+
+/// Ce que Séance garde d'un fichier du NAS en plus du magasin (6.4) : quand il est arrivé, et les genres du titre.
+@Suite("Détails du NAS")
+struct DetailsNASTests {
+    @Test("La date d'ajout d'une œuvre est celle de son fichier le plus récent")
+    func ajoutLePlusRecent() {
+        let vieux = Date(timeIntervalSince1970: 1_700_000_000)
+        let recent = Date(timeIntervalSince1970: 1_750_000_000)
+        let details = DetailsNAS(ajouts: ["Séries/Reacher/S01E01.mkv": vieux, "Séries/Reacher/S01E02.mkv": recent])
+        #expect(details.ajout(["Séries/Reacher/S01E01.mkv", "Séries/Reacher/S01E02.mkv"]) == recent)
+        #expect(details.ajout(["Films/Inconnu.mkv"]) == nil)
+    }
+
+    @Test("Les détails se relisent tels qu'ils ont été écrits")
+    func allerRetour() throws {
+        let quand = Date(timeIntervalSince1970: 1_750_000_000)
+        let avant = DetailsNAS(ajouts: ["Films/Heat.mkv": quand], genres: [949: [28, 80, 18]])
+        let apres = try #require(DetailsNAS.decoder(try avant.encoder()))
+        #expect(apres.genres[949] == [28, 80, 18])
+        #expect(apres.ajouts["Films/Heat.mkv"] == quand)
+    }
+}

@@ -125,6 +125,11 @@ struct ReglagesAlertesView: View {
                         LabeledContent("Rappel avant la diffusion", value: "\(Int(alertes.reglages.rappelAvantDiffusion / 60)) min")
                     }
                 }
+                // Ce que Séance a déjà envoyé, et ce qu'elle enverra (6.5) : une notification balayée ne laissait
+                // aucune trace, et on ne pouvait plus retrouver le titre.
+                NavigationLink(value: DestinationReglage.alertesRecues) {
+                    Label("Alertes reçues", systemImage: "bell.badge.waveform")
+                }
             } header: {
                 Text("Me prévenir pour")
             } footer: {

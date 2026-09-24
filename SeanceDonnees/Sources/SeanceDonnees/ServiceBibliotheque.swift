@@ -39,6 +39,9 @@ public struct ServiceBibliotheque {
         let rattachement = RattachementNAS(recherche: recherche)
         let rattachees = try await rattachement.rattacher(index.entrees)
 
+        // Ce qui ne tient pas dans le magasin (6.4) : la date du fichier sur le NAS et les genres du titre, gardés
+        // à côté pour ranger la bibliothèque par ajouts et par genre.
+        var details = DetailsNAS()
         var rapport = Rapport(
             videosLues: fichiers.count, videosRetenues: index.entrees.count, doublons: index.doublons, copiesEnDouble: index.copiesEnDouble,
             recherchesEnEchec: await rattachement.recherchesEnEchec
@@ -58,9 +61,11 @@ public struct ServiceBibliotheque {
                 qualite: analyse.qualite?.description, tailleOctets: r.entree.fichier.taille
             )
             fichier.indexeLe = maintenant
+            if let date = r.entree.fichier.modifieLe { details.ajouts[r.entree.fichier.chemin] = date }
             fichier.saison = analyse.episode?.saison
             fichier.episode = analyse.episode?.episode
             if let titre = r.titre {
+                if !titre.genres.isEmpty { details.genres[titre.reference.tmdbID] = titre.genres }
                 fichier.titre = titre.titre
                 fichier.annee = titre.date?.annee ?? analyse.annee
                 fichier.cheminAffiche = titre.cheminAffiche
@@ -78,11 +83,15 @@ public struct ServiceBibliotheque {
         for illisible in index.illisibles {
             let fichier = FichierNAS(chemin: illisible.chemin, type: .film, tailleOctets: illisible.taille)
             fichier.indexeLe = maintenant
+            if let date = illisible.modifieLe { details.ajouts[illisible.chemin] = date }
             contexte.insert(fichier)
             rapport.nonReconnues.append(illisible.chemin)
         }
         rapport.nonReconnues.sort()
         try contexte.save()
+        if let donnees = try? details.encoder() {
+            UserDefaults.standard.set(donnees, forKey: DetailsNAS.cle)
+        }
         return rapport
     }
 }

@@ -522,6 +522,10 @@ struct MesListesView: View {
                 }
             }
             Spacer(minLength: 0)
+            // Le ▶︎ ici aussi (6.5) : la grande carte l'a depuis la 6.1, la ligne détaillée ne l'avait pas.
+            if BoutonLectureCarte.aUneSource(suivi.reference, titre: suivi.titre, etat: etat) {
+                BoutonLectureCarte(reference: suivi.reference, titre: suivi.titre)
+            }
             if suivi.alertesActives {
                 Image(systemName: "bell.fill")
                     .font(.caption)

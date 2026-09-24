@@ -16,9 +16,14 @@ public struct ConfigurationTransferee: Codable, Sendable, Equatable {
     /// Le second accès au NAS, celui des vidéos personnelles, et son mot de passe s'il a le sien.
     public var videosPerso: ReglagesVideosPerso?
     public var motDePasseVideos: String?
+    /// Le compte qui envoie l'e-mail de la semaine, et son mot de passe (6.5). Il ne sort d'un appareil que par ce
+    /// message chiffré, jamais dans une sauvegarde ni dans la synchronisation : un dossier partagé se lit.
+    public var smtp: Data?
+    public var motDePasseSMTP: String?
 
     public init(expediteur: String, cleTMDB: String? = nil, nas: ReglagesNAS? = nil, motDePasseNAS: String? = nil, sauvegarde: Data? = nil,
-                lecteur: LecteurVideo? = nil, videosPerso: ReglagesVideosPerso? = nil, motDePasseVideos: String? = nil) {
+                lecteur: LecteurVideo? = nil, videosPerso: ReglagesVideosPerso? = nil, motDePasseVideos: String? = nil,
+                smtp: Data? = nil, motDePasseSMTP: String? = nil) {
         self.expediteur = expediteur
         self.cleTMDB = cleTMDB
         self.nas = nas
@@ -27,6 +32,8 @@ public struct ConfigurationTransferee: Codable, Sendable, Equatable {
         self.lecteur = lecteur
         self.videosPerso = videosPerso
         self.motDePasseVideos = motDePasseVideos
+        self.smtp = smtp
+        self.motDePasseSMTP = motDePasseSMTP
     }
 }
 

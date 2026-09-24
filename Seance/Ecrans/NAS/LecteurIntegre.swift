@@ -73,17 +73,28 @@ struct LecteurIntegre: View {
                 .padding(.bottom, 90)
             }
         }
+        // Les deux coins du haut appartiennent au lecteur d'Apple : AirPlay à gauche, le volume à droite. La croix
+        // de Séance s'y posait dessus, et un toucher partait au hasard sur l'un ou sur l'autre (6.5). Elle descend
+        // donc sous cette rangée, dans la bande laissée libre — et un glissement vers le bas ferme aussi, comme
+        // partout sur iOS.
         .overlay(alignment: .topLeading) {
             Button { fermer() } label: {
                 Image(systemName: "xmark")
                     .font(.headline)
                     .foregroundStyle(.white)
                     .padding(12)
-                    .background(.black.opacity(0.5), in: Circle())
+                    .background(.black.opacity(0.55), in: Circle())
             }
-            .padding(20)
+            .padding(.leading, 20)
+            .padding(.top, 76)
             .accessibilityLabel("Fermer le lecteur")
         }
+        .gesture(
+            DragGesture(minimumDistance: 60)
+                .onEnded { glissement in
+                    if glissement.translation.height > 80 { fermer() }
+                }
+        )
         .task { await ouvrir() }
         .onDisappear { Task { await ranger() } }
     }
