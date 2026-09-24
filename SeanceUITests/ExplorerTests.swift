@@ -21,7 +21,7 @@ final class ExplorerTests: XCTestCase {
             app.launchEnvironment["SEANCE_CLE_TMDB"] = cle
         }
         app.launch()
-        app.tabBars.buttons["Explorer"].firstMatch.tap()
+        app.aller("Explorer")
 
         let compteur = app.descendants(matching: .any)["compteurResultats"].firstMatch
         XCTAssertTrue(compteur.waitForExistence(timeout: 20), "Compteur absent")

@@ -37,12 +37,12 @@ final class LectureTests: XCTestCase {
         // Le rond lance la lecture (Infuse n'est pas dans le simulateur : le bandeau le dit) ; la fiche ne s'ouvre pas.
         // La fiche se reconnaît à ses boutons à elle (« Terminé », « Je n'aime pas »), pas à ▶︎ : depuis la 6.3, la
         // démonstration a des abonnements et John Wick a trois accès, le rond de la carte est donc un menu lui aussi.
-        XCTAssertFalse(app.buttons["Je n'aime pas"].firstMatch.waitForExistence(timeout: 3), "Toucher ▶︎ a ouvert la fiche au lieu de lancer la lecture")
+        XCTAssertFalse(app.buttons["Pas pour moi"].firstMatch.waitForExistence(timeout: 3), "Toucher ▶︎ a ouvert la fiche au lieu de lancer la lecture")
         XCTAssertTrue(app.staticTexts["Mes listes"].firstMatch.exists, "On a quitté Mes listes")
 
         // La carte elle-même ouvre la fiche, où la capsule ▶︎ est en tête : « Regarder… » pour un seul accès, le menu sinon.
         app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'John Wick'")).firstMatch.tap()
-        XCTAssertTrue(app.buttons["Je n'aime pas"].firstMatch.waitForExistence(timeout: 10), "La carte n'ouvre pas la fiche")
+        XCTAssertTrue(app.buttons["Pas pour moi"].firstMatch.waitForExistence(timeout: 10), "La carte n'ouvre pas la fiche")
         let grand = app.buttons.matching(NSPredicate(format: "identifier == 'choixLecture' OR label BEGINSWITH 'Regarder maintenant' OR label BEGINSWITH 'Regarder sur'")).firstMatch
         XCTAssertTrue(grand.waitForExistence(timeout: 10), "Pas de bouton ▶︎ en tête de fiche")
         capture("fiche-lecture")

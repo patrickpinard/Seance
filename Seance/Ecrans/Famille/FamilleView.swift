@@ -53,7 +53,7 @@ struct FamilleView: View {
             } header: {
                 Text("Qui regarde, ici ?")
             } footer: {
-                Text("Chaque personne a ses listes, ses notes, ses pouces, ses soirées et ses idées du soir. Les plateformes, les chaînes, le NAS et les clés sont ceux de la maison : ils suivent d'un profil à l'autre. Glisse une ligne vers la gauche pour la modifier ou la supprimer.")
+                Text("Chaque personne a ses listes, ses notes, ses pouces, ses soirées et ses suggestions du soir. Les plateformes, les chaînes, le NAS et les clés sont ceux de la maison : ils suivent d'un profil à l'autre. Glisse une ligne vers la gauche pour la modifier ou la supprimer.")
             }
 
             if profils.count > 1 {
@@ -221,7 +221,7 @@ struct QuiRegardeView: View {
                 }
             }
             .frame(maxWidth: 560)
-            Text("Chacun retrouve ses listes, ses notes et ses idées. Réglages › Famille pour ajouter quelqu'un.")
+            Text("Chacun retrouve ses listes, ses notes et ses suggestions. Réglages › Famille pour ajouter quelqu'un.")
                 .font(.footnote).foregroundStyle(.secondary).multilineTextAlignment(.center)
         }
         .padding(30)

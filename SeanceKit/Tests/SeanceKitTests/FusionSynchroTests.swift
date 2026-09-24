@@ -100,6 +100,17 @@ struct FusionSynchroTests {
         #expect(plan.preferencesRemplacees == ["profil.prenom": .texte("Patrick")])
     }
 
+    /// 8.0 : l'e-mail réglé sur l'iPhone (serveur, compte) arrive sur l'iPad, même si l'iPad avait déjà des réglages.
+    @Test func lesReglagesDeLEMailSuiventLUtilisateur() {
+        var avant = Sauvegarde(creeeLe: t0)
+        avant.preferences = ["lettre.reglages": .donnees(Data("vide".utf8))]
+        var iphone = Sauvegarde(creeeLe: t0)
+        iphone.preferences = ["lettre.reglages": .donnees(Data("smtp.bluewin.ch".utf8))]
+        iphone = iphone.dater(depuis: avant.dater(depuis: nil, maintenant: t0), maintenant: t0.addingTimeInterval(60))
+        let plan = PlanSynchro(recue: iphone, locale: avant.dater(depuis: nil, maintenant: t0))
+        #expect(plan.preferencesRemplacees == ["lettre.reglages": .donnees(Data("smtp.bluewin.ch".utf8))])
+    }
+
     @Test func uneSauvegardeExporteeALaMainNeSupprimeRien() {
         let locale = etat([suivi(heat, "aVoir"), suivi(ronin, "aVoir")]).dater(depuis: nil, maintenant: t0)
         let plan = PlanSynchro(recue: etat([suivi(heat, "termine")]), locale: locale)

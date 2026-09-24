@@ -41,8 +41,12 @@ final class EtatApp {
     var preferencesOuvertes = false
     /// Réglages en feuille, sur l'iPhone (7.0) : la roue dentée de chaque page.
     var reglagesOuverts = false
-    /// Onglet à ouvrir, demandé depuis un autre écran (Ce soir vers Explorer).
+    /// Onglet à ouvrir, demandé depuis un autre écran : `.ceSoir`, `.streaming`, `.tele` et `.nas` ouvrent Regarder sur
+    /// la bonne source (8.0).
     var ongletDemande: OngletRacine?
+    /// Regarder (8.0) : la source choisie (Tout · Streaming · TV · NAS) et le jour de la rangée ; `nil` pour aujourd'hui.
+    var sourceRegarder: SourceRegarder = .tout
+    var jourRegarder: Date?
     /// Demandé par le widget « À venir » : Mes listes s'ouvre sur cet onglet.
     var listeDemandee: MesListesView.Onglet?
     let depot = DepotCles()
@@ -173,9 +177,19 @@ final class EtatApp {
 
     var abonnementPropose: PropositionAbonnement?
 
-    /// Un film ou un épisode du NAS à lire dans Séance (6.6), avec le moteur de VLC : sur l'iPad, VLC et Infuse
-    /// lancés de l'extérieur restaient bloqués. La racine présente le lecteur.
-    var filmALire: FichierNAS?
+    /// Ce qui se lit dans Séance (8.0) — un film, un épisode ou un souvenir du NAS —, avec le moteur de VLC. La racine
+    /// pose le lecteur par-dessus l'app plutôt qu'en feuille : « Continuer dans Séance » le passe en image dans
+    /// l'image, et la vidéo continue pendant qu'on navigue.
+    var lecture: LectureEnCours?
+    /// La lecture continue dans l'image dans l'image : le lecteur plein écran s'efface.
+    var lectureEnImage = false
+
+    /// Un film ou un épisode du NAS, dans le lecteur de Séance.
+    func lire(_ fichier: FichierNAS) {
+        lectureEnImage = false
+        lecture = LectureEnCours(video: VideoPerso(chemin: fichier.chemin, taille: fichier.tailleOctets),
+                                 acces: nas.reglages, motDePasse: nas.motDePasse ?? "")
+    }
 
     /// Montre le sablier, avec ce que l'app est en train de faire. Un garde-fou l'efface au bout de huit secondes :
     /// une app qui ne rend jamais la main ne doit pas laisser Séance bloquée sous un voile.
@@ -330,4 +344,13 @@ final class EtatApp {
         try depot.coffre.supprimer(.tmdb)
         tmdb = nil
     }
+}
+
+/// Une vidéo du NAS lue dans Séance (8.0) : de quoi l'ouvrir, et que faire si même VLC n'y arrive pas.
+struct LectureEnCours: Identifiable {
+    let id = UUID()
+    let video: VideoPerso
+    let acces: ReglagesNAS
+    let motDePasse: String
+    var surEchec: (String) -> Void = { _ in }
 }

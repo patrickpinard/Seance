@@ -19,7 +19,7 @@ struct ListeVersions: View {
                     ForEach(version.fonctionnalites) { fonctionnalite in
                         HStack(alignment: .top, spacing: 12) {
                             Image(systemName: fonctionnalite.symbole)
-                                .font(.system(size: 14, weight: .semibold))
+                                .font(.subheadline.weight(.semibold))
                                 .foregroundStyle(Theme.accent)
                                 .frame(width: 28, height: 28)
                                 .background(Theme.accent.opacity(0.15), in: RoundedRectangle(cornerRadius: 7, style: .continuous))

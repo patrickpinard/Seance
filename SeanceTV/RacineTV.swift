@@ -25,25 +25,22 @@ struct RacineTV: View {
 
     var body: some View {
         TabView(selection: $onglet) {
-            // 7.0, maquette 1 du menu, la même barre que sur l'iPad et le Mac : le portrait des Préférences, puis
-            // Accueil, Ce soir, les trois endroits où l'on regarde — Streaming, TV, NAS —, Mes listes, la loupe
-            // d'Explorer et la roue dentée des Réglages. Des noms seuls pour les pages, des icônes pour le reste.
+            // 8.0, charte commune, la même barre que sur l'iPhone, l'iPad et le Mac : le portrait des Préférences, puis
+            // Accueil, Regarder, Mes listes, la loupe de la recherche et la roue dentée des Réglages. Des noms seuls pour
+            // les pages, des icônes pour le reste.
             Tab(value: OngletTV.profil) { pile { ProfilTV() } } label: {
                 Image(systemName: "person.crop.circle").accessibilityLabel("Préférences")
             }
             Tab(value: OngletTV.accueil) {
                 NavigationStack(path: $cheminAccueil) {
-                    AccueilTV().sousLaPastille().background { FondTV() }.navigationDestination(for: ReferenceTitre.self) { FicheTV(reference: $0).pageOuverte() }
-                        .navigationDestination(for: PersonneTVRef.self) { PersonneTV(personne: $0).pageOuverte() }
+                    AccueilTV().sousLaPastille().background { FondTV() }.destinationsTV()
                 }
+                .environment(\.ouvrirTV, OuvrirTV { cheminAccueil.append($0) })
             } label: { Text("Accueil") }
-            Tab(value: OngletTV.ceSoir) { pile { CeSoirTV() } } label: { Text("Ce soir") }
-            Tab(value: OngletTV.streaming) { pile { StreamingTV() } } label: { Text("Streaming") }
-            Tab(value: OngletTV.tele) { pile { TeleTV() } } label: { Text("TV") }
-            Tab(value: OngletTV.nas) { pile { NASTV() } } label: { Text("NAS") }
+            Tab(value: OngletTV.regarder) { pile { RegarderTV() } } label: { Text("Regarder") }
             Tab(value: OngletTV.listes) { pile { ListesTV() } } label: { Text("Mes listes") }
-            Tab(value: OngletTV.explorer) { pile { ExplorerTV() } } label: {
-                Image(systemName: "magnifyingglass").accessibilityLabel("Explorer")
+            Tab(value: OngletTV.explorer) { pile { RechercheTV() } } label: {
+                Image(systemName: "magnifyingglass").accessibilityLabel("Recherche")
             }
             // Les réglages : une roue dentée tout à droite, plutôt qu'un mot de plus dans le menu. Elle reste dans la barre :
             // un bouton posé par-dessus flotterait quand la barre se replie, et la télécommande s'y perdrait.
@@ -97,6 +94,10 @@ struct RacineTV: View {
             onglet = .accueil
             cheminAccueil = NavigationPath([ReferenceTitre(type: type, tmdbID: id)])
         }
+        // « Tout voir » d'une étagère de l'accueil : Regarder prend la demande et l'efface.
+        .onChange(of: etat.demandeRegarder) { _, demande in
+            if demande != nil { onglet = .regarder }
+        }
         // Retour de l'app de lecture : « Tu l'as regardé ? » (EF-118, sur la TV).
         .onChange(of: phase) { _, nouvelle in
             if nouvelle == .active {
@@ -119,6 +120,7 @@ struct RacineTV: View {
         // La bibliothèque du NAS se relit au lancement : le magasin de la TV est un cache (EF-145).
         .task {
             // Les listes d'abord (quelques secondes), la bibliothèque ensuite (plus longue).
+            etat.relirePositions()
             etat.ou.actualiserLocal(contexte: contexte)
             await etat.synchroniser(contexte: contexte)
             etat.ou.actualiserLocal(contexte: contexte)
@@ -139,19 +141,12 @@ struct RacineTV: View {
 
     /// Chaque onglet a sa pile : toute affiche ouvre la fiche du titre, par valeur.
     private func pile(@ViewBuilder _ contenu: () -> some View) -> some View {
-        NavigationStack {
-            contenu()
-                .sousLaPastille()
-                .background { FondTV() }
-                .navigationDestination(for: ReferenceTitre.self) { FicheTV(reference: $0).pageOuverte() }
-                .navigationDestination(for: PersonneTVRef.self) { PersonneTV(personne: $0).pageOuverte() }
-                .navigationDestination(for: DossierVideosTV.self) { VideosPersoTV(chemin: $0.chemin).pageOuverte() }
-        }
+        PileTV { contenu() }
     }
 }
 
 enum OngletTV: String, Hashable {
-    case accueil, ceSoir, streaming, listes, explorer, tele, nas, profil, reglages
+    case accueil, regarder, listes, explorer, profil, reglages
 }
 
 /// Où l'app s'ouvre. Toujours l'accueil — sauf dans une version de test, où `SEANCE_TV_ONGLET=nas` ou
@@ -160,9 +155,30 @@ enum OngletTV: String, Hashable {
 enum DepartTV {
     static var onglet: OngletTV {
         #if DEBUG
-        if let demande = ProcessInfo.processInfo.environment["SEANCE_TV_ONGLET"], let onglet = OngletTV(rawValue: demande) { return onglet }
+        if let demande = ProcessInfo.processInfo.environment["SEANCE_TV_ONGLET"] {
+            if let onglet = OngletTV(rawValue: demande) { return onglet }
+            // Les anciennes pages (7.0) sont des sources de Regarder : « nas », « tele », « streaming », « ceSoir ».
+            if ["ceSoir", "tele", "nas", "streaming"].contains(demande) { return .regarder }
+        }
         #endif
         return .accueil
+    }
+
+    /// La source de Regarder à l'ouverture : `SEANCE_TV_ONGLET=nas` ouvre Regarder › NAS.
+    static var source: SourceTV {
+        #if DEBUG
+        if let demande = ProcessInfo.processInfo.environment["SEANCE_TV_ONGLET"], let source = SourceTV(rawValue: demande) { return source }
+        #endif
+        return .tout
+    }
+
+    /// `SEANCE_TV_RAYON=videos` ouvre Regarder › NAS sur ce rayon, pour le relire en capture.
+    static var rayon: RayonNASTV {
+        #if DEBUG
+        if let demande = ProcessInfo.processInfo.environment["SEANCE_TV_RAYON"],
+           let rayon = RayonNASTV.allCases.first(where: { String(describing: $0) == demande }) { return rayon }
+        #endif
+        return .films
     }
 
     /// `SEANCE_TV_CONFIGURER=1` ouvre l'écran du code au lancement, `SEANCE_TV_CODE=424242` impose le code : pour le test
@@ -208,5 +224,51 @@ extension View {
     /// commencent un peu plus bas, pour que leur premier titre respire sous la barre.
     func sousLaPastille() -> some View {
         safeAreaPadding(.top, 40)
+    }
+}
+
+/// Une pile d'onglet (8.0) : elle garde son chemin, pour que l'appui long sur une carte puisse ouvrir une fiche
+/// (« Voir la fiche », « Regarder ») par `\.ouvrirTV`.
+struct PileTV<Contenu: View>: View {
+    @ViewBuilder let contenu: Contenu
+    @State private var chemin = NavigationPath()
+
+    var body: some View {
+        NavigationStack(path: $chemin) {
+            contenu
+                .sousLaPastille()
+                .background { FondTV() }
+                .destinationsTV()
+        }
+        .environment(\.ouvrirTV, OuvrirTV { chemin.append($0) })
+    }
+}
+
+/// Ouvre une page dans la pile de l'onglet : une fiche, ou une fiche qui lance aussitôt la lecture.
+struct OuvrirTV {
+    let pousser: (AnyHashable) -> Void
+    func fiche(_ reference: ReferenceTitre) { pousser(reference) }
+    func regarder(_ reference: ReferenceTitre) { pousser(LectureTVDemande(reference: reference)) }
+    func callAsFunction(_ valeur: some Hashable) { pousser(AnyHashable(valeur)) }
+}
+
+/// « Regarder » depuis l'appui long : la fiche s'ouvre et lance son action principale.
+struct LectureTVDemande: Hashable { let reference: ReferenceTitre }
+
+extension EnvironmentValues {
+    @Entry var ouvrirTV: OuvrirTV?
+}
+
+extension View {
+    /// Les pages qu'une pile de la TV sait ouvrir.
+    func destinationsTV() -> some View {
+        self
+            .navigationDestination(for: ReferenceTitre.self) { FicheTV(reference: $0).pageOuverte() }
+            .navigationDestination(for: LectureTVDemande.self) { FicheTV(reference: $0.reference, lancerALOuverture: true).pageOuverte() }
+            .navigationDestination(for: PersonneTVRef.self) { PersonneTV(personne: $0).pageOuverte() }
+            .navigationDestination(for: DossierVideosTV.self) { VideosPersoTV(chemin: $0.chemin).pageOuverte() }
+            .navigationDestination(for: FiltresTVDemande.self) { ExplorerTV(sourceImposee: $0.source).pageOuverte() }
+            .navigationDestination(for: GoutsTVDemande.self) { _ in PageGoutsTV().pageOuverte() }
+            .navigationDestination(for: StatistiquesTVDemande.self) { _ in StatistiquesTV().pageOuverte() }
     }
 }

@@ -13,7 +13,7 @@ struct EtatVide: View {
     var body: some View {
         VStack(spacing: 12) {
             Image(systemName: symbole)
-                .font(.system(size: 40))
+                .font(.largeTitle).imageScale(.large)
                 .foregroundStyle(Theme.degradeAccent)
                 .accessibilityHidden(true)
             Text(titre)

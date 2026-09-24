@@ -9,27 +9,45 @@ struct PageTV<Contenu: View>: View {
     let titre: String
     var sousTitre: String?
     @ViewBuilder let contenu: Contenu
+    /// Maquette 8.0, n° 20 : les réglages en haut, l'explication derrière « ⓘ Comment ça marche » — celle de la page
+    /// et celles de ses sections, remontées par `ExplicationsTV`.
+    @State private var explique = false
+    @State private var explications: [String] = []
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 34) {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(titre).font(.system(size: 58, weight: .heavy))
-                    if let sousTitre {
-                        Text(sousTitre).font(.system(size: 26)).foregroundStyle(.secondary).frame(maxWidth: 1200, alignment: .leading)
+            VStack(alignment: .leading, spacing: 30) {
+                Text(titre).font(.system(size: 58, weight: .heavy))
+                contenu
+                let textes = [sousTitre].compactMap { $0 } + explications
+                if !textes.isEmpty {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Button { explique.toggle() } label: { Label("Comment ça marche", systemImage: "info.circle") }
+                            .buttonStyle(LienTV())
+                        if explique {
+                            ForEach(textes, id: \.self) { texte in
+                                Text(texte).font(.system(size: 25)).foregroundStyle(Theme.texte2).frame(maxWidth: 1100, alignment: .leading)
+                            }
+                        }
                     }
                 }
-                contenu
             }
-            .frame(maxWidth: 1500, alignment: .leading)
-            .frame(maxWidth: .infinity)
+            .frame(maxWidth: 1100, alignment: .leading)
+            .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, MargesTV.bord)
             .padding(.top, 60)
             .padding(.bottom, 80)
         }
         // Opaque : sans cela, la page précédente se lit au travers.
         .background(Theme.fond.ignoresSafeArea())
+        .onPreferenceChange(ExplicationsTV.self) { explications = $0 }
     }
+}
+
+/// Les explications des sections d'une page, remontées vers « ⓘ Comment ça marche ».
+struct ExplicationsTV: PreferenceKey {
+    static let defaultValue: [String] = []
+    static func reduce(value: inout [String], nextValue: () -> [String]) { value += nextValue() }
 }
 
 /// Un groupe de lignes : un intitulé, une carte, et une explication dessous.
@@ -48,11 +66,9 @@ struct SectionTV<Contenu: View>: View {
             }
             .padding(12)
             .background(Theme.surface, in: RoundedRectangle(cornerRadius: 28, style: .continuous))
-            if let explication {
-                Text(explication).font(.system(size: 23)).foregroundStyle(.secondary).frame(maxWidth: 1300, alignment: .leading).padding(.leading, 8)
-            }
         }
         .focusSection()
+        .preference(key: ExplicationsTV.self, value: explication.map { [$0] } ?? [])
     }
 }
 
@@ -213,40 +229,54 @@ struct DialogueTV: View {
     let titre: String
     var message: String?
     let choix: [Choix]
+    /// Une barre de progression sous le message : « Reprendre ? » (maquette 8.0, n° 22).
+    var progression: Double?
 
     @Environment(\.dismiss) private var fermer
 
+    /// Maquette 8.0, n° 22 : une carte au centre, sur la page assombrie ; les choix l'un sous l'autre, le principal en
+    /// blanc. Retour annule.
     var body: some View {
         ZStack {
-            Theme.fond.ignoresSafeArea()
-            VStack(spacing: 26) {
+            Theme.fond.opacity(0.92).ignoresSafeArea()
+            VStack(spacing: 20) {
                 Text(titre)
-                    .font(.system(size: 50, weight: .heavy))
+                    .font(.system(size: 44, weight: .heavy))
                     .multilineTextAlignment(.center)
                 if let message {
                     Text(message)
-                        .font(.system(size: 28))
-                        .foregroundStyle(.secondary)
+                        .font(.system(size: 26))
+                        .foregroundStyle(Theme.texte2)
                         .multilineTextAlignment(.center)
                 }
-                HStack(spacing: 24) {
+                if let progression {
+                    GeometryReader { geo in
+                        ZStack(alignment: .leading) {
+                            Capsule().fill(.white.opacity(0.25))
+                            Capsule().fill(.white).frame(width: geo.size.width * progression)
+                        }
+                    }
+                    .frame(height: 8)
+                }
+                VStack(spacing: 16) {
                     ForEach(choix) { un in
                         Button {
                             fermer()
                             un.action()
                         } label: {
-                            Text(un.libelle)
+                            Text(un.libelle).frame(maxWidth: .infinity)
                         }
                         .buttonStyle(BoutonTV(principal: un.principal))
                     }
                 }
                 .padding(.top, 10)
-                Button("Annuler") { fermer() }
-                    .buttonStyle(BoutonTV())
+                .focusSection()
             }
             .foregroundStyle(.white)
-            .frame(maxWidth: 1300)
-            .padding(60)
+            .frame(width: 760)
+            .padding(44)
+            .background(Theme.surface, in: RoundedRectangle(cornerRadius: 36, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 36, style: .continuous).strokeBorder(Theme.trait, lineWidth: 1))
         }
         .onExitCommand { fermer() }
     }

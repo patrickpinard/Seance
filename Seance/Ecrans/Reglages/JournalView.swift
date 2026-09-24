@@ -70,7 +70,7 @@ struct SectionsJournal: View {
     private func ligne(_ entree: Journal.Entree) -> some View {
         HStack(alignment: .top, spacing: 12) {
             Image(systemName: entree.domaine.symbole)
-                .font(.system(size: 13, weight: .semibold))
+                .font(.footnote.weight(.semibold))
                 .foregroundStyle(.white)
                 .frame(width: 28, height: 28)
                 .background(entree.domaine.couleur.gradient, in: RoundedRectangle(cornerRadius: 7, style: .continuous))

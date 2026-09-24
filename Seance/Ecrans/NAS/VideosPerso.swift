@@ -184,12 +184,14 @@ struct VideosPersoView: View {
         #if targetEnvironment(macCatalyst)
         Color.clear.onAppear { aLire = nil; aLireAvecVLC = nil; lireAilleurs(video) }
         #else
-        LecteurVLC(video: video, acces: etat.videosPerso.reglages.acces,
-                   motDePasse: etat.videosPerso.motDePasse(films: etat.nas.reglages) ?? "") { _ in
+        Color.clear.onAppear {
             aLireAvecVLC = nil
-            Task {
-                try? await Task.sleep(for: .milliseconds(700))
-                lireAilleurs(video)
+            etat.lecture = LectureEnCours(video: video, acces: etat.videosPerso.reglages.acces,
+                                          motDePasse: etat.videosPerso.motDePasse(films: etat.nas.reglages) ?? "") { _ in
+                Task {
+                    try? await Task.sleep(for: .milliseconds(700))
+                    lireAilleurs(video)
+                }
             }
         }
         #endif
@@ -282,7 +284,19 @@ struct VideosPersoView: View {
         // un lecteur pour lui annoncer qu'il ne sait pas lire.
         // 6.5 : le format ne décide plus. Séance ouvre son lecteur, qui choisit le moteur qui convient.
         if etat.videosPerso.reglages.lecteurIntegre, etat.videosPerso.motDePasse(films: etat.nas.reglages) != nil {
+            #if targetEnvironment(macCatalyst)
             if LecteurIntegre.lisible(video.chemin) { aLire = video } else { aLireAvecVLC = video }
+            #else
+            // 8.0 : le lecteur de Séance, le même que pour les films — avec la reprise et l'image dans l'image.
+            etat.lectureEnImage = false
+            etat.lecture = LectureEnCours(video: video, acces: etat.videosPerso.reglages.acces,
+                                          motDePasse: etat.videosPerso.motDePasse(films: etat.nas.reglages) ?? "") { _ in
+                Task {
+                    try? await Task.sleep(for: .milliseconds(700))
+                    lireAilleurs(video)
+                }
+            }
+            #endif
             return
         }
         // Partir ailleurs sans rien dire laissait deviner pourquoi (6.5) : on donne la raison.
@@ -390,7 +404,7 @@ struct FeuilleCouverture: View {
                             Button { symbole = icone.symbole } label: {
                                 VStack(spacing: 6) {
                                     Image(systemName: icone.symbole)
-                                        .font(.system(size: 24, weight: .semibold))
+                                        .font(.title2.weight(.semibold))
                                         .foregroundStyle(choisie ? Color.black : Theme.accentClair)
                                         .frame(width: 58, height: 58)
                                         .background(choisie ? AnyShapeStyle(Theme.degradeAccent) : AnyShapeStyle(Theme.accent.opacity(0.16)), in: Circle())

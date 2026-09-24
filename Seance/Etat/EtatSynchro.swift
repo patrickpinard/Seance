@@ -50,7 +50,7 @@ enum ImportSauvegarde {
             (plan.listes.count + plan.titresAjoutesAuxListes.count, "liste", "listes"), (plan.acteursSuivis.count, "acteur suivi", "acteurs suivis"),
             (plan.filtres.count, "filtre", "filtres"), (plan.interets.count, "goût", "goûts"),
             (plan.abonnements.count, "plateforme", "plateformes"), (plan.chaines.count, "chaîne", "chaînes"),
-            (plan.reports.count, "idée reportée", "idées reportées"), (reglages, "réglage", "réglages"),
+            (plan.reports.count, "suggestion reportée", "suggestions reportées"), (reglages, "réglage", "réglages"),
         ]
         return comptes.filter { $0.0 > 0 }.map { Format.pluriel($0.0, $0.1, $0.2) }
     }

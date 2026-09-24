@@ -23,6 +23,33 @@ struct NoteVersion: Identifiable {
 
     static let historique: [NoteVersion] = [
         NoteVersion(
+            numero: "8.0",
+            date: "25 septembre 2026",
+            resume: "Une seule charte pour l'iPhone, l'iPad, le Mac et l'Apple TV : trois onglets, Regarder par jour, des cartes allégées, une fiche qui va à l'essentiel — et tes films reprennent là où tu t'étais arrêté.",
+            fonctionnalites: [
+                Fonctionnalite(symbole: "rectangle.3.group", titre: "Trois onglets, partout",
+                               detail: "Accueil, Regarder, Mes listes et la loupe, la même barre sur les quatre appareils. En haut de chaque page, ton portrait à gauche (tes préférences) et la roue des réglages à droite — une seule par page."),
+                Fonctionnalite(symbole: "calendar", titre: "Regarder, jour par jour",
+                               detail: "Ce soir, le programme TV, tes plateformes et ton NAS sont réunis dans Regarder. La rangée commence par « Auj. » : ta soirée, des suggestions, ce qui passe à la TV ; un autre jour sert à planifier. Tout · Streaming · TV · NAS en pastilles."),
+                Fonctionnalite(symbole: "line.3.horizontal.decrease", titre: "Les filtres d'Explorer dans Regarder",
+                               detail: "Catégorie (films, séries, documentaires), genres — un appui long exclut —, période, durée, acteurs, note, langue, déjà vus, tri, et tes filtres enregistrés. Sur l'Apple TV, en deux parties : les filtres à gauche, les résultats à droite, à chaque choix."),
+                Fonctionnalite(symbole: "arrow.counterclockwise.circle", titre: "Reprendre où tu en étais",
+                               detail: "Un film ou une vidéo du NAS arrêté au milieu repart là où tu l'as laissé, sur n'importe quel appareil : « Reprendre à 1:03:12 » sur la fiche, une rangée « Reprendre » sur l'accueil et dans l'étagère de l'Apple TV. « Depuis le début » reste à portée."),
+                Fonctionnalite(symbole: "pip.enter", titre: "Continuer dans Séance",
+                               detail: "Dans le lecteur de l'iPhone et de l'iPad, deux boutons : la croix arrête la lecture ; « Continuer dans Séance » passe la vidéo dans une petite fenêtre et te rend l'app — films, séries et souvenirs."),
+                Fonctionnalite(symbole: "play.rectangle", titre: "Une fiche qui va à l'essentiel",
+                               detail: "Un bouton principal qui dit ce qu'il fait — « Regarder sur Prime Video », « Reprendre à… » —, puis Ma liste, Ce soir et « ⋯ » pour le reste. « Ton avis » : les pouces et l'étoile, dans le même trait que les autres icônes. Le même ordre sur l'Apple TV."),
+                Fonctionnalite(symbole: "rectangle.on.rectangle", titre: "Des cartes qui se lisent d'un coup d'œil",
+                               detail: "Une ligne d'origine, le titre, une ligne de faits et le ▶︎ blanc. Glisser vers la gauche une carte de ta soirée propose « Un autre soir » et « Retirer » ; l'appui long, les mêmes gestes et « Terminé »."),
+                Fonctionnalite(symbole: "paintpalette", titre: "Une charte, vérifiée",
+                               detail: "Sombre seulement, l'orange réservé à ce qui se touche, des SF Symbols d'un seul trait, « Suggestions » partout, plus d'emoji ni de phrases sous les titres. Les réglages de l'iPad et du Mac s'ouvrent en deux colonnes ; ceux de l'Apple TV en liste, avec un aperçu. Un test refuse désormais toute couleur ou taille de texte en dur."),
+                Fonctionnalite(symbole: "appletv", titre: "L'Apple TV, page par page",
+                               detail: "Ce qui est choisi en blanc ; Regarder avec les logos des plateformes, la TV en direct et en horaires, le NAS par mois d'ajout et ses rayons Films · Séries · Documentaires · Vidéos ; les filtres en liste comme les Réglages ; une vraie recherche au clavier ; l'acteur, les Préférences et les Statistiques repensés. L'appui long sur une carte : Regarder, Voir la fiche, Un autre soir, Terminé, Retirer de Reprendre. Le lecteur a ses commandes : la bande de progression, ±10 s, la langue et les sous-titres."),
+                Fonctionnalite(symbole: "envelope", titre: "L'e-mail se règle une fois",
+                               detail: "Le serveur, le compte et les destinataires de l'e-mail de la semaine suivent désormais tes changements sur tous tes appareils. Le mot de passe, lui, ne voyage que par l'envoi chiffré « Envoyer à un appareil »."),
+            ]
+        ),
+        NoteVersion(
             numero: "7.0",
             date: "25 septembre 2026",
             resume: "Un nouveau menu, le même partout : Streaming, TV et NAS y ont chacun leur entrée. Des Réglages en une liste, et tes films du NAS lus dans Séance, à l'horizontale, avec le son, les langues et les sous-titres.",
@@ -401,7 +428,7 @@ struct NoteVersion: Identifiable {
                 Fonctionnalite(symbole: "play.tv", titre: "Apple TV : où regarder, en détail",
                                detail: "Le NAS, tes plateformes — chacune s'ouvre sur le titre —, et les passages télé avec la chaîne, le jour et l'heure ; sinon, où louer ou acheter."),
                 Fonctionnalite(symbole: "hand.thumbsup", titre: "Apple TV : pouces, note, alertes, un autre soir",
-                               detail: "👍 et 👎 sans avoir vu, la note de 1 à 10 après, la cloche (c'est l'iPhone qui prévient), « Un autre soir… » avec ses sept tuiles de jours, et les bandes-annonces dans l'app YouTube."),
+                               detail: "« J'aime » et « Je n'aime pas » sans avoir vu, la note de 1 à 10 après, la cloche (c'est l'iPhone qui prévient), « Un autre soir… » avec ses sept tuiles de jours, et les bandes-annonces dans l'app YouTube."),
                 Fonctionnalite(symbole: "sparkles", titre: "Apple TV : des idées pour ce soir",
                                detail: "Sous ta soirée, des titres regardables sur tes plateformes, classés selon tes goûts ; le Profil montre aussi tes pouces levés."),
                 Fonctionnalite(symbole: "macbook", titre: "Mac : tes vidéos personnelles dans Infuse",
@@ -411,7 +438,7 @@ struct NoteVersion: Identifiable {
         NoteVersion(
             numero: "4.7",
             date: "20 septembre 2026",
-            resume: "👍 👎 comme sur Netflix : dis ce qui te plaît sans l'avoir vu, et les idées du soir te ressemblent davantage.",
+            resume: "Les pouces, comme sur Netflix : dis ce qui te plaît sans l'avoir vu, et les idées du soir te ressemblent davantage.",
             fonctionnalites: [
                 Fonctionnalite(symbole: "hand.thumbsup", titre: "J'aime",
                                detail: "Un pouce levé sur la fiche, sur une idée du soir ou par appui long sur une affiche. Pas besoin d'avoir vu le titre, et il n'entre dans aucune liste : Séance en retient les genres et les acteurs pour tes prochaines idées. La note de 1 à 10 reste pour après avoir regardé."),
@@ -449,7 +476,7 @@ struct NoteVersion: Identifiable {
                                detail: "L'épisode regardé, la série quitte ta soirée — depuis « Ce soir » comme depuis sa fiche. « Encore un » la remet pour enchaîner. La durée de la soirée compte le film et un épisode par série."),
                 Fonctionnalite(symbole: "magnifyingglass", titre: "Chercher sans quitter la soirée",
                                detail: "« Ajouter à ma soirée » a son champ de recherche : films et séries mêlés, où les regarder, et « + » sur chaque ligne. Au-dessus des idées, tu choisis films, séries ou les deux."),
-                Fonctionnalite(symbole: "moon.fill", titre: "🌙 sur la fiche",
+                Fonctionnalite(symbole: "moon.fill", titre: "La lune sur la fiche",
                                detail: "« Ce soir » a son bouton dans la rangée d'actions de la fiche, plus derrière « Plus », et un message confirme l'ajout, avec Annuler."),
                 Fonctionnalite(symbole: "hand.thumbsdown", titre: "Je n'aime pas",
                                detail: "Sur une idée, une affiche (appui long) ou une fiche : le titre ne t'est plus proposé, ni dans les idées, ni sur l'accueil, ni dans Explorer. Un film que tu viens de regarder ne revient plus non plus dans les idées. Réglages › Prénom et idées liste ce que tu as écarté et permet de tout reproposer."),

@@ -306,16 +306,8 @@ struct AccueilView: View {
             }
             .destinationsTitres()
             .destinationsAccueil()
-            .toolbar {
-                ToolbarItemGroup(placement: .topBarTrailing) {
-                    Button { reglageSources = true } label: {
-                        Label("Personnaliser", systemImage: "slider.horizontal.3")
-                            .labelStyle(.titleAndIcon)
-                    }
-                    .help("Choisir les sections de l'accueil et le nombre de titres")
-                    .accessibilityIdentifier("boutonSources")
-                }
-            }
+            // Charte 8.0 : en haut, le portrait et la roue seulement. Personnaliser l'accueil se fait dans
+            // Réglages › Accueil.
             .sheet(isPresented: $reglageSources) {
                 ReglageSourcesAccueil(sources: Binding {
                     sources
@@ -348,10 +340,7 @@ struct AccueilView: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(Prenom.salut(prenom))
                             .font(.title2.weight(.heavy))
-                            .foregroundStyle(Theme.degradeAccent)
-                        Text(resumeSoiree == nil ? "Voici de quoi choisir ta soirée." : "Ta soirée est prête, et voici de quoi en préparer d'autres.")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Theme.texte)
                     }
                     .padding(.horizontal, 20)
                     .padding(.bottom, -14)
@@ -372,8 +361,10 @@ struct AccueilView: View {
                     }
                     .buttonStyle(.plain)
                     .padding(.horizontal, 20)
-                    .accessibilityHint("Ouvre Ce soir")
+                    .accessibilityHint("Ouvre Regarder")
                 }
+
+                SectionReprendre()
 
                 aujourdhui
 
@@ -403,11 +394,6 @@ struct AccueilView: View {
                         TitreSection(titre: "Nouveautés") {
                             BoutonToutVoir { chemin.append(DestinationAccueil.duMoment(plateformes: plateformes)) }
                         }
-                        Text(plateformes.map { "Sorties et nouveaux épisodes du mois, les plus populaires d'abord · sur \(nomsPlateformes($0))" }
-                             ?? "Sorties et nouveaux épisodes du mois, les plus populaires d'abord")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .padding(.horizontal, 20)
                         Carrousel(titres: proposables(modele.duMoment)) { modele.sousTitre($0) }
                     }
                 }
@@ -417,10 +403,6 @@ struct AccueilView: View {
                         TitreSection(titre: "Documentaires") {
                             BoutonToutVoir { chemin.append(DestinationAccueil.documentaires) }
                         }
-                        Text(etat.documentaires.resume)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .padding(.horizontal, 20)
                         Carrousel(titres: proposables(etat.documentaires.films + etat.documentaires.series)) { _ in nil }
                     }
                 }
@@ -535,6 +517,57 @@ struct ReglageSourcesAccueil: View {
 }
 
 /// « Dans ta liste, regardable ce soir » : les titres que tu voulais voir et qui sont sous la main, en affiches.
+/// « Reprendre » (8.0) : les vidéos du NAS entamées ici ou sur un autre appareil, avec leur barre de progression.
+/// Le ▶︎ repart là où l'on s'était arrêté.
+private struct SectionReprendre: View {
+    @Environment(EtatApp.self) private var etat
+    @Query private var fichiers: [FichierNAS]
+
+    private var reprises: [(fichier: FichierNAS, position: PositionLecture)] {
+        #if targetEnvironment(macCatalyst)
+        return []
+        #else
+        return etat.nas.positions.enCours.prefix(10).compactMap { entree in
+            fichiers.first { $0.chemin == entree.chemin && $0.reference != nil }.map { ($0, entree.position) }
+        }
+        #endif
+    }
+
+    var body: some View {
+        let liste = reprises
+        if !liste.isEmpty {
+            VStack(alignment: .leading, spacing: 12) {
+                TitreSection("Reprendre")
+                DefilementHorizontal {
+                    LazyHStack(spacing: 14) {
+                        ForEach(liste, id: \.fichier.chemin) { reprise in
+                            if let reference = reprise.fichier.reference {
+                                NavigationLink(value: reference) {
+                                    CarteLargeTitre(reference: reference, titre: reprise.fichier.titre, cheminFond: reprise.fichier.cheminFond,
+                                                    cheminAffiche: reprise.fichier.cheminAffiche,
+                                                    accroche: ["Sur ton NAS", reprise.position.appareil].compactMap { $0 }.joined(separator: " · "),
+                                                    faits: reprise.position.reste.map { [PositionsLecture.reste($0)] } ?? [],
+                                                    ouApresAccroche: false, progression: reprise.position.fraction)
+                                        .frame(width: CarteLargeTitre.largeur)
+                                }
+                                .buttonStyle(.plain)
+                                // Appui long (charte 8.0) : sortir un film de « Reprendre » sans le relancer.
+                                .contextMenu {
+                                    Button(role: .destructive) {
+                                        withAnimation { etat.nas.oublierPosition(reprise.fichier.chemin) }
+                                    } label: { Label("Retirer de Reprendre", systemImage: "xmark.circle") }
+                                }
+                                .accessibilityAction(named: "Retirer de Reprendre") { etat.nas.oublierPosition(reprise.fichier.chemin) }
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 20)
+                }
+            }
+        }
+    }
+}
+
 private struct SectionRegardable: View {
     let suivis: [Suivi]
 

@@ -110,12 +110,11 @@ final class VisiteTests: XCTestCase {
         app.launchEnvironment["SEANCE_DEMO"] = "1"
         app.launch()
         // La page ne montre que la sélection du soir ; tout le reste est dans « Ajouter ».
-        app.tabBars.buttons["Ce soir"].firstMatch.tap()
-        XCTAssertTrue(app.buttons["Ajouter"].firstMatch.waitForExistence(timeout: 10))
+        app.aller("Ce soir")
+        XCTAssertTrue(app.amener(app.buttons["Suggestions pour ce soir"].firstMatch))
         capture("96-ce-soir", attente: 5)
-        XCTAssertFalse(app.staticTexts["Idées pour ce soir"].exists, "Les idées sont encore sur la page")
-        app.buttons["Ajouter"].firstMatch.tap()
-        XCTAssertTrue(app.staticTexts["Idées pour ce soir"].waitForExistence(timeout: 10), "La feuille Ajouter ne propose pas d'idées")
+        app.buttons["Suggestions pour ce soir"].firstMatch.tap()
+        XCTAssertTrue(app.staticTexts["Suggestions pour ce soir"].waitForExistence(timeout: 10), "La feuille ne propose pas de suggestions")
         capture("97-ajouter", attente: 4)
         app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Chercher un titre'")).firstMatch.tap()
         capture("97-vers-explorer")
@@ -144,8 +143,7 @@ final class VisiteTests: XCTestCase {
         app.launch()
         // Les onglets de la barre latérale sont des lignes de liste.
         func onglet(_ nom: String) {
-            let ligne = app.cells.matching(NSPredicate(format: "label == %@", nom)).firstMatch
-            if ligne.waitForExistence(timeout: 3) { ligne.tap() } else { app.buttons[nom].firstMatch.tap() }
+            app.aller(nom)
         }
         capture("A1-accueil", attente: 6)
         onglet("Ce soir")

@@ -18,8 +18,8 @@ settings:
     # Équipe personnelle de Patrick (compte Apple gratuit).
     DEVELOPMENT_TEAM: GATK475J3P
     # Version affichée dans À propos › Versions ; à changer avec Seance/Ecrans/Reglages/Versions.swift.
-    MARKETING_VERSION: "7.0"
-    CURRENT_PROJECT_VERSION: "53"
+    MARKETING_VERSION: "8.0"
+    CURRENT_PROJECT_VERSION: "54"
 
 packages:
   SeanceKit:
@@ -100,6 +100,8 @@ targets:
         UIBackgroundModes:
           - fetch
           - processing
+          # 8.0 : l'image dans l'image du lecteur (films, séries, souvenirs) ; iOS l'exige.
+          - audio
         BGTaskSchedulerPermittedIdentifiers:
           - ch.patrick.seance.rafraichissement
           - ch.patrick.seance.programmes-tv

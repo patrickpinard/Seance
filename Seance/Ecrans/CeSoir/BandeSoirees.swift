@@ -23,8 +23,9 @@ struct TuileJour: View {
         }
         .frame(minWidth: 66)
         .padding(.vertical, 9).padding(.horizontal, 6)
-        .foregroundStyle(actif ? Color.black : marque ? Theme.accentClair : Color.primary)
-        .background(actif ? AnyShapeStyle(Theme.degradeAccent) : marque ? AnyShapeStyle(Theme.accent.opacity(0.16)) : AnyShapeStyle(Theme.surface),
+        // Charte 8.0 : le jour choisi en blanc, comme toute pastille choisie ; un jour où quelque chose est prévu, en orange.
+        .foregroundStyle(actif ? Color.black : marque ? Theme.accentClair : Theme.texte)
+        .background(actif ? AnyShapeStyle(Theme.texte) : marque ? AnyShapeStyle(Theme.accent.opacity(0.16)) : AnyShapeStyle(Theme.surface),
                     in: RoundedRectangle(cornerRadius: 14, style: .continuous))
         .contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         .texteContenu()
@@ -104,7 +105,7 @@ struct BandeSoirees: View {
 
     private func nomCourt(_ date: Date) -> String {
         let calendrier = Calendar.current
-        if date == aujourdhui { return "Ce soir" }
+        if date == aujourdhui { return "Auj." }
         if let demain = calendrier.date(byAdding: .day, value: 1, to: aujourdhui), date == demain { return "Demain" }
         return date.formatted(.dateTime.weekday(.abbreviated).locale(Self.locale)).capitalized
     }
@@ -114,7 +115,8 @@ struct BandeSoirees: View {
     }
 
     private func libelleVocal(_ date: Date, nombre: Int) -> String {
-        let nom = date == aujourdhui ? "Ce soir" : date.formatted(.dateTime.weekday(.wide).day().month(.wide).locale(Self.locale))
+        let demain = Calendar.current.date(byAdding: .day, value: 1, to: aujourdhui)
+        let nom = date == aujourdhui ? "Aujourd'hui" : date == demain ? "Demain" : date.formatted(.dateTime.weekday(.wide).day().month(.wide).locale(Self.locale))
         return nombre > 0 ? "\(nom), \(Format.pluriel(nombre, "titre")) prévu\(nombre > 1 ? "s" : "")" : "\(nom), rien de prévu"
     }
 }

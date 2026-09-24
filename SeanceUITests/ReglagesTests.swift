@@ -23,7 +23,7 @@ final class ReglagesTests: XCTestCase {
 
         // Le prénom se saisit et se retrouve sur sa ligne.
         let prenom = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Prénom'")).firstMatch
-        XCTAssertTrue(app.amener(prenom, essais: 16), "Tuile « Prénom et idées » introuvable")
+        XCTAssertTrue(app.amener(prenom, essais: 16), "Tuile « Prénom et suggestions » introuvable")
         prenom.tap()
         XCTAssertTrue(app.navigationBars["Toi"].waitForExistence(timeout: 8), "La page « Toi » ne s'ouvre pas")
         let champ = app.textFields["Ton prénom"]
@@ -37,7 +37,6 @@ final class ReglagesTests: XCTestCase {
                       "Le prénom saisi n'apparaît pas dans Réglages")
 
         let pages: [(ligne: String, repere: String)] = [
-            ("Apparence", "Apparence"),
             ("TMDB", "Clé TMDB"),
             ("Claude", "Clé Claude"),
             ("Plateformes", "Plateformes"),
@@ -54,6 +53,8 @@ final class ReglagesTests: XCTestCase {
             // Du haut de la page à chaque fois : une carte restée sous la barre de navigation translucide se dit touchable,
             // mais le toucher atterrit sur la barre.
             app.swipeDown(); app.swipeDown(); app.swipeDown()
+            // Déjà en haut, un glissement vers le bas peut refermer la feuille des Réglages : on la rouvre.
+            if !app.navigationBars["Réglages"].waitForExistence(timeout: 2) { app.ouvrirReglages() }
             let ligne = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", page.ligne)).firstMatch
             XCTAssertTrue(app.amener(ligne, essais: 16), "Ligne « \(page.ligne) » absente")
             ligne.tap()

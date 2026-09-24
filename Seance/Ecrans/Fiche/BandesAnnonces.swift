@@ -30,7 +30,7 @@ struct SectionBandesAnnonces: View {
                 .frame(width: 240, height: 135)
                 .overlay {
                     Image(systemName: "play.circle.fill")
-                        .font(.system(size: 46))
+                        .font(.largeTitle).imageScale(.large)
                         .foregroundStyle(.white, .black.opacity(0.45))
                 }
             Text(video.nom)

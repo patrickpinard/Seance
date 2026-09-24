@@ -100,7 +100,7 @@ struct BienvenueView: View {
                 .frame(width: 110, height: 110)
                 .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
             Text("Bienvenue dans Séance").font(.largeTitle.weight(.heavy)).multilineTextAlignment(.center)
-            Text("En une minute : tes plateformes, les genres que tu aimes et quelques films que tu connais. Les idées du soir seront justes dès ce soir.")
+            Text("En une minute : tes plateformes, les genres que tu aimes et quelques films que tu connais. Les suggestions du soir seront justes dès ce soir.")
                 .font(.body)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -141,7 +141,7 @@ struct BienvenueView: View {
             ZStack(alignment: .bottomLeading) {
                 LinearGradient(colors: gout.couleurs.map { $0.opacity(actif ? 0.95 : 0.45) }, startPoint: .topLeading, endPoint: .bottomTrailing)
                 Image(systemName: gout.symbole)
-                    .font(.system(size: 44, weight: .bold))
+                    .font(.largeTitle.weight(.bold))
                     .foregroundStyle(.white.opacity(actif ? 0.9 : 0.5))
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
                     .padding(14)
@@ -221,7 +221,7 @@ struct BienvenueView: View {
     private var fin: some View {
         VStack(spacing: 18) {
             Spacer()
-            Image(systemName: "checkmark.seal.fill").font(.system(size: 64)).foregroundStyle(Theme.accent)
+            Image(systemName: "checkmark.seal.fill").font(.largeTitle).imageScale(.large).foregroundStyle(Theme.accent)
             Text("C'est prêt !").font(.largeTitle.weight(.heavy))
             Text("\(choisis.count) goût\(choisis.count > 1 ? "s" : "") et \(notes) note\(notes > 1 ? "s" : "") : les suggestions « Pour toi » en tiennent compte dès maintenant.")
                 .multilineTextAlignment(.center)

@@ -123,7 +123,7 @@ struct ActionsRapides {
             if try gouts.estAime(reference) { return ("Tu l'aimes déjà", "hand.thumbsup.fill") }
             try gouts.aimer(reference, titre: titre.titre, cheminAffiche: titre.cheminAffiche, genres: titre.genres)
             annulation = { [contexte] in try? ServiceGouts(contexte: contexte).nePlusAimer(reference) }
-            return ("Noté : tes idées en tiendront compte", "hand.thumbsup.fill")
+            return ("Noté : tes suggestions en tiendront compte", "hand.thumbsup.fill")
 
         case .pasInteresse:
             let avant = try suivi.suivi(reference)

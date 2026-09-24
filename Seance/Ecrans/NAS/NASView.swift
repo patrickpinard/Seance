@@ -179,17 +179,25 @@ struct NASView: View {
             }
         }
         .background(Theme.fond)
-        .navigationTitle("Sur ton NAS")
+        .titrePage("Sur ton NAS")
         .navigationBarTitleDisplayMode(.large)
         .toolbar {
+            // Charte 8.0 : une seule roue dentée par page, celle du haut (Réglages). Les gestes propres au NAS passent
+            // par « ⋯ ».
             ToolbarItemGroup(placement: .topBarTrailing) {
                 if etat.nas.enCours {
                     ProgressView()
-                } else if etat.nas.estConfigure {
-                    Button("Analyser", systemImage: "arrow.clockwise") { analyser() }
-                }
-                NavigationLink(value: DestinationReglage.nas) {
-                    Label("Réglages du NAS", systemImage: "gearshape")
+                } else {
+                    Menu {
+                        if etat.nas.estConfigure {
+                            Button("Analyser le NAS maintenant", systemImage: "arrow.clockwise") { analyser() }
+                        }
+                        NavigationLink(value: DestinationReglage.nas) {
+                            Label("Réglages du NAS", systemImage: "externaldrive")
+                        }
+                    } label: {
+                        Label("Plus", systemImage: "ellipsis")
+                    }
                 }
             }
         }

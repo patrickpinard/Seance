@@ -75,9 +75,9 @@ struct PersonneView: View {
                     etat.filtreExplorerDemande = PersonneFiltre(id: personne.id, nom: personne.nom, cheminPortrait: fiche?.cheminPortrait,
                                                                 estRealisateur: fiche?.domaine == "Directing")
                 } label: {
-                    Label("Dans Explorer", systemImage: "line.3.horizontal.decrease.circle")
+                    Label("Dans la recherche", systemImage: "line.3.horizontal.decrease.circle")
                 }
-                .help("Ouvrir Explorer avec tous ses films, pour les filtrer par genre, période ou plateforme")
+                .help("Ouvrir la recherche avec tous ses films, pour les filtrer par genre, période ou plateforme")
             }
         }
         .task(id: personne) { await charger() }
@@ -152,7 +152,7 @@ struct PersonneView: View {
                 if let domaine = fiche?.domaine {
                     Text(domaine == "Directing" ? "Réalisation" : domaine == "Acting" ? "Interprétation" : domaine)
                         .font(.subheadline)
-                        .foregroundStyle(Theme.accentClair)
+                        .foregroundStyle(Theme.texte2)
                 }
                 let details = [fiche?.age(aujourdhui: DateTMDB(.now)).map { fiche?.dateDeces == nil ? "\($0) ans" : "Décédé à \($0) ans" },
                                fiche?.lieuNaissance].compactMap { $0 }
@@ -298,12 +298,12 @@ struct PersonneView: View {
                         if referencesNAS.contains(credit.reference) {
                             Label("NAS", systemImage: "externaldrive.fill")
                                 .font(.caption.weight(.semibold))
-                                .foregroundStyle(Theme.accentClair)
+                                .foregroundStyle(Theme.texte2)
                         }
                         if surMesPlateformes.contains(credit.reference) {
                             Label("Abonnement", systemImage: "play.tv")
                                 .font(.caption.weight(.semibold))
-                                .foregroundStyle(Theme.accentClair)
+                                .foregroundStyle(Theme.texte2)
                         }
                     }
                 }

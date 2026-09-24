@@ -35,7 +35,7 @@ struct EnteteWidget: View {
             Image(systemName: symbole).foregroundStyle(CouleursWidget.accent)
             Text(titre).foregroundStyle(.white)
         }
-        .font(.system(size: 13, weight: .bold))
+        .font(.footnote.weight(.bold))
         .lineLimit(1)
         .widgetAccentable()
     }
@@ -47,8 +47,8 @@ struct VideWidget: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(titre).font(.system(size: 15, weight: .semibold)).foregroundStyle(.white)
-            Text(texte).font(.system(size: 12)).foregroundStyle(.white.opacity(0.6)).fixedSize(horizontal: false, vertical: true)
+            Text(titre).font(.subheadline.weight(.semibold)).foregroundStyle(.white)
+            Text(texte).font(.caption).foregroundStyle(.white.opacity(0.6)).fixedSize(horizontal: false, vertical: true)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
@@ -76,8 +76,8 @@ struct VueSoiree: View {
             ZStack {
                 AccessoryWidgetBackground()
                 VStack(spacing: 0) {
-                    Image(systemName: "moon.stars.fill").font(.system(size: 17))
-                    Text("\(entree.titres.count)").font(.system(size: 17, weight: .bold, design: .rounded))
+                    Image(systemName: "moon.stars.fill").font(.headline)
+                    Text("\(entree.titres.count)").font(.system(.headline, design: .rounded).weight(.bold))
                 }
             }
             .accessibilityLabel("Ma soirée : \(entree.titres.count) titres")
@@ -106,14 +106,14 @@ struct VueSoiree: View {
         VStack(alignment: .leading, spacing: 8) {
             EnteteWidget(titre: "Ma soirée", symbole: "moon.stars.fill")
             if entree.titres.isEmpty {
-                VideWidget(titre: "Rien de prévu", texte: "Touche 🌙 sur un titre dans Séance pour le garder pour ce soir.")
+                VideWidget(titre: "Rien de prévu", texte: "Touche « Ce soir » sur un titre dans Séance pour le garder pour ce soir.")
             } else if famille == .systemMedium {
                 HStack(alignment: .top, spacing: 10) {
                     ForEach(entree.titres.prefix(3)) { titre in
                         Link(destination: LiensWidget.fiche(titre.reference)) {
                             VStack(alignment: .leading, spacing: 3) {
                                 AfficheWidget(donnees: titre.affiche, largeur: 50)
-                                Text(titre.titre).font(.system(size: 11, weight: .semibold)).lineLimit(2)
+                                Text(titre.titre).font(.caption2.weight(.semibold)).lineLimit(2)
                                     .fixedSize(horizontal: false, vertical: true)
                             }
                             .frame(width: 92, alignment: .leading)
@@ -121,8 +121,8 @@ struct VueSoiree: View {
                     }
                     if entree.titres.count > 3 {
                         Text("+\(entree.titres.count - 3)")
-                            .font(.system(size: 15, weight: .bold, design: .rounded))
-                            .foregroundStyle(CouleursWidget.accentClair)
+                            .font(.system(.subheadline, design: .rounded).weight(.bold))
+                            .foregroundStyle(CouleursWidget.texte2)
                             .frame(maxHeight: 87)
                     }
                     Spacer(minLength: 0)
@@ -138,8 +138,8 @@ struct VueSoiree: View {
                     }
                     if entree.titres.count > limite {
                         Text("+ \(entree.titres.count - limite) autre\(entree.titres.count - limite > 1 ? "s" : "")")
-                            .font(.system(size: 11, weight: .semibold))
-                            .foregroundStyle(CouleursWidget.accentClair)
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(CouleursWidget.texte2)
                     }
                 }
                 Spacer(minLength: 0)
@@ -153,9 +153,9 @@ struct VueSoiree: View {
         return HStack(spacing: 8) {
             AfficheWidget(donnees: titre.affiche, largeur: petit ? 28 : 40, coins: 4)
             VStack(alignment: .leading, spacing: 1) {
-                Text(titre.titre).font(.system(size: petit ? 13 : 15, weight: .semibold)).lineLimit(petit ? 2 : 1)
+                Text(titre.titre).font((petit ? Font.footnote : .subheadline).weight(.semibold)).lineLimit(petit ? 2 : 1)
                 if !petit {
-                    Text(titre.detail).font(.system(size: 12)).foregroundStyle(CouleursWidget.accentClair).lineLimit(1)
+                    Text(titre.detail).font(.caption).foregroundStyle(CouleursWidget.texte2).lineLimit(1)
                 }
             }
             Spacer(minLength: 0)
@@ -199,8 +199,8 @@ struct VueEpisodes: View {
             ZStack {
                 AccessoryWidgetBackground()
                 VStack(spacing: 0) {
-                    Image(systemName: "play.tv.fill").font(.system(size: 15))
-                    Text("\(entree.episodes.count)").font(.system(size: 17, weight: .bold, design: .rounded))
+                    Image(systemName: "play.tv.fill").font(.subheadline)
+                    Text("\(entree.episodes.count)").font(.system(.headline, design: .rounded).weight(.bold))
                 }
             }
         case .systemSmall:
@@ -217,20 +217,20 @@ struct VueEpisodes: View {
                 HStack(alignment: .top, spacing: 8) {
                     AfficheWidget(donnees: premier.affiche, largeur: 38, coins: 5)
                     VStack(alignment: .leading, spacing: 1) {
-                        Text(premier.nom).font(.system(size: 14, weight: .bold)).lineLimit(2)
+                        Text(premier.nom).font(.subheadline.weight(.bold)).lineLimit(2)
                         Text(premier.code)
-                            .font(.system(size: 13, weight: .heavy, design: .rounded))
-                            .foregroundStyle(CouleursWidget.accentClair)
+                            .font(.system(.footnote, design: .rounded).weight(.heavy))
+                            .foregroundStyle(CouleursWidget.texte2)
                     }
                 }
                 Spacer(minLength: 4)
                 Text(premier.titreEpisode ?? "\(premier.dureeMinutes) min")
-                    .font(.system(size: 12))
+                    .font(.caption)
                     .foregroundStyle(.white.opacity(0.7))
                     .lineLimit(1)
                 Button(intent: CocherEpisodeIntent(premier)) {
                     Label("Vu", systemImage: "checkmark")
-                        .font(.system(size: 14, weight: .bold))
+                        .font(.subheadline.weight(.bold))
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 6)
                         .foregroundStyle(.black)
@@ -264,19 +264,19 @@ struct VueEpisodes: View {
                         HStack(spacing: 10) {
                             AfficheWidget(donnees: episode.affiche, largeur: 34, coins: 4)
                             VStack(alignment: .leading, spacing: 1) {
-                                Text(episode.nom).font(.system(size: 14, weight: .bold)).lineLimit(1)
+                                Text(episode.nom).font(.subheadline.weight(.bold)).lineLimit(1)
                                 Text([episode.code, episode.titreEpisode].compactMap { $0 }.joined(separator: " · "))
-                                    .font(.system(size: 12))
-                                    .foregroundStyle(CouleursWidget.accentClair)
+                                    .font(.caption)
+                                    .foregroundStyle(CouleursWidget.texte2)
                                     .lineLimit(1)
-                                Text("\(episode.dureeMinutes) min").font(.system(size: 11)).foregroundStyle(.white.opacity(0.55))
+                                Text("\(episode.dureeMinutes) min").font(.caption2).foregroundStyle(.white.opacity(0.55))
                             }
                             Spacer(minLength: 0)
                         }
                     }
                     Button(intent: CocherEpisodeIntent(episode)) {
                         Image(systemName: "checkmark")
-                            .font(.system(size: 14, weight: .bold))
+                            .font(.subheadline.weight(.bold))
                             .foregroundStyle(.black)
                             .frame(width: 34, height: 34)
                             .background(CouleursWidget.degrade, in: Circle())
@@ -325,8 +325,8 @@ struct VueAVenir: View {
             ZStack {
                 AccessoryWidgetBackground()
                 VStack(spacing: 0) {
-                    Image(systemName: "bell.fill").font(.system(size: 15))
-                    Text("\(entree.echeances.count)").font(.system(size: 17, weight: .bold, design: .rounded))
+                    Image(systemName: "bell.fill").font(.subheadline)
+                    Text("\(entree.echeances.count)").font(.system(.headline, design: .rounded).weight(.bold))
                 }
             }
         case .systemSmall:
@@ -343,22 +343,22 @@ struct VueAVenir: View {
             if let premier = entree.echeances.first {
                 Spacer(minLength: 0)
                 Text(premier.compteARebours(depuis: entree.date))
-                    .font(.system(size: 24, weight: .heavy, design: .rounded))
+                    .font(.system(.title2, design: .rounded).weight(.heavy))
                     .foregroundStyle(CouleursWidget.degrade)
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
-                Text(premier.titre).font(.system(size: 15, weight: .bold)).foregroundStyle(.white).lineLimit(2)
+                Text(premier.titre).font(.subheadline.weight(.bold)).foregroundStyle(.white).lineLimit(2)
                 Label(premier.libelle, systemImage: premier.symbole)
-                    .font(.system(size: 11))
+                    .font(.caption2)
                     .foregroundStyle(.white.opacity(0.7))
                     .lineLimit(1)
                 if entree.echeances.count > 1 {
                     Text("+ \(entree.echeances.count - 1) ensuite")
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(CouleursWidget.accentClair)
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(CouleursWidget.texte2)
                 }
             } else {
-                VideWidget(titre: "Rien d'annoncé", texte: "Touche 🔔 sur une fiche pour suivre ses sorties.")
+                VideWidget(titre: "Rien d'annoncé", texte: "Touche la cloche sur une fiche pour suivre ses sorties.")
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -370,7 +370,7 @@ struct VueAVenir: View {
         return VStack(alignment: .leading, spacing: famille == .systemLarge ? 10 : 6) {
             EnteteWidget(titre: "À venir", symbole: "bell.fill")
             if entree.echeances.isEmpty {
-                VideWidget(titre: "Rien d'annoncé", texte: "Touche 🔔 sur une fiche pour suivre ses prochains épisodes, ses sorties et ses passages à la TV.")
+                VideWidget(titre: "Rien d'annoncé", texte: "Touche la cloche sur une fiche pour suivre ses prochains épisodes, ses sorties et ses passages à la TV.")
             }
             ForEach(entree.echeances.prefix(limite)) { echeance in
                 Link(destination: LiensWidget.fiche(echeance.reference)) {
@@ -379,16 +379,16 @@ struct VueAVenir: View {
                             AfficheWidget(donnees: echeance.affiche, largeur: 30, coins: 4)
                         }
                         VStack(alignment: .leading, spacing: 0) {
-                            Text(echeance.titre).font(.system(size: 14, weight: .bold)).lineLimit(1)
+                            Text(echeance.titre).font(.subheadline.weight(.bold)).lineLimit(1)
                             Label(echeance.libelle, systemImage: echeance.symbole)
-                                .font(.system(size: 11))
+                                .font(.caption2)
                                 .foregroundStyle(.white.opacity(0.7))
                                 .lineLimit(1)
                         }
                         Spacer(minLength: 4)
                         Text(echeance.compteARebours(depuis: entree.date))
-                            .font(.system(size: 11, weight: .bold))
-                            .foregroundStyle(CouleursWidget.accentClair)
+                            .font(.caption2.weight(.bold))
+                            .foregroundStyle(CouleursWidget.texte2)
                             .padding(.horizontal, 7)
                             .padding(.vertical, 3)
                             .background(.white.opacity(0.1), in: Capsule())

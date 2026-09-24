@@ -95,7 +95,7 @@ private struct PastilleMarque: View {
             Label("Dans ta liste", systemImage: "bookmark.fill")
                 .font(.caption2.weight(.bold))
                 .fixedSize()
-                .foregroundStyle(Theme.accentClair)
+                .foregroundStyle(Theme.texte2)
         case .dejaVu:
             Label("Déjà vu", systemImage: "eye.fill")
                 .font(.caption2.weight(.bold))
@@ -174,7 +174,7 @@ struct ClocheDiffusion: View {
             Task { await basculer() }
         } label: {
             Image(systemName: actif ? "bell.fill" : "bell")
-                .font(.system(size: 14, weight: .bold))
+                .font(.subheadline.weight(.bold))
                 .contentTransition(.symbolEffect(.replace))
                 .foregroundStyle(actif ? AnyShapeStyle(Color.black) : surImage ? AnyShapeStyle(Color.white) : AnyShapeStyle(Color.primary))
                 .frame(width: 34, height: 34)
@@ -285,7 +285,7 @@ struct CarteDiffusion: View {
                             }
                             Text(HeuresTele.heure(bloc.debut))
                                 .font(.system(.title, design: .rounded).weight(.heavy))
-                                .foregroundStyle(Theme.accentClair)
+                                .foregroundStyle(Theme.texte)
                             Text("→ \(HeuresTele.heure(bloc.fin))")
                                 .font(.caption.weight(.semibold))
                                 .foregroundStyle(.white.opacity(0.7))
@@ -349,10 +349,14 @@ struct ProgrammeTeleView: View {
     /// Les chaînes retenues ; vide : toutes.
     @State private var chainesChoisies: Set<String> = []
 
+    /// Dans Regarder (8.0), le jour vient de la rangée commune : la page ne montre pas la sienne.
+    private let jourImpose: DateTMDB?
+
     /// Une semaine suffit : au-delà, le guide est incomplet et change encore.
     private static let joursAffiches = 7
 
-    init() {
+    init(jourImpose: DateTMDB? = nil) {
+        self.jourImpose = jourImpose
         let jour = Calendar.current.startOfDay(for: .now)
         _diffusions = Query(filter: #Predicate<Diffusion> { $0.fin > jour }, sort: \Diffusion.debut)
     }
@@ -362,7 +366,7 @@ struct ProgrammeTeleView: View {
             contenu(maintenant: horloge.date)
         }
         .background(Theme.fond)
-        .navigationTitle("Programme TV")
+        .titrePage("Programme TV")
         .navigationBarTitleDisplayMode(.inline)
         .task { await etat.alertes.actualiserRappelsTele() }
         .toolbar {
@@ -373,17 +377,19 @@ struct ProgrammeTeleView: View {
     private func contenu(maintenant: Date) -> some View {
         let parJour = blocsParJour(maintenant: maintenant)
         let jours = Array(parJour.keys.sorted().prefix(Self.joursAffiches))
-        let jour = jourChoisi.flatMap { jours.contains($0) ? $0 : nil } ?? jours.first
+        let jour = jourImpose.map { parJour[$0] == nil ? nil : $0 } ?? jourChoisi.flatMap { jours.contains($0) ? $0 : nil } ?? jours.first
         let marques = MarqueListe.marques(suivis)
         return ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 SelecteurCases(selection: $type, cases: [.init(valeur: TypeTitre?.some(.film), nom: "Films"),
-                                                         .init(valeur: TypeTitre?.some(.serie), nom: "Séries"), .init(valeur: TypeTitre?.none, nom: "Tout")])
+                                                         .init(valeur: TypeTitre?.some(.serie), nom: "Séries"), .init(valeur: TypeTitre?.none, nom: "Les deux")])
                     .frame(maxWidth: 560)
                     .padding(.horizontal, 20)
 
                 if let jour {
-                    choixDuJour(jours, choisi: jour, parJour: parJour, maintenant: maintenant)
+                    if jourImpose == nil {
+                        choixDuJour(jours, choisi: jour, parJour: parJour, maintenant: maintenant)
+                    }
                     let blocs = parJour[jour] ?? []
                     ForEach(MomentTele.allCases, id: \.self) { moment in
                         let duMoment = blocs.filter { GrilleTele.moment($0, maintenant: maintenant) == moment }

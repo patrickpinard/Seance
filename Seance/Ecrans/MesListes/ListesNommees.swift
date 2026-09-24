@@ -45,7 +45,7 @@ struct SectionListesNommees: View {
                 HStack(spacing: 12) {
                     Image(systemName: "list.bullet.rectangle.portrait.fill")
                         .font(.title3)
-                        .foregroundStyle(Theme.accent)
+                        .foregroundStyle(Theme.texte)
                         .frame(width: 34)
                     VStack(alignment: .leading, spacing: 3) {
                         Text(liste.nom).font(.headline).lineLimit(1)

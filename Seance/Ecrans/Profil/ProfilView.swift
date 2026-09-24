@@ -111,8 +111,8 @@ struct ProfilView: View {
         VStack(alignment: .leading, spacing: 2) {
             Text(Prenom.salut(Prenom.lire(prenom)))
                 .font(.largeTitle.weight(.heavy))
-                .foregroundStyle(Theme.degradeAccent)
-            Text("Tes notes, tes acteurs et tes goûts : ce qui guide les idées de Séance.")
+                .foregroundStyle(Theme.texte)
+            Text("Tes notes, tes acteurs et tes goûts : ce qui guide les suggestions de Séance.")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
         }
@@ -259,7 +259,7 @@ struct ProfilView: View {
         NavigationLink(value: DestinationProfil.statistiques) {
             HStack(spacing: 12) {
                 Image(systemName: "chart.bar.fill")
-                    .font(.system(size: 17, weight: .semibold))
+                    .font(.headline.weight(.semibold))
                     .foregroundStyle(.white)
                     .frame(width: 38, height: 38)
                     .background(Theme.degradeAccent, in: RoundedRectangle(cornerRadius: 10, style: .continuous))

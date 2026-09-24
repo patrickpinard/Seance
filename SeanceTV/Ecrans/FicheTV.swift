@@ -9,9 +9,16 @@ import SwiftUI
 /// bandes-annonces et le casting, dont chaque visage ouvre la fiche de la personne.
 struct FicheTV: View {
     let reference: ReferenceTitre
+    /// « Regarder » depuis l'appui long sur une carte (8.0) : l'action principale part dès que la fiche est chargée.
+    var lancerALOuverture = false
+    @State private var dejaLance = false
 
     /// Le film du NAS ouvert dans le lecteur de Séance (6.6).
     @State private var filmALire: FichierNAS?
+    /// Où commencer le fichier lancé : la position retenue, ou `nil` pour le début (8.0).
+    @State private var departLecture: Double?
+    /// Une vidéo entamée : « Reprendre à 1:03:12 ou depuis le début ? ».
+    @State private var repriseAProposer: FichierNAS?
     @Environment(EtatTV.self) private var etat
     @Environment(\.modelContext) private var contexte
     @Environment(\.openURL) private var ouvrir
@@ -34,9 +41,14 @@ struct FicheTV: View {
     @State private var saisonChoisie: Int?
     @State private var saisons: [Int: SaisonDetail] = [:]
     @State private var choixDuSoir = false
+    /// « ⋯ » : les actions secondaires, dans une fenêtre de Séance (8.0).
+    @State private var plusOuvert = false
+    /// « Noter » : la rangée de 1 à 10, ouverte par l'étoile de « Ton avis ».
+    @State private var notationOuverte = false
 
-    init(reference: ReferenceTitre) {
+    init(reference: ReferenceTitre, lancerALOuverture: Bool = false) {
         self.reference = reference
+        self.lancerALOuverture = lancerALOuverture
         let id = reference.tmdbID
         let idFacultatif: Int? = reference.tmdbID
         let type = reference.type.rawValue
@@ -51,15 +63,18 @@ struct FicheTV: View {
             fond
             ScrollViewReader { defilement in
             ScrollView {
-                VStack(alignment: .leading, spacing: 36) {
-                    Spacer().frame(height: 300)
+                // Maquette 8.0, n° 13 et 14 : surligne, titre, résumé court, l'action principale et ses voisines, la
+                // reprise, puis « Ton avis » — le tout sur l'image, en haut à gauche.
+                VStack(alignment: .leading, spacing: 30) {
+                    Spacer().frame(height: 110)
                     entete
-                    actions
-                    if let synopsis, !synopsis.isEmpty {
-                        Text(synopsis).font(.system(size: 29)).foregroundStyle(.white.opacity(0.85)).lineSpacing(6).frame(maxWidth: 1250, alignment: .leading)
+                    VStack(alignment: .leading, spacing: 14) {
+                        actions
+                        reprise
                     }
-                    if let erreur { Text(erreur).font(.system(size: 26)).foregroundStyle(.orange) }
+                    if let erreur { Text(erreur).font(.system(size: 26)).foregroundStyle(Theme.attention) }
                     avis.id("avis")
+                    Spacer().frame(height: 120)
                     ouRegarder.id("ouRegarder")
                     if let serie { episodes(serie).id("episodes") } else if reference.type == .serie, !episodesNAS.isEmpty { episodesDuNAS }
                     bandesAnnonces
@@ -84,15 +99,45 @@ struct FicheTV: View {
             }
         }
         .background(Theme.fond.ignoresSafeArea())
-        .task(id: reference) { await charger() }
+        .task(id: reference) {
+            await charger()
+            guard lancerALOuverture, !dejaLance else { return }
+            dejaLance = true
+            if let premiere = sourcesTV.first, sourcesTV.count == 1 || premiere.bouton.hasPrefix("Reprendre") {
+                premiere.lancer()
+            } else if sourcesTV.count > 1 {
+                choixSource = true
+            } else {
+                etat.dire("Aucune source pour regarder « \(titre) » : ni sur ton NAS, ni sur tes plateformes.")
+            }
+        }
         .task(id: reference) { identifiants = await EtatTV.identifiants.identifiants([reference])[reference] }
         .fullScreenCover(item: $filmALire) { fichier in
             LecteurVLCTV(video: VideoPerso(chemin: fichier.chemin, taille: fichier.tailleOctets),
-                         acces: etat.nas, motDePasse: etat.motDePasseDuNAS ?? "") { _ in
+                         acces: etat.nas, motDePasse: etat.motDePasseDuNAS ?? "", surEchec: { _ in
                 // Même VLC n'y arrive pas : l'app de Réglages › Lecture, comme avant.
                 filmALire = nil
                 lireDehors(fichier)
-            }
+            }, depart: departLecture, surPosition: { secondes, duree in
+                etat.noterPosition(fichier.chemin, secondes: secondes, duree: duree)
+            })
+        }
+        // Une question de Séance, à ses couleurs : reprendre, ou repartir du début.
+        .fullScreenCover(item: $repriseAProposer) { fichier in
+            let position = etat.positions.aReprendre(fichier.chemin)
+            DialogueTV(titre: titre,
+                       message: position.map { "Tu t'es arrêté à \(PositionsLecture.horodatage($0.secondes))\($0.appareil.map { ", sur l'\($0)" } ?? "")." },
+                       choix: [
+                           DialogueTV.Choix(libelle: "Reprendre à \(PositionsLecture.horodatage(position?.secondes ?? 0))", principal: true) {
+                               departLecture = position?.secondes
+                               filmALire = fichier
+                           },
+                           DialogueTV.Choix(libelle: "Depuis le début") {
+                               etat.oublierPosition(fichier.chemin)
+                               departLecture = nil
+                               filmALire = fichier
+                           },
+                       ], progression: position?.fraction)
         }
         .task(id: saisonAffichee) { await chargerSaison() }
         .fullScreenCover(isPresented: $choixDuSoir) { ChoixSoireeTV(titre: titre) { jour in prevoir(jour) } }
@@ -104,40 +149,48 @@ struct FicheTV: View {
     private var fond: some View {
         let cheminFond = film?.cheminFond ?? serie?.cheminFond ?? siens.first?.cheminFond
         let url = ImageTMDB.url(cheminFond, .fondGrand) ?? ImageTMDB.url(cheminAffiche, .afficheGrande)
+        // Plein écran (maquette 8.0) : l'image occupe tout, assombrie à gauche sous le texte et en bas.
         return ImageTV(url: url, symboleVide: "")
             .frame(maxWidth: .infinity)
-            .frame(height: 760)
+            .frame(height: 1080)
             .overlay {
-                LinearGradient(stops: [.init(color: Theme.fond.opacity(cheminFond == nil ? 0.45 : 0), location: 0),
-                                       .init(color: Theme.fond.opacity(cheminFond == nil ? 0.75 : 0.55), location: 0.45),
-                                       .init(color: Theme.fond, location: 1)],
-                               startPoint: .top, endPoint: .bottom)
+                ZStack {
+                    LinearGradient(colors: [.black.opacity(0.85), .black.opacity(0.35), .clear], startPoint: .leading, endPoint: .trailing)
+                    LinearGradient(stops: [.init(color: Theme.fond.opacity(cheminFond == nil ? 0.45 : 0), location: 0),
+                                           .init(color: Theme.fond.opacity(0.2), location: 0.6),
+                                           .init(color: Theme.fond, location: 1)],
+                                   startPoint: .top, endPoint: .bottom)
+                }
             }
             .ignoresSafeArea()
     }
 
     private var entete: some View {
         VStack(alignment: .leading, spacing: 12) {
+            Text(ligneFaits).font(.system(size: 26, weight: .bold)).foregroundStyle(.white.opacity(0.78))
             Text(titre).font(.system(size: 76, weight: .heavy)).lineLimit(2)
-            Text(ligneFaits).font(.system(size: 30, weight: .medium)).foregroundStyle(.white.opacity(0.75))
-            if !plateformes.isEmpty {
-                Label("Dans tes abonnements : " + plateformes.joined(separator: ", "), systemImage: "play.rectangle.on.rectangle.fill")
-                    .font(.system(size: 28, weight: .semibold))
-                    .foregroundStyle(Theme.accentClair)
+            if let synopsis, !synopsis.isEmpty {
+                Text(synopsis).font(.system(size: 27)).foregroundStyle(.white.opacity(0.8)).lineLimit(3).lineSpacing(4)
+                    .frame(maxWidth: 1050, alignment: .leading)
             }
         }
         .foregroundStyle(.white)
     }
 
+    /// Charte 8.0 : l'action principale — regarder —, puis Ma liste, Ce soir et « ⋯ » pour le reste, dans le même ordre
+    /// que sur l'iPhone. Le focus blanchit et soulève le bouton, comme partout sur tvOS.
     private var actions: some View {
         HStack(spacing: 28) {
-            // La lecture d'abord, c'est pour elle qu'on est devant la TV (6.1) : un seul accès, le bouton le lance ; plusieurs
-            // (le NAS et Netflix…), « Regarder… » demande lequel.
-            if sourcesTV.count == 1, let seule = sourcesTV.first {
+            // Un seul accès : le bouton le lance ; plusieurs (le NAS et Netflix…), « Regarder… » demande lequel.
+            // Entamé : « Reprendre à … » est l'action principale, même quand d'autres sources existent (maquette n° 13).
+            if let premiere = sourcesTV.first, premiere.bouton.hasPrefix("Reprendre") {
+                Button { premiere.lancer() } label: { Label(premiere.bouton, systemImage: "play.fill") }
+                    .buttonStyle(BoutonTV(principal: true))
+            } else if sourcesTV.count == 1, let seule = sourcesTV.first {
                 Button { seule.lancer() } label: { Label(seule.bouton, systemImage: "play.fill") }
                     .buttonStyle(BoutonTV(principal: true))
             } else if sourcesTV.count > 1 {
-                Button { choixSource = true } label: { Label("Regarder…", systemImage: "play.fill") }
+                Button { choixSource = true } label: { Label("Regarder", systemImage: "play.fill") }
                     .buttonStyle(BoutonTV(principal: true))
                     // Une fenêtre de Séance, lisible sur la TV (6.3).
                     .fullScreenCover(isPresented: $choixSource) {
@@ -147,24 +200,54 @@ struct FicheTV: View {
                                    })
                     }
             }
-            Button { basculerSoiree() } label: {
-                Label(prevuCeSoir ? "Retirer de ce soir" : "Ce soir", systemImage: prevuCeSoir ? "moon.stars.fill" : "moon.stars")
-            }
             if suivi == nil {
-                Button { garder() } label: { Label("À voir", systemImage: "bookmark") }
+                Button { garder() } label: { Label("Ma liste", systemImage: "plus") }
+            } else {
+                // Maquette 8.0, n° 14 : le bouton dit où le titre en est — « En cours », « À voir », « Terminé ».
+                Button {} label: { Label(etatDansLaListe, systemImage: "checkmark") }
             }
-            Button { choixDuSoir = true } label: { Label("Un autre soir…", systemImage: "calendar") }
-            if reference.type == .film {
-                Button { basculerVu() } label: { Label(vu ? "Terminé ✓" : "Terminé", systemImage: vu ? "checkmark.circle.fill" : "checkmark.circle") }
-            }
-            if let suivi {
-                Button { basculerAlertes(suivi) } label: {
-                    Label(suivi.alertesActives ? "Alertes" : "Me prévenir", systemImage: suivi.alertesActives ? "bell.fill" : "bell")
+            Button { basculerSoiree() } label: { Image(systemName: prevuCeSoir ? "moon.stars.fill" : "moon.stars") }
+                .buttonStyle(BoutonRondTV(choisi: prevuCeSoir))
+                .accessibilityLabel(prevuCeSoir ? "Retirer de ce soir" : "Ce soir")
+            Button { plusOuvert = true } label: { Image(systemName: "ellipsis") }
+                .buttonStyle(BoutonRondTV())
+                .accessibilityLabel("Plus")
+                .fullScreenCover(isPresented: $plusOuvert) {
+                    DialogueTV(titre: titre, message: nil, choix: choixPlus)
                 }
-            }
         }
         .buttonStyle(BoutonTV())
         .focusSection()
+    }
+
+    private var etatDansLaListe: String {
+        switch suivi?.statut {
+        case .enCours: "En cours"
+        case .termine: "Terminé"
+        default: "Dans ma liste"
+        }
+    }
+
+    /// « ⋯ » : un autre soir, terminé, les alertes — les mêmes mots que le menu de l'iPhone.
+    private var choixPlus: [DialogueTV.Choix] {
+        var choix = [DialogueTV.Choix(libelle: "Un autre soir…") { choixDuSoir = true }]
+        if reference.type == .film, let fichier = siens.first, etat.positions.aReprendre(fichier.chemin) != nil {
+            choix.insert(DialogueTV.Choix(libelle: "Depuis le début") {
+                etat.oublierPosition(fichier.chemin)
+                departLecture = nil
+                filmALire = fichier
+            }, at: 0)
+        }
+        if reference.type == .film {
+            choix.append(DialogueTV.Choix(libelle: vu ? "Pas encore vu" : "Terminé") { basculerVu() })
+        }
+        if let suivi {
+            choix.append(DialogueTV.Choix(libelle: suivi.alertesActives ? "Ne plus me prévenir" : "Me prévenir") { basculerAlertes(suivi) })
+        }
+        if prevuCeSoir {
+            choix.append(DialogueTV.Choix(libelle: "Retirer de ce soir") { basculerSoiree() })
+        }
+        return choix
     }
 
     // MARK: Tes pouces, ta note
@@ -175,22 +258,27 @@ struct FicheTV: View {
     /// La note se donne après avoir regardé : un film vu, une série dont on a vu au moins un épisode.
     private var peutNoter: Bool { vu || !visionnages.isEmpty || suivi?.note != nil }
 
+    /// « Ton avis » : trois ronds du même trait — j'aime, pas pour moi, noter. Plein et orange quand c'est choisi.
     private var avis: some View {
         VStack(alignment: .leading, spacing: 18) {
-            HStack(spacing: 28) {
-                Button { basculerAime() } label: { Label(aime ? "J'aime ✓" : "J'aime", systemImage: aime ? "hand.thumbsup.fill" : "hand.thumbsup") }
-                Button { basculerEcarte() } label: {
-                    Label(ecarte ? "Je n'aime pas ✓" : "Je n'aime pas", systemImage: ecarte ? "hand.thumbsdown.fill" : "hand.thumbsdown")
+            HStack(spacing: 24) {
+                Text("Ton avis").font(.system(size: 26, weight: .semibold)).foregroundStyle(Theme.texte2)
+                Button { basculerAime() } label: { Image(systemName: aime ? "hand.thumbsup.fill" : "hand.thumbsup") }
+                    .buttonStyle(BoutonRondTV(choisi: aime))
+                    .accessibilityLabel(aime ? "J'aime, choisi" : "J'aime")
+                Button { basculerEcarte() } label: { Image(systemName: ecarte ? "hand.thumbsdown.fill" : "hand.thumbsdown") }
+                    .buttonStyle(BoutonRondTV(choisi: ecarte))
+                    .accessibilityLabel(ecarte ? "Pas pour moi, choisi" : "Pas pour moi")
+                if peutNoter {
+                    Button { notationOuverte.toggle() } label: { Image(systemName: suivi?.note == nil ? "star" : "star.fill") }
+                        .buttonStyle(BoutonRondTV(choisi: suivi?.note != nil))
+                        .accessibilityLabel(suivi?.note.map { "Ta note : \($0) sur 10" } ?? "Noter")
                 }
-                Text(aime ? "Tes idées en tiennent compte." : ecarte ? "Séance ne te le propose plus." : "Sans l'avoir vu : pour de meilleures idées.")
-                    .font(.system(size: 24)).foregroundStyle(.secondary)
             }
-            .buttonStyle(BoutonTV())
-            if peutNoter {
+            if peutNoter, notationOuverte {
                 HStack(spacing: 12) {
-                    Text("Ta note").font(.system(size: 28, weight: .semibold)).frame(width: 150, alignment: .leading)
                     ForEach(1...10, id: \.self) { valeur in
-                        Button { noter(valeur) } label: { Text("\(valeur)").frame(width: 46) }
+                        Button { noter(valeur); notationOuverte = false } label: { Text("\(valeur)").frame(width: 46) }
                             .buttonStyle(BoutonTV(principal: suivi?.note == valeur, hauteur: 64))
                     }
                 }
@@ -270,7 +358,9 @@ struct FicheTV: View {
     private var sourcesTV: [(nom: String, bouton: String, lancer: () -> Void)] {
         var sources: [(nom: String, bouton: String, lancer: () -> Void)] = []
         if reference.type == .film, let fichier = siens.first {
-            sources.append((["Sur ton NAS", fichier.qualite].compactMap { $0 }.joined(separator: " · "), "Lire", { lire(fichier) }))
+            // Entamé : « Reprendre à 1:03:12 » devient l'action principale (8.0).
+            let bouton = etat.positions.aReprendre(fichier.chemin).map { "Reprendre à \(PositionsLecture.horodatage($0.secondes))" } ?? "Lire"
+            sources.append((["Sur ton NAS", fichier.qualite].compactMap { $0 }.joined(separator: " · "), bouton, { lire(fichier, reprendre: true) }))
         }
         // Une série du NAS : l'épisode à regarder, s'il y est (6.1.1) — il n'y avait pas de bouton en tête de fiche.
         if reference.type == .serie, let numero = prochain?.numero, let fichier = fichierNAS(numero) {
@@ -328,61 +418,58 @@ struct FicheTV: View {
     private func episodes(_ serie: SerieDetail) -> some View {
         let liste = numerosDeSaison(serie)
         let total = ProgressionSerie.total(serie.saisons)
+        // Maquette 8.0, n° 14 : « Épisodes » et les saisons en pastilles sur une ligne, puis les épisodes en cartes ;
+        // les vus sont éteints, avec « Vu ». Un clic lit l'épisode s'il est sur le NAS, sinon le coche ; l'appui long
+        // propose les deux.
         return VStack(alignment: .leading, spacing: 20) {
-            HStack(alignment: .firstTextBaseline, spacing: 24) {
+            HStack(alignment: .center, spacing: 18) {
                 Text("Épisodes").font(.system(size: 38, weight: .bold))
-                Text("\(vus.count) \(vus.count > 1 ? "vus" : "vu") sur \(total)").font(.system(size: 26)).foregroundStyle(.secondary)
-                if let prochain, prochain.disponible {
-                    Text("À regarder : \(prochain.numero.description)").font(.system(size: 26, weight: .semibold)).foregroundStyle(Theme.accentClair)
+                if liste.count > 1 {
+                    ForEach(liste, id: \.numero) { saison in
+                        Button("Saison \(saison.numero)") { saisonChoisie = saison.numero }
+                            .buttonStyle(BoutonTV(principal: (saisonAffichee ?? 1) == saison.numero, hauteur: 52))
+                    }
                 }
+                Spacer()
+                Text("\(vus.count) \(vus.count > 1 ? "vus" : "vu") sur \(total)").font(.system(size: 24)).foregroundStyle(Theme.texte2)
             }
-            if liste.count > 1 {
-                SelecteurTV(selection: Binding { saisonAffichee ?? 1 } set: { saisonChoisie = $0 },
-                            cases: liste.map { ($0.numero, "Saison \($0.numero)") })
-                    // Le sélecteur apporte ses propres marges de page : ici il est déjà dans celles de la fiche.
-                    .padding(.horizontal, -MargesTV.bord)
-            }
+            .focusSection()
             if let numero = saisonAffichee, let saison = saisons[numero] {
-                VStack(spacing: 6) {
-                    ForEach(saison.episodes) { episode in ligne(episode, serie: serie) }
+                ScrollView(.horizontal) {
+                    LazyHStack(spacing: 30) {
+                        ForEach(saison.episodes) { episode in carteEpisode(episode, serie: serie) }
+                    }
+                    .padding(.vertical, 26)
                 }
-                .padding(20)
-                .background(Theme.surface, in: RoundedRectangle(cornerRadius: 30, style: .continuous))
+                .scrollClipDisabled()
+                .focusSection()
             } else {
-                Text("Lecture de la saison…").font(.system(size: 26)).foregroundStyle(.secondary)
+                Text("Lecture de la saison…").font(.system(size: 26)).foregroundStyle(Theme.texte2)
             }
         }
-        .frame(maxWidth: 1500, alignment: .leading)
-        .focusSection()
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    /// Une ligne d'épisode : la choisir le coche ou le décoche ; s'il est sur le NAS, « Lire » est à côté.
-    private func ligne(_ episode: EpisodeTMDB, serie: SerieDetail) -> some View {
+    private func carteEpisode(_ episode: EpisodeTMDB, serie: SerieDetail) -> some View {
         let numero = episode.numeroEpisode
         let estVu = vus.contains(numero)
         let diffuse = episode.dateDiffusion.map { $0 <= DateTMDB(.now) } ?? false
-        return HStack(spacing: 16) {
+        let fichier = fichierNAS(numero)
+        let date = episode.dateDiffusion.map { $0.instant(heure: 12).formatted(.dateTime.day().month(.abbreviated).locale(Locale(identifier: "fr_CH"))) }
+        return Button {
+            if let fichier { lire(fichier) } else { cocher(episode, serie: serie, vu: estVu) }
+        } label: {
+            CarteLargeTV(surtitre: ["É\(episode.numero)", date].compactMap { $0 }.joined(separator: " · "), titre: episode.nom,
+                         detail: estVu ? "Vu" : nil, cheminImage: episode.cheminImage ?? serie.cheminFond,
+                         largeur: 420, lectureEnCoin: fichier != nil)
+                .opacity(estVu ? 0.55 : 1)
+        }
+        .buttonStyle(.card)
+        .disabled(!diffuse && !estVu && fichier == nil)
+        .contextMenu {
+            if let fichier { Button { lire(fichier) } label: { Label("Regarder", systemImage: "play.fill") } }
             Button { cocher(episode, serie: serie, vu: estVu) } label: {
-                HStack(spacing: 22) {
-                    Image(systemName: estVu ? "checkmark.circle.fill" : "circle").font(.system(size: 32))
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("\(episode.numero). \(episode.nom)").font(.system(size: 29, weight: .semibold)).lineLimit(1)
-                        Text([episode.dateDiffusion.map { $0.instant(heure: 12).formatted(.dateTime.day().month(.abbreviated).year().locale(Locale(identifier: "fr_CH"))) } ?? "Date à venir",
-                              episode.dureeMinutes.map { "\($0) min" }, fichierNAS(numero) != nil ? "sur ton NAS" : nil]
-                            .compactMap { $0 }.joined(separator: " · "))
-                            .font(.system(size: 23)).opacity(0.7)
-                    }
-                    Spacer()
-                }
-                .padding(.horizontal, 24)
-                .frame(maxWidth: .infinity, minHeight: 88, alignment: .leading)
-            }
-            .buttonStyle(LigneTV())
-            .disabled(!diffuse && !estVu)
-            .opacity(diffuse || estVu ? 1 : 0.5)
-            if let fichier = fichierNAS(numero) {
-                Button { lire(fichier) } label: { Label("Lire", systemImage: "play.fill") }
-                    .buttonStyle(BoutonTV(principal: true, hauteur: 64))
+                Label(estVu ? "Pas encore vu" : "Épisode regardé", systemImage: estVu ? "circle" : "checkmark")
             }
         }
     }
@@ -456,16 +543,32 @@ struct FicheTV: View {
     private var synopsis: String? { film?.synopsis ?? serie?.synopsis }
     private var cheminAffiche: String? { film?.cheminAffiche ?? serie?.cheminAffiche ?? siens.first?.cheminAffiche ?? suivi?.cheminAffiche }
 
+    /// La surligne de la fiche (maquette 8.0) : « Film · 2014 · 2 h 49 · Sur ton NAS », « Série · 2 saisons · Apple TV+ ».
     private var ligneFaits: String {
         var faits: [String] = [reference.type == .film ? "Film" : "Série"]
+        if let annee = film?.dateSortie?.annee { faits.append("\(annee)") }
         if let minutes = film?.dureeMinutes, minutes > 0 { faits.append(minutes >= 60 ? "\(minutes / 60) h \(String(format: "%02d", minutes % 60))" : "\(minutes) min") }
         if let serie { faits.append(serie.nombreSaisons > 1 ? "\(serie.nombreSaisons) saisons" : "1 saison") }
-        let genres = (film?.genres ?? serie?.genres ?? []).prefix(3).map(\.nom)
-        if !genres.isEmpty { faits.append(genres.joined(separator: ", ")) }
-        let note = film?.noteMoyenne ?? serie?.noteMoyenne ?? 0
-        if note > 0 { faits.append("\(Int((note * 10).rounded())) % sur TMDB") }
-        if !siens.isEmpty { faits.append("Sur ton NAS") }
-        return faits.joined(separator: "  ·  ")
+        if !siens.isEmpty { faits.append("Sur ton NAS") } else if let plateforme = plateformes.first { faits.append(CarteLargeTV.nomCourt(plateforme)) }
+        return faits.joined(separator: " · ")
+    }
+
+    /// Sous l'action principale, un film entamé : la barre et ce qu'il reste ; « Depuis le début » est dans « ⋯ ».
+    @ViewBuilder
+    private var reprise: some View {
+        if reference.type == .film, let fichier = siens.first, let position = etat.positions.aReprendre(fichier.chemin), let fraction = position.fraction {
+            VStack(alignment: .leading, spacing: 8) {
+                GeometryReader { geo in
+                    ZStack(alignment: .leading) {
+                        Capsule().fill(.white.opacity(0.25))
+                        Capsule().fill(.white).frame(width: geo.size.width * fraction)
+                    }
+                }
+                .frame(width: 420, height: 6)
+                Text([position.reste.map { PositionsLecture.reste($0) }, "« Depuis le début » dans ⋯"].compactMap { $0 }.joined(separator: " · "))
+                    .font(.system(size: 22)).foregroundStyle(Theme.texte2)
+            }
+        }
     }
 
     /// Les plateformes où le titre est inclus, en Suisse, parmi celles cochées sur l'iPhone (arrivées par la synchronisation).
@@ -497,12 +600,21 @@ struct FicheTV: View {
     /// Dans l'app choisie dans Réglages › Lecture, et elle seule.
     /// Le film du NAS dans Séance même, par le moteur de VLC (6.6) : la touche Retour ramène ici, sur la fiche.
     /// Infuse ou VLC ne servent plus que si même VLCKit échoue.
-    private func lire(_ fichier: FichierNAS) {
+    /// `reprendre` : le bouton « Reprendre à … » repart droit à la position ; ailleurs, Séance demande (maquette n° 22).
+    private func lire(_ fichier: FichierNAS, reprendre: Bool = false) {
         guard etat.motDePasseDuNAS != nil else {
             return etat.dire("Le mot de passe du NAS manque : vois Réglages › NAS.")
         }
         etat.noterLecture(fichier)
-        filmALire = fichier
+        if reprendre, let position = etat.positions.aReprendre(fichier.chemin) {
+            departLecture = position.secondes
+            filmALire = fichier
+        } else if etat.positions.aReprendre(fichier.chemin) != nil {
+            repriseAProposer = fichier
+        } else {
+            departLecture = nil
+            filmALire = fichier
+        }
     }
 
     private func lireDehors(_ fichier: FichierNAS) {
@@ -548,7 +660,7 @@ struct FicheTV: View {
         } else {
             try? gouts.aimer(reference, titre: titre, cheminAffiche: cheminAffiche, genres: genres,
                              acteursIDs: acteurs.prefix(5).map(\.id), acteurs: acteurs.prefix(5).map(\.nom))
-            etat.dire("Noté : tes idées en tiendront compte")
+            etat.dire("Noté : tes suggestions en tiendront compte")
         }
     }
 

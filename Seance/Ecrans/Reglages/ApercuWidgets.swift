@@ -43,7 +43,7 @@ struct ApercuWidgetsView: View {
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
         }
-        .background(Color(white: 0.25))
+        .background(Theme.eleve)
         .navigationTitle("Aperçu des widgets")
         .task { await chargerAffiches() }
     }

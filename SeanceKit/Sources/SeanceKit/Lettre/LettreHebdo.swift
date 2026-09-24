@@ -94,7 +94,7 @@ public struct LettreHebdo: Sendable, Equatable {
         let salut = prenom.map { "\(bonjour) \(Self.echapper($0))," } ?? "\(bonjour),"
         var corps = ""
         if estVide {
-            corps += "<tr><td style=\"padding:24px 28px;color:\(Couleur.secondaire);font-size:16px;line-height:1.5\">Rien de prévu cette semaine pour tes titres. Ouvre Séance : « Idées pour ce soir » a sûrement quelque chose pour toi.</td></tr>"
+            corps += "<tr><td style=\"padding:24px 28px;color:\(Couleur.secondaire);font-size:16px;line-height:1.5\">Rien de prévu cette semaine pour tes titres. Ouvre Séance : « Suggestions pour ce soir » a sûrement quelque chose pour toi.</td></tr>"
         }
         for section in sections where !section.lignes.isEmpty {
             corps += "<tr><td style=\"padding:26px 28px 6px\"><div style=\"font-size:21px;font-weight:800;color:#ffffff\">\(Self.echapper(section.titre))</div>"
@@ -132,7 +132,7 @@ public struct LettreHebdo: Sendable, Equatable {
         <tr><td style="padding:8px 28px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:\(Couleur.surface);border-radius:16px"><tr>
           <td width="64" style="padding:12px 0 12px 12px;vertical-align:top">\(image)</td>
           <td style="padding:12px 16px;vertical-align:middle">
-            <div style="font-size:12px;font-weight:800;letter-spacing:.4px;color:\(Couleur.accentClair);text-transform:uppercase">\(echapper(ligne.quand))</div>
+            <div style="font-size:12px;font-weight:800;letter-spacing:.4px;color:\(Couleur.secondaire);text-transform:uppercase">\(echapper(ligne.quand))</div>
             <div style="font-size:18px;font-weight:700;color:#ffffff;margin-top:3px">\(titre)</div>
             <div style="font-size:14px;color:\(Couleur.secondaire);margin-top:3px">\(echapper(ligne.detail))</div>
           </td></tr></table></td></tr>

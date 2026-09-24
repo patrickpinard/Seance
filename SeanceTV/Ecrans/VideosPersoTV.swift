@@ -6,6 +6,8 @@ import SwiftUI
 /// choisissent sur l'iPhone, l'iPad ou le Mac, et arrivent ici par la synchronisation.
 struct VideosPersoTV: View {
     var chemin = ""
+    /// Dans Regarder › NAS › Vidéos (8.0) : sans titre ni défilement à soi, la page de Regarder les porte.
+    var integree = false
 
     @Environment(EtatTV.self) private var etat
     /// La vidéo ouverte dans le lecteur de Séance (6.6).
@@ -15,12 +17,31 @@ struct VideosPersoTV: View {
     private let colonnes = Array(repeating: GridItem(.fixed(CarteLargeTV.largeurGrille), spacing: 40, alignment: .top), count: 3)
 
     var body: some View {
+        Group {
+            if integree { contenu } else { ScrollView { contenu } }
+        }
+        .task { await etat.videosPerso.lire(films: etat.nas) }
+        .fullScreenCover(item: $aLire) { video in
+            // Une vidéo entamée repart où l'on s'était arrêté (8.0) ; la position voyage avec les autres appareils.
+            LecteurVLCTV(video: video, acces: etat.videosPerso.reglages.acces,
+                         motDePasse: etat.videosPerso.motDePasse(films: etat.nas) ?? "", surEchec: { _ in
+                // Même VLC n'y arrive pas : on tente les apps du dehors, comme avant.
+                aLire = nil
+                lireDehors(video)
+            }, depart: etat.positions.aReprendre(video.chemin)?.secondes, surPosition: { secondes, duree in
+                etat.noterPosition(video.chemin, secondes: secondes, duree: duree)
+            })
+        }
+    }
+
+    private var contenu: some View {
         let albums = etat.videosPerso.albums
         let album = albums.first { $0.id == chemin }
-        ScrollView {
-            VStack(alignment: .leading, spacing: 40) {
-                Text(chemin.isEmpty ? "Vidéos personnelles" : album?.titre ?? (chemin as NSString).lastPathComponent)
-                    .font(.system(size: 58, weight: .heavy))
+        return VStack(alignment: .leading, spacing: 40) {
+                if !integree {
+                    Text(chemin.isEmpty ? "Vidéos personnelles" : album?.titre ?? (chemin as NSString).lastPathComponent)
+                        .font(.system(size: 58, weight: .heavy))
+                }
                 if albums.isEmpty {
                     VideTV(symbole: "video", titre: etat.videosPerso.enCours ? "Lecture de tes vidéos…" : "Aucune vidéo pour l'instant",
                            message: etat.videosPerso.erreur ?? "Le NAS n'a pas encore été lu, ou ses dossiers de vidéos sont vides.")
@@ -55,17 +76,7 @@ struct VideosPersoTV: View {
                 }
             }
             .padding(.horizontal, MargesTV.bord)
-            .padding(.vertical, 40)
-        }
-        .task { await etat.videosPerso.lire(films: etat.nas) }
-        .fullScreenCover(item: $aLire) { video in
-            LecteurVLCTV(video: video, acces: etat.videosPerso.reglages.acces,
-                         motDePasse: etat.videosPerso.motDePasse(films: etat.nas) ?? "") { _ in
-                // Même VLC n'y arrive pas : on tente les apps du dehors, comme avant.
-                aLire = nil
-                lireDehors(video)
-            }
-        }
+            .padding(.vertical, integree ? 0 : 40)
     }
 
     /// Demande la première image de la vidéo au NAS, et la rend si elle est déjà là (6.4).

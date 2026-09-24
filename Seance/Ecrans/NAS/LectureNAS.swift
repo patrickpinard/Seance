@@ -94,7 +94,7 @@ struct BoutonLectureNAS: View {
                 sansMotDePasse = true
                 return
             }
-            etat.filmALire = fichier
+            etat.lire(fichier)
             etat.nas.noterLecture(fichier)
             return
         }

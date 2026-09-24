@@ -79,9 +79,9 @@ final class FamilleTests: XCTestCase {
                       "De retour au profil principal, ses listes ont disparu")
 
         // « Qui regarde ce soir ? » : Anne se coche dans les idées de la feuille « Ajouter à ma soirée ».
-        app.tabBars.buttons["Ce soir"].firstMatch.tap()
-        let ajouter = app.navigationBars.buttons["Ajouter"].firstMatch
-        XCTAssertTrue(ajouter.waitForExistence(timeout: 10), "Pas de bouton « Ajouter » sur Ce soir")
+        app.aller("Ce soir")
+        let ajouter = app.buttons["Suggestions pour ce soir"].firstMatch
+        XCTAssertTrue(app.amener(ajouter), "Pas de bouton « Suggestions pour ce soir » dans Regarder")
         ajouter.tap()
         XCTAssertTrue(app.textFields["rechercheSoiree"].firstMatch.waitForExistence(timeout: 10), "La feuille « Ajouter à ma soirée » ne s'ouvre pas")
         let anne = app.buttons["Anne regarde aussi"].firstMatch
@@ -97,8 +97,12 @@ final class FamilleTests: XCTestCase {
         let film = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'John Wick'")).firstMatch
         XCTAssertTrue(film.waitForExistence(timeout: 10))
         film.tap()
+        // Charte 8.0 : « Terminé » est dans le menu ⋯ de la fiche.
+        let plus = app.buttons["Plus d'actions"].firstMatch
+        XCTAssertTrue(app.amener(plus, versLeHaut: true, essais: 4), "Pas de menu ⋯ sur la fiche du film")
+        plus.tap()
         let termine = app.buttons["Terminé"].firstMatch
-        XCTAssertTrue(app.amener(termine, versLeHaut: true, essais: 4), "Pas de bouton « Terminé » sur la fiche du film")
+        XCTAssertTrue(termine.waitForExistence(timeout: 5), "Pas de « Terminé » dans le menu ⋯ de la fiche")
         termine.tap()
         XCTAssertTrue(app.staticTexts["Vu avec qui ?"].firstMatch.waitForExistence(timeout: 8), "« Vu avec qui ? » ne s'ouvre pas")
         XCTAssertTrue(app.buttons["Anne l'a vu aussi"].firstMatch.isSelected, "Anne, qui regarde ce soir, n'est pas cochée d'office")

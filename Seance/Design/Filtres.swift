@@ -62,7 +62,7 @@ struct PuceCritere: View {
         .font(.subheadline.weight(.semibold))
         .padding(.horizontal, 13)
         .frame(height: 34)
-        .foregroundStyle(etat == .retenu ? Color.black : etat == .exclu ? Color(red: 1, green: 0.45, blue: 0.45) : .primary)
+        .foregroundStyle(etat == .retenu ? Color.black : etat == .exclu ? Theme.rouge : .primary)
         .background {
             switch etat {
             case .retenu: Capsule().fill(Theme.degradeAccent)

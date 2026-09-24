@@ -20,7 +20,7 @@ final class ProgrammeTeleTests: XCTestCase {
         app.launch()
         XCTAssertTrue(app.tabBars.buttons["Accueil"].firstMatch.waitForExistence(timeout: 10))
         app.open(URL(string: "seance://tele")!)
-        XCTAssertTrue(app.navigationBars["Programme TV"].waitForExistence(timeout: 10), "Le programme TV ne s'ouvre pas")
+        XCTAssertTrue(app.navigationBars["Regarder"].waitForExistence(timeout: 10), "Le programme TV ne s'ouvre pas")
         XCTAssertTrue(app.staticTexts["En ce moment"].waitForExistence(timeout: 5), "Pas de section « En ce moment »")
         XCTAssertTrue(app.buttons["Filtrer par chaîne"].firstMatch.waitForExistence(timeout: 5), "Pas de filtre par chaîne")
         capture("tele-films", attente: 4)
@@ -43,10 +43,10 @@ final class ProgrammeTeleTests: XCTestCase {
         // Tout en haut d'abord : sous la barre de navigation translucide, « Tout » se dit touchable mais le toucher
         // atterrit sur la barre. Et on vérifie que le choix a pris, la suite en dépend.
         app.swipeDown(); app.swipeDown()
-        let tout = app.buttons["Tout"].firstMatch
-        XCTAssertTrue(tout.waitForExistence(timeout: 5), "Le choix Films, Séries, Tout a disparu")
+        let tout = app.buttons["Les deux"].firstMatch
+        XCTAssertTrue(tout.waitForExistence(timeout: 5), "Le choix Films, Séries, Les deux a disparu")
         tout.tap()
-        XCTAssertTrue(tout.isSelected, "« Tout » n'est pas sélectionné")
+        XCTAssertTrue(tout.isSelected, "« Les deux » n'est pas sélectionné")
         // Reacher passe ce soir : « en soirée », « en ce moment », ou déjà fini selon l'heure du test. Pour la capture.
         app.amener(app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Reacher'")).firstMatch, essais: 3)
         capture("tele-tout-bas")

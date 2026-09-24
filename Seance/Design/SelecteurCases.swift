@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// Le sélecteur de Séance : des cases de même largeur, l'active en dégradé orange à texte noir, les autres sur la surface
-/// du thème. Né dans Explorer (Toutes, Streaming, NAS, TV), il sert partout où l'on choisit **ce que la page montre** :
+/// Le sélecteur de Séance : des cases de même largeur ; charte 8.0 : l'active en blanc à texte noir, comme toute pastille
+/// choisie, les autres sur la surface du thème. Né dans Explorer (Toutes, Streaming, NAS, TV), il sert partout où l'on choisit **ce que la page montre** :
 /// onglets de Mes listes, rayons du NAS, Films / Séries. Le contrôle segmenté d'iOS reste réservé aux formulaires de
 /// réglage. Voir `Documentation/Charte graphique.md`.
 struct SelecteurCases<Valeur: Hashable>: View {
@@ -35,13 +35,14 @@ struct SelecteurCases<Valeur: Hashable>: View {
                     .padding(.horizontal, 4)
                     .frame(maxWidth: .infinity)
                     .frame(height: avecSymboles ? 50 : 40)
-                    .foregroundStyle(active ? Color.black : Color.primary)
-                    .background(active ? AnyShapeStyle(Theme.degradeAccent) : AnyShapeStyle(Theme.surface),
+                    .foregroundStyle(active ? Color.black : Theme.texte)
+                    .background(active ? AnyShapeStyle(Theme.texte) : AnyShapeStyle(Theme.surface),
                                 in: RoundedRectangle(cornerRadius: 13, style: .continuous))
                     .contentShape(RoundedRectangle(cornerRadius: 13, style: .continuous))
                     .texteContenu()
                 }
                 .buttonStyle(.plain)
+                .sensoryFeedback(.selection, trigger: active)
                 .disabled(!element.disponible)
                 .opacity(element.disponible ? 1 : 0.4)
                 .help(element.disponible ? "" : (element.aide ?? ""))

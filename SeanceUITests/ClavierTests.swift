@@ -21,7 +21,7 @@ final class ClavierTests: XCTestCase {
     @MainActor
     func testRechercherDansExplorerRangeLeClavier() throws {
         let app = lancer()
-        app.buttons["Explorer"].firstMatch.tap()
+        app.aller("Explorer")
 
         let champ = app.searchFields.firstMatch
         XCTAssertTrue(champ.waitForExistence(timeout: 10), "Champ de recherche introuvable")

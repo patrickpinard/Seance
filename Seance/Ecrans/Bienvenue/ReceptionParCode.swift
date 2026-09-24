@@ -25,7 +25,7 @@ struct ReceptionParCode: View {
                 Text("Sur l'autre appareil : Réglages › Tes appareils › « Envoyer à un appareil », puis tape ce code.")
                     .font(.subheadline).foregroundStyle(.secondary)
                 Text(recepteur.code.prefix(3) + " " + recepteur.code.suffix(3))
-                    .font(.system(size: 44, weight: .heavy, design: .rounded)).monospacedDigit()
+                    .font(.system(.largeTitle, design: .rounded).weight(.heavy)).monospacedDigit()
                     .foregroundStyle(Theme.accentClair)
                     .frame(maxWidth: .infinity)
                     .accessibilityLabel("Code : " + recepteur.code.map(String.init).joined(separator: " "))

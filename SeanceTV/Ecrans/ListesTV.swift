@@ -3,7 +3,8 @@ import SeanceKit
 import SwiftData
 import SwiftUI
 
-/// Mes listes sur la TV : à voir, en cours, terminés — une étagère chacune, plus les listes nommées.
+/// Mes listes sur la TV : les six mêmes boutons que sur l'iPhone (8.0) — à venir, à voir, en cours, terminés, favoris,
+/// listes nommées.
 struct ListesTV: View {
     @Environment(EtatTV.self) private var etat
     @Environment(\.modelContext) private var contexte
@@ -12,16 +13,29 @@ struct ListesTV: View {
     @Query private var echeances: [Echeance]
     @Query(sort: \ListePerso.nom) private var listes: [ListePerso]
     @Query private var fichiers: [FichierNAS]
+    @Query(sort: \Favori.ajouteLe, order: .reverse) private var favoris: [Favori]
 
     enum Onglet: String, CaseIterable, Hashable {
-        case aVenir = "À venir", aVoir = "À voir", enCours = "En cours", termines = "Terminés", listes = "Listes"
+        case aVenir = "À venir", aVoir = "À voir", enCours = "En cours", termines = "Terminés", favoris = "Favoris", listes = "Listes"
+
+        /// Les symboles de l'iPhone (`MesListesView.Onglet`).
+        var symbole: String {
+            switch self {
+            case .aVenir: "calendar.badge.clock"
+            case .aVoir: "bookmark.fill"
+            case .enCours: "play.circle.fill"
+            case .termines: "checkmark.circle.fill"
+            case .favoris: "star.fill"
+            case .listes: "rectangle.stack.fill"
+            }
+        }
 
         var statut: StatutSuivi? {
             switch self {
             case .aVoir: .aVoir
             case .enCours: .enCours
             case .termines: .termine
-            case .aVenir, .listes: nil
+            case .aVenir, .favoris, .listes: nil
             }
         }
     }
@@ -40,10 +54,25 @@ struct ListesTV: View {
                     VideTV(symbole: "bookmark", titre: "Tes listes sont vides sur cette TV",
                            message: "Elles arrivent de ton iPhone, de ton iPad et de ton Mac. Tu peux aussi garder un titre « à voir » depuis sa fiche, ici même.")
                 } else {
-                    // Les mêmes onglets que sur l'iPhone (charte graphique).
-                    SelecteurTV(selection: $onglet, cases: Onglet.allCases.map { ($0, $0.rawValue) })
+                    // Maquette 8.0, n° 12 : les six boutons de l'iPhone en tuiles, l'icône au-dessus du nom ; le choisi en blanc.
+                    HStack(spacing: 20) {
+                        ForEach(Onglet.allCases, id: \.self) { choix in
+                            Button { onglet = choix } label: {
+                                VStack(spacing: 8) {
+                                    Image(systemName: choix.symbole).font(.system(size: 30, weight: .semibold))
+                                    Text(choix.rawValue).font(.system(size: 24, weight: .semibold))
+                                }
+                                .frame(width: 190, height: 116)
+                            }
+                            .buttonStyle(BoutonTV(principal: onglet == choix, hauteur: nil))
+                        }
+                    }
+                    .padding(.horizontal, MargesTV.bord)
+                    .focusSection()
                     if onglet == .aVenir {
                         aVenir
+                    } else if onglet == .favoris {
+                        grilleFavoris
                     } else if onglet == .listes {
                         if listes.allSatisfy(\.titres.isEmpty) {
                             VideTV(symbole: "rectangle.stack", titre: "Aucune liste",
@@ -106,12 +135,37 @@ struct ListesTV: View {
                           : onglet == .enCours ? "Coche un épisode sur la fiche d'une série : elle se range ici."
                           : "Un film vu, une série finie : ils se rangent ici, avec ta note.")
         } else {
-            LazyVGrid(columns: Array(repeating: GridItem(.fixed(CarteLargeTV.largeurGrille), spacing: 40, alignment: .top), count: 3), spacing: 50) {
+            Text(titres.count > 1 ? "\(titres.count) titres" : "1 titre").font(.system(size: 34, weight: .bold))
+                .padding(.horizontal, MargesTV.bord)
+            LazyVGrid(columns: Array(repeating: GridItem(.fixed(390), spacing: 34, alignment: .top), count: 4), spacing: 44) {
                 ForEach(titres) { suivi in
                     NavigationLink(value: suivi.reference) {
                         CarteLargeTV(surtitre: suivi.note.map { "★ \($0)/10" }, titre: suivi.titre,
                                      detail: suivi.type == .film ? "Film" : "Série", cheminImage: suivi.cheminAffiche,
-                                     marque: marque(suivi.reference), largeur: CarteLargeTV.largeurGrille, reference: suivi.reference)
+                                     largeur: 390, reference: suivi.reference)
+                    }
+                    .buttonStyle(.card)
+                    .menuCarteTV(suivi.reference, titre: suivi.titre, cheminAffiche: suivi.cheminAffiche)
+                }
+            }
+            .padding(.horizontal, MargesTV.bord)
+            .padding(.vertical, 20)
+            .focusSection()
+        }
+    }
+
+    @ViewBuilder
+    private var grilleFavoris: some View {
+        if favoris.isEmpty {
+            VideTV(symbole: "star", titre: "Aucun favori",
+                   message: "Tes incontournables, vus ou non : sur ton iPhone, ouvre une fiche, puis « Plus » › « Ajouter à mes favoris ».")
+        } else {
+            LazyVGrid(columns: Array(repeating: GridItem(.fixed(CarteLargeTV.largeurGrille), spacing: 40, alignment: .top), count: 3), spacing: 50) {
+                ForEach(favoris) { favori in
+                    NavigationLink(value: favori.reference) {
+                        CarteLargeTV(surtitre: nil, titre: favori.titre, detail: favori.type == .film ? "Film" : "Série",
+                                     cheminImage: favori.cheminAffiche, marque: marque(favori.reference),
+                                     largeur: CarteLargeTV.largeurGrille, reference: favori.reference)
                     }
                     .buttonStyle(.card)
                 }

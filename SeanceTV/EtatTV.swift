@@ -32,11 +32,37 @@ final class EtatTV {
     private(set) var erreurNAS: String?
     /// Dit en bas de l'écran ce qui vient d'être fait, quelques secondes.
     var message: String?
+    /// « Tout voir » d'une étagère de l'accueil (8.0) : ouvre Regarder sur cette source, aujourd'hui.
+    var demandeRegarder: SourceTV?
 
     /// L'app qui lit les vidéos du NAS : « Lire » n'ouvre que celle-là.
     private(set) var lecteur: LecteurVideo
     /// Le film lancé dans l'app de lecture : au retour dans Séance, on demande s'il a été regardé.
     var lectureAConfirmer: ReferenceTitre?
+    /// Où l'on s'est arrêté dans chaque vidéo du NAS (8.0) : voyage avec l'iPhone et l'iPad par la synchronisation.
+    private(set) var positions = PositionsLecture(donnees: UserDefaults.standard.data(forKey: PositionsLecture.cle))
+
+    /// Retient la position d'une vidéo ; appelé par le lecteur toutes les dix secondes et en le fermant.
+    func noterPosition(_ chemin: String, secondes: Double, duree: Double) {
+        positions.noter(chemin, secondes: secondes, duree: duree, appareil: "Apple TV")
+        UserDefaults.standard.set(positions.encoder(), forKey: PositionsLecture.cle)
+    }
+
+    /// « Depuis le début » : la position s'efface, pour tous les appareils.
+    func oublierPosition(_ chemin: String) {
+        positions.oublier(chemin)
+        UserDefaults.standard.set(positions.encoder(), forKey: PositionsLecture.cle)
+    }
+
+    /// Relit les positions : au lancement, après la démonstration qui les pose.
+    func relirePositions() {
+        positions = PositionsLecture(donnees: UserDefaults.standard.data(forKey: PositionsLecture.cle))
+    }
+
+    private func recevoirPositions(_ donnees: Data) {
+        guard positions.fusionner(PositionsLecture(donnees: donnees)) else { return }
+        UserDefaults.standard.set(positions.encoder(), forKey: PositionsLecture.cle)
+    }
     private var lectureLancee: ReferenceTitre?
     private(set) var teleEnCours = false
     private(set) var derniereLectureTele = UserDefaults.standard.object(forKey: Cle.derniereLectureTele) as? Date
@@ -176,11 +202,15 @@ final class EtatTV {
         if !FileManager.default.fileExists(atPath: fichierEtat.path(percentEncoded: false)) { moteur.oublier() }
         do {
             // Les personnes de la famille, créées sur l'iPhone, arrivent dans les réglages de son fichier.
-            let bilan = try await moteur.synchroniser(appliquer: { remplacees, recues in
+            // La TV ne dépose qu'un réglage : où l'on s'est arrêté dans les vidéos du NAS (8.0).
+            let bilan = try await moteur.synchroniser(preferences: { [positions] in
+                positions.encoder().map { [PositionsLecture.cle: .donnees($0)] } ?? [:]
+            }, appliquer: { remplacees, recues in
                 for reglages in recues + [remplacees] {
                     if case .donnees(let brut)? = reglages[ProfilsFamille.cleSynchro] { ConteneurTV.famille.fusionner(brut) }
                     // Les couvertures des souvenirs, choisies sur l'iPhone (6.2) : les plus récentes, entrée par entrée.
                     if case .donnees(let brut)? = reglages[CouverturesSouvenirs.cle] { videosPerso.recevoirCouvertures(brut) }
+                    if case .donnees(let brut)? = reglages[PositionsLecture.cle] { recevoirPositions(brut) }
                 }
             })
             derniereSynchro = .now

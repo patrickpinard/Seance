@@ -550,7 +550,7 @@ struct SiriEtWidgetsTests {
             ]),
         ])
         let service = ServiceSoiree(contexte: contexte)
-        #expect(try service.phrase(nil) == "Rien de prévu ce soir. Ouvre Séance : l'onglet Ce soir te propose des idées selon tes goûts.")
+        #expect(try service.phrase(nil) == "Rien de prévu ce soir. Ouvre Séance : Regarder te propose des suggestions selon tes goûts.")
 
         // Le ✓ d'un widget fait passer au suivant.
         try ServiceSuivi(contexte: contexte).cocher(NumeroEpisode(saison: 2, episode: 6), serie: reacher, dureeMinutes: 50)

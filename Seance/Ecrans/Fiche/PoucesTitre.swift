@@ -3,9 +3,10 @@ import SeanceKit
 import SwiftData
 import SwiftUI
 
-/// 👍 👎 comme sur Netflix : dire d'un toucher qu'un titre te plaît ou non, **sans l'avoir vu** — la note de 1 à 10,
-/// elle, vient après l'avoir regardé. Le pouce levé oriente tes goûts, donc les idées du soir ; le pouce baissé fait
-/// en plus sortir le titre de toutes les propositions (Réglages › Prénom et idées permet d'y revenir).
+/// « Ton avis » (charte 8.0) : dire d'un toucher qu'un titre te plaît ou non, **sans l'avoir vu** — la note de 1 à 10,
+/// elle, vient après l'avoir regardé. Le pouce levé oriente tes goûts, donc tes suggestions ; le pouce baissé fait en
+/// plus sortir le titre de toutes les propositions (Réglages › Prénom et suggestions permet d'y revenir). Deux ronds du
+/// même trait que les autres actions, pleins et orange quand c'est choisi.
 struct PoucesTitre: View {
     let reference: ReferenceTitre
     let titre: String
@@ -37,32 +38,32 @@ struct PoucesTitre: View {
 
     var body: some View {
         HStack(spacing: 10) {
-            pouce("hand.thumbsup", plein: "hand.thumbsup.fill", nom: aime ? "J'aime ✓" : "J'aime", actif: aime,
+            Text("Ton avis").font(.subheadline.weight(.semibold))
+            Spacer(minLength: 8)
+            pouce("hand.thumbsup", plein: "hand.thumbsup.fill", nom: "J'aime", actif: aime,
                   aide: aime ? "Tu aimes ce titre. Toucher pour retirer ton pouce." : "Ce titre te plaît : Séance te proposera davantage de titres de ce genre.") {
                 basculerAime()
             }
-            pouce("hand.thumbsdown", plein: "hand.thumbsdown.fill", nom: ecarte ? "Je n'aime pas ✓" : "Je n'aime pas", actif: ecarte,
+            pouce("hand.thumbsdown", plein: "hand.thumbsdown.fill", nom: "Pas pour moi", actif: ecarte,
                   aide: ecarte ? "Tu as écarté ce titre. Toucher pour qu'il puisse de nouveau t'être proposé."
                                : "Je n'aime pas : Séance ne te le proposera plus, et en tient compte pour tes goûts.") {
                 basculerEcarte()
             }
-            Spacer(minLength: 0)
         }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 6)
+        .background(Theme.surface, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(Theme.trait))
         .padding(.horizontal, 20)
+        .frame(maxWidth: 720, alignment: .leading)
     }
 
     private func pouce(_ symbole: String, plein: String, nom: String, actif: Bool, aide: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            Label(nom, systemImage: actif ? plein : symbole)
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(actif ? Theme.accentClair : Color.primary)
-                .padding(.horizontal, 16)
-                .frame(minHeight: 44)
-                .background(actif ? AnyShapeStyle(Theme.accent.opacity(0.18)) : AnyShapeStyle(Theme.surface), in: Capsule())
-                .overlay(Capsule().strokeBorder(actif ? Theme.accent.opacity(0.5) : Theme.trait))
-                .contentShape(Capsule())
+            Image(systemName: actif ? plein : symbole)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(StyleBoutonRond(choisi: actif))
+        .accessibilityLabel(actif ? "\(nom), choisi" : nom)
         .help(aide)
         .accessibilityHint(aide)
         .accessibilityAddTraits(actif ? .isSelected : [])
@@ -76,7 +77,7 @@ struct PoucesTitre: View {
             etat.confirmer("Pouce retiré", symbole: "hand.thumbsup")
         } else {
             try? gouts.aimer(reference, titre: titre, cheminAffiche: cheminAffiche, genres: genres, acteursIDs: acteursIDs, acteurs: acteurs)
-            etat.confirmer("Noté : tes idées en tiendront compte", symbole: "hand.thumbsup.fill")
+            etat.confirmer("Noté : tes suggestions en tiendront compte", symbole: "hand.thumbsup.fill")
         }
     }
 

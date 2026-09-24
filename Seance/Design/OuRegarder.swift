@@ -48,6 +48,8 @@ struct ActionsOuRegarder: View {
         case boutonUnique
         /// En tête de fiche (6.1) : le grand bouton de lecture, puis les autres accès en pastilles.
         case enTete
+        /// Sur une carte (8.0) : le ▶︎ blanc seul, quand le titre se lance d'ici — l'épisode du NAS compris.
+        case rond
     }
 
     let reference: ReferenceTitre
@@ -103,6 +105,10 @@ struct ActionsOuRegarder: View {
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
+                }
+            } else if presentation == .rond {
+                if !sources.isEmpty {
+                    ChoixLecture(reference: reference, titre: titre, sources: sources, style: .rond)
                 }
             } else if presentation == .enTete, !sources.isEmpty {
                 // Une petite capsule plutôt qu'un bouton de toute la largeur (6.1.1) ; le reste à côté, en pastilles.
@@ -364,6 +370,7 @@ struct ChoixLecture: View {
         if sources.count == 1, let seule = sources.first {
             Button { lancer(seule) } label: { etiquette(seule) }
                 .buttonStyle(.plain)
+                .frame(maxWidth: style == .compact ? 720 : nil, alignment: .leading)
                 .accessibilityLabel(style == .rond ? "Regarder \(titre) : \(seule.nom)" : seule.action)
         } else if !sources.isEmpty {
             Menu {
@@ -376,6 +383,8 @@ struct ChoixLecture: View {
                 etiquette(nil)
             }
             .buttonStyle(.plain)
+            // Le bouton principal de la fiche prend toute la largeur (charte 8.0), même quand il ouvre un menu.
+            .frame(maxWidth: style == .compact ? 720 : nil, alignment: .leading)
             .accessibilityLabel("Regarder \(titre) : choisir parmi \(sources.count)")
             .accessibilityIdentifier("choixLecture")
         }
@@ -385,24 +394,43 @@ struct ChoixLecture: View {
     private func etiquette(_ seule: SourceLecture?) -> some View {
         switch style {
         case .rond:
-            RondIcone(symbole: "play.fill", principal: true, taille: 44)
+            // Charte 8.0 : le ▶︎ des cartes, blanc, comme sur l'Apple TV.
+            Image(systemName: "play.fill")
+                .font(.body.weight(.bold))
+                .foregroundStyle(.black)
+                .offset(x: 1)
+                .frame(width: 40, height: 40)
+                .background(.white.opacity(0.94), in: Circle())
                 .shadow(color: .black.opacity(0.45), radius: 6, y: 2)
+                .frame(width: 44, height: 44)
+                .contentShape(Circle())
         case .grand:
             EtiquetteGrandBouton(symbole: seule.map { if case .blueTV = $0 { "play.tv.fill" } else { "play.fill" } } ?? "play.fill",
                                  texte: seule?.action ?? "Regarder…")
         case .compact:
-            HStack(spacing: 7) {
+            // Charte 8.0 : le bouton principal de la fiche, pleine largeur, qui dit ce qu'il fait.
+            HStack(spacing: 8) {
                 Image(systemName: "play.fill")
-                Text(seule?.court ?? "Lecture").lineLimit(1)
-                if seule == nil { Image(systemName: "chevron.down").font(.caption.weight(.heavy)) }
+                Text(libellePrincipal(seule)).lineLimit(1)
             }
-            .font(.subheadline.weight(.bold))
+            .font(.headline)
             .foregroundStyle(.black)
-            .padding(.horizontal, 18)
-            .frame(height: 44)
-            .background(Theme.degradeAccent, in: Capsule())
-            .contentShape(Capsule())
+            .padding(.horizontal, 20)
+            .frame(maxWidth: 720, minHeight: 50)
+            .background(Theme.degradeAccent, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         }
+    }
+
+    /// « Regarder sur Prime Video », « Lire sur le NAS », « Reprendre à 1:03:12 » ; « Regarder… » quand il faut choisir.
+    private func libellePrincipal(_ seule: SourceLecture?) -> String {
+        guard let seule else { return "Regarder…" }
+        #if !targetEnvironment(macCatalyst)
+        if case .nas(let fichier) = seule, etat.nas.dansSeance, let position = etat.nas.positions.aReprendre(fichier.chemin) {
+            return "Reprendre à \(PositionsLecture.horodatage(position.secondes))"
+        }
+        #endif
+        return seule.action
     }
 
     private func lancer(_ source: SourceLecture) {
@@ -421,7 +449,7 @@ struct ChoixLecture: View {
             guard etat.nas.motDePasse != nil else {
                 return etat.confirmer("Mot de passe du NAS manquant : enregistre-le dans Réglages › NAS.", symbole: "exclamationmark.triangle")
             }
-            etat.filmALire = fichier
+            etat.lire(fichier)
             etat.nas.noterLecture(fichier)
             return
         }

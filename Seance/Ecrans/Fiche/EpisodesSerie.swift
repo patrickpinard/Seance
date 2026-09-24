@@ -130,7 +130,7 @@ struct SectionEpisodes: View {
                     Text("Série terminée").font(.caption.weight(.bold)).foregroundStyle(.secondary)
                     Text("Tu as tout vu").font(.headline)
                 } else {
-                    Text("À jour").font(.caption.weight(.bold)).foregroundStyle(Theme.accentClair)
+                    Text("À jour").font(.caption.weight(.bold)).foregroundStyle(Theme.texte2)
                     Text(serie.prochainEpisode?.dateDiffusion.map { "Prochain épisode le \(libelle($0))" } ?? "Nouveaux épisodes pas encore annoncés")
                         .font(.headline)
                 }

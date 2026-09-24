@@ -9,7 +9,6 @@ struct SeanceApp: App {
     @State private var etat = EtatApp()
     /// Change avec le profil de la famille : tous les écrans se reconstruisent sur le nouveau magasin.
     @State private var generation = 0
-    @AppStorage(Apparence.cle) private var apparence = Apparence.sombre.rawValue
 
     var body: some Scene {
         WindowGroup {
@@ -24,7 +23,7 @@ struct SeanceApp: App {
                         etat = EtatApp()
                         generation += 1
                     }
-                    .preferredColorScheme(Apparence.lire(apparence).schema)
+                    .preferredColorScheme(.dark)
             case .failure(let erreur):
                 ContentUnavailableView(
                     "Données inaccessibles",
@@ -33,23 +32,23 @@ struct SeanceApp: App {
                 )
             }
         }
-        // Mac : Séance › Réglages… (⌘,) ouvre l'onglet Réglages.
+        // Mac : Séance › Réglages… (⌘,) ouvre les Réglages, comme la roue dentée de chaque page.
         .commands {
             CommandGroup(replacing: .appSettings) {
                 Button("Réglages…") { etat.ongletDemande = .reglages }
                     .keyboardShortcut(",")
             }
-            // ⌘1 à ⌘9 pour les onglets, ⌘F pour chercher : au clavier du Mac comme de l'iPad.
+            // ⌘1 à ⌘3 pour les onglets, dans l'ordre du menu (8.0), ⌘F pour chercher : au clavier du Mac comme de l'iPad.
             CommandMenu("Aller") {
-                // Dans l'ordre du menu (7.0).
                 Button("Accueil") { etat.ongletDemande = .accueil }.keyboardShortcut("1")
-                Button("Ce soir") { etat.ongletDemande = .ceSoir }.keyboardShortcut("2")
-                Button("Streaming") { etat.ongletDemande = .streaming }.keyboardShortcut("3")
-                Button("TV") { etat.ongletDemande = .tele }.keyboardShortcut("4")
-                Button("NAS") { etat.ongletDemande = .nas }.keyboardShortcut("5")
-                Button("Mes listes") { etat.ongletDemande = .listes }.keyboardShortcut("6")
-                Button("Réglages") { etat.ongletDemande = .reglages }.keyboardShortcut("7")
-                Button("Explorer") { etat.ongletDemande = .explorer }.keyboardShortcut("8")
+                Button("Regarder") { etat.ongletDemande = .regarder }.keyboardShortcut("2")
+                Button("Mes listes") { etat.ongletDemande = .listes }.keyboardShortcut("3")
+                Divider()
+                Button("Ce soir") { etat.ongletDemande = .ceSoir }.keyboardShortcut("4")
+                Button("Streaming") { etat.ongletDemande = .streaming }.keyboardShortcut("5")
+                Button("TV") { etat.ongletDemande = .tele }.keyboardShortcut("6")
+                Button("NAS") { etat.ongletDemande = .nas }.keyboardShortcut("7")
+                Divider()
                 Button("Préférences") { etat.ongletDemande = .profil }.keyboardShortcut("9")
                 Divider()
                 Button("Rechercher un film, une série, un acteur") { etat.rechercheDemandee = true }.keyboardShortcut("f")

@@ -46,7 +46,7 @@ enum NombreIdees {
 /// réglages des alertes, adresse et dossiers du NAS. Jamais une clé ni un mot de passe : ils restent dans le trousseau.
 @MainActor
 enum PreferencesSauvegardees {
-    private static let textes = [Prenom.cle, "listes.tri", Apparence.cle]
+    private static let textes = [Prenom.cle, "listes.tri"]
     private static let entiers = [NombreIdees.cle]
     private static let booleens = ["listes.grille", "explorer.liste", BlueTV.cle]
     private static let donnees = ["accueil.sources"]
@@ -59,7 +59,7 @@ enum PreferencesSauvegardees {
         for cle in textes { if let valeur = defauts.string(forKey: cle), !valeur.isEmpty { resultat[cle] = .texte(valeur) } }
         for cle in entiers where defauts.object(forKey: cle) != nil { resultat[cle] = .entier(defauts.integer(forKey: cle)) }
         for cle in booleens where defauts.object(forKey: cle) != nil { resultat[cle] = .booleen(defauts.bool(forKey: cle)) }
-        for cle in donnees + [cleAlertes, cleNAS, EtatVideosPerso.cleReglages, EtatLettre.cle, CouverturesSouvenirs.cle] { if let valeur = defauts.data(forKey: cle) { resultat[cle] = .donnees(valeur) } }
+        for cle in donnees + [cleAlertes, cleNAS, EtatVideosPerso.cleReglages, EtatLettre.cle, CouverturesSouvenirs.cle, PositionsLecture.cle] { if let valeur = defauts.data(forKey: cle) { resultat[cle] = .donnees(valeur) } }
         // La famille : les personnes créées ici arrivent sur les autres appareils, Apple TV comprise.
         if let famille = ProfilsFamille().exporter() { resultat[ProfilsFamille.cleSynchro] = .donnees(famille) }
         // L'e-mail de la semaine : ses réglages voyagent (destinataires, jour, compte — jamais le mot de passe), et la
@@ -75,7 +75,7 @@ enum PreferencesSauvegardees {
         var repris = 0
         // La date du dernier e-mail envoyé se compare toujours : la plus récente l'emporte. Les couvertures des souvenirs
         // aussi, entrée par entrée (6.2).
-        for (cle, valeur) in preferences where remplacer || defauts.object(forKey: cle) == nil || cle == EtatLettre.cleDernier || cle == CouverturesSouvenirs.cle {
+        for (cle, valeur) in preferences where remplacer || defauts.object(forKey: cle) == nil || cle == EtatLettre.cleDernier || cle == CouverturesSouvenirs.cle || cle == PositionsLecture.cle {
             switch (cle, valeur) {
             case (cleAlertes, .donnees(let brut)):
                 // Les alertes et le NAS gardent leurs réglages en mémoire : ils passent par leur propre porte.
@@ -93,6 +93,9 @@ enum PreferencesSauvegardees {
                 etat.lettre.noterEnvoiAilleurs(Date(timeIntervalSince1970: TimeInterval(secondes)))
             case (CouverturesSouvenirs.cle, .donnees(let brut)):
                 guard etat.videosPerso.recevoirCouvertures(brut) else { continue }
+            // Où l'on s'est arrêté (8.0) : la position la plus récente l'emporte, vidéo par vidéo.
+            case (PositionsLecture.cle, .donnees(let brut)):
+                guard etat.nas.recevoirPositions(brut) else { continue }
             case (EtatVideosPerso.cleReglages, .donnees(let brut)):
                 guard let reglages = try? JSONDecoder().decode(ReglagesVideosPerso.self, from: brut) else { continue }
                 etat.videosPerso.enregistrer(reglages)

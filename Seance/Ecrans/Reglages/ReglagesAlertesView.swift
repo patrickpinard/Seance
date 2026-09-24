@@ -133,7 +133,7 @@ struct ReglagesAlertesView: View {
             } header: {
                 Text("Me prévenir pour")
             } footer: {
-                Text("Pour les titres dont la cloche 🔔 est activée sur la fiche. La cloche s'active quand tu ajoutes un titre ; une série peut ne prévenir qu'aux nouvelles saisons.")
+                Text("Pour les titres dont la cloche est activée sur la fiche. La cloche s'active quand tu ajoutes un titre ; une série peut ne prévenir qu'aux nouvelles saisons.")
             }
 
             Section {

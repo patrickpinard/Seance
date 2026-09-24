@@ -153,7 +153,7 @@ struct FeuilleFiltres: View {
                 Button("Enregistrer") { enregistrer() }
                 Button("Annuler", role: .cancel) {}
             } message: {
-                Text("Ils se rappellent d'un geste, au-dessus des résultats d'Explorer.")
+                Text("Ils se rappellent d'un geste, au-dessus des résultats de la recherche et de Regarder.")
             }
         }
         .presentationDetents([.large])

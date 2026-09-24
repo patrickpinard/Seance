@@ -44,12 +44,7 @@ final class VisiteCompleteTests: XCTestCase {
     }
 
     private func onglet(_ nom: String) {
-        let bouton = app.tabBars.buttons[nom].firstMatch
-        if bouton.waitForExistence(timeout: 10) {
-            bouton.tap()
-        } else {
-            noter("MANQUE · onglet « \(nom) »")
-        }
+        app.aller(nom)
         Thread.sleep(forTimeInterval: 2)
     }
 

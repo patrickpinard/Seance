@@ -48,84 +48,93 @@ struct PersonneTV: View {
             .sorted { ($0.nombreVotes ?? 0) > ($1.nombreVotes ?? 0) }
     }
 
+    /// Maquette 8.0, n° 15 : Films · Séries · Regardables ce soir.
+    enum Filtre: String, CaseIterable { case films = "Films", series = "Séries", regardables = "Regardables ce soir" }
+    @State private var filtre = Filtre.films
+
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 50) {
-                entete
-                if let erreur {
-                    VideTV(symbole: "wifi.exclamationmark", titre: "Fiche indisponible", message: erreur)
+        // Maquette 8.0, n° 15 : la personne à gauche — portrait rond, nom, « Suivre » —, sa filmographie en affiches à droite.
+        HStack(alignment: .top, spacing: 60) {
+            entete
+                .frame(width: 440)
+                .focusSection()
+            ScrollView {
+                VStack(alignment: .leading, spacing: 30) {
+                    HStack(spacing: 14) {
+                        ForEach(Filtre.allCases, id: \.self) { choix in
+                            Button(choix.rawValue) { filtre = choix }
+                                .buttonStyle(BoutonTV(principal: filtre == choix, hauteur: 56))
+                        }
+                    }
+                    .focusSection()
+                    if let erreur {
+                        VideTV(symbole: "wifi.exclamationmark", titre: "Fiche indisponible", message: erreur)
+                    }
+                    let liste = affichees
+                    if liste.isEmpty, filmographie != nil {
+                        Text(filtre == .regardables ? "Rien de sa filmographie sur ton NAS ni sur tes plateformes." : "Rien ici.")
+                            .font(.system(size: 26)).foregroundStyle(Theme.texte2)
+                    }
+                    LazyVGrid(columns: Array(repeating: GridItem(.fixed(AfficheTV.largeur), spacing: 34, alignment: .top), count: 4), spacing: 40) {
+                        ForEach(liste.prefix(60), id: \.reference) { credit in
+                            NavigationLink(value: credit.reference) {
+                                AfficheTV(titre: credit.titre, sousTitre: credit.date.map { String($0.annee) }, cheminAffiche: credit.cheminAffiche)
+                            }
+                            .buttonStyle(.card)
+                            .menuCarteTV(credit.reference, titre: credit.titre, cheminAffiche: credit.cheminAffiche)
+                        }
+                    }
+                    .focusSection()
                 }
-                etagere("Films", .film)
-                etagere("Séries", .serie)
+                .padding(.vertical, 30)
+                .padding(.trailing, MargesTV.bord)
             }
-            .padding(.vertical, 60)
+            .scrollClipDisabled()
         }
+        .padding(.leading, MargesTV.bord)
+        .padding(.top, 40)
         .background(Theme.fond.ignoresSafeArea())
         .task(id: personne.id) { await charger() }
     }
 
-    private var entete: some View {
-        HStack(alignment: .top, spacing: 50) {
-            ImageTV(url: ImageTMDB.url(fiche?.cheminPortrait, .afficheGrande), symboleVide: "person.fill")
-                .aspectRatio(2 / 3, contentMode: .fit)
-                .frame(width: 300)
-                .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-            VStack(alignment: .leading, spacing: 18) {
-                Text(fiche?.nom ?? personne.nom).font(.system(size: 68, weight: .heavy)).lineLimit(2)
-                Text(faits).font(.system(size: 28, weight: .medium)).foregroundStyle(.white.opacity(0.75))
-                HStack(spacing: 28) {
-                    Button { basculerSuivi() } label: {
-                        Label(suivi ? "Suivi" : "Suivre", systemImage: suivi ? "bell.fill" : "bell")
-                    }
-                    .buttonStyle(BoutonTV(principal: !suivi))
-                    if let bio = fiche?.biographie, bio.count > 420 {
-                        Button { bioComplete.toggle() } label: { Text(bioComplete ? "Réduire" : "Lire la biographie") }
-                            .buttonStyle(BoutonTV())
-                    }
-                }
-                .focusSection()
-                if suivi {
-                    Text("Ton iPhone te préviendra de ses prochains films.").font(.system(size: 24)).foregroundStyle(Theme.accentClair)
-                }
-                if let bio = fiche?.biographie, !bio.isEmpty {
-                    Text(bio).font(.system(size: 27)).foregroundStyle(.white.opacity(0.85)).lineSpacing(5)
-                        .lineLimit(bioComplete ? nil : 6)
-                        .frame(maxWidth: 1200, alignment: .leading)
-                }
+    private var affichees: [CreditPersonne] {
+        switch filtre {
+        case .films: return titres(.film)
+        case .series: return titres(.serie)
+        case .regardables:
+            return (titres(.film) + titres(.serie)).filter { credit in
+                etat.ou.badges(credit.reference).contains { if case .tele = $0 { false } else { true } }
             }
         }
-        .padding(.horizontal, MargesTV.bord)
     }
 
-    /// « Acteur · 52 ans · né à Beyrouth · 12 films vus sur 38 ».
+    private var entete: some View {
+        VStack(spacing: 22) {
+            ImageTV(url: ImageTMDB.url(fiche?.cheminPortrait, .afficheGrande), symboleVide: "person.fill")
+                .frame(width: 300, height: 300)
+                .clipShape(Circle())
+            VStack(spacing: 8) {
+                Text(fiche?.nom ?? personne.nom).font(.system(size: 48, weight: .heavy)).multilineTextAlignment(.center).lineLimit(2)
+                Text(faits).font(.system(size: 24)).foregroundStyle(Theme.texte2).multilineTextAlignment(.center)
+            }
+            Button { basculerSuivi() } label: {
+                Label(suivi ? "Suivi" : "Suivre", systemImage: suivi ? "bell.fill" : "bell").frame(maxWidth: .infinity)
+            }
+            .buttonStyle(BoutonTV(principal: !suivi))
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    /// « Acteur · 52 ans · 12 films vus sur 38 ».
     private var faits: String {
         var faits: [String] = []
-        if let domaine = fiche?.domaine { faits.append(domaine == "Directing" ? "Réalisation" : domaine == "Acting" ? "Interprétation" : domaine) }
+        if let domaine = fiche?.domaine { faits.append(domaine == "Directing" ? "Réalisateur" : domaine == "Acting" ? "Acteur" : domaine) }
         if let age = fiche?.age(aujourdhui: DateTMDB(.now)) { faits.append(fiche?.dateDeces == nil ? "\(age) ans" : "mort à \(age) ans") }
-        if let lieu = fiche?.lieuNaissance, !lieu.isEmpty { faits.append(lieu) }
         if filmographie != nil {
             let compte = AnalyseFilmographie.compte(credits, type: .film, vus: vus, aujourdhui: DateTMDB(.now))
             if compte.total > 0 { faits.append("\(compte.vus) film\(compte.vus > 1 ? "s" : "") vu\(compte.vus > 1 ? "s" : "") sur \(compte.total)") }
         }
-        return faits.joined(separator: "  ·  ")
-    }
-
-    @ViewBuilder
-    private func etagere(_ nom: String, _ type: TypeTitre) -> some View {
-        let liste = titres(type)
-        if !liste.isEmpty {
-            EtagereTV(titre: "\(nom) · \(liste.count)", sousTitre: realisateur ? "Réalisés" : "Les plus connus d'abord") {
-                ForEach(liste.prefix(40), id: \.reference) { credit in
-                    NavigationLink(value: credit.reference) {
-                        CarteLargeTV(surtitre: nil, titre: credit.titre,
-                                     detail: [credit.date.map { String($0.annee) }, realisateur ? nil : credit.personnage].compactMap { $0 }.joined(separator: " · "),
-                                     cheminImage: credit.cheminAffiche, marque: vus.contains(credit.reference) ? "checkmark" : nil,
-                                     largeur: CarteLargeTV.largeurGrille, reference: credit.reference)
-                    }
-                    .buttonStyle(.card)
-                }
-            }
-        }
+        return faits.joined(separator: " · ")
     }
 
     private func charger() async {
@@ -135,6 +144,8 @@ struct PersonneTV: View {
             async let roles = client.filmographie(personne: personne.id)
             fiche = try await lue
             filmographie = try await roles
+            // « Regardables ce soir » : où regarder chacun, demandé d'avance pour les plus connus.
+            for credit in (titres(.film) + titres(.serie)).prefix(40) { etat.ou.demander(credit.reference, client: client) }
         } catch {
             erreur = "TMDB ne répond pas. Vérifie la connexion de l'Apple TV."
         }

@@ -6,10 +6,13 @@ import WidgetKit
 
 // Partagé entre le widget et l'app : l'app affiche les mêmes vues dans son aperçu de test.
 
+/// Les couleurs des widgets, celles de `Theme` (charte 8.0) : l'extension ne compile pas le thème de l'app.
 enum CouleursWidget {
     static let accent = Color(red: 1, green: 0x6A / 255, blue: 0x3D / 255)
     static let accentClair = Color(red: 1, green: 0.635, blue: 0.29)
-    static let fond = Color(red: 0.075, green: 0.065, blue: 0.085)
+    static let fond = Color(red: 0.043, green: 0.043, blue: 0.063)
+    /// Les faits et les détails : le gris de `Theme.texte2`. L'orange reste à ce qui se touche.
+    static let texte2 = Color(red: 0.63, green: 0.63, blue: 0.67)
     static let degrade = LinearGradient(colors: [accent, accentClair], startPoint: .topLeading, endPoint: .bottomTrailing)
 }
 

@@ -57,6 +57,43 @@ final class EtatNAS {
     // MARK: Lecture puis « vu »
 
     /// La vidéo vient d'être confiée à l'app de lecture.
+    /// Où l'on s'est arrêté dans chaque vidéo du NAS, films et souvenirs (8.0) : voyage avec les autres appareils,
+    /// Apple TV comprise, par les réglages synchronisés.
+    private(set) var positions = PositionsLecture(donnees: UserDefaults.standard.data(forKey: PositionsLecture.cle))
+
+    /// Le nom de cet appareil, tel que « Tu t'es arrêté à 1:03:12, sur l'iPad » le dira ailleurs.
+    static var nomAppareil: String {
+        #if targetEnvironment(macCatalyst)
+        "Mac"
+        #else
+        UIDevice.current.userInterfaceIdiom == .pad ? "iPad" : "iPhone"
+        #endif
+    }
+
+    func noterPosition(_ chemin: String, secondes: Double, duree: Double) {
+        positions.noter(chemin, secondes: secondes, duree: duree, appareil: Self.nomAppareil)
+        UserDefaults.standard.set(positions.encoder(), forKey: PositionsLecture.cle)
+    }
+
+    /// « Depuis le début » : la position s'efface, pour tous les appareils.
+    func oublierPosition(_ chemin: String) {
+        positions.oublier(chemin)
+        UserDefaults.standard.set(positions.encoder(), forKey: PositionsLecture.cle)
+    }
+
+    /// Les positions d'un autre appareil, les plus récentes l'emportant ; vrai si quelque chose a changé.
+    @discardableResult
+    func recevoirPositions(_ donnees: Data) -> Bool {
+        guard positions.fusionner(PositionsLecture(donnees: donnees)) else { return false }
+        UserDefaults.standard.set(positions.encoder(), forKey: PositionsLecture.cle)
+        return true
+    }
+
+    /// Relit les positions : au lancement, après la démonstration qui les pose.
+    func relirePositions() {
+        positions = PositionsLecture(donnees: UserDefaults.standard.data(forKey: PositionsLecture.cle))
+    }
+
     func noterLecture(_ fichier: FichierNAS) {
         guard let reference = fichier.reference else { return }
         let episode = fichier.saison.flatMap { saison in fichier.episode.map { NumeroEpisode(saison: saison, episode: $0) } }

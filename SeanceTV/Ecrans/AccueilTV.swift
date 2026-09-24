@@ -34,34 +34,42 @@ struct AccueilTV: View {
                     .frame(maxWidth: .infinity)
                 }
                 if let vedette { enTete(vedette) } else { Color.clear.frame(height: 40) }
-                if !ceSoir.isEmpty {
-                    EtagereTV(titre: "Ce soir", sousTitre: "Ce que tu as prévu de regarder") {
-                        ForEach(ceSoir, id: \.reference) { selection in
-                            NavigationLink(value: selection.reference) {
-                                CarteLargeTV(surtitre: surLeNAS(selection.reference) ? "Sur ton NAS" : nil, titre: selection.titre,
-                                             detail: nil, cheminImage: selection.cheminAffiche,
-                                             marque: surLeNAS(selection.reference) ? "externaldrive.fill" : nil,
-                                             largeur: CarteLargeTV.largeurGrille, reference: selection.reference)
+                // 8.0 : « Reprendre » d'abord — les vidéos du NAS entamées ici ou sur un autre appareil. La soirée, elle,
+                // est dans Regarder.
+                if !aReprendre.isEmpty {
+                    EtagereTV(titre: "Reprendre", sousTitre: "Là où tu t'es arrêté, ici ou sur un autre appareil") {
+                        ForEach(aReprendre, id: \.fichier.chemin) { reprise in
+                            NavigationLink(value: reprise.reference) {
+                                CarteLargeTV(surtitre: reprise.position.appareil.map { "Sur ton NAS · \($0)" } ?? "Sur ton NAS",
+                                             titre: reprise.fichier.titre,
+                                             detail: reprise.position.reste.map { PositionsLecture.reste($0) },
+                                             cheminImage: reprise.fichier.cheminFond ?? reprise.fichier.cheminAffiche,
+                                             largeur: CarteLargeTV.largeurGrille, progression: reprise.position.fraction)
                             }
                             .buttonStyle(.card)
+                            .menuCarteTV(reprise.reference, titre: reprise.fichier.titre, cheminAffiche: reprise.fichier.cheminAffiche,
+                                         reprise: reprise.fichier.chemin)
                         }
                     }
                 }
                 if !nouveautesNAS.isEmpty {
-                    EtagereTV(titre: "Nouveaux sur ton NAS", sousTitre: "Prêts à regarder, du plus récent au plus ancien") {
+                    EtagereTV(titre: "Nouveaux sur ton NAS", sousTitre: "Prêts à regarder, du plus récent au plus ancien",
+                              toutVoir: { etat.demandeRegarder = .nas }) {
                         ForEach(nouveautesNAS, id: \.reference) { oeuvre in
                             NavigationLink(value: oeuvre.reference) {
-                                CarteLargeTV(surtitre: oeuvre.qualite, titre: oeuvre.titre, detail: oeuvre.detail,
+                                CarteLargeTV(surtitre: oeuvre.origine, titre: oeuvre.titre, detail: oeuvre.detail,
                                              cheminImage: oeuvre.cheminFond ?? oeuvre.cheminAffiche, marque: marque(oeuvre.reference),
                                              largeur: CarteLargeTV.largeurGrille, reference: oeuvre.reference)
                             }
                             .buttonStyle(.card)
+                            .menuCarteTV(oeuvre.reference, titre: oeuvre.titre, cheminAffiche: oeuvre.cheminAffiche)
                         }
                     }
                 }
                 // En ce moment (6.6) : ce qui passe maintenant sur tes chaînes, et le clic lance blue TV sur la chaîne.
                 if !enDirect.isEmpty {
-                    EtagereTV(titre: "En ce moment sur tes chaînes", sousTitre: "Un clic et blue TV s'ouvre sur la chaîne, en direct") {
+                    EtagereTV(titre: "En ce moment sur tes chaînes", sousTitre: "Un clic et blue TV s'ouvre sur la chaîne, en direct",
+                              toutVoir: { etat.demandeRegarder = .tele }, largeurCartes: CarteLargeTV.largeur) {
                         ForEach(enDirect) { bloc in
                             let chaine = nomChaine(bloc.premiere.chaine)
                             Button { BlueTVSurTV.ouvrir(bloc.premiere.chaine, nom: chaine, etat: etat, ouvrir: ouvrir) } label: {
@@ -76,13 +84,15 @@ struct AccueilTV: View {
                     }
                 }
                 if !teleCeSoir.isEmpty {
-                    EtagereTV(titre: "Ce soir à la TV", sousTitre: "Films et séries de tes chaînes, à venir") {
+                    EtagereTV(titre: "Ce soir à la TV", sousTitre: "Films et séries de tes chaînes, à venir",
+                              toutVoir: { etat.demandeRegarder = .tele }, largeurCartes: CarteLargeTV.largeur) {
                         ForEach(teleCeSoir) { bloc in
                             let carte = CarteLargeTV(surtitre: bloc.debut <= .now ? "EN DIRECT" : bloc.debut.formatted(.dateTime.hour().minute().locale(Locale(identifier: "fr_CH"))),
                                                      titre: bloc.premiere.titreGuide, detail: nomChaine(bloc.premiere.chaine),
                                                      cheminImage: bloc.premiere.cheminFond ?? bloc.premiere.cheminAffiche)
                             if let reference = bloc.reference {
                                 NavigationLink(value: reference) { carte }.buttonStyle(.card)
+                                    .menuCarteTV(reference, titre: bloc.premiere.titreGuide, cheminAffiche: bloc.premiere.cheminAffiche)
                             } else {
                                 Button {} label: { carte }.buttonStyle(.card)
                             }
@@ -99,6 +109,7 @@ struct AccueilTV: View {
                                              largeur: CarteLargeTV.largeurGrille, reference: suivi.reference)
                             }
                             .buttonStyle(.card)
+                            .menuCarteTV(suivi.reference, titre: suivi.titre, cheminAffiche: suivi.cheminAffiche)
                         }
                     }
                 }
@@ -123,6 +134,7 @@ struct AccueilTV: View {
                                      largeur: CarteLargeTV.largeurGrille, reference: apercu.reference)
                     }
                     .buttonStyle(.card)
+                    .menuCarteTV(apercu.reference, titre: apercu.titre, cheminAffiche: apercu.cheminAffiche)
                 }
             }
         }
@@ -130,38 +142,42 @@ struct AccueilTV: View {
 
     /// La grande image de tête : ta soirée si tu en as prévu une, sinon le titre du moment.
     private func enTete(_ vedette: Vedette) -> some View {
+        // Maquette 8.0, n° 2 : l'image couvre tout l'écran, bord à bord, sous le menu ; la première rangée (« Reprendre »)
+        // vient mordre sur son bas.
         ZStack(alignment: .bottomLeading) {
-            ImageTV(url: ImageTMDB.url(vedette.cheminImage, vedette.large ? .fondGrand : .afficheGrande), symboleVide: "")
+            Color.clear
                 .frame(maxWidth: .infinity)
-                .frame(height: 760)
-                .overlay {
-                    // Deux dégradés : du bas vers le titre, et de la gauche vers le texte.
-                    ZStack {
-                        LinearGradient(stops: [.init(color: .clear, location: 0), .init(color: .black.opacity(0.45), location: 0.55),
-                                               .init(color: Theme.fond, location: 1)], startPoint: .top, endPoint: .bottom)
-                        LinearGradient(colors: [.black.opacity(0.75), .clear], startPoint: .leading, endPoint: .center)
-                    }
+                .frame(height: 700)
+                .background(alignment: .top) {
+                    ImageTV(url: ImageTMDB.url(vedette.cheminImage, vedette.large ? .fondGrand : .afficheGrande), symboleVide: "")
+                        .frame(height: 1080)
+                        .overlay {
+                            // Deux dégradés : du bas vers le titre, et de la gauche vers le texte.
+                            ZStack {
+                                LinearGradient(stops: [.init(color: .clear, location: 0), .init(color: .black.opacity(0.35), location: 0.55),
+                                                       .init(color: Theme.fond.opacity(0.9), location: 1)], startPoint: .top, endPoint: .bottom)
+                                LinearGradient(colors: [.black.opacity(0.75), .clear], startPoint: .leading, endPoint: .center)
+                            }
+                        }
+                        .ignoresSafeArea()
                 }
-            VStack(alignment: .leading, spacing: 14) {
-                Text(vedette.surtitre).font(.system(size: 26, weight: .heavy)).foregroundStyle(Theme.accentClair)
+            VStack(alignment: .leading, spacing: 12) {
+                Text(vedette.surtitre).font(.system(size: 26, weight: .bold)).foregroundStyle(.white.opacity(0.78))
                 Text(vedette.titre).font(.system(size: 76, weight: .heavy)).lineLimit(2)
-                HStack(spacing: 20) {
-                    NavigationLink(value: vedette.reference) { Label("Voir la fiche", systemImage: "play.fill") }
-                        .buttonStyle(BoutonTV(principal: true))
-                    if vedette.surLeNAS {
-                        Label("Sur ton NAS", systemImage: "externaldrive.fill")
-                            .font(.system(size: 26, weight: .semibold))
-                            .foregroundStyle(Theme.accentClair)
-                            .padding(.horizontal, 24).frame(height: 76)
-                            .background(Color.white.opacity(0.12), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
-                    }
+                if let detail = vedette.detail {
+                    Text(detail).font(.system(size: 26)).foregroundStyle(.white.opacity(0.75))
                 }
-                .padding(.top, 8)
+                HStack(spacing: 20) {
+                    NavigationLink(value: LectureTVDemande(reference: vedette.reference)) { Label("Regarder", systemImage: "play.fill") }
+                    NavigationLink(value: vedette.reference) { Label("Voir la fiche", systemImage: "info.circle") }
+                }
+                .buttonStyle(BoutonTV())
+                .padding(.top, 10)
             }
             .foregroundStyle(.white)
             .frame(maxWidth: 1100, alignment: .leading)
             .padding(.horizontal, MargesTV.bord)
-            .padding(.bottom, 50)
+            .padding(.bottom, 40)
         }
         .focusSection()
     }
@@ -179,12 +195,12 @@ struct AccueilTV: View {
     private var vedette: Vedette? {
         if let prevu = ceSoir.first {
             let fond = fichiers.first { $0.reference == prevu.reference }?.cheminFond ?? fonds[prevu.reference]
-            return Vedette(reference: prevu.reference, surtitre: ceSoir.count > 1 ? "CE SOIR · \(ceSoir.count) TITRES PRÉVUS" : "CE SOIR",
-                           titre: prevu.titre, detail: nil, cheminImage: fond ?? prevu.cheminAffiche, large: fond != nil,
+            return Vedette(reference: prevu.reference, surtitre: ceSoir.count > 1 ? "Ce soir · \(ceSoir.count) titres prévus" : "Ce soir",
+                           titre: prevu.titre, detail: prevu.reference.type == .film ? "Film" : "Série", cheminImage: fond ?? prevu.cheminAffiche, large: fond != nil,
                            surLeNAS: surLeNAS(prevu.reference))
         }
         guard let premier = duMoment.first else { return nil }
-        return Vedette(reference: premier.reference, surtitre: "NOUVEAUTÉS", titre: premier.titre, detail: premier.sousTitre,
+        return Vedette(reference: premier.reference, surtitre: "Nouveauté", titre: premier.titre, detail: premier.sousTitre,
                        cheminImage: premier.cheminFond ?? premier.cheminAffiche, large: premier.cheminFond != nil)
     }
 
@@ -216,6 +232,14 @@ struct AccueilTV: View {
     }
 
     // MARK: Données
+
+    /// Les vidéos du NAS entamées, la plus récente d'abord, avec leur fichier.
+    private var aReprendre: [(fichier: FichierNAS, reference: ReferenceTitre, position: PositionLecture)] {
+        etat.positions.enCours.prefix(12).compactMap { entree in
+            guard let fichier = fichiers.first(where: { $0.chemin == entree.chemin }), let reference = fichier.reference else { return nil }
+            return (fichier, reference, entree.position)
+        }
+    }
 
     private var ceSoir: [SelectionSoir] {
         let soiree = ServiceSoiree.soiree()
@@ -294,9 +318,12 @@ struct OeuvreTV: Hashable {
     let qualite: String?
     let indexeLe: Date
 
+    /// Charte 8.0 : la ligne d'origine dit où et en quelle qualité, la ligne de faits dit quoi — sans redite.
+    var origine: String { ["Sur ton NAS", qualite].compactMap { $0 }.joined(separator: " · ") }
+
     var detail: String {
-        if reference.type == .serie { return fichiers > 1 ? "\(fichiers) épisodes" : "1 épisode" }
-        return qualite ?? "Film"
+        if reference.type == .serie { return fichiers > 1 ? "Série · \(fichiers) épisodes" : "Série · 1 épisode" }
+        return "Film"
     }
 
     /// Du plus récemment arrivé au plus ancien ; les fichiers non reconnus par TMDB n'ont pas de fiche et sont laissés.

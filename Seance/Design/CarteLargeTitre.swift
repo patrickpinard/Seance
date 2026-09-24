@@ -2,10 +2,10 @@ import SeanceDonnees
 import SeanceKit
 import SwiftUI
 
-/// La grande carte 16/9 d'un titre, dans le format des cartes de « Ce soir à la TV » : l'image en plein cadre, où le
-/// regarder en haut à gauche (NAS, plateformes, chaîne), et dessous une ligne orange — ce qui compte (« N° 1 », « Sur ton
-/// NAS · 4K », « Sur Netflix ») —, le titre, puis le type, l'année, la durée, la note. Patrick l'a choisie le 20 septembre
-/// 2026 comme format unique des étagères : très visible, et de la place pour dire quelque chose.
+/// La grande carte 16/9 d'un titre, la même partout (charte 8.0) : l'image en plein cadre, et dessous une ligne d'origine
+/// — où le regarder et ce qui compte (« Sur ton NAS · 4K », « Netflix », « RTS 1, ce soir à 21:10 ») —, le titre, puis
+/// une ligne de faits (type, année, durée, note), et le ▶︎ blanc quand le titre se lance d'ici. Ni badge, ni étoile, ni
+/// rangée de logos : ils sont sur la fiche.
 struct CarteLargeTitre: View {
     let reference: ReferenceTitre?
     let titre: String
@@ -29,8 +29,10 @@ struct CarteLargeTitre: View {
     var vignette: Image?
     /// À la place de « FILM » ou « SÉRIE » : « ALBUM », « VIDÉO ».
     var etiquette: String?
-    /// Un ▶︎ orange en haut à gauche : toute la carte lance la vidéo.
+    /// Un ▶︎ en haut à gauche : toute la carte lance la vidéo.
     var lectureEnCoin = false
+    /// La part déjà vue (8.0, « Reprendre ») : une fine barre blanche en bas de la carte.
+    var progression: Double?
 
     @Environment(EtatApp.self) private var etat
 
@@ -86,25 +88,20 @@ struct CarteLargeTitre: View {
             }
             .overlay(alignment: .topLeading) {
                 if lectureEnCoin {
-                    RondIcone(symbole: "play.fill", principal: true, taille: 34).padding(10).accessibilityHidden(true)
-                } else if let reference {
-                    BadgeOu(reference: reference).padding(12)
-                }
-            }
-            .overlay(alignment: .topTrailing) {
-                if let symboleCoin, rang == nil {
-                    Image(systemName: symboleCoin)
-                        .font(.caption.weight(.bold))
-                        .foregroundStyle(Theme.accentClair)
-                        .padding(7)
-                        .background(.black.opacity(0.6), in: Circle())
+                    Image(systemName: "play.fill")
+                        .font(.footnote.weight(.bold))
+                        .foregroundStyle(.black)
+                        .frame(width: 32, height: 32)
+                        .background(.white.opacity(0.94), in: Circle())
                         .padding(10)
                         .accessibilityHidden(true)
                 }
+            }
+            .overlay(alignment: .topTrailing) {
                 if let rang {
                     Text("\(rang)")
-                        .font(.system(size: 44, weight: .black, design: .rounded))
-                        .foregroundStyle(Theme.degradeAccent)
+                        .font(.largeTitle.weight(.black))
+                        .foregroundStyle(Theme.texte)
                         .shadow(color: .black.opacity(0.7), radius: 4)
                         .padding(.horizontal, 14).padding(.top, 4)
                         .accessibilityHidden(true)
@@ -114,22 +111,34 @@ struct CarteLargeTitre: View {
                 VStack(alignment: .leading, spacing: 4) {
                     if let ligneOrange {
                         Text(ligneOrange)
-                            .font(.caption.weight(.heavy))
-                            .foregroundStyle(Theme.accentClair)
-                            .lineLimit(1)
-                    }
-                    Text(titre).font(.headline).lineLimit(2).multilineTextAlignment(.leading)
-                    HStack(spacing: 7) {
-                        PastilleType(film: film, texte: etiquette)
-                        Text((faits + [duree].compactMap { $0 }).joined(separator: " · "))
-                            .font(.caption)
+                            .font(.caption.weight(.bold))
                             .foregroundStyle(.white.opacity(0.78))
                             .lineLimit(1)
                     }
+                    Text(titre).font(.headline).lineLimit(2).multilineTextAlignment(.leading)
+                    Text(([etiquette?.capitalized ?? (film ? "Film" : "Série")] + faits + [duree].compactMap { $0 }).joined(separator: " · "))
+                        .font(.caption)
+                        .foregroundStyle(.white.opacity(0.66))
+                        .lineLimit(1)
                 }
                 .padding(12)
+                .padding(.bottom, progression == nil ? 0 : 6)
                 // Le texte laisse la place au ▶︎ en bas à droite.
                 .padding(.trailing, avecLecture ? 50 : 0)
+            }
+            .overlay(alignment: .bottom) {
+                if let progression {
+                    GeometryReader { cadre in
+                        ZStack(alignment: .leading) {
+                            Capsule().fill(.white.opacity(0.25))
+                            Capsule().fill(.white).frame(width: cadre.size.width * progression)
+                        }
+                    }
+                    .frame(height: 4)
+                    .padding(.horizontal, 12)
+                    .padding(.bottom, 8)
+                    .accessibilityHidden(true)
+                }
             }
             .foregroundStyle(.white)
             .surImage()
@@ -162,7 +171,8 @@ struct FondSouvenir: View {
     var body: some View {
         GeometryReader { cadre in
             ZStack {
-                Color(red: 0.08, green: 0.08, blue: 0.1)
+                Theme.eleve
+                // Maquette 8.0, n° 11 : le halo et l'icône orange des souvenirs restent, leur signe distinctif.
                 RadialGradient(colors: [Theme.accentClair.opacity(0.36), Theme.accent.opacity(0.10), .clear],
                                center: UnitPoint(x: 0.78, y: 0.42), startRadius: 0, endRadius: cadre.size.width * 0.55)
                 Image(systemName: symbole)

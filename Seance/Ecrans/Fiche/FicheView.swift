@@ -342,7 +342,7 @@ private struct ContenuFiche: View {
         return ProgressionSerie.suivant(vus: vus, saisons: serie.saisons, dernierDiffuse: serie.dernierEpisode)?.numero
     }
 
-    /// 👍 👎 : dire si le titre te plaît sans l'avoir vu ; la note de 1 à 10 vient après l'avoir regardé.
+    /// « Ton avis » : dire si le titre te plaît sans l'avoir vu ; la note de 1 à 10 vient après l'avoir regardé.
     private var pouces: some View {
         PoucesTitre(reference: fiche.reference, titre: fiche.titre, cheminAffiche: fiche.cheminAffiche,
                     genres: fiche.film?.genres.map(\.id) ?? fiche.serie?.genres.map(\.id) ?? [],
@@ -366,86 +366,36 @@ private struct ContenuFiche: View {
         }
     }
 
-    /// Actions en icônes : « + » ajoute à « À voir », « − » retire ; l'œil marque vu, aujourd'hui ou avant ; ▶︎ la bande-annonce.
+    /// Charte 8.0 : sous l'action principale (regarder, dans « Où regarder »), deux gestes fréquents — Ma liste et Ce
+    /// soir — puis « ⋯ » pour le reste. Les mêmes mots et le même ordre sur l'iPhone, l'iPad, le Mac et l'Apple TV.
     private var actions: some View {
         // Un titre supprimé des terminés n'est plus dans Mes listes, même s'il reste vu et noté.
         let dansMesListes = suivi.map { !$0.masque } ?? false
-        let masque = suivi?.masque == true
-        // Cinq boutons de 60 points, quatre espaces de 8 et les marges : 372 points, sous les 393 du plus étroit des iPhone visés.
-        return HStack(alignment: .top, spacing: 8) {
-            legende(dansMesListes ? "Retirer" : masque ? "Remettre" : "À voir") {
-                BoutonIcone(
-                    symbole: dansMesListes ? "minus" : "plus",
-                    libelle: dansMesListes ? "Retirer de mes listes" : masque ? "Remettre dans Terminés" : "Ajouter à voir",
-                    principal: !dansMesListes,
-                    actif: dansMesListes,
-                    explication: dansMesListes
-                        ? "Retirer ce titre de Mes listes, avec ses alertes."
-                        : masque
-                        ? "Remettre ce titre dans la liste « Terminés »."
-                        : "Ajouter à « À voir » dans Mes listes. La cloche 🔔 s'active pour te prévenir des sorties et des nouveaux épisodes."
-                ) {
-                    basculerAVoir()
-                }
+        return HStack(spacing: 10) {
+            Button { basculerAVoir() } label: {
+                Label(dansMesListes ? "Dans ma liste" : "Ma liste", systemImage: dansMesListes ? "checkmark" : "plus")
+                    .frame(maxWidth: .infinity)
             }
-
-            // 🌙 La soirée est le geste central de Séance : il a sa place dans la rangée, plus derrière « Plus ».
-            legende(dansSoiree ? "Ce soir ✓" : "Ce soir") {
-                BoutonIcone(symbole: dansSoiree ? "moon.fill" : "moon.stars", libelle: dansSoiree ? "Retirer de ma soirée" : "Ajouter à ma soirée",
-                            actif: dansSoiree,
-                            explication: dansSoiree ? "Ce titre est dans ta soirée de ce soir. Touche pour l'en retirer."
-                                                    : "Ajouter ce titre à ta soirée de ce soir. « Plus » permet de choisir un autre soir.") {
-                    basculerSoiree()
-                }
+            .buttonStyle(StyleBoutonSecondaire(pleineLargeur: true))
+            .accessibilityHint(dansMesListes ? "Retire ce titre de Mes listes, avec ses alertes" : "Ajoute ce titre à « À voir »")
+            Button { basculerSoiree() } label: {
+                Label("Ce soir", systemImage: dansSoiree ? "moon.stars.fill" : "moon.stars")
+                    .frame(maxWidth: .infinity)
             }
-
-            if let film = fiche.film {
-                legende(vu ? "Terminé ✓" : "Terminé") {
-                    if vu {
-                        boutonDejaVu(film)
-                    } else {
-                        boutonMarquerVu(film)
-                    }
-                }
-            }
-
-            // 6.1 : une série finie chez TMDB se range dans Terminés d'un geste ; tant qu'elle continue, pas de bouton.
-            if let serie = fiche.serie, ProgressionSerie.estFinie(serie) {
-                let terminee = suivi?.statut == .termine && suivi?.masque == false
-                legende(terminee ? "Terminé ✓" : "Terminé") {
-                    BoutonIcone(symbole: "checkmark", libelle: terminee ? "Série terminée" : "Série terminée ?", actif: terminee,
-                                explication: terminee ? "Cette série est dans tes Terminés : décoche un épisode pour la remettre en cours."
-                                                      : "Ranger la série dans Terminés : les épisodes pas encore cochés le seront.") {
-                        if !terminee { confirmationSerieTerminee = true }
-                    }
-                }
-                .confirmationDialog("Ranger « \(serie.nom) » dans Terminés ?", isPresented: $confirmationSerieTerminee, titleVisibility: .visible) {
-                    Button("Terminé") { terminerSerie(serie) }
-                } message: {
-                    Text("Les épisodes pas encore cochés le seront, à la date d'aujourd'hui.")
-                }
-            }
-
-            legende(suivi?.alertesActives == true ? "Alertes" : "Me prévenir") {
-                boutonAlertes
-            }
-
-            // Six boutons ne tiennent pas sur un iPhone (ils élargissaient la fiche, rognée à gauche) : la bande-annonce
-            // n'entre dans la rangée que sur l'iPad et le Mac ; sa section reste plus bas dans la fiche.
-            if largeur == .regular, let video = fiche.videos.first {
-                legende("Bande-annonce") {
-                    BoutonIcone(symbole: "play.rectangle.fill", libelle: "Bande-annonce",
-                                explication: "Voir la bande-annonce, lue en streaming : rien n'est enregistré sur l'appareil.") {
-                        videoChoisie = video
-                    }
-                }
-            }
-            Spacer(minLength: 0)
-            legende("Plus") {
-                menuAutres
-            }
+            .buttonStyle(StyleBoutonSecondaire(pleineLargeur: true))
+            .accessibilityLabel(dansSoiree ? "Ce soir, choisi" : "Ce soir")
+            .accessibilityHint(dansSoiree ? "Retire ce titre de ta soirée" : "Ajoute ce titre à ta soirée de ce soir")
+            menuAutres
         }
+        .sensoryFeedback(.success, trigger: dansMesListes)
+        .sensoryFeedback(.success, trigger: dansSoiree)
         .padding(.horizontal, 20)
+        .frame(maxWidth: 720, alignment: .leading)
+        .confirmationDialog("Ranger « \(fiche.titre) » dans Terminés ?", isPresented: $confirmationSerieTerminee, titleVisibility: .visible) {
+            if let serie = fiche.serie { Button("Terminé") { terminerSerie(serie) } }
+        } message: {
+            Text("Les épisodes pas encore cochés le seront, à la date d'aujourd'hui.")
+        }
     }
 
     /// ✓ Terminé (6.1) : un toucher, et le film rejoint Terminés, daté d'aujourd'hui — il compte dans tes statistiques.
@@ -519,14 +469,51 @@ private struct ContenuFiche: View {
     /// « … » : partager, voir sur TMDB, écarter faute de version française (EF-29).
     private var menuAutres: some View {
         let adresse = URL(string: "https://www.themoviedb.org/\(fiche.reference.type == .film ? "movie" : "tv")/\(fiche.reference.tmdbID)")!
+        let actives = suivi?.alertesActives == true
         return Menu {
+            if let film = fiche.film {
+                if vu {
+                    Button(role: .destructive) {
+                        try? ServiceSuivi(contexte: contexte).marquerNonVu(film: film.reference)
+                        rafraichir()
+                        etat.confirmer("Marqué comme non vu", symbole: "eye.slash")
+                    } label: { Label("Pas encore vu", systemImage: "eye.slash") }
+                } else {
+                    Button { marquerVu(film, anterieur: false) } label: { Label("Terminé", systemImage: "checkmark") }
+                    Button { marquerVu(film, anterieur: true) } label: { Label("Déjà vu avant", systemImage: "clock.arrow.circlepath") }
+                }
+            }
+            if let serie = fiche.serie, ProgressionSerie.estFinie(serie), !(suivi?.statut == .termine && suivi?.masque == false) {
+                Button { confirmationSerieTerminee = true } label: { Label("Terminé", systemImage: "checkmark") }
+            }
+            if fiche.serie != nil {
+                Menu {
+                    Button { reglerAlertes(.episodes) } label: {
+                        Label("À chaque épisode", systemImage: actives && suivi?.modeAlertes == .episodes ? "checkmark" : "bell.badge")
+                    }
+                    Button { reglerAlertes(.saisons) } label: {
+                        Label("Aux nouvelles saisons seulement", systemImage: actives && suivi?.modeAlertes == .saisons ? "checkmark" : "bell")
+                    }
+                    if actives {
+                        Button(role: .destructive) { reglerAlertes(nil) } label: { Label("Ne plus me prévenir", systemImage: "bell.slash") }
+                    }
+                } label: { Label(actives ? "Alertes" : "Me prévenir", systemImage: actives ? "bell.fill" : "bell") }
+            } else {
+                Button { reglerAlertes(actives ? nil : .episodes) } label: {
+                    Label(actives ? "Ne plus me prévenir" : "Me prévenir de la sortie", systemImage: actives ? "bell.slash" : "bell")
+                }
+            }
+            if let video = fiche.videos.first {
+                Button { videoChoisie = video } label: { Label("Bande-annonce", systemImage: "play.rectangle") }
+            }
+            Divider()
             Button { basculerFavori() } label: {
                 Label(estFavori ? "Retirer de mes favoris" : "Ajouter à mes favoris", systemImage: estFavori ? "star.fill" : "star")
             }
             Button {
                 etat.titreADater = TitreChoisi(reference: fiche.reference, titre: fiche.titre, cheminAffiche: fiche.cheminAffiche)
             } label: {
-                Label("Prévoir pour une soirée…", systemImage: "calendar")
+                Label("Un autre soir…", systemImage: "calendar.badge.clock")
             }
             Button {
                 etat.titrePourListe = TitreChoisi(reference: fiche.reference, titre: fiche.titre, cheminAffiche: fiche.cheminAffiche)
@@ -549,9 +536,13 @@ private struct ContenuFiche: View {
                 }
             }
         } label: {
-            RondIcone(symbole: "ellipsis", taille: 40)
+            Image(systemName: "ellipsis")
+                .font(.body.weight(.semibold))
+                .foregroundStyle(Theme.texte)
+                .frame(width: 44, height: 44)
+                .background(Theme.eleve, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
         }
-        .help("Prévoir une soirée, listes, partager, voir sur TMDB, écarter faute de version française")
+        .help("Terminé, alertes, bande-annonce, favoris, un autre soir, listes, partager")
         .accessibilityLabel("Plus d'actions")
     }
 
@@ -764,7 +755,7 @@ private struct BlocOuRegarder: View {
             Text("Où regarder").font(.title3.weight(.bold))
             VStack(alignment: .leading, spacing: 10) {
                 HStack(spacing: 12) {
-                    Image(systemName: icone).font(.title3).foregroundStyle(Theme.accent).frame(width: 28)
+                    Image(systemName: icone).font(.title3).foregroundStyle(Theme.texte).frame(width: 28)
                     VStack(alignment: .leading, spacing: 2) {
                         Text(titre).font(.subheadline.weight(.semibold))
                         if let detail { Text(detail).font(.caption).foregroundStyle(.secondary) }
@@ -795,7 +786,7 @@ private struct BlocOuRegarder: View {
                 if !prochainsPassages.isEmpty {
                     VStack(alignment: .leading, spacing: 4) {
                         Label("À la TV · en direct, à heure fixe", systemImage: "tv")
-                            .font(.caption.weight(.bold)).foregroundStyle(Theme.accentClair)
+                            .font(.caption.weight(.bold)).foregroundStyle(Theme.texte2)
                         ForEach(prochainsPassages, id: \.self) { Text($0).font(.subheadline) }
                         Text("Sur tes chaînes (blue TV, antenne…) ; pas de replay.").font(.caption2).foregroundStyle(.secondary)
                     }
@@ -807,7 +798,7 @@ private struct BlocOuRegarder: View {
                         Label(diffusion == nil ? "Tu seras prévenu de sa sortie" : "Tu seras prévenu des épisodes et de l'arrivée sur tes plateformes",
                               systemImage: "bell.fill")
                             .font(.caption.weight(.semibold))
-                            .foregroundStyle(Theme.accentClair)
+                            .foregroundStyle(Theme.texte2)
                     } else {
                         Button(action: prevenir) {
                             Label(diffusion == nil ? "Me prévenir de sa sortie" : "Me prévenir des épisodes et de l'arrivée sur tes plateformes",

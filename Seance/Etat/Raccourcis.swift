@@ -28,7 +28,7 @@ struct QuoiRegarderIntent: AppIntent {
 /// Ajoute un film ou une série à « Ma soirée ».
 struct AjouterASoireeIntent: AppIntent {
     static let title: LocalizedStringResource = "Ajouter à ma soirée"
-    static let description = IntentDescription("Garde un film ou une série pour ce soir, en haut de l'onglet Ce soir.")
+    static let description = IntentDescription("Garde un film ou une série pour ce soir, dans Regarder, sur le jour d'aujourd'hui.")
 
     @Parameter(title: "Film ou série", requestValueDialog: "Quel film ou quelle série ?")
     var titre: TitreEntite

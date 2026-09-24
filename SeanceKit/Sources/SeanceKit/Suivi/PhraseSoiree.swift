@@ -35,7 +35,7 @@ public enum PhraseSoiree {
         if !aVoir.isEmpty {
             return "Rien de prévu ce soir. Dans ta liste à voir : \(enumerer(Array(aVoir.prefix(3)), separateur: ", "))."
         }
-        return "Rien de prévu ce soir. Ouvre Séance : l'onglet Ce soir te propose des idées selon tes goûts."
+        return "Rien de prévu ce soir. Ouvre Séance : Regarder te propose des suggestions selon tes goûts."
     }
 
     /// « saison 2, épisode 6 »

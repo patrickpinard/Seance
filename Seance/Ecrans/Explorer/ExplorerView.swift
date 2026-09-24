@@ -74,7 +74,7 @@ struct ExplorerView: View {
                 }
             }
             .background(Theme.fond)
-            .navigationTitle("Explorer")
+            .navigationTitle("Recherche")
             .boutonBarreLaterale()
             .searchable(text: $texte, prompt: "Films, séries, acteurs")
             .searchFocused($rechercheActive)
@@ -234,7 +234,7 @@ struct ExplorerView: View {
                     .buttonStyle(.plain)
                     .simultaneousGesture(TapGesture().onEnded { memoriser(texte) })
                     .contextMenu {
-                        Button("Filtrer Explorer sur \(personne.nom)", systemImage: "line.3.horizontal.decrease") { filtrerPar(personne) }
+                        Button("Filtrer la recherche sur \(personne.nom)", systemImage: "line.3.horizontal.decrease") { filtrerPar(personne) }
                     }
                     .accessibilityHint("Ouvre sa fiche : filmographie, vus et pas vus")
                 }
@@ -252,7 +252,7 @@ struct ExplorerView: View {
                 }
                 .font(.subheadline.weight(.semibold))
                 .tint(Theme.accent)
-                .help("Tous ses titres dans Explorer, à filtrer par genre, période ou plateforme")
+                .help("Tous ses titres dans la recherche, à filtrer par genre, période ou plateforme")
             }
             DefilementHorizontal {
                 LazyHStack(alignment: .top, spacing: 12) {
@@ -306,8 +306,8 @@ struct ExplorerView: View {
                             .foregroundStyle(Theme.accent)
                     }
                     .buttonStyle(.plain)
-                    .accessibilityLabel("Filtrer Explorer sur \(personne.nom)")
-                    .help("Filtrer Explorer sur \(personne.nom)")
+                    .accessibilityLabel("Filtrer la recherche sur \(personne.nom)")
+                    .help("Filtrer la recherche sur \(personne.nom)")
                 }
                 .padding(10)
                 .background(Theme.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
@@ -403,10 +403,10 @@ struct ExplorerView: View {
     private var decouverte: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
-                SelecteurCases(selection: Binding { modele.filtres.type } set: { changerType($0) },
-                               cases: [.init(valeur: TypeTitre.film, nom: "Films"), .init(valeur: TypeTitre.serie, nom: "Séries")])
-                    .frame(maxWidth: 560)
-                    .padding(.horizontal, 20)
+                // Charte 8.0 : Films · Séries · Documentaires en pastilles ; les documentaires sont des films du genre 99.
+                SelecteurPuces(selection: Binding { categorie } set: { choisir($0) },
+                               choix: [.init(valeur: "films", nom: "Films"), .init(valeur: "series", nom: "Séries"),
+                                       .init(valeur: "documentaires", nom: "Documentaires")])
 
                 selecteurSource
 
@@ -450,15 +450,6 @@ struct ExplorerView: View {
             ])
             .frame(maxWidth: 560)
             .padding(.horizontal, 20)
-            // Deux façons de regarder qui ne se ressemblent pas : quand on veut, ou à une date et une heure fixes.
-            if let explication = Self.explicationSource(modele.filtres.source) {
-                Text(explication)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .padding(.horizontal, 20)
-                    .transition(.opacity)
-            }
             if modele.filtres.source == .tele {
                 HStack(spacing: 8) {
                     puceTele(.ceSoir, "Ce soir")
@@ -485,13 +476,7 @@ struct ExplorerView: View {
         return Button {
             withAnimation(.snappy) { modele.filtres.locaux.tele = quand }
         } label: {
-            Text(nom)
-                .font(.caption.weight(.bold))
-                .padding(.horizontal, 12)
-                .frame(height: 30)
-                .foregroundStyle(active ? Theme.accentClair : Color.secondary)
-                .background(active ? AnyShapeStyle(Theme.accent.opacity(0.18)) : AnyShapeStyle(Theme.surface), in: Capsule())
-                .contentShape(Capsule())
+            PuceCharte(texte: nom, actif: active)
         }
         .buttonStyle(.plain)
         .accessibilityAddTraits(active ? .isSelected : [])
@@ -504,11 +489,12 @@ struct ExplorerView: View {
                     let nombre = modele.filtres.criteresActifs.filter { !modele.filtres.ditParLaSource($0) }.count
                     Label(nombre == 0 ? "Filtres" : "Filtres · \(nombre)",
                           systemImage: "line.3.horizontal.decrease")
-                        .font(.subheadline.weight(.bold))
+                        .font(.subheadline.weight(.semibold))
                         .padding(.horizontal, 14)
-                        .frame(height: 36)
-                        .foregroundStyle(.black)
-                        .background(Theme.degradeAccent, in: Capsule())
+                        .frame(minHeight: 34)
+                        .foregroundStyle(Theme.texte)
+                        .background(Theme.eleve, in: Capsule())
+                        .zoneDeToucher()
                 }
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("boutonFiltres")
@@ -649,7 +635,7 @@ struct ExplorerView: View {
                 .font(.caption2.weight(.bold))
                 .padding(5)
                 .background(.black.opacity(0.7), in: RoundedRectangle(cornerRadius: 5))
-                .foregroundStyle(Theme.accentClair)
+                .foregroundStyle(Theme.texte)
                 .padding(5)
                 .accessibilityLabel("Sur le NAS")
         }
@@ -662,6 +648,31 @@ struct ExplorerView: View {
     private func suite(apres titre: TitreResume) {
         guard titre.reference == resultatsProposes.last?.reference, let client = etat.tmdb else { return }
         Task { await modele.chargerSuite(client: client, contexte: contexte, abonnements: abonnements.map(\.providerID)) }
+    }
+
+    /// Films, séries ou documentaires (des films du genre 99).
+    private var categorie: String {
+        if modele.filtres.genresInclus.contains(Self.documentaire) { return "documentaires" }
+        return modele.filtres.type == .serie ? "series" : "films"
+    }
+
+    private static let documentaire = 99
+
+    private func choisir(_ categorie: String) {
+        guard categorie != self.categorie else { return }
+        switch categorie {
+        case "series": changerType(.serie)
+        case "documentaires":
+            changerType(.film)
+            var filtres = modele.filtres
+            filtres.genresInclus = [Self.documentaire]
+            modele.filtres = filtres
+        default:
+            changerType(.film)
+            var filtres = modele.filtres
+            filtres.genresInclus.removeAll { $0 == Self.documentaire }
+            modele.filtres = filtres
+        }
     }
 
     /// Les genres n'ont pas les mêmes identifiants pour les films et les séries : ils sont vidés.

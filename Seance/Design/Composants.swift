@@ -230,7 +230,7 @@ struct FlecheDefilement: View {
     var body: some View {
         Button(action: action) {
             Image(systemName: sens == .gauche ? "chevron.left" : "chevron.right")
-                .font(.system(size: 14, weight: .bold))
+                .font(.subheadline.weight(.bold))
                 .foregroundStyle(.white)
                 .frame(width: 38, height: 38)
                 .background(.black.opacity(0.7), in: Circle())

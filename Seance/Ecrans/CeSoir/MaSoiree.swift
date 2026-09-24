@@ -261,7 +261,7 @@ struct PropositionsSoiree: View {
 struct EtiquetteSection: LabelStyle {
     func makeBody(configuration: Configuration) -> some View {
         HStack(spacing: 8) {
-            configuration.icon.font(.subheadline).foregroundStyle(Theme.accent)
+            configuration.icon.font(.subheadline).foregroundStyle(Theme.texte2)
             configuration.title
         }
     }

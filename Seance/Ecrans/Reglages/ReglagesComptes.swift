@@ -97,7 +97,7 @@ struct ReglagesClaudeView: View {
                     Text(message).font(.footnote).foregroundStyle(.secondary)
                 }
             } footer: {
-                Text("Sans clé, « Idées pour ce soir » classe les titres sur l'appareil, selon tes goûts. Avec une clé, Claude lit l'envie que tu précises et choisit parmi les titres disponibles : environ 0,07 $ par demande.")
+                Text("Sans clé, « Suggestions pour ce soir » classe les titres sur l'appareil, selon tes goûts. Avec une clé, Claude lit l'envie que tu précises et choisit parmi les titres disponibles : environ 0,07 $ par demande.")
             }
         }
         .pageReglages("Claude")

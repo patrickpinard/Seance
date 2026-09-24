@@ -51,6 +51,46 @@ extension XCUIApplication {
         roue.tap()
     }
 
+    /// Une page de l'app par son nom d'avant la 8.0 : Ce soir et les sources ouvrent Regarder sur leur pastille, Explorer
+    /// la recherche, Préférences et Réglages leur feuille. Les onglets sont en bas sur l'iPhone, en haut sur l'iPad.
+    @MainActor
+    func aller(_ page: String) {
+        switch page {
+        case "Ce soir":
+            onglet("Regarder")
+            pastille("Tout")
+            let aujourdhui = buttons.matching(NSPredicate(format: "label BEGINSWITH 'Aujourd'")).firstMatch
+            if aujourdhui.waitForExistence(timeout: 3) { aujourdhui.tap() }
+        case "Streaming", "TV", "NAS", "Regarder › Tout":
+            onglet("Regarder")
+            pastille(page == "Regarder › Tout" ? "Tout" : page)
+        case "Explorer", "Recherche":
+            onglet("Recherche")
+        case "Préférences", "Profil":
+            ouvrirPreferences()
+        case "Réglages":
+            ouvrirReglages()
+        default:
+            onglet(page)
+        }
+    }
+
+    /// Un onglet : un bouton de la barre, ou une ligne de la barre latérale de l'iPad.
+    @MainActor
+    func onglet(_ nom: String) {
+        let enBas = tabBars.buttons[nom].firstMatch
+        if enBas.waitForExistence(timeout: 10) { enBas.tap(); return }
+        let ligne = cells.matching(NSPredicate(format: "label == %@", nom)).firstMatch
+        if ligne.exists { ligne.tap() } else { buttons[nom].firstMatch.tap() }
+    }
+
+    /// Une pastille de Regarder : Tout · Streaming · TV · NAS.
+    @MainActor
+    func pastille(_ nom: String) {
+        let bouton = scrollViews.buttons[nom].firstMatch
+        if bouton.waitForExistence(timeout: 8) { bouton.tap() } else { buttons[nom].firstMatch.tap() }
+    }
+
     /// Referme la feuille des Préférences ou des Réglages, en remontant d'abord les pages ouvertes dedans.
     @MainActor
     func fermerPreferences() {

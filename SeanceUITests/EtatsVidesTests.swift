@@ -30,7 +30,7 @@ final class EtatsVidesTests: XCTestCase {
         capture("02-accueil-bas")
         app.swipeDown()
 
-        app.tabBars.buttons["Ce soir"].firstMatch.tap()
+        app.aller("Ce soir")
         capture("03-ce-soir", attente: 3)
 
         app.tabBars.buttons["Mes listes"].firstMatch.tap()
@@ -61,7 +61,7 @@ final class EtatsVidesTests: XCTestCase {
         XCTAssertTrue(app.navigationBars["TV"].waitForExistence(timeout: 8), "« Choisir mes chaînes » n'ouvre pas les réglages de télévision")
         capture("12b-tele-reglages", attente: 1)
         app.navigationBars.buttons.firstMatch.tap()
-        if app.navigationBars["Programme TV"].waitForExistence(timeout: 5) { app.navigationBars.buttons.firstMatch.tap() }
+        if app.navigationBars["Regarder"].waitForExistence(timeout: 5) { app.navigationBars.buttons.firstMatch.tap() }
 
         // La page NAS, depuis l'accueil — si son bouton existe quand aucun NAS n'est configuré.
         app.tabBars.buttons["Accueil"].firstMatch.tap()
@@ -76,9 +76,9 @@ final class EtatsVidesTests: XCTestCase {
         app.buttons["À voir"].firstMatch.tap()
         XCTAssertTrue(app.staticTexts["Ta liste est vide"].waitForExistence(timeout: 5), "« À voir » vide n'explique rien")
         XCTAssertFalse(app.buttons["Regardable ce soir"].exists, "Un filtre au-dessus d'une liste vide n'a pas d'objet")
-        app.buttons["Trouver des idées"].firstMatch.tap()
+        app.buttons["Trouver des suggestions"].firstMatch.tap()
         XCTAssertTrue(app.navigationBars["Explorer"].waitForExistence(timeout: 8) || app.searchFields.firstMatch.waitForExistence(timeout: 3),
-                      "« Trouver des idées » ne mène pas à Explorer")
+                      "« Trouver des suggestions » ne mène pas à la recherche")
         capture("14-explorer-depuis-vide")
     }
 }

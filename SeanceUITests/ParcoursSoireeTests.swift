@@ -32,8 +32,10 @@ final class ParcoursSoireeTests: XCTestCase {
         XCTAssertTrue(app.tabBars.buttons["Accueil"].firstMatch.waitForExistence(timeout: 15))
 
         // 1. La feuille d'ajout : la recherche est sur place, sans détour par Explorer.
-        app.tabBars.buttons["Ce soir"].firstMatch.tap()
-        app.buttons["Choisir quoi regarder"].firstMatch.tap()
+        app.aller("Ce soir")
+        let suggestions = app.buttons["Suggestions pour ce soir"].firstMatch
+        XCTAssertTrue(app.amener(suggestions), "Pas de « Suggestions pour ce soir » dans Regarder")
+        suggestions.tap()
         let champ = app.textFields["rechercheSoiree"].firstMatch
         XCTAssertTrue(champ.waitForExistence(timeout: 10), "Pas de recherche dans « Ajouter à ma soirée »")
         capture("feuille", attente: 5)
@@ -63,7 +65,7 @@ final class ParcoursSoireeTests: XCTestCase {
         jeRegarde.tap()
         app.buttons["OK"].firstMatch.tap()
 
-        // 4. La soirée : la série propose son premier épisode, avec « Regardé ».
+        // 4. La soirée : la série propose son premier épisode.
         let carteSerie = bouton("label CONTAINS 'série' AND label CONTAINS 'S01E01'")
         XCTAssertTrue(carteSerie.waitForExistence(timeout: 20), "Une série jamais commencée ne propose pas son premier épisode")
         XCTAssertFalse(app.staticTexts["Aucun nouvel épisode disponible"].exists)
@@ -71,16 +73,23 @@ final class ParcoursSoireeTests: XCTestCase {
         app.swipeUp()
         capture("soiree-remplie-bas")
 
-        // 5. Un épisode, pas la série : « Regardé » la retire de la soirée.
-        let regardes = app.buttons.matching(identifier: "Regardé")
-        XCTAssertEqual(regardes.count, 2, "Le film et l'épisode doivent pouvoir se marquer regardés")
-        regardes.element(boundBy: 1).tap()
+        // 5. Un épisode, pas la série : l'appui long (charte 8.0), « Épisode regardé », la retire de la soirée.
+        XCTAssertTrue(app.amener(carteSerie))
+        carteSerie.press(forDuration: 1.2)
+        let episodeRegarde = app.buttons["Épisode regardé"].firstMatch
+        XCTAssertTrue(episodeRegarde.waitForExistence(timeout: 5), "L'appui long sur l'épisode ne propose pas « Épisode regardé »")
+        episodeRegarde.tap()
         XCTAssertTrue(carteSerie.waitForNonExistence(timeout: 15), "L'épisode regardé, la série reste dans la soirée")
         capture("episode-regarde", attente: 1)
 
-        // 6. Le film : regardé, noté.
+        // 6. Le film : terminé par l'appui long, noté.
         app.swipeDown()
-        app.buttons["Regardé"].firstMatch.tap()
+        let carteFilm = bouton("label BEGINSWITH 'Fight Club'")
+        XCTAssertTrue(app.amener(carteFilm), "La carte du film a quitté la soirée")
+        carteFilm.press(forDuration: 1.2)
+        let termine = app.buttons["Terminé"].firstMatch
+        XCTAssertTrue(termine.waitForExistence(timeout: 5), "L'appui long sur le film ne propose pas « Terminé »")
+        termine.tap()
         let note = app.buttons["Note 8 sur 10"].firstMatch
         XCTAssertTrue(note.waitForExistence(timeout: 10))
         note.tap()
@@ -88,8 +97,8 @@ final class ParcoursSoireeTests: XCTestCase {
 
         // 7. Réglages › Toi : l'idée écartée y figure, « Tout reproposer » lève les exclusions.
         app.ouvrirReglages()
-        let toi = bouton("label BEGINSWITH 'Prénom et idées'")
-        XCTAssertTrue(app.amener(toi, essais: 16), "Tuile « Prénom et idées » introuvable")
+        let toi = bouton("label BEGINSWITH 'Prénom et suggestions'")
+        XCTAssertTrue(app.amener(toi, essais: 16), "Tuile « Prénom et suggestions » introuvable")
         toi.tap()
         let tout = app.buttons["toutReproposer"].firstMatch
         XCTAssertTrue(app.amener(tout), "Pas de « Tout reproposer » dans Réglages › Toi")
@@ -101,23 +110,24 @@ final class ParcoursSoireeTests: XCTestCase {
 
         app.fermerPreferences()
         // 8. Explorer en dernier (sa barre d'onglets se replie) : la fiche dit l'ajout à la soirée ; « Je n'aime pas » fait sortir le titre d'Explorer.
-        app.tabBars.buttons["Explorer"].firstMatch.tap()
+        app.aller("Explorer")
         let affiche = bouton("label CONTAINS 'Creed III'")
-        XCTAssertTrue(affiche.waitForExistence(timeout: 20))
+        XCTAssertTrue(app.staticTexts["compteurResultats"].firstMatch.waitForExistence(timeout: 20))
+        XCTAssertTrue(app.amener(affiche, essais: 12), "Creed III n'est pas dans les résultats de la recherche")
         affiche.tap()
-        let ceSoir = app.buttons["Ajouter à ma soirée"].firstMatch
-        XCTAssertTrue(ceSoir.waitForExistence(timeout: 15), "Pas de bouton 🌙 dans la rangée d'actions de la fiche")
+        let ceSoir = app.buttons["Ce soir"].firstMatch
+        XCTAssertTrue(ceSoir.waitForExistence(timeout: 15), "Pas de bouton « Ce soir » sous l'action principale de la fiche")
         ceSoir.tap()
-        XCTAssertTrue(app.buttons["Retirer de ma soirée"].firstMatch.waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["Ce soir, choisi"].firstMatch.waitForExistence(timeout: 5))
         capture("fiche-ce-soir", attente: 1)
         // 👍 puis 👎 : les pouces de la fiche. Le pouce baissé fait tomber le pouce levé et écarte le titre.
         let jAime = app.buttons["J'aime"].firstMatch
         XCTAssertTrue(jAime.waitForExistence(timeout: 5), "Pas de pouce 👍 sur la fiche")
         jAime.tap()
-        XCTAssertTrue(app.buttons["J'aime ✓"].firstMatch.waitForExistence(timeout: 5), "Le pouce levé ne se marque pas")
+        XCTAssertTrue(app.buttons["J'aime, choisi"].firstMatch.waitForExistence(timeout: 5), "Le pouce levé ne se marque pas")
         capture("fiche-pouces", attente: 1)
-        app.buttons["Je n'aime pas"].firstMatch.tap()
-        XCTAssertTrue(app.buttons["Je n'aime pas ✓"].firstMatch.waitForExistence(timeout: 5))
+        app.buttons["Pas pour moi"].firstMatch.tap()
+        XCTAssertTrue(app.buttons["Pas pour moi, choisi"].firstMatch.waitForExistence(timeout: 5))
         XCTAssertTrue(app.buttons["J'aime"].firstMatch.exists, "Le pouce levé devait tomber")
         app.navigationBars.buttons.firstMatch.tap()
         XCTAssertTrue(affiche.waitForNonExistence(timeout: 10), "Un titre écarté reste proposé dans Explorer")

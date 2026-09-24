@@ -29,7 +29,7 @@ final class AccessibiliteTests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Nouveautés"].firstMatch.waitForExistence(timeout: 20))
         Thread.sleep(forTimeInterval: 3)
         auditer("Accueil")
-        app.tabBars.buttons["Ce soir"].firstMatch.tap()
+        app.aller("Ce soir")
         Thread.sleep(forTimeInterval: 3)
         auditer("Ce soir")
         app.tabBars.buttons["Mes listes"].firstMatch.tap()

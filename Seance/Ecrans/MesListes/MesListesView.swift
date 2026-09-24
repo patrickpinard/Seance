@@ -325,7 +325,7 @@ struct MesListesView: View {
             case .aVoir:
                 grandVide(EtatVide(symbole: "bookmark", titre: "Ta liste est vide",
                                    message: "Touche « + » sur la fiche d'un film ou d'une série pour le garder ici, à voir plus tard.",
-                                   libelleAction: "Trouver des idées") { etat.ongletDemande = .explorer })
+                                   libelleAction: "Trouver des suggestions") { etat.ongletDemande = .explorer })
             case .enCours:
                 grandVide(EtatVide(symbole: "play.circle", titre: "Aucune série en cours",
                                    message: "Coche un épisode sur la fiche d'une série : elle se range ici, avec le prochain à regarder.",
@@ -504,7 +504,7 @@ struct MesListesView: View {
                         Text("· \(vus) épisode\(vus > 1 ? "s" : "") vu\(vus > 1 ? "s" : "")")
                     }
                     if let note = suivi.note {
-                        Text("· ta note \(note)/10").foregroundStyle(Theme.accentClair)
+                        Text("· ta note \(note)/10").foregroundStyle(Theme.texte2)
                     }
                 }
                 .font(.caption)
@@ -518,7 +518,7 @@ struct MesListesView: View {
                 if let rendezVous = prochainRendezVous(suivi, reperes) {
                     Label(rendezVous, systemImage: "calendar")
                         .font(.caption.weight(.semibold))
-                        .foregroundStyle(Theme.accentClair)
+                        .foregroundStyle(Theme.texte2)
                 }
             }
             Spacer(minLength: 0)
@@ -529,7 +529,7 @@ struct MesListesView: View {
             if suivi.alertesActives {
                 Image(systemName: "bell.fill")
                     .font(.caption)
-                    .foregroundStyle(Theme.accent)
+                    .foregroundStyle(Theme.texte2)
                     .accessibilityLabel("Alertes activées")
             }
         }

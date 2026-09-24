@@ -13,37 +13,72 @@ struct ProfilTV: View {
     /// 👍 Tes « J'aime », le plus récent d'abord.
     @Query(sort: \TitreAime.aimeLe, order: .reverse) private var aimes: [TitreAime]
 
+    @Environment(EtatTV.self) private var etat
+
     var body: some View {
         ScrollView {
-            LazyVStack(alignment: .leading, spacing: 50) {
-                if notes.isEmpty, acteurs.isEmpty, interets.isEmpty, aimes.isEmpty {
-                    VideTV(symbole: "person.crop.circle", titre: "Ton profil se remplira tout seul",
-                           message: "Tes notes, tes acteurs et tes goûts arrivent de ton iPhone, et de ce que tu marques vu ici.")
+            LazyVStack(alignment: .leading, spacing: 44) {
+                // Maquette 8.0, n° 17 : qui regarde, puis ce qui guide les suggestions.
+                HStack(spacing: 28) {
+                    Text(String(prenom.prefix(1)).uppercased())
+                        .font(.system(size: 64, weight: .heavy))
+                        .foregroundStyle(.black)
+                        .frame(width: 130, height: 130)
+                        .background(Theme.degradeAccent, in: Circle())
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(prenom).font(.system(size: 52, weight: .heavy))
+                        Text("Ce qui guide tes suggestions").font(.system(size: 26)).foregroundStyle(Theme.texte2)
+                    }
                 }
+                .padding(.horizontal, MargesTV.bord)
+                VStack(alignment: .leading, spacing: 18) {
+                    HStack {
+                        Text("Tes goûts").font(.system(size: 38, weight: .bold))
+                        Spacer()
+                        NavigationLink(value: GoutsTVDemande()) { Text(interets.isEmpty ? "Choisir" : "Modifier") }
+                            .buttonStyle(LienTV())
+                    }
+                    if interets.isEmpty {
+                        Text("Choisis les genres que tu aimes : ils orientent tes suggestions.").font(.system(size: 26)).foregroundStyle(Theme.texte2)
+                    } else {
+                        FluxTV(espacement: 14) {
+                            ForEach(interets) { interet in
+                                Text(interet.libelle).font(.system(size: 26, weight: .semibold))
+                                    .padding(.horizontal, 24).frame(height: 52)
+                                    .background(Color.white.opacity(0.12), in: Capsule())
+                            }
+                        }
+                    }
+                }
+                .padding(.horizontal, MargesTV.bord)
+                .focusSection()
                 if !notes.isEmpty {
-                    EtagereTV(titre: "Tes dernières notes", sousTitre: "Elles affinent ce que Séance te propose") {
+                    EtagereTV(titre: "Tes dernières notes") {
                         ForEach(notes) { suivi in
                             NavigationLink(value: suivi.reference) {
-                                CarteLargeTV(surtitre: "★ \(suivi.note ?? 0)/10", titre: suivi.titre, detail: nil,
-                                             cheminImage: suivi.cheminAffiche, largeur: CarteLargeTV.largeurGrille, reference: suivi.reference)
+                                CarteLargeTV(surtitre: "★ \(suivi.note ?? 0)/10 · ta note", titre: suivi.titre,
+                                             detail: suivi.type == .film ? "Film" : "Série",
+                                             cheminImage: suivi.cheminAffiche, largeur: CarteLargeTV.largeurGrille)
                             }
                             .buttonStyle(.card)
+                            .menuCarteTV(suivi.reference, titre: suivi.titre, cheminAffiche: suivi.cheminAffiche)
                         }
                     }
                 }
                 if !aimes.isEmpty {
-                    EtagereTV(titre: "👍 Tu aimes", sousTitre: "Tes pouces levés orientent les idées du soir") {
+                    EtagereTV(titre: "Tu aimes") {
                         ForEach(aimes.prefix(30), id: \.reference) { aime in
                             NavigationLink(value: aime.reference) {
                                 CarteLargeTV(surtitre: nil, titre: aime.titre, detail: aime.reference.type == .film ? "Film" : "Série",
                                              cheminImage: aime.cheminAffiche, largeur: CarteLargeTV.largeurGrille, reference: aime.reference)
                             }
                             .buttonStyle(.card)
+                            .menuCarteTV(aime.reference, titre: aime.titre, cheminAffiche: aime.cheminAffiche)
                         }
                     }
                 }
                 if !acteurs.isEmpty {
-                    EtagereTV(titre: "Tes acteurs", sousTitre: "Ceux dont tu suis les nouveaux films — choisis-en un pour voir ses films") {
+                    EtagereTV(titre: "Tes acteurs") {
                         ForEach(acteurs, id: \.personneID) { acteur in
                             NavigationLink(value: PersonneTVRef(id: acteur.personneID, nom: acteur.nom)) {
                                 AfficheTV(titre: acteur.nom, sousTitre: nil, cheminAffiche: acteur.cheminPortrait)
@@ -52,27 +87,26 @@ struct ProfilTV: View {
                         }
                     }
                 }
-                if !interets.isEmpty {
-                    VStack(alignment: .leading, spacing: 18) {
-                        Text("Tes goûts").font(.system(size: 38, weight: .bold))
-                        Text(interets.map(\.libelle).joined(separator: "  ·  ")).font(.system(size: 30, weight: .semibold)).foregroundStyle(Theme.accentClair)
-                        Text("Ils se modifient dans Réglages › Tes goûts.").font(.system(size: 24)).foregroundStyle(.secondary)
+                // Tes chiffres ont leur page (maquette n° 18) : une ligne qui s'ouvre, que la télécommande atteint.
+                VStack(alignment: .leading, spacing: 12) {
+                    NavigationLink(value: StatistiquesTVDemande()) {
+                        LigneFiltreTVStat(titre: "Statistiques", valeur: "\(filmsVus) films · \(episodesVus) épisodes · \(heures) h")
                     }
-                    .padding(.horizontal, MargesTV.bord)
+                    .buttonStyle(LigneTV())
                 }
-                VStack(alignment: .leading, spacing: 18) {
-                    Text("Tes chiffres").font(.system(size: 38, weight: .bold))
-                    HStack(spacing: 30) {
-                        chiffre("\(filmsVus)", filmsVus > 1 ? "films vus" : "film vu")
-                        chiffre("\(episodesVus)", episodesVus > 1 ? "épisodes vus" : "épisode vu")
-                        chiffre("\(heures) h", "devant l'écran")
-                        chiffre("\(suivis.filter { $0.note != nil }.count)", "titres notés")
-                    }
-                }
+                .frame(maxWidth: 900)
+                .padding(12)
+                .background(Theme.surface, in: RoundedRectangle(cornerRadius: 28, style: .continuous))
                 .padding(.horizontal, MargesTV.bord)
+                .focusSection()
             }
             .padding(.vertical, 40)
         }
+    }
+
+    private var prenom: String {
+        let nom = QuiRegardeTV.nom(ConteneurTV.famille.actif)
+        return nom.isEmpty ? "Toi" : nom
     }
 
     private var notes: [Suivi] { suivis.filter { $0.note != nil }.prefix(20).map { $0 } }
@@ -80,13 +114,132 @@ struct ProfilTV: View {
     private var episodesVus: Int { visionnages.filter { $0.type == .serie && $0.episode != nil }.count }
     private var heures: Int { visionnages.reduce(0) { $0 + $1.dureeMinutes } / 60 }
 
-    private func chiffre(_ valeur: String, _ libelle: String) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(valeur).font(.system(size: 54, weight: .heavy)).foregroundStyle(Theme.accentClair)
-            Text(libelle).font(.system(size: 24)).foregroundStyle(.secondary)
+}
+
+/// Préférences › « Modifier mes goûts » (8.0) : la même page que Réglages › Tes goûts.
+struct GoutsTVDemande: Hashable {}
+
+/// Une ligne qui s'ouvre, avec sa valeur à droite (Préférences › Statistiques).
+private struct LigneFiltreTVStat: View {
+    let titre: String
+    let valeur: String
+    @Environment(\.isFocused) private var aLeFocus
+
+    var body: some View {
+        HStack {
+            Image(systemName: "chart.bar").font(.system(size: 28, weight: .semibold)).frame(width: 44)
+            Text(titre).font(.system(size: 30, weight: .semibold))
+            Spacer()
+            Text(valeur).font(.system(size: 24)).opacity(0.7)
+            Image(systemName: "chevron.right").font(.system(size: 24, weight: .bold)).opacity(0.45)
         }
-        .frame(width: 320, alignment: .leading)
-        .padding(28)
-        .background(Theme.surface, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .foregroundStyle(aLeFocus ? .black : .white)
+        .padding(.horizontal, 24)
+        .frame(maxWidth: .infinity, minHeight: 80)
+    }
+}
+
+/// Un lien orange, sans cadre (maquette 8.0 : « Modifier », « Programme complet », « Ajouts ») ; blanc au focus.
+struct LienTV: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View { Corps(configuration: configuration) }
+
+    private struct Corps: View {
+        let configuration: Configuration
+        @Environment(\.isFocused) private var aLeFocus
+
+        var body: some View {
+            configuration.label
+                .font(.system(size: 26, weight: .bold))
+                .foregroundStyle(aLeFocus ? Color.black : Theme.accentClair)
+                .padding(.horizontal, 20)
+                .frame(height: 52)
+                .background(aLeFocus ? Color.white : Color.clear, in: Capsule())
+                .scaleEffect(aLeFocus ? 1.08 : 1)
+                .animation(.easeOut(duration: 0.15), value: aLeFocus)
+        }
+    }
+}
+
+struct StatistiquesTVDemande: Hashable {}
+
+/// Statistiques (maquette 8.0, n° 18) : l'année en quatre tuiles, puis tes genres en barres blanches ; l'orange reste
+/// pour ce qui se touche.
+struct StatistiquesTV: View {
+    @Query private var visionnages: [Visionnage]
+    @Query private var suivis: [Suivi]
+
+    private var annee: Int { Calendar.current.component(.year, from: .now) }
+    private var deLAnnee: [Visionnage] { visionnages.filter { Calendar.current.component(.year, from: $0.vuLe) == annee } }
+
+    var body: some View {
+        let liste = deLAnnee
+        let films = liste.filter { $0.type == .film }.reduce(0) { $0 + $1.dureeMinutes } / 60
+        let series = liste.filter { $0.type == .serie }.reduce(0) { $0 + $1.dureeMinutes } / 60
+        let titres = Set(liste.map { "\($0.typeBrut)\($0.tmdbID)" }).count
+        ScrollView {
+            VStack(alignment: .leading, spacing: 40) {
+                Text("Statistiques · \(String(annee))").font(.system(size: 58, weight: .heavy))
+                HStack(spacing: 28) {
+                    tuile("\(films + series) h", "regardées")
+                    tuile("\(titres)", titres > 1 ? "titres vus" : "titre vu")
+                    tuile("\(films) h", "de films")
+                    tuile("\(series) h", "de séries")
+                }
+                .focusSection()
+                let genres = genresDeLAnnee(liste)
+                if !genres.isEmpty {
+                    VStack(alignment: .leading, spacing: 18) {
+                        Text("Tes genres").font(.system(size: 38, weight: .bold))
+                        VStack(alignment: .leading, spacing: 20) {
+                            ForEach(genres, id: \.nom) { genre in
+                                VStack(alignment: .leading, spacing: 8) {
+                                    Text(genre.nom).font(.system(size: 26, weight: .semibold))
+                                    GeometryReader { geo in
+                                        ZStack(alignment: .leading) {
+                                            Capsule().fill(.white.opacity(0.14))
+                                            Capsule().fill(.white).frame(width: geo.size.width * genre.part)
+                                        }
+                                    }
+                                    .frame(height: 10)
+                                }
+                            }
+                        }
+                        .padding(30)
+                        .frame(width: 900)
+                        .background(Theme.surface, in: RoundedRectangle(cornerRadius: 28, style: .continuous))
+                        // La page n'a que du texte : un élément focalisable pour que Retour et le défilement répondent.
+                        .focusable()
+                    }
+                }
+            }
+            .padding(.horizontal, MargesTV.bord)
+            .padding(.vertical, 40)
+        }
+    }
+
+    private func tuile(_ valeur: String, _ libelle: String) -> some View {
+        Button {} label: {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(valeur).font(.system(size: 54, weight: .heavy))
+                Text(libelle).font(.system(size: 24)).foregroundStyle(Theme.texte2)
+            }
+            .frame(width: 330, alignment: .leading)
+            .padding(28)
+            .background(Theme.surface)
+        }
+        .buttonStyle(.card)
+        .accessibilityLabel("\(valeur) \(libelle)")
+    }
+
+    /// Les cinq genres les plus regardés de l'année, en part du plus regardé.
+    private func genresDeLAnnee(_ liste: [Visionnage]) -> [(nom: String, part: Double)] {
+        var minutes: [Int: Int] = [:]
+        for visionnage in liste {
+            let genres = suivis.first { $0.tmdbID == visionnage.tmdbID && $0.typeBrut == visionnage.typeBrut }?.genres ?? []
+            for genre in genres { minutes[genre, default: 0] += max(visionnage.dureeMinutes, 1) }
+        }
+        let tries = minutes.sorted { $0.value > $1.value }.prefix(5)
+        guard let plus = tries.first?.value, plus > 0 else { return [] }
+        return tries.compactMap { id, valeur in GenresParDefaut.noms[id].map { ($0, Double(valeur) / Double(plus)) } }
     }
 }

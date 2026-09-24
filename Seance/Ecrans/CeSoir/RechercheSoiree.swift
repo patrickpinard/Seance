@@ -90,7 +90,7 @@ struct ResultatsRechercheSoiree: View {
                 if modele.enCours || modele.cherche != modele.texteNettoye {
                     MessageEtat(texte: "Recherche…", ton: .attente).padding(.horizontal, -20)
                 } else {
-                    MessageEtat(texte: "Aucun film ni série de ce nom. Essaie le titre original, ou cherche un acteur dans Explorer.",
+                    MessageEtat(texte: "Aucun film ni série de ce nom. Essaie le titre original, ou cherche un acteur dans la recherche.",
                                 symbole: "magnifyingglass")
                         .padding(.horizontal, -20)
                 }

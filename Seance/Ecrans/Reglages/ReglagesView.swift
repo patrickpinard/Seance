@@ -7,7 +7,7 @@ import SwiftUI
 /// Un lien « par vue » vers Réglages, depuis la barre d'outils de Profil, figeait l'iPhone : SwiftUI remettait
 /// la destination à jour à chaque rendu, sans fin, jusqu'à ce qu'iOS tue l'app.
 enum DestinationReglage: Hashable {
-    case reglages, prenom, famille, centrale, apparence, tmdb, claude, plateformes, tele, nas, videosPerso, lecture, alertes, alertesRecues, sauvegarde, lettre, aPropos, versions, journal, apercuWidgets
+    case reglages, prenom, famille, centrale, tmdb, claude, plateformes, tele, nas, videosPerso, lecture, alertes, alertesRecues, sauvegarde, lettre, aPropos, versions, journal, apercuWidgets
 }
 
 struct PageReglage: View {
@@ -19,7 +19,6 @@ struct PageReglage: View {
         case .prenom: ReglagesPrenomView()
         case .famille: FamilleView()
         case .centrale: ReglagesCentraleView()
-        case .apparence: ReglagesApparenceView()
         case .tmdb: ReglagesTMDBView()
         case .claude: ReglagesClaudeView()
         case .plateformes: ReglagesPlateformesView()
@@ -63,16 +62,27 @@ struct LigneReglage: View {
                 .accessibilityHidden(true)
             let disposition = tailleTexte.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: 2)) : AnyLayout(HStackLayout(spacing: 8))
             disposition {
-                Text(titre).font(.body).foregroundStyle(Color.primary)
+                // Le nom passe avant la valeur : c'est elle qui se tronque, jamais le nom coupé en plein mot (iPad, 8.0).
+                Text(titre).font(.body).foregroundStyle(Theme.texte)
+                    .lineLimit(tailleTexte.isAccessibilitySize ? nil : 1)
+                    .layoutPriority(1)
                 if !tailleTexte.isAccessibilitySize { Spacer(minLength: 8) }
-                Text(valeur)
+                let texteValeur = Text(valeur)
                     .font(.subheadline)
-                    .foregroundStyle(enOrdre == false ? AnyShapeStyle(Color.orange) : AnyShapeStyle(.secondary))
-                    .lineLimit(tailleTexte.isAccessibilitySize ? 3 : 1)
-                    .multilineTextAlignment(tailleTexte.isAccessibilitySize ? .leading : .trailing)
+                    .foregroundStyle(enOrdre == false ? Theme.attention : Theme.texte2)
+                if tailleTexte.isAccessibilitySize {
+                    texteValeur.lineLimit(3)
+                } else {
+                    // La valeur entière si elle tient, sinon rien : « Fi… » ou « À sai… » ne disent plus rien. Le point
+                    // de couleur et VoiceOver gardent l'information.
+                    ViewThatFits(in: .horizontal) {
+                        texteValeur.lineLimit(1).fixedSize()
+                        Color.clear.frame(width: 0, height: 0)
+                    }
+                }
             }
             if let enOrdre {
-                Circle().fill(enOrdre ? Color.green : Color.orange).frame(width: 9, height: 9).accessibilityHidden(true)
+                Circle().fill(enOrdre ? Theme.vert : Theme.attention).frame(width: 9, height: 9).accessibilityHidden(true)
             }
             Image(systemName: "chevron.right").font(.caption.weight(.bold)).foregroundStyle(.tertiary).accessibilityHidden(true)
         }
@@ -131,7 +141,6 @@ struct ReglagesView: View {
     @Query private var suivis: [Suivi]
     @AppStorage(Prenom.cle) private var prenom = ""
     @AppStorage(NombreIdees.cle) private var nombreIdees = NombreIdees.parDefaut
-    @AppStorage(Apparence.cle) private var apparence = Apparence.sombre.rawValue
     @AppStorage("accueil.sources") private var sourcesBrutes = Data()
     @State private var accueil = false
     @State private var nouvelAppareil = false
@@ -160,8 +169,8 @@ struct ReglagesView: View {
                     ligne(.lecture, "Lecture", "play.circle.fill", libelleLecteur)
                 }
                 groupe("Toi") {
-                    ligne(.prenom, "Prénom et idées", "person.fill",
-                          "\(Prenom.lire(prenom) ?? "À saisir") · \(Format.pluriel(NombreIdees.lire(nombreIdees), "idée"))")
+                    ligne(.prenom, "Prénom et suggestions", "person.fill",
+                          "\(Prenom.lire(prenom) ?? "À saisir") · \(Format.pluriel(NombreIdees.lire(nombreIdees), "suggestion"))")
                     ligne(.alertes, "Alertes", "bell.fill", libelleAlertes, enOrdre: alertesActives)
                     ligne(.lettre, "E-mail de la semaine", "envelope.fill",
                           !etat.lettre.reglages.actif ? "Désactivé" : etat.lettre.pret ? libelleJoursLettre : "À terminer",
@@ -171,7 +180,6 @@ struct ReglagesView: View {
                         LigneReglage(titre: "Accueil", symbole: "house.fill", valeur: libelleAccueil)
                     }
                     .buttonStyle(.plain)
-                    ligne(.apparence, "Apparence", Apparence.lire(apparence).symbole, Apparence.lire(apparence).nom)
                 }
                 groupe("La maison") {
                     ligne(.famille, "Famille", "person.2.fill",

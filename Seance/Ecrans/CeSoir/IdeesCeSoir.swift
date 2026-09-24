@@ -112,14 +112,14 @@ final class IdeesModele {
             ou = await Self.disponibilites(nouveau.suggestions.map(\.reference), tmdb: tmdb, contexte: contexte)
             garder(contexte: contexte)
             if let resultat, claude != nil, resultat.origine == .local, let avertissement = resultat.avertissement {
-                etat.journal.noter(.claude, avertissement, conseil: "Les idées viennent du classement local. Vérifie la clé Claude dans Réglages › Claude si cela se répète.")
+                etat.journal.noter(.claude, avertissement, conseil: "Les suggestions viennent du classement local. Vérifie la clé Claude dans Réglages › Claude si cela se répète.")
             }
         } catch is CancellationError {
             return
         } catch {
             resultat = nil
-            erreur = Journal.conseil(error) ?? "Impossible de réunir des idées pour l'instant : réessaie dans un moment."
-            etat.journal.noter(.tmdb, "« Idées pour ce soir » n'a pas pu réunir de suggestions.", erreur: error)
+            erreur = Journal.conseil(error) ?? "Impossible de réunir des suggestions pour l'instant : réessaie dans un moment."
+            etat.journal.noter(.tmdb, "« Suggestions pour ce soir » n'a pas pu réunir de suggestions.", erreur: error)
         }
     }
 
@@ -201,18 +201,18 @@ struct SectionIdees: View {
         @Bindable var modele = modele
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Label(Prenom.lire(prenom).map { "Des idées pour toi, \($0)" } ?? "Idées pour ce soir", systemImage: "sparkles")
+                Label(Prenom.lire(prenom).map { "Des suggestions pour toi, \($0)" } ?? "Suggestions pour ce soir", systemImage: "sparkles")
                     .font(.title3.weight(.bold))
                     .labelStyle(EtiquetteSection())
                 Spacer()
                 Button {
                     Task { await modele.chercher(etat: etat, contexte: contexte, precise: !modele.demande.envieNettoyee.isEmpty) }
                 } label: {
-                    Label("Autres idées", systemImage: "arrow.clockwise")
+                    Label("Autres suggestions", systemImage: "arrow.clockwise")
                         .labelStyle(.iconOnly)
                 }
                 .disabled(modele.enCours)
-                .help("Chercher d'autres idées")
+                .help("Chercher d'autres suggestions")
             }
 
             quiRegardeCeSoir
@@ -225,7 +225,7 @@ struct SectionIdees: View {
             }, cases: [.init(valeur: nil, nom: "Films et séries"), .init(valeur: TypeTitre.film, nom: "Films"), .init(valeur: TypeTitre.serie, nom: "Séries")])
 
             if modele.profil.estVide, modele.charge {
-                MessageEtat(texte: "Choisis tes goûts dans Préférences › Mes goûts, et note ce que tu regardes : les idées seront sur mesure.",
+                MessageEtat(texte: "Choisis tes goûts dans Préférences › Mes goûts, et note ce que tu regardes : les suggestions seront sur mesure.",
                             symbole: "heart")
                     .padding(.horizontal, -20)
             }
@@ -302,7 +302,7 @@ struct SectionIdees: View {
                     }
                 }
                 Text(modele.invites.isEmpty ? "Coche qui regarde avec toi : Séance cherche ce qui plaît à tous."
-                                            : "Idées pour toi et \(modele.invites.map(\.prenom).joined(separator: ", ")) : rien de ce que l'un de vous a vu ou écarté.")
+                                            : "Suggestions pour toi et \(modele.invites.map(\.prenom).joined(separator: ", ")) : rien de ce que l'un de vous a vu ou écarté.")
                     .font(.caption).foregroundStyle(.secondary)
             }
         }
@@ -329,7 +329,7 @@ struct SectionIdees: View {
                 let candidat = suggestion.candidat
                 try? gouts.aimer(reference, titre: titre.titre, cheminAffiche: titre.cheminAffiche, genres: titre.genres,
                                  acteursIDs: candidat.acteurs, acteurs: candidat.acteurs.compactMap { candidat.nomsActeurs[$0] })
-                etat.confirmer("Noté : tes idées en tiendront compte", symbole: "hand.thumbsup.fill")
+                etat.confirmer("Noté : tes suggestions en tiendront compte", symbole: "hand.thumbsup.fill")
             }
             return
         case .jeRegarde:
@@ -394,7 +394,7 @@ private struct CarteIdee: View {
                 BoutonIcone(symbole: "hand.thumbsdown", libelle: "Je n'aime pas", taille: 36,
                             explication: "Ne plus jamais proposer ce titre. Séance en tient compte pour tes goûts ; Réglages › Toi permet de tout reproposer.") { action(.jamais) }
                 BoutonIcone(symbole: "eye", libelle: "Déjà vu", taille: 36,
-                            explication: "Tu l'as déjà vu : il sort des idées et compte dans tes goûts, sans entrer dans tes statistiques.") { action(.dejaVu) }
+                            explication: "Tu l'as déjà vu : il sort des suggestions et compte dans tes goûts, sans entrer dans tes statistiques.") { action(.dejaVu) }
                 BoutonIcone(symbole: "clock.arrow.circlepath", libelle: "Pas ce soir", taille: 36,
                             explication: "L'écarter pour ce soir : il pourra revenir dès demain.") { action(.pasCeSoir) }
                 Button { action(.jeRegarde) } label: {

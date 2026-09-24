@@ -65,7 +65,7 @@ struct StatistiquesView: View {
                     if let record = bilan.recordEpisodes, record.nombreEpisodes > 1 {
                         carte("Ta plus grosse soirée", symbole: "flame.fill") {
                             HStack(alignment: .firstTextBaseline, spacing: 8) {
-                                Text("\(record.nombreEpisodes)").font(.system(size: 40, weight: .heavy, design: .rounded))
+                                Text("\(record.nombreEpisodes)").font(.system(.largeTitle, design: .rounded).weight(.heavy))
                                 Text("épisodes").font(.title3.weight(.semibold))
                                 Spacer()
                                 Text(Format.jour(record.jour)).font(.subheadline).foregroundStyle(.secondary)
@@ -276,7 +276,7 @@ private struct CarteHeures: View {
             HStack(alignment: .firstTextBaseline, spacing: 10) {
                 Text(Format.duree(bilan.minutesTotales))
                     .font(.system(.largeTitle, design: .rounded).weight(.heavy))
-                    .foregroundStyle(Theme.degradeAccent)
+                    .foregroundStyle(Theme.texte)
                 VStack(alignment: .leading, spacing: 0) {
                     Text("regardées \(periode)").font(.headline)
                     if let jours = Format.jours(bilan.minutesTotales) {
@@ -363,7 +363,7 @@ private struct GraphiqueMois: View {
         let barres = barres
         Chart(barres) { barre in
             BarMark(x: .value("Période", barre.libelle), y: .value("Heures", barre.heures))
-                .foregroundStyle(Theme.degradeAccent)
+                .foregroundStyle(Theme.texte)
                 .cornerRadius(4)
                 .accessibilityValue(Format.duree(Int(barre.heures * 60)))
         }

@@ -21,6 +21,8 @@ struct ReglagesTV: View {
     @Query private var fichiers: [FichierNAS]
     @State private var configuration = false
     @State private var quiRegarde = false
+    /// La ligne qui a le focus : l'aperçu de droite la décrit.
+    @FocusState private var focus: String?
     @State private var chemin: [ReglageTV] = DepartTV.reglage.flatMap { nom in
         ["cle": ReglageTV.cle, "plateformes": .plateformes, "tele": .tele, "nas": .nas, "videosPerso": .videosPerso,
          "lecture": .lecture, "gouts": .gouts, "aPropos": .aPropos, "versions": .versions][nom].map { [$0] }
@@ -30,79 +32,61 @@ struct ReglagesTV: View {
         NavigationStack(path: $chemin) {
             ScrollView {
                 VStack(alignment: .leading, spacing: 40) {
-                    heros
-                    // 7.0 : les groupes de la piste A de l'iPhone — Où regarder, Toi, La maison, L'app —, en grandes cartes
-                    // pour la télécommande, trois de front.
-                    VStack(alignment: .leading, spacing: 18) {
-                        Text("Où regarder").font(.system(size: 34, weight: .bold))
-                        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 36), count: 3), spacing: 36) {
-                            ForEach(Array(points.filter { $0.reglage != .cle }.enumerated()), id: \.offset) { rang, point in
-                                NavigationLink(value: point.reglage) {
-                                    CarteReglageTV(titre: point.titre, symbole: point.symbole, detail: point.detail, enOrdre: point.enOrdre, cheminAffiche: affiche(rang))
+                    // 8.0, charte commune : la liste groupée de l'iPhone — Où regarder, Toi, La maison, L'app —, et à droite
+                    // l'aperçu de la ligne choisie, comme les Réglages de tvOS.
+                    HStack(alignment: .top, spacing: 60) {
+                        VStack(alignment: .leading, spacing: 34) {
+                            groupe("Où regarder") {
+                                ForEach(points.filter { $0.reglage != .cle }, id: \.reglage) { point in
+                                    ligne(point.reglage, point.titre, point.valeur, point.enOrdre, symbole: point.symbole)
+                                        .focused($focus, equals: point.titre)
                                 }
-                                .buttonStyle(.card)
                             }
-                        }
-                    }
-                    .focusSection()
-                    VStack(alignment: .leading, spacing: 18) {
-                        Text("Toi").font(.system(size: 34, weight: .bold))
-                        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 36), count: 3), spacing: 36) {
-                            NavigationLink(value: ReglageTV.gouts) {
-                                CarteReglageTV(titre: "Tes goûts", symbole: "heart.fill",
-                                               detail: interets.isEmpty ? "Genres à choisir" : interets.map(\.libelle).sorted().joined(separator: ", "), enOrdre: nil, cheminAffiche: affiche(14))
-                            }
-                            .buttonStyle(.card)
-                            Button { Task { await etat.demanderEssaiAlerte() } } label: {
-                                CarteReglageTV(titre: "Tester une alerte", symbole: "bell.badge.fill",
-                                               detail: "Ton iPhone et ta montre préviennent, à la prochaine ouverture de Séance", enOrdre: nil, cheminAffiche: affiche(12))
-                            }
-                            .buttonStyle(.card)
-                            .disabled(!etat.nasPret)
-                        }
-                    }
-                    .focusSection()
-                    VStack(alignment: .leading, spacing: 18) {
-                        Text("La maison").font(.system(size: 34, weight: .bold))
-                        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 36), count: 3), spacing: 36) {
-                            Button { Task { await etat.synchroniser(contexte: contexte, bavard: true) } } label: {
-                                CarteReglageTV(titre: etat.synchroEnCours ? "Synchronisation…" : "Synchroniser maintenant", symbole: "arrow.triangle.2.circlepath",
-                                               detail: libelleSynchro, enOrdre: etat.nasPret && etat.erreurSynchro == nil && etat.derniereSynchro != nil, cheminAffiche: affiche(11))
-                            }
-                            .buttonStyle(.card)
-                            .disabled(etat.synchroEnCours)
-                            Button { configuration = true } label: {
-                                CarteReglageTV(titre: "Configurer depuis mon iPhone", symbole: "iphone.and.arrow.forward",
-                                               detail: "Un code ici, et tout arrive : clé, NAS, listes", enOrdre: nil, cheminAffiche: affiche(13))
-                            }
-                            .buttonStyle(.card)
-                            // Famille : changer de personne, ici aussi.
-                            Button { quiRegarde = true } label: {
-                                CarteReglageTV(titre: "Famille", symbole: "person.2.fill",
-                                               detail: "Qui regarde : \(QuiRegardeTV.nom(ConteneurTV.famille.actif)). " +
-                                                   (ConteneurTV.famille.aPlusieursProfils ? "Choisis une autre personne." : "Ajoute la famille sur ton iPhone."),
-                                               enOrdre: nil, cheminAffiche: affiche(16))
-                            }
-                            .buttonStyle(.card)
-                        }
-                    }
-                    .focusSection()
-                    VStack(alignment: .leading, spacing: 18) {
-                        Text("L'app").font(.system(size: 34, weight: .bold))
-                        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 36), count: 3), spacing: 36) {
-                            if let tmdb = points.first(where: { $0.reglage == .cle }) {
-                                NavigationLink(value: tmdb.reglage) {
-                                    CarteReglageTV(titre: tmdb.titre, symbole: tmdb.symbole, detail: tmdb.detail, enOrdre: tmdb.enOrdre, cheminAffiche: affiche(9))
+                            groupe("Toi") {
+                                ligne(.gouts, "Tes goûts", interets.isEmpty ? "À choisir" : "\(interets.count) genre\(interets.count > 1 ? "s" : "")", nil, symbole: "heart.fill")
+                                    .focused($focus, equals: "Tes goûts")
+                                Button { Task { await etat.demanderEssaiAlerte() } } label: {
+                                    LigneTVReglage.Contenu(titre: "Tester une alerte", detail: nil, symbole: "bell.badge.fill")
                                 }
-                                .buttonStyle(.card)
+                                .buttonStyle(LigneTV())
+                                .disabled(!etat.nasPret)
+                                .focused($focus, equals: "Tester une alerte")
                             }
-                            NavigationLink(value: ReglageTV.aPropos) {
-                                CarteReglageTV(titre: "À propos", symbole: "info.circle.fill", detail: "Version \(Self.version)", enOrdre: nil, cheminAffiche: affiche(15))
+                            groupe("La maison") {
+                                Button { Task { await etat.synchroniser(contexte: contexte, bavard: true) } } label: {
+                                    LigneTVReglage.Contenu(titre: etat.synchroEnCours ? "Synchronisation…" : "Synchroniser maintenant",
+                                                           detail: etat.derniereSynchro.map { $0.formatted(.relative(presentation: .named)) },
+                                                           symbole: "arrow.triangle.2.circlepath")
+                                }
+                                .buttonStyle(LigneTV())
+                                .disabled(etat.synchroEnCours)
+                                .focused($focus, equals: "Synchroniser maintenant")
+                                Button { configuration = true } label: {
+                                    LigneTVReglage.Contenu(titre: "Configurer depuis mon iPhone", detail: nil, symbole: "iphone.and.arrow.forward")
+                                }
+                                .buttonStyle(LigneTV())
+                                .focused($focus, equals: "Configurer depuis mon iPhone")
+                                Button { quiRegarde = true } label: {
+                                    LigneTVReglage.Contenu(titre: "Famille", detail: QuiRegardeTV.nom(ConteneurTV.famille.actif), symbole: "person.2.fill")
+                                }
+                                .buttonStyle(LigneTV())
+                                .focused($focus, equals: "Famille")
                             }
-                            .buttonStyle(.card)
+                            groupe("L'app") {
+                                if let tmdb = points.first(where: { $0.reglage == .cle }) {
+                                    ligne(tmdb.reglage, tmdb.titre, tmdb.valeur, tmdb.enOrdre, symbole: tmdb.symbole)
+                                        .focused($focus, equals: tmdb.titre)
+                                }
+                                ligne(.aPropos, "À propos", Self.version, nil, symbole: "info.circle.fill")
+                                    .focused($focus, equals: "À propos")
+                            }
                         }
+                        .frame(width: 800)
+                        .focusSection()
+                        apercu
+                            .frame(maxWidth: .infinity)
+                            .padding(.top, 60)
                     }
-                    .focusSection()
                 }
                 .frame(maxWidth: 1640, alignment: .leading)
                 .frame(maxWidth: .infinity)
@@ -129,16 +113,31 @@ struct ReglagesTV: View {
         let symbole: String
         let detail: String
         let enOrdre: Bool
+        /// La valeur courte, à droite de la ligne (maquette 8.0, n° 19) ; `detail` va dans l'aperçu.
+        var valeur = ""
     }
 
     private var points: [Point] {
-        [Point(reglage: .cle, titre: "TMDB", symbole: "film.stack", detail: etat.tmdb != nil ? "Fiches, affiches et plateformes" : "Les fiches et les affiches en viennent", enOrdre: etat.tmdb != nil),
+        [Point(reglage: .cle, titre: "TMDB", symbole: "film.stack", detail: etat.tmdb != nil ? "Fiches, affiches et plateformes" : "Les fiches et les affiches en viennent",
+               enOrdre: etat.tmdb != nil, valeur: etat.tmdb != nil ? "Clé enregistrée" : "À saisir"),
          Point(reglage: .plateformes, titre: "Plateformes", symbole: "play.tv.fill",
-               detail: abonnements.isEmpty ? "Pour savoir ce que tu peux regarder" : abonnements.map(\.nom).joined(separator: ", "), enOrdre: !abonnements.isEmpty),
-         Point(reglage: .tele, titre: "TV", symbole: "tv.fill", detail: chaines.isEmpty ? "Choisis tes chaînes" : "\(chaines.count) chaînes · \(libelleGuide)", enOrdre: !chaines.isEmpty),
-         Point(reglage: .nas, titre: "NAS", symbole: "externaldrive.fill", detail: etat.nasPret ? "\(etat.nas.hote) · partage « \(etat.nas.partage) »" : "Tes films déjà téléchargés", enOrdre: etat.nasPret),
-         Point(reglage: .videosPerso, titre: "Vidéos personnelles", symbole: "video.fill", detail: libelleVideos, enOrdre: !etat.videosPerso.aConfigurer(films: etat.nas)),
-         Point(reglage: .lecture, titre: "Lecture", symbole: "play.circle.fill", detail: "Séance (VLCKit) : tous les formats, dans l'app", enOrdre: true)]
+               detail: abonnements.isEmpty ? "Pour savoir ce que tu peux regarder" : abonnements.map { CarteLargeTV.nomCourt($0.nom) }.joined(separator: ", "),
+               enOrdre: !abonnements.isEmpty, valeur: abonnements.isEmpty ? "À choisir" : "\(abonnements.count)"),
+         Point(reglage: .tele, titre: "TV", symbole: "tv.fill", detail: chaines.isEmpty ? "Choisis tes chaînes" : "\(chaines.count) chaînes\n\(libelleGuide)",
+               enOrdre: !chaines.isEmpty, valeur: chaines.isEmpty ? "À choisir" : "\(chaines.count) chaînes"),
+         Point(reglage: .nas, titre: "NAS", symbole: "externaldrive.fill",
+               detail: etat.nasPret ? "\(etat.nas.hote) · partage « \(etat.nas.partage) »\n\(libelleBibliotheque)" : "Tes films déjà téléchargés",
+               enOrdre: etat.nasPret, valeur: etat.nasPret ? (etat.nas.dossiers.isEmpty ? etat.nas.partage : etat.nas.dossiers.joined(separator: ", ")) : "À configurer"),
+         Point(reglage: .videosPerso, titre: "Vidéos personnelles", symbole: "video.fill", detail: libelleVideos,
+               enOrdre: !etat.videosPerso.aConfigurer(films: etat.nas), valeur: etat.videosPerso.actif ? "\(etat.videosPerso.videos.count)" : "Désactivées"),
+         Point(reglage: .lecture, titre: "Lecture", symbole: "play.circle.fill", detail: "Séance (VLCKit) : tous les formats, dans l'app",
+               enOrdre: true, valeur: "Séance")]
+    }
+
+    /// « 7 titres, 9 vidéos », pour l'aperçu du NAS.
+    private var libelleBibliotheque: String {
+        let titres = Set(fichiers.compactMap(\.reference)).count
+        return "\(titres) titre\(titres > 1 ? "s" : ""), \(fichiers.count) vidéo\(fichiers.count > 1 ? "s" : "")"
     }
 
     private var affiches: [String] {
@@ -149,45 +148,52 @@ struct ReglagesTV: View {
         affiches.isEmpty ? nil : affiches[(rang * 7 + 3) % affiches.count]
     }
 
-    /// L'en-tête de la piste C : où en est Séance, et le geste du moment.
-    private var heros: some View {
-        let aRegler = points.filter { !$0.enOrdre }
-        return VStack(alignment: .leading, spacing: 18) {
-            Text(aRegler.isEmpty ? "Séance est prête" : "\(aRegler.count) réglage\(aRegler.count > 1 ? "s" : "") à compléter")
-                .font(.system(size: 58, weight: .heavy))
-            Text(aRegler.isEmpty ? "Tout est branché. Choisis une carte pour l'ouvrir." : "Les cartes orange restent à régler. Le plus simple : tout recevoir de ton iPhone, avec un code.")
-                .font(.system(size: 27)).foregroundStyle(.white.opacity(0.8))
-            HStack(spacing: 24) {
-                if let premier = aRegler.first {
-                    NavigationLink(value: premier.reglage) { Label("Régler : \(premier.titre)", systemImage: premier.symbole) }
-                        .buttonStyle(BoutonTV(principal: true))
-                }
-                Button { configuration = true } label: { Label("Configurer depuis mon iPhone", systemImage: "iphone.and.arrow.forward") }
-                    .buttonStyle(BoutonTV(principal: aRegler.isEmpty ? false : false))
-            }
-            HStack(spacing: 12) {
-                ForEach(Array(points.enumerated()), id: \.offset) { _, point in
-                    HStack(spacing: 8) {
-                        Circle().fill(point.enOrdre ? Color.green : Color.orange).frame(width: 14, height: 14)
-                        Text(point.titre).font(.system(size: 21, weight: .semibold))
-                    }
-                    .padding(.horizontal, 16).frame(height: 40)
-                    .background(.black.opacity(0.5), in: Capsule())
-                }
-            }
+    /// Un groupe de la liste : son titre en capitales, ses lignes sur une surface arrondie (maquette 8.0, n° 19).
+    private func groupe(_ titre: String, @ViewBuilder _ lignes: () -> some View) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(titre.uppercased()).font(.system(size: 22, weight: .bold)).foregroundStyle(Theme.texte2).padding(.leading, 8)
+            VStack(spacing: 2) { lignes() }
+                .padding(8)
+                .background(Theme.surface, in: RoundedRectangle(cornerRadius: 26, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: 26, style: .continuous).strokeBorder(Theme.trait, lineWidth: 1))
         }
-        .foregroundStyle(.white)
-        .padding(44)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background {
-            ZStack {
-                ImageTV(url: ImageTMDB.url(affiche(0), .afficheGrande), symboleVide: "").blur(radius: 30)
-                LinearGradient(colors: [.black.opacity(0.9), .black.opacity(0.6), Theme.accent.opacity(0.3)], startPoint: .leading, endPoint: .trailing)
-            }
-        }
-        .clipShape(RoundedRectangle(cornerRadius: 34, style: .continuous))
-        .focusSection()
     }
+
+    /// À droite, ce que la ligne choisie règle : son symbole en grand, son nom, son état.
+    private var apercu: some View {
+        let point = points.first { $0.titre == focus }
+        let symbole = point?.symbole ?? Self.symboles[focus ?? ""] ?? "gearshape.fill"
+        return VStack(spacing: 22) {
+            Image(systemName: symbole)
+                .font(.system(size: 120, weight: .semibold))
+                .foregroundStyle(Theme.accentClair)
+            Text(focus ?? "Réglages").font(.system(size: 44, weight: .heavy))
+            if let point {
+                Text(point.detail).font(.system(size: 26)).foregroundStyle(Theme.texte2).multilineTextAlignment(.center).frame(maxWidth: 620)
+                if !point.enOrdre {
+                    Label("À régler", systemImage: "exclamationmark.circle.fill")
+                        .font(.system(size: 24, weight: .semibold))
+                        .foregroundStyle(Theme.attention)
+                }
+            } else if let texte = Self.explications[focus ?? ""] {
+                Text(texte).font(.system(size: 26)).foregroundStyle(Theme.texte2).multilineTextAlignment(.center).frame(maxWidth: 620)
+            }
+        }
+        .animation(.easeOut(duration: 0.15), value: focus)
+    }
+
+    private static let symboles = ["Tes goûts": "heart.fill", "Tester une alerte": "bell.badge.fill", "Synchroniser maintenant": "arrow.triangle.2.circlepath",
+                                   "Configurer depuis mon iPhone": "iphone.and.arrow.forward", "Famille": "person.2.fill", "À propos": "info.circle.fill"]
+
+    /// Ce que dit l'aperçu des lignes qui ne sont pas des réglages à compléter.
+    private static let explications = [
+        "Tes goûts": "Les genres que tu aimes : ils orientent tes suggestions, ici comme sur ton iPhone.",
+        "Tester une alerte": "Ton iPhone préviendra à sa prochaine ouverture.",
+        "Synchroniser maintenant": "Par le dossier « Séance » du NAS : tes listes, tes notes et où tu en es arrivent des autres appareils.",
+        "Configurer depuis mon iPhone": "Un code à six chiffres ici, et la clé TMDB, le NAS et tes réglages arrivent de ton iPhone.",
+        "Famille": "Chacun ses listes et ses goûts : choisis qui regarde.",
+        "À propos": "La version de Séance sur cette Apple TV, et l'historique des versions.",
+    ]
 
     static var version: String { Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "—" }
 
@@ -236,31 +242,28 @@ extension LigneTVReglage where Accessoire == EmptyView {
         @Environment(\.isFocused) private var aLeFocus
 
         var body: some View {
+            // Maquette 8.0, n° 19 : l'icône dans un carré teinté, le nom, la valeur courte à droite, le point d'état, le chevron.
             HStack(spacing: 20) {
-                if let enOrdre {
-                    Image(systemName: enOrdre ? "checkmark.circle.fill" : "exclamationmark.circle.fill")
-                        .font(.system(size: 32)).foregroundStyle(enOrdre ? Color.green : Color.orange)
-                } else if let symbole {
-                    Image(systemName: symbole).font(.system(size: 30))
-                        .foregroundStyle(aLeFocus ? AnyShapeStyle(Color.black) : AnyShapeStyle(Theme.accentClair)).frame(width: 44)
+                if let symbole {
+                    Image(systemName: symbole).font(.system(size: 24, weight: .semibold))
+                        .foregroundStyle(Theme.accentClair)
+                        .frame(width: 50, height: 50)
+                        .background(Theme.accent.opacity(aLeFocus ? 0.22 : 0.16), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
                 }
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(titre).font(.system(size: 30, weight: .semibold))
-                    if let detail {
-                        Text(detail).font(.system(size: 23))
-                            .foregroundStyle(aLeFocus ? Color.black.opacity(0.65) : Color.white.opacity(0.65)).lineLimit(1)
-                    }
-                }
+                Text(titre).font(.system(size: 28, weight: .semibold)).lineLimit(1)
                 Spacer(minLength: 12)
-                if enOrdre == false {
-                    Text("À régler").font(.system(size: 24, weight: .bold)).foregroundStyle(Color.orange)
-                } else {
-                    Image(systemName: "chevron.right").font(.system(size: 26, weight: .bold)).opacity(0.45)
+                if let detail {
+                    Text(detail).font(.system(size: 22))
+                        .foregroundStyle(aLeFocus ? Color.black.opacity(0.6) : Theme.texte2).lineLimit(1)
                 }
+                if let enOrdre {
+                    Circle().fill(enOrdre ? Theme.vert : Theme.attention).frame(width: 12, height: 12)
+                }
+                Image(systemName: "chevron.right").font(.system(size: 22, weight: .bold)).opacity(0.45)
             }
             .foregroundStyle(aLeFocus ? .black : .white)
-            .padding(.horizontal, 24)
-            .frame(maxWidth: .infinity, minHeight: 88, alignment: .leading)
+            .padding(.horizontal, 20)
+            .frame(maxWidth: .infinity, minHeight: 76, alignment: .leading)
         }
     }
 }
@@ -399,7 +402,7 @@ private struct PageChainesTV: View {
     @Query(sort: \Chaine.nom) private var chaines: [Chaine]
 
     var body: some View {
-        PageTV(titre: "TV", sousTitre: "Les chaînes que tu reçois : leur programme alimente « Ce soir à la TV » et l'onglet TV.") {
+        PageTV(titre: "TV", sousTitre: "Les chaînes que tu reçois : leur programme alimente Regarder › TV.") {
             SectionTV(titre: "Tes chaînes") {
                 ForEach(chaines) { chaine in
                     LigneTVReglage(titre: chaine.nom.isEmpty ? chaine.identifiantGuide : chaine.nom,
@@ -488,14 +491,15 @@ private struct PageLectureTV: View {
     }
 }
 
-private struct PageGoutsTV: View {
+/// Tes goûts : ouverte depuis Réglages, ou depuis tes Préférences (8.0).
+struct PageGoutsTV: View {
     @Environment(EtatTV.self) private var etat
     @Environment(\.modelContext) private var contexte
     @Query private var interets: [Interet]
     @State private var genres: [Genre] = []
 
     var body: some View {
-        PageTV(titre: "Tes goûts", sousTitre: "Les genres que tu aimes : ils orientent les idées du soir, ici comme sur ton iPhone.") {
+        PageTV(titre: "Tes goûts", sousTitre: "Les genres que tu aimes : ils orientent tes suggestions, ici comme sur ton iPhone.") {
             SectionTV {
                 if genres.isEmpty {
                     LigneTVReglage(titre: etat.tmdb == nil ? "Il faut d'abord la clé TMDB" : "Lecture des genres…", symbole: "hourglass")

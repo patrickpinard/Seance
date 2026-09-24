@@ -44,11 +44,11 @@ final class TelecommandeTests: XCTestCase {
         return focusSur(textes)
     }
 
-    /// Le menu est en haut, et ses neuf entrées sont là (7.0 : la même barre que sur l'iPad).
+    /// Le menu est en haut, et ses six entrées sont là (8.0 : la même barre que sur l'iPhone, l'iPad et le Mac).
     func testLeMenuDuHaut() throws {
         lancer()
         XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 30), "Pas de barre d'onglets en haut")
-        for onglet in ["Préférences", "Accueil", "Ce soir", "Streaming", "TV", "NAS", "Mes listes", "Explorer", "Réglages"] {
+        for onglet in ["Préférences", "Accueil", "Regarder", "Mes listes", "Recherche", "Réglages"] {
             XCTAssertTrue(app.tabBars.buttons[onglet].exists, "« \(onglet) » absent du menu")
         }
         capture("tv-menu")
@@ -59,13 +59,18 @@ final class TelecommandeTests: XCTestCase {
     /// Le bouton de lecture en tête de fiche : « Lire » pour un seul accès, « Regarder… » quand il y en a plusieurs (6.3 : la
     /// démonstration a des abonnements, John Wick est sur le NAS et sur deux plateformes).
     private var boutonLecture: XCUIElement {
-        app.buttons.matching(NSPredicate(format: "label == 'Lire' OR label BEGINSWITH 'Regarder'")).firstMatch
+        app.buttons.matching(NSPredicate(format: "label == 'Lire' OR label BEGINSWITH 'Regarder' OR label BEGINSWITH 'Reprendre'")).firstMatch
     }
 
     func testDeLaFicheAuCastingPuisALActeur() throws {
         lancer(["SEANCE_TV_FICHE": "film:324552"])
         XCTAssertTrue(boutonLecture.waitForExistence(timeout: 30), "La fiche du film du NAS ne s'ouvre pas")
-        XCTAssertTrue(descendreJusqua(["Edward Norton", "Brad Pitt", "Helena Bonham Carter", "Meat Loaf", "Jared Leto"]), "La télécommande n'atteint pas le casting")
+        // Les bandes-annonces citent aussi les acteurs dans leur titre : on descend jusqu'à un visage du casting.
+        let visage = NSPredicate(format: "hasFocus == true AND NOT (label CONTAINS 'Trailer') AND (label CONTAINS 'Edward Norton' OR label CONTAINS 'Brad Pitt' OR label CONTAINS 'Helena Bonham Carter' OR label CONTAINS 'Meat Loaf' OR label CONTAINS 'Jared Leto')")
+        for _ in 0..<16 where !app.descendants(matching: .any).matching(visage).firstMatch.exists {
+            telecommande.press(.down); Thread.sleep(forTimeInterval: 0.6)
+        }
+        XCTAssertTrue(app.descendants(matching: .any).matching(visage).firstMatch.exists, "La télécommande n'atteint pas le casting")
         capture("tv-casting")
         telecommande.press(.select)
         XCTAssertTrue(app.buttons["Suivre"].waitForExistence(timeout: 15), "La fiche de l'acteur ne s'ouvre pas, ou ne propose pas de le suivre")
@@ -75,22 +80,22 @@ final class TelecommandeTests: XCTestCase {
         XCTAssertTrue(boutonLecture.waitForExistence(timeout: 10), "Retour ne ramène pas à la fiche")
     }
 
-    /// Les Réglages en grandes cartes : la première carte à régler s'ouvre, et Retour en revient.
+    /// Les Réglages en liste (8.0) : la première ligne à régler s'ouvre, et Retour en revient.
     func testLesReglagesSOuvrentEtSeReferment() throws {
         lancer(["SEANCE_TV_ONGLET": "reglages"])
-        XCTAssertTrue(app.staticTexts["Où regarder"].waitForExistence(timeout: 30))
+        XCTAssertTrue(app.staticTexts["OÙ REGARDER"].waitForExistence(timeout: 30))
         XCTAssertTrue(descendreJusqua(["Plateformes", "TV", "NAS"]), "La télécommande n'atteint pas les cartes des réglages")
         telecommande.press(.select)
-        XCTAssertFalse(app.staticTexts["Où regarder"].waitForExistence(timeout: 3), "La carte choisie n'ouvre rien")
+        XCTAssertFalse(app.staticTexts["OÙ REGARDER"].waitForExistence(timeout: 3), "La carte choisie n'ouvre rien")
         capture("tv-reglage-tmdb")
         telecommande.press(.menu)
-        XCTAssertTrue(app.staticTexts["Où regarder"].waitForExistence(timeout: 10), "Retour ne ramène pas aux Réglages")
+        XCTAssertTrue(app.staticTexts["OÙ REGARDER"].waitForExistence(timeout: 10), "Retour ne ramène pas aux Réglages")
     }
 
     /// Famille : « Qui regarde ? » à l'ouverture ; choisir Anne ouvre ses listes à elle, vides, pas celles du profil principal.
     func testQuiRegardeALOuverture() throws {
         lancer(["SEANCE_TV_FAMILLE": "Anne", "SEANCE_TV_ONGLET": "listes"])
-        XCTAssertTrue(app.staticTexts["Qui regarde ?"].waitForExistence(timeout: 30), "Pas de « Qui regarde ? » à l'ouverture avec deux profils")
+        XCTAssertTrue(app.staticTexts["Qui regarde ce soir ?"].waitForExistence(timeout: 30), "Pas de « Qui regarde ? » à l'ouverture avec deux profils")
         capture("tv-qui-regarde")
         for _ in 0..<3 where !focusSur(["Anne"]) { telecommande.press(.right); Thread.sleep(forTimeInterval: 0.6) }
         XCTAssertTrue(focusSur(["Anne"]), "La télécommande n'atteint pas le profil d'Anne")
@@ -102,24 +107,24 @@ final class TelecommandeTests: XCTestCase {
         capture("tv-listes-anne")
 
         // 6.1 : le prénom est un bouton. Du menu du haut, vers la gauche, la télécommande l'atteint et rouvre « Qui regarde ? ».
-        for _ in 0..<3 where !focusSur(["Mes listes", "Accueil", "Ce soir"]) { telecommande.press(.up); Thread.sleep(forTimeInterval: 0.6) }
+        for _ in 0..<3 where !focusSur(["Mes listes", "Accueil", "Regarder"]) { telecommande.press(.up); Thread.sleep(forTimeInterval: 0.6) }
         for _ in 0..<8 where !focusSur(["Qui regarde : Anne"]) { telecommande.press(.left); Thread.sleep(forTimeInterval: 0.6) }
         XCTAssertTrue(focusSur(["Qui regarde : Anne"]), "La télécommande n'atteint pas le prénom en haut à gauche")
         capture("tv-pastille-focus")
         telecommande.press(.select)
-        XCTAssertTrue(app.staticTexts["Qui regarde ?"].waitForExistence(timeout: 10), "Le prénom n'ouvre pas « Qui regarde ? »")
+        XCTAssertTrue(app.staticTexts["Qui regarde ce soir ?"].waitForExistence(timeout: 10), "Le prénom n'ouvre pas « Qui regarde ? »")
         capture("tv-qui-regarde-depuis-pastille")
     }
 
-    /// 6.2 : les vidéos personnelles en albums de souvenirs, rangés par année, comme sur l'iPhone.
+    /// 6.2 : les vidéos personnelles en albums de souvenirs, rangés par année, comme sur l'iPhone. 8.0 : dans Regarder ›
+    /// NAS, le rayon « Vidéos », sous Films · Séries · Documentaires.
     func testVideosPersonnellesEnAlbums() throws {
         lancer(["SEANCE_TV_ONGLET": "nas"])
-        // La tuile est en tête de la page NAS : on attend qu'elle soit là, puis on remonte jusqu'à elle si besoin.
-        XCTAssertTrue(app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS 'Vidéos personnelles'")).firstMatch
-            .waitForExistence(timeout: 30), "Pas de tuile « Vidéos personnelles » sur la page NAS")
-        for _ in 0..<4 where !focusSur(["Vidéos personnelles"]) { telecommande.press(.down); Thread.sleep(forTimeInterval: 0.6) }
-        for _ in 0..<4 where !focusSur(["Vidéos personnelles"]) { telecommande.press(.up); Thread.sleep(forTimeInterval: 0.6) }
-        XCTAssertTrue(focusSur(["Vidéos personnelles"]), "La télécommande n'atteint pas « Vidéos personnelles »")
+        let rayon = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Vidéos'")).firstMatch
+        XCTAssertTrue(rayon.waitForExistence(timeout: 30), "Pas de rayon « Vidéos » dans Regarder › NAS")
+        XCTAssertTrue(descendreJusqua(["Films", "Séries", "Documentaires", "Vidéos"], essais: 4), "La télécommande n'atteint pas les rayons")
+        for _ in 0..<5 where !focusSur(["Vidéos"]) { telecommande.press(.right); Thread.sleep(forTimeInterval: 0.6) }
+        XCTAssertTrue(focusSur(["Vidéos"]), "La télécommande n'atteint pas « Vidéos »")
         telecommande.press(.select)
         XCTAssertTrue(app.staticTexts["2026"].firstMatch.waitForExistence(timeout: 15), "Pas de section « 2026 »")
         XCTAssertTrue(app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS \"Vacances d'été\"")).firstMatch.exists,
@@ -155,7 +160,7 @@ final class TelecommandeTests: XCTestCase {
         // Le bouton de la rangée d'actions, pas celui de blue TV plus bas, qui commence aussi par « Regarder ».
         // La fiche ne pose pas toujours le focus au même endroit (elle change avec les passages TV du jour) :
         // on remonte vers le haut et on essaie, jusqu'à ce que le choix des sources s'ouvre.
-        let regarder = app.buttons.matching(NSPredicate(format: "label == 'Regarder…' OR label BEGINSWITH 'Regarder maintenant'")).firstMatch
+        let regarder = app.buttons.matching(NSPredicate(format: "label == 'Regarder' OR label == 'Regarder…' OR label BEGINSWITH 'Regarder maintenant'")).firstMatch
         XCTAssertTrue(regarder.waitForExistence(timeout: 30), "Pas de bouton « Regarder » sur la fiche")
         Thread.sleep(forTimeInterval: 2)
         // Trajet déterministe : on monte jusqu'au menu du haut, on redescend sur la rangée d'actions, puis on va à
@@ -174,5 +179,29 @@ final class TelecommandeTests: XCTestCase {
         capture("tv-choix-source")
         telecommande.press(.menu)
         XCTAssertFalse(app.staticTexts["Où veux-tu le lancer ?"].waitForExistence(timeout: 3), "Retour ne referme pas le choix de la source")
+    }
+
+    /// 8.0 : « Tout voir » en bout d'une étagère de l'accueil ouvre Regarder sur sa source (le NAS ou la TV).
+    func testToutVoirOuvreRegarderSurLeNAS() throws {
+        lancer(["SEANCE_TV_ONGLET": "accueil"])
+        // L'étagère est sous l'image de tête, et la tuile n'existe qu'une fois la rangée parcourue : on y va à la télécommande.
+        XCTAssertTrue(app.buttons["Voir la fiche"].waitForExistence(timeout: 20), "L'accueil ne se charge pas")
+        // Rangée par rangée : on descend, on va au bout à droite ; si ce n'est pas la tuile du NAS, on revient à gauche.
+        // La première rangée qui a une tuile « Tout voir » est celle du NAS (« Reprendre » n'en a pas).
+        let cible = ["Tout voir"]
+        for _ in 0..<8 where !focusSur(cible) {
+            telecommande.press(.down); Thread.sleep(forTimeInterval: 0.6)
+            for _ in 0..<6 where !focusSur(cible) { telecommande.press(.right); Thread.sleep(forTimeInterval: 0.4) }
+            if !focusSur(cible) { for _ in 0..<6 { telecommande.press(.left); Thread.sleep(forTimeInterval: 0.3) } }
+        }
+        XCTAssertTrue(focusSur(cible), "La tuile « Tout voir » ne prend pas le focus en bout de rangée")
+        capture("tout-voir-nas")
+        let versLeNAS = focusSur(["Nouveaux sur ton NAS"])
+        telecommande.press(.select)
+        // Le NAS montre ses rayons ; la TV, sa rangée de jours et « En ce moment ».
+        let attendu = versLeNAS ? app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Documentaires")).firstMatch
+                                : app.staticTexts["En ce moment"].firstMatch
+        XCTAssertTrue(attendu.waitForExistence(timeout: 10), "« Tout voir » n'ouvre pas Regarder sur la bonne source")
+        capture("regarder-nas")
     }
 }

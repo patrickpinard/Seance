@@ -1,6 +1,7 @@
 #if !targetEnvironment(macCatalyst)
 import SeanceKit
 import SeanceNAS
+import AVFoundation
 import MediaPlayer
 import SwiftUI
 import VLCKit
@@ -12,14 +13,16 @@ import VLCKit
 /// Sur le Mac, Séance garde AVFoundation : le binaire de VLCKit n'a pas de tranche Mac Catalyst. Infuse y prend le
 /// relais, et il y fonctionne.
 struct LecteurVLC: View {
-    let video: VideoPerso
-    let acces: ReglagesNAS
-    let motDePasse: String
-    /// Appelé quand même VLC n'y arrive pas : l'écran d'appel propose alors les apps extérieures.
-    var surEchec: (String) -> Void = { _ in }
+    /// 8.0 : le lecteur est posé par la racine, par-dessus l'app, pour pouvoir passer en image dans l'image.
+    let lecture: LectureEnCours
+    private var video: VideoPerso { lecture.video }
+    private var acces: ReglagesNAS { lecture.acces }
+    private var motDePasse: String { lecture.motDePasse }
 
-    @Environment(\.dismiss) private var fermer
+    @Environment(EtatApp.self) private var etat
     @State private var moteur = MoteurVLC()
+    /// La vidéo a repris où l'on s'était arrêté : « Depuis le début » reste proposé quelques secondes.
+    @State private var reprise: PositionLecture?
     @State private var relais: RelaisVideo?
     @State private var source: SourceVideoSMB?
     @State private var message: String?
@@ -76,20 +79,68 @@ struct LecteurVLC: View {
             }
         }
         .overlay(alignment: .bottom) { if commandesVisibles, message == nil { commandes } }
-        .overlay(alignment: .topLeading) {
+        // Deux boutons distincts (8.0) : la croix arrête la lecture ; « Continuer dans Séance » la passe en image
+        // dans l'image et rend la main à l'app, la vidéo continuant dans sa petite fenêtre.
+        .overlay(alignment: .top) {
             if commandesVisibles || message != nil {
-            Button { fermer() } label: {
-                Image(systemName: "xmark")
-                    .font(.headline)
-                    .foregroundStyle(.white)
-                    .padding(12)
-                    .background(.black.opacity(0.55), in: Circle())
-            }
-            .padding(.leading, 20)
-            .padding(.top, 24)
-            .accessibilityLabel("Fermer le lecteur")
+                HStack {
+                    Button { fermer() } label: {
+                        Image(systemName: "xmark")
+                            .font(.headline)
+                            .foregroundStyle(.white)
+                            .frame(width: 44, height: 44)
+                            .background(.black.opacity(0.55), in: Circle())
+                    }
+                    .accessibilityLabel("Fermer la lecture")
+                    Spacer()
+                    if message == nil, moteur.imageDisponible {
+                        Button { moteur.passerEnImage() } label: {
+                            Label("Continuer dans Séance", systemImage: "pip.enter")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(.white)
+                                .padding(.horizontal, 14)
+                                .frame(height: 44)
+                                .background(.black.opacity(0.55), in: Capsule())
+                        }
+                        .accessibilityHint("La vidéo continue dans une petite fenêtre pendant que tu navigues")
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 24)
             }
         }
+        .overlay(alignment: .bottom) {
+            if let reprise, message == nil {
+                Button {
+                    etat.nas.oublierPosition(video.chemin)
+                    moteur.allerA(0)
+                    self.reprise = nil
+                } label: {
+                    Label("Repris à \(PositionsLecture.horodatage(reprise.secondes)) · Depuis le début", systemImage: "gobackward")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.black)
+                        .padding(.horizontal, 16)
+                        .frame(height: 44)
+                        .background(.white, in: Capsule())
+                }
+                .padding(.bottom, commandesVisibles ? 190 : 40)
+                .transition(.opacity)
+            }
+        }
+        .task(id: moteur.enChargement) {
+            // « Depuis le début » reste proposé six secondes une fois la lecture partie.
+            guard reprise != nil, !moteur.enChargement else { return }
+            try? await Task.sleep(for: .seconds(6))
+            withAnimation { reprise = nil }
+        }
+        // Toutes les dix secondes : où l'on en est, pour « Reprendre » sur tous les appareils.
+        .task {
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(10))
+                noterPosition()
+            }
+        }
+        .onChange(of: moteur.enImage) { _, enImage in etat.lectureEnImage = enImage }
         // Commandes et croix s'effacent après trois secondes de lecture sans toucher (7.0) ; un toucher les ramène.
         .task(id: Minuterie(geste: dernierGeste, enLecture: moteur.enLecture && !moteur.enChargement && !panneau, visibles: commandesVisibles)) {
             guard commandesVisibles, !panneau, moteur.enLecture, !moteur.enChargement else { return }
@@ -108,7 +159,12 @@ struct LecteurVLC: View {
         }
         .statusBarHidden()
         .persistentSystemOverlays(commandesVisibles ? .automatic : .hidden)
-        .onAppear { OrientationLecture.ouvrir() }
+        .onAppear {
+            OrientationLecture.ouvrir()
+            // Un lecteur, pour iOS : le son sort même en silencieux, et l'image dans l'image est permise.
+            try? AVAudioSession.sharedInstance().setCategory(.playback, mode: .moviePlayback)
+            try? AVAudioSession.sharedInstance().setActive(true)
+        }
         .task { await ouvrir() }
         .onDisappear {
             OrientationLecture.fermer()
@@ -169,6 +225,10 @@ struct LecteurVLC: View {
     /// que si VLC n'arrive pas à ouvrir le partage lui-même.
     private func ouvrir() async {
         guard relais == nil, message == nil else { return }
+        if let position = etat.nas.positions.aReprendre(video.chemin) {
+            reprise = position
+            moteur.depart = position.secondes
+        }
         if let adresse = acces.url(chemin: video.chemin) {
             moteur.lire(adresse, options: [":smb-user=\(acces.utilisateur)", ":smb-pwd=\(motDePasse)", ":network-caching=3000"])
             if await moteur.demarre(dans: .seconds(12)) { return }
@@ -190,7 +250,7 @@ struct LecteurVLC: View {
         } catch {
             let texte = ErreurNAS.message(error)
             message = texte
-            surEchec(texte)
+            lecture.surEchec(texte)
             await nouvelle.fermer()
         }
     }
@@ -206,6 +266,18 @@ struct LecteurVLC: View {
         case "mpg", "mpeg": "video/mpeg"
         default: "application/octet-stream"
         }
+    }
+
+    /// Fermer : la lecture s'arrête, sa position est retenue.
+    private func fermer() {
+        noterPosition()
+        etat.lectureEnImage = false
+        etat.lecture = nil
+    }
+
+    private func noterPosition() {
+        guard moteur.duree > 0 else { return }
+        etat.nas.noterPosition(video.chemin, secondes: moteur.secondes, duree: moteur.duree)
     }
 
     private func ranger() async {
@@ -317,7 +389,7 @@ private struct VueVLC: UIViewRepresentable {
     let moteur: MoteurVLC
 
     func makeUIView(context: Context) -> UIView {
-        let vue = UIView()
+        let vue = VueImageDansLImage(moteur: moteur)
         vue.backgroundColor = .black
         vue.isUserInteractionEnabled = false
         moteur.attacher(a: vue)
@@ -339,6 +411,15 @@ final class MoteurVLC {
     private(set) var enChargement = true
     private(set) var position: Double = 0
     private(set) var tempsAffiche = "0:00"
+    /// Secondes depuis le début, et durée (0 tant qu'elle n'est pas connue) : la reprise les retient.
+    private(set) var secondes: Double = 0
+    private(set) var duree: Double = 0
+    /// Où reprendre, appliqué une fois la lecture partie.
+    var depart: Double?
+    /// L'image dans l'image (8.0) : prête quand VLC a donné sa fenêtre ; `enImage` quand elle est à l'écran.
+    private(set) var imageDisponible = false
+    private(set) var enImage = false
+    private var fenetreImage: (any VLCPictureInPictureWindowControlling)?
     /// Remplissage de la mémoire tampon, en pour cent, pour le sablier.
     private(set) var tampon: Double = 0
     private var delegue: DelegueMoteurVLC?
@@ -378,9 +459,42 @@ final class MoteurVLC {
                 self.enChargement = self.lecteur.state == .opening
                     || (!self.lecteur.isPlaying && self.lecteur.position == 0)
                 self.tempsAffiche = self.lecteur.time.stringValue
+                self.secondes = Double(self.lecteur.time.intValue) / 1000
+                self.duree = Double(self.lecteur.media?.length.intValue ?? 0) / 1000
+                if let depart = self.depart, self.duree > 0, self.lecteur.isPlaying {
+                    self.lecteur.time = VLCTime(int: Int32(depart * 1000))
+                    self.depart = nil
+                }
+                self.fenetreImage?.invalidatePlaybackState()
             }
         }
     }
+
+    // MARK: Image dans l'image
+
+    /// VLC donne sa fenêtre d'image dans l'image quand elle est prête.
+    func recevoir(_ fenetre: any VLCPictureInPictureWindowControlling) {
+        fenetreImage = fenetre
+        imageDisponible = true
+        fenetre.stateChangeEventHandler = { [weak self] commence in
+            Task { @MainActor in self?.enImage = commence }
+        }
+    }
+
+    func passerEnImage() {
+        fenetreImage?.startPictureInPicture()
+    }
+
+    // Ce que la fenêtre d'image dans l'image demande au lecteur.
+    func jouer() { lecteur.play(); enLecture = true }
+    func mettreEnPause() { lecteur.pause(); enLecture = false }
+    func deplacer(de millisecondes: Int64) {
+        lecteur.time = VLCTime(int: Int32(max(0, Int64(lecteur.time.intValue) + millisecondes)))
+    }
+    var longueurMs: Int64 { Int64(lecteur.media?.length.intValue ?? 0) }
+    var tempsMs: Int64 { Int64(lecteur.time.intValue) }
+    var deplacable: Bool { lecteur.isSeekable }
+    var joue: Bool { lecteur.isPlaying }
 
     func basculerLecture() {
         if lecteur.isPlaying { lecteur.pause() } else { lecteur.play() }
@@ -434,6 +548,58 @@ final class MoteurVLC {
         lecteur.stop()
         enLecture = false
     }
+}
+
+/// La vue où VLC dessine, capable d'image dans l'image (VLCKit 4) : elle donne à VLC de quoi piloter la lecture depuis
+/// la petite fenêtre, et reçoit la fenêtre quand elle est prête.
+private final class VueImageDansLImage: UIView, VLCPictureInPictureDrawable {
+    let moteur: MoteurVLC
+    private lazy var controleur = ControleurImage(moteur: moteur)
+
+    init(moteur: MoteurVLC) {
+        self.moteur = moteur
+        super.init(frame: .zero)
+    }
+
+    required init?(coder: NSCoder) { nil }
+
+    nonisolated func mediaController() -> any VLCPictureInPictureMediaControlling {
+        MainActor.assumeIsolated { controleur }
+    }
+
+    nonisolated func pictureInPictureReady() -> (((any VLCPictureInPictureWindowControlling)?) -> Void)? {
+        nonisolated(unsafe) let moteur = MainActor.assumeIsolated { self.moteur }
+        return { recue in
+            guard let recue else { return }
+            nonisolated(unsafe) let fenetre = recue
+            Task { @MainActor in moteur.recevoir(fenetre) }
+        }
+    }
+}
+
+/// Ce que la fenêtre d'image dans l'image demande : lecture, pause, avance, durée. Elle appelle sur le fil principal.
+private final class ControleurImage: NSObject, VLCPictureInPictureMediaControlling, @unchecked Sendable {
+    let moteur: MoteurVLC
+
+    init(moteur: MoteurVLC) {
+        self.moteur = moteur
+    }
+
+    private func surLeFilPrincipal<T: Sendable>(_ action: @MainActor () -> T) -> T {
+        if Thread.isMainThread { return MainActor.assumeIsolated(action) }
+        return DispatchQueue.main.sync { MainActor.assumeIsolated(action) }
+    }
+
+    func play() { surLeFilPrincipal { moteur.jouer() } }
+    func pause() { surLeFilPrincipal { moteur.mettreEnPause() } }
+    func seek(by offset: Int64, completion: @escaping () -> Void) {
+        surLeFilPrincipal { moteur.deplacer(de: offset) }
+        completion()
+    }
+    func mediaLength() -> Int64 { surLeFilPrincipal { moteur.longueurMs } }
+    func mediaTime() -> Int64 { surLeFilPrincipal { moteur.tempsMs } }
+    func isMediaSeekable() -> Bool { surLeFilPrincipal { moteur.deplacable } }
+    func isMediaPlaying() -> Bool { surLeFilPrincipal { moteur.joue } }
 }
 
 /// Reçoit de VLC l'avancement de la mémoire tampon.

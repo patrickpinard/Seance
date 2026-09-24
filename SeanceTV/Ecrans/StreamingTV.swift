@@ -3,31 +3,62 @@ import SeanceKit
 import SwiftData
 import SwiftUI
 
-/// Streaming sur la TV (7.0, maquette 1 du menu) : ce que tes abonnements proposent, et rien d'autre. D'abord les
-/// nouveautés de toutes tes plateformes, puis une étagère par plateforme.
-struct StreamingTV: View {
+/// Regarder › Streaming sur la TV (8.0) : ce que tes abonnements proposent, et rien d'autre. D'abord les nouveautés de
+/// toutes tes plateformes, puis une étagère par plateforme. Des sections : Regarder les empile dans sa page.
+struct SectionsStreamingTV: View {
     @Environment(EtatTV.self) private var etat
     @Query(filter: #Predicate<Abonnement> { $0.actif }, sort: \Abonnement.nom) private var abonnements: [Abonnement]
 
     @State private var toutes: [ApercuTV] = []
     @State private var parPlateforme: [Int: [ApercuTV]] = [:]
+    /// Maquette 8.0, n° 6 : les logos filtrent les plateformes ; `nil`, toutes.
+    @State private var plateforme: Int?
 
     var body: some View {
-        ScrollView {
-            LazyVStack(alignment: .leading, spacing: 50) {
+        VStack(alignment: .leading, spacing: 44) {
                 if abonnements.isEmpty {
                     VideTV(symbole: "play.rectangle.on.rectangle", titre: "Aucune plateforme cochée",
                            message: "Coche tes abonnements dans Réglages › Plateformes, sur cette TV ou sur ton iPhone : cette page montrera ce qu'ils proposent de nouveau.")
                 } else {
-                    etagere("Nouveau sur tes plateformes", abonnements.map(\.nom).joined(separator: ", "), toutes)
-                    ForEach(abonnements) { abonnement in
-                        etagere("Sur \(abonnement.nom)", "Sorties et nouveaux épisodes du mois", parPlateforme[abonnement.providerID] ?? [])
+                    logos
+                    if let plateforme, let abonnement = abonnements.first(where: { $0.providerID == plateforme }) {
+                        etagere("Nouveau sur \(CarteLargeTV.nomCourt(abonnement.nom))", "Sorties et nouveaux épisodes du mois",
+                                parPlateforme[plateforme] ?? [])
+                    } else {
+                        etagere("Nouveau sur tes plateformes", abonnements.map(\.nom).joined(separator: ", "), toutes)
+                        ForEach(abonnements) { abonnement in
+                            etagere("Sur \(CarteLargeTV.nomCourt(abonnement.nom))", "Sorties et nouveaux épisodes du mois",
+                                    parPlateforme[abonnement.providerID] ?? [])
+                        }
                     }
                 }
-            }
-            .padding(.vertical, 40)
         }
         .task(id: abonnements.map(\.providerID)) { await charger() }
+    }
+
+    /// Tout, puis un bouton par plateforme, son logo devant son nom.
+    private var logos: some View {
+        ScrollView(.horizontal) {
+            HStack(spacing: 14) {
+                Button("Tout") { plateforme = nil }
+                    .buttonStyle(BoutonTV(principal: plateforme == nil, hauteur: 60))
+                ForEach(abonnements) { abonnement in
+                    Button { plateforme = abonnement.providerID } label: {
+                        HStack(spacing: 12) {
+                            ImageTV(url: ImageTMDB.url(abonnement.cheminLogo, .logo), symboleVide: "play.tv")
+                                .frame(width: 38, height: 38)
+                                .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
+                            Text(CarteLargeTV.nomCourt(abonnement.nom))
+                        }
+                    }
+                    .buttonStyle(BoutonTV(principal: plateforme == abonnement.providerID, hauteur: 60))
+                }
+            }
+            .padding(.horizontal, MargesTV.bord)
+            .padding(.vertical, 12)
+        }
+        .scrollClipDisabled()
+        .focusSection()
     }
 
     @ViewBuilder
@@ -41,6 +72,7 @@ struct StreamingTV: View {
                                      largeur: CarteLargeTV.largeurGrille, reference: apercu.reference)
                     }
                     .buttonStyle(.card)
+                    .menuCarteTV(apercu.reference, titre: apercu.titre, cheminAffiche: apercu.cheminAffiche)
                 }
             }
         }

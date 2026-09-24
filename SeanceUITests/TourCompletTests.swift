@@ -19,20 +19,12 @@ final class TourCompletTests: XCTestCase {
 
     /// Barre d'onglets sur l'iPhone ; sur l'iPad, les onglets sont des boutons en haut ou des lignes de barre latérale.
     private func onglet(_ nom: String) {
-        let enBas = app.tabBars.buttons[nom].firstMatch
-        if enBas.exists { enBas.tap(); return }
-        let ligne = app.cells.matching(NSPredicate(format: "label == %@", nom)).firstMatch
-        if ligne.exists { ligne.tap() } else { app.buttons[nom].firstMatch.tap() }
+        app.aller(nom)
     }
 
     /// L'apparence d'origine.
     func testTourComplet() throws {
         try tour(apparence: "sombre", prefixe: "")
-    }
-
-    /// Le même tour en apparence claire : chaque page doit rester lisible.
-    func testTourEnClair() throws {
-        try tour(apparence: "clair", prefixe: "clair-")
     }
 
     /// Texte très agrandi (réglage d'accessibilité d'iOS) : les pages principales se capturent pour relecture.
@@ -82,7 +74,7 @@ final class TourCompletTests: XCTestCase {
 
         // Ce soir : la rangée de jours et les grandes cartes.
         onglet("Ce soir")
-        XCTAssertTrue(app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Ce soir, '")).firstMatch.waitForExistence(timeout: 10),
+        XCTAssertTrue(app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Aujourd'hui, ")).firstMatch.waitForExistence(timeout: 10),
                       "La rangée des soirées est absente")
         XCTAssertTrue(app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Reacher'")).firstMatch.waitForExistence(timeout: 10))
         XCTAssertTrue(app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Hier soir, Heat'")).firstMatch.waitForExistence(timeout: 8),
@@ -187,12 +179,6 @@ final class TourCompletTests: XCTestCase {
         lecture.tap()
         XCTAssertTrue(app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Séance (VLCKit)'")).firstMatch.waitForExistence(timeout: 10), "Le choix du lecteur est absent")
         capture("21-lecture")
-        app.navigationBars.buttons.firstMatch.tap()
-        let apparence = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Apparence'")).firstMatch
-        XCTAssertTrue(app.amener(apparence), "La tuile « Apparence » est absente")
-        apparence.tap()
-        XCTAssertTrue(app.buttons["Apparence Clair"].firstMatch.waitForExistence(timeout: 10))
-        capture("22-apparence")
         app.navigationBars.buttons.firstMatch.tap()
         app.navigationBars.buttons.firstMatch.tap()
 

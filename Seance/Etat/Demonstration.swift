@@ -206,6 +206,11 @@ enum Demonstration {
         fichier(films[4], dossier: "NEW", qualite: "1080p")
         for film in [films[0], films[2], films[5], films[8]] { fichier(film, dossier: "Films", qualite: "1080p") }
         for episode in 1...3 { fichier(nightAgent, dossier: "Séries", qualite: "1080p", episode: episode) }
+        // « Reprendre » (8.0) : un film entamé sur l'iPad, un épisode sur l'Apple TV.
+        var positions = PositionsLecture()
+        positions.noter("/Films/\(films[0].nom) (2014).mkv", secondes: 3_792, duree: 7_320, appareil: "iPad", le: .now.addingTimeInterval(-3_600))
+        positions.noter("/Séries/\(nightAgent.nom) S01E02.mkv", secondes: 1_260, duree: 2_880, appareil: "Apple TV", le: .now.addingTimeInterval(-86_400))
+        UserDefaults.standard.set(positions.encoder(), forKey: PositionsLecture.cle)
         contexte.sauver()
     }
 }

@@ -10,6 +10,13 @@ import SwiftUI
 final class ExplorerModele {
     /// À l'ouverture : en français ou en anglais, sur les plateformes cochées (puces retirables).
     var filtres = FiltresExplorer.parDefaut(avecPlateformes: true)
+
+    init() {}
+
+    /// Regarder (8.0) part de filtres vides, sur sa source.
+    init(filtres: FiltresExplorer) {
+        self.filtres = filtres
+    }
     private(set) var resultats: [TitreResume] = []
     /// Nombre annoncé par TMDB, avant les filtres de l'app.
     private(set) var total: Int?

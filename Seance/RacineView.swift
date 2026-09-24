@@ -27,8 +27,6 @@ struct RacineView: View {
         return true
     }
     @State private var onglet = OngletRacine.accueil
-    /// La source montrée par « Regarder », sur l'iPhone.
-    @State private var source = SourceRegarder.streaming
     @State private var survolConfirmation = false
     /// Spotlight se refait quand tes listes changent.
     @Query private var suivisPourSpotlight: [Suivi]
@@ -45,58 +43,26 @@ struct RacineView: View {
     }
 
     var body: some View {
-        // 7.0, maquette 1 du menu : les trois endroits où l'on regarde — Streaming, TV, NAS — ont leur entrée, entre
-        // « Ce soir » et « Mes listes ». Préférences passe au portrait en haut à gauche de chaque page, Réglages à la roue
-        // dentée, Explorer à la loupe. L'iPhone ne tient que quatre onglets et la loupe (au-delà, iOS en cache derrière
-        // « Autre ») : ses trois sources se partagent « Regarder ».
+        // 8.0, charte commune : trois onglets partout — Accueil, Regarder, Mes listes — et la loupe. Regarder réunit la
+        // soirée, le streaming, la TV et le NAS sous une rangée de jours. Le portrait (Préférences) et la roue dentée
+        // (Réglages) sont en haut de chaque page, sur tous les appareils.
         TabView(selection: $onglet) {
             Tab("Accueil", systemImage: "house.fill", value: .accueil) {
                 AccueilView()
             }
-            Tab("Ce soir", systemImage: "moon.stars", value: .ceSoir) {
-                CeSoirView()
+            Tab("Regarder", systemImage: "play.rectangle.on.rectangle.fill", value: .regarder) {
+                RegarderView()
             }
-            if classeTaille == .compact {
-                Tab("Regarder", systemImage: "play.tv", value: .regarder) {
-                    RegarderView(source: $source)
-                }
-            } else {
-                Tab("Streaming", systemImage: "play.rectangle.on.rectangle", value: .streaming) {
-                    PageSource(source: .streaming)
-                }
-                Tab("TV", systemImage: "tv", value: .tele) {
-                    PageSource(source: .tele)
-                }
-                Tab("NAS", systemImage: "externaldrive", value: .nas) {
-                    PageSource(source: .nas)
-                }
-            }
-            Tab("Mes listes", systemImage: "bookmark", value: .listes) {
+            Tab("Mes listes", systemImage: "bookmark.fill", value: .listes) {
                 MesListesView()
             }
-            // Sur l'iPhone, Réglages s'ouvre depuis les Préférences (le portrait).
-            if classeTaille != .compact {
-                // La roue dentée, dans le menu même, comme sur l'Apple TV. La barre du Mac n'affiche que le texte des
-                // onglets : l'entrée garde son nom, « Réglages ».
-                Tab("Réglages", systemImage: "gearshape", value: OngletRacine.reglages) {
-                    NavigationStack {
-                        ReglagesView()
-                            .destinationsTitres()
-                            .boutonBarreLaterale(reglages: false)
-                    }
-                }
-            }
-            Tab("Explorer", systemImage: "magnifyingglass", value: .explorer, role: .search) {
+            Tab("Recherche", systemImage: "magnifyingglass", value: .explorer, role: .search) {
                 ExplorerView()
             }
         }
-        // iPhone : barre d'onglets en bas. iPad : onglets en haut, barre latérale à la demande. Mac : le menu en haut, comme
-        // sur l'iPad et l'Apple TV (demande de Patrick, 20 septembre 2026) — plus de barre latérale.
-        #if targetEnvironment(macCatalyst)
+        // iPhone : barre d'onglets en bas. iPad et Mac : le menu en haut, comme sur l'Apple TV (charte 8.0) — plus de barre
+        // latérale : iPadOS la rouvrait d'une session à l'autre, par-dessus les onglets.
         .tabViewStyle(.tabBarOnly)
-        #else
-        .tabViewStyle(.sidebarAdaptable)
-        #endif
         // Confirmation d'une action, au-dessus de la barre d'onglets.
         #if targetEnvironment(macCatalyst)
         .allowsHitTesting(!survolConfirmation)
@@ -134,6 +100,34 @@ struct RacineView: View {
             }
         }
         #endif
+        #if DEBUG
+        // Captures et essais : SEANCE_ONGLET ouvre l'app sur une page (regarder, streaming, tele, nas, listes, recherche,
+        // reglages, preferences) ; SEANCE_JOUR décale la rangée de Regarder de quelques jours.
+        .task {
+            let env = ProcessInfo.processInfo.environment
+            defer {
+                if let decalage = env["SEANCE_JOUR"].flatMap(Int.init), decalage > 0 {
+                    etat.jourRegarder = Calendar.current.date(byAdding: .day, value: decalage,
+                                                              to: Calendar.current.startOfDay(for: ServiceSoiree.jour(ServiceSoiree.soiree()) ?? .now))
+                }
+            }
+            if let fiche = env["SEANCE_FICHE"]?.split(separator: ":"), fiche.count == 2,
+               let type = TypeTitre(rawValue: String(fiche[0])), let id = Int(fiche[1]) {
+                etat.ficheDemandee = ReferenceTitre(type: type, tmdbID: id)
+            }
+            switch env["SEANCE_ONGLET"] {
+            case "regarder": aller(a: .ceSoir)
+            case "streaming": aller(a: .streaming)
+            case "tele": aller(a: .tele)
+            case "nas": aller(a: .nas)
+            case "listes": onglet = .listes
+            case "recherche": onglet = .explorer
+            case "reglages": aller(a: .reglages)
+            case "preferences": aller(a: .profil)
+            default: break
+            }
+        }
+        #endif
         // Premier lancement : le parcours de bienvenue, sauf si Séance connaît déjà des goûts.
         .task {
             #if DEBUG
@@ -147,6 +141,20 @@ struct RacineView: View {
             }
         }
         .modifier(FeuillesDeLApp())
+        #if !targetEnvironment(macCatalyst)
+        // Le lecteur (8.0), par-dessus l'app et non en feuille : en image dans l'image, il s'efface sans s'arrêter.
+        .overlay {
+            if let lecture = etat.lecture {
+                LecteurVLC(lecture: lecture)
+                    .id(lecture.id)
+                    .opacity(etat.lectureEnImage ? 0 : 1)
+                    .allowsHitTesting(!etat.lectureEnImage)
+                    .transition(.move(edge: .bottom))
+            }
+        }
+        .animation(.snappy, value: etat.lecture?.id)
+        .animation(.easeOut(duration: 0.2), value: etat.lectureEnImage)
+        #endif
         .modifier(ReceptionEtSynchro())
         .fullScreenCover(isPresented: $quiRegarde) {
             QuiRegardeView { profil in
@@ -163,6 +171,7 @@ struct RacineView: View {
         }
         // Relancé quand la clé TMDB arrive : sans elle, rien ne peut être rattaché.
         .task(id: etat.tmdb == nil) {
+            etat.nas.relirePositions()
             // Le magasin s'est ouvert par la voie de secours : à savoir, même si rien n'est perdu.
             if let erreur = EntrepotSeance.derniereErreurDuPlan {
                 etat.journal.noter(.general, "Le plan de migration des données n'a pas pu s'appliquer : le magasin a été ouvert par la migration automatique.",
@@ -218,20 +227,6 @@ struct RacineView: View {
             etat.ongletDemande = nil
             aller(a: demande)
         }
-        // Fenêtre rétrécie ou élargie (iPad) : les sources passent d'un onglet chacune à « Regarder », et inversement.
-        .onChange(of: classeTaille) { _, classe in
-            if classe == .compact {
-                switch onglet {
-                case .streaming: source = .streaming; onglet = .regarder
-                case .tele: source = .tele; onglet = .regarder
-                case .nas: source = .nas; onglet = .regarder
-                case .reglages: onglet = .accueil; etat.reglagesOuverts = true
-                default: break
-                }
-            } else if onglet == .regarder {
-                onglet = source.onglet
-            }
-        }
         // « Dans Explorer » depuis une fiche acteur.
         .onChange(of: etat.filtreExplorerDemande) { _, demande in
             if demande != nil { onglet = .explorer }
@@ -256,7 +251,7 @@ struct RacineView: View {
             }
             switch LienProfond.onglet(url) {
             case .ceSoir:
-                onglet = .ceSoir
+                aller(a: .ceSoir)
                 return
             case .aVenir:
                 etat.listeDemandee = .aVenir
@@ -274,22 +269,24 @@ struct RacineView: View {
         }
     }
 
-    /// Un onglet demandé d'ailleurs : sur l'iPhone, une source ouvre « Regarder » sur elle, Réglages et Préférences la
-    /// feuille des Préférences.
+    /// Un onglet demandé d'ailleurs : Ce soir et les sources ouvrent Regarder sur elles ; Réglages et Préférences, leur
+    /// feuille (8.0 : plus d'onglet Réglages, la roue dentée de chaque page).
     private func aller(a demande: OngletRacine) {
-        let compact = classeTaille == .compact
         // Toute demande referme d'abord les feuilles ouvertes par le haut de page.
         etat.preferencesOuvertes = false
         etat.reglagesOuverts = false
         switch demande {
         case .profil:
             etat.preferencesOuvertes = true
-        case .reglages where compact:
+        case .reglages:
             etat.reglagesOuverts = true
-        case .streaming where compact: source = .streaming; onglet = .regarder
-        case .tele where compact: source = .tele; onglet = .regarder
-        case .nas where compact: source = .nas; onglet = .regarder
-        case .regarder where !compact: onglet = source.onglet
+        case .ceSoir:
+            etat.sourceRegarder = .tout
+            etat.jourRegarder = nil
+            onglet = .regarder
+        case .streaming: etat.sourceRegarder = .streaming; onglet = .regarder
+        case .tele: etat.sourceRegarder = .tele; onglet = .regarder
+        case .nas: etat.sourceRegarder = .nas; onglet = .regarder
         default:
             onglet = demande
         }
@@ -325,50 +322,72 @@ private struct FeuillesDeLApp: ViewModifier {
             .sheet(isPresented: Binding { etat.reglagesOuverts } set: { etat.reglagesOuverts = $0 }) {
                 FeuilleReglages()
             }
-            #if !targetEnvironment(macCatalyst)
-            .fullScreenCover(item: Binding { etat.filmALire } set: { etat.filmALire = $0 }) { fichier in
-                LecteurVLC(video: VideoPerso(chemin: fichier.chemin, taille: fichier.tailleOctets),
-                           acces: etat.nas.reglages, motDePasse: etat.nas.motDePasse ?? "")
-            }
-            #endif
+
     }
 }
 
 enum OngletRacine: Hashable {
-    /// `profil` n'est plus un onglet (7.0) : le demander ouvre la feuille des Préférences. `regarder` n'existe que sur
-    /// l'iPhone, `streaming`, `tele` et `nas` ailleurs.
+    /// Trois onglets et la recherche (8.0) : `accueil`, `regarder`, `listes`, `explorer`. Les autres valeurs sont des
+    /// demandes : `ceSoir`, `streaming`, `tele`, `nas` ouvrent Regarder sur leur source, `profil` et `reglages` leur feuille.
     case accueil, ceSoir, streaming, tele, nas, regarder, listes, profil, reglages, explorer
 }
 
 /// Destination commune : toucher une affiche ouvre sa fiche (UX-10).
 extension View {
     func destinationsTitres() -> some View {
+        // Charte 8.0 : la roue des réglages en haut à droite de chaque page, y compris celles qu'on ouvre d'une autre.
         navigationDestination(for: ReferenceTitre.self) { reference in
-            FicheView(reference: reference)
+            FicheView(reference: reference).boutonBarreLaterale(preferences: false)
         }
         .navigationDestination(for: ReferencePersonne.self) { personne in
-            PersonneView(personne: personne)
+            PersonneView(personne: personne).boutonBarreLaterale(preferences: false)
         }
         .navigationDestination(for: DestinationReglage.self) { destination in
             PageReglage(destination: destination)
         }
         .navigationDestination(for: DossierVideosPerso.self) { dossier in
-            VideosPersoView(dossier: dossier)
+            VideosPersoView(dossier: dossier).boutonBarreLaterale(preferences: false)
         }
     }
 }
 
-/// Les Réglages en feuille, sur l'iPhone : leur pile, les pages de réglage déclarées à sa racine.
+/// Les Réglages en feuille, ouverts par la roue dentée de chaque page (8.0). Sur l'iPhone, une pile ; sur l'iPad et le
+/// Mac, deux colonnes — la liste à gauche, la page choisie à droite — pour régler sans aller-retour.
 private struct FeuilleReglages: View {
     @Environment(\.dismiss) private var fermer
+    @Environment(\.horizontalSizeClass) private var classe
 
     var body: some View {
-        NavigationStack {
-            ReglagesView()
-                .destinationsTitres()
-                .toolbar {
-                    ToolbarItem(placement: .confirmationAction) { Button("OK") { fermer() } }
+        Group {
+            if classe == .regular {
+                NavigationSplitView {
+                    ReglagesView()
+                        .destinationsTitres()
+                        .toolbar {
+                            ToolbarItem(placement: .confirmationAction) { Button("OK") { fermer() } }
+                        }
+                        .navigationSplitViewColumnWidth(min: 380, ideal: 440, max: 500)
+                } detail: {
+                    NavigationStack {
+                        EtatVide(symbole: "gearshape", titre: "Réglages", message: "Choisis un réglage dans la liste.")
+                            .frame(maxWidth: 440)
+                            .padding(24)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .background(Theme.fond)
+                            .destinationsTitres()
+                    }
                 }
+                .navigationSplitViewStyle(.balanced)
+            } else {
+                NavigationStack {
+                    ReglagesView()
+                        .destinationsTitres()
+                        .toolbar {
+                            ToolbarItem(placement: .confirmationAction) { Button("OK") { fermer() } }
+                        }
+                }
+            }
         }
+        .presentationSizing(.page)
     }
 }
