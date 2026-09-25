@@ -33,14 +33,18 @@ final class IPadTests: XCTestCase {
         for onglet in ["Accueil", "Regarder", "Mes listes"] {
             XCTAssertTrue(app.buttons[onglet].firstMatch.exists, "« \(onglet) » absent du menu en \(nom)")
         }
-        XCTAssertEqual(app.buttons.matching(identifier: "reglages").count, 1, "Pas exactement une roue dentée en \(nom)")
+        // 25.09.2026 : Préférences et Réglages sont des onglets du menu ; plus de portrait ni de roue dans les pages.
+        for onglet in ["Préférences", "Réglages"] {
+            XCTAssertTrue(app.buttons[onglet].firstMatch.exists, "« \(onglet) » absent du menu en \(nom)")
+        }
+        XCTAssertEqual(app.buttons.matching(identifier: "reglages").count, 0, "Une roue dentée double l'onglet Réglages en \(nom)")
         // Rien ne recouvre la page : pas de barre latérale ouverte d'office.
         XCTAssertFalse(app.cells.containing(.staticText, identifier: "Mes listes").firstMatch.exists,
                        "Une barre latérale recouvre la page en \(nom)")
         // Regarder et ses pastilles, puis la page NAS : toujours une seule roue dentée (deux en 7.0 sur l'iPad).
         app.aller("NAS")
         XCTAssertTrue(app.buttons["NAS"].firstMatch.waitForExistence(timeout: 8), "Pas de pastille NAS dans Regarder")
-        XCTAssertEqual(app.buttons.matching(identifier: "reglages").count, 1, "Deux roues dentées sur la page NAS en \(nom)")
+        XCTAssertEqual(app.buttons.matching(identifier: "reglages").count, 0, "Une roue dentée sur la page NAS en \(nom)")
         capture("ipad-\(nom)-nas")
         app.ouvrirReglages()
         XCTAssertTrue(app.staticTexts["La maison"].firstMatch.waitForExistence(timeout: 8), "Réglages ne s'ouvre pas en \(nom)")

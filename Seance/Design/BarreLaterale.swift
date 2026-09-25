@@ -159,6 +159,8 @@ private struct PastilleQuiRegardeModifier: ViewModifier {
     let preferences: Bool
     let reglages: Bool
     @Environment(EtatApp.self) private var etat
+    /// iPad et Mac : Préférences et Réglages sont des onglets du menu ; le portrait et la roue ne les doublent pas.
+    @Environment(\.horizontalSizeClass) private var classeTaille
 
     private var nom: String? {
         QuiRegardeActuel.nom ?? Prenom.lire()
@@ -167,7 +169,7 @@ private struct PastilleQuiRegardeModifier: ViewModifier {
     func body(content: Content) -> some View {
         content
             .toolbar {
-                if preferences {
+                if preferences, classeTaille != .regular {
                     ToolbarItem(placement: .topBarLeading) {
                         // Pas un `Label` : dans la barre d'iOS 26, il se réduit à son icône et le prénom disparaît.
                         Button { etat.preferencesOuvertes = true } label: {
@@ -184,7 +186,7 @@ private struct PastilleQuiRegardeModifier: ViewModifier {
                         .accessibilityIdentifier("preferences")
                     }
                 }
-                if reglages {
+                if reglages, classeTaille != .regular {
                     ToolbarItem(placement: .topBarTrailing) {
                         Button { etat.ongletDemande = .reglages } label: {
                             Image(systemName: "gearshape")

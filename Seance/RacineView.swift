@@ -56,6 +56,21 @@ struct RacineView: View {
             Tab("Mes listes", systemImage: "bookmark.fill", value: .listes) {
                 MesListesView()
             }
+            // iPad et Mac (demande de Patrick, 25 septembre 2026) : Préférences et Réglages sont des onglets du menu, en
+            // pages complètes. L'iPhone, dont la barre du bas ne tient que cinq onglets, garde le portrait et la roue.
+            // Des icônes seules, comme sur l'Apple TV : en mots, l'iPad en portrait les repoussait derrière une flèche.
+            if classeTaille == .regular {
+                Tab(value: .profil) {
+                    ProfilView()
+                } label: {
+                    Label("Préférences", systemImage: "person.crop.circle").labelStyle(.iconOnly)
+                }
+                Tab(value: .reglages) {
+                    FeuilleReglages(enFeuille: false)
+                } label: {
+                    Label("Réglages", systemImage: "gearshape").labelStyle(.iconOnly)
+                }
+            }
             Tab("Recherche", systemImage: "magnifyingglass", value: .explorer, role: .search) {
                 ExplorerView()
             }
@@ -84,6 +99,14 @@ struct RacineView: View {
         .modifier(SablierOuverture.Calque())
         .tint(Theme.accent)
         .task { await etat.chargerGenres() }
+        // L'iPad passe en largeur compacte (écran partagé) : les onglets Préférences et Réglages disparaissent, la page
+        // ouverte revient en feuille.
+        .onChange(of: classeTaille) { _, classe in
+            guard classe == .compact, onglet == .profil || onglet == .reglages else { return }
+            let ouvert = onglet
+            onglet = .accueil
+            aller(a: ouvert)
+        }
         // Le contrôleur d'onglets n'existe qu'une fois la fenêtre montée, et prend ses dimensions avec un temps de retard.
         .task { await BarreLaterale.ouvrirSurIPadDesQuePossible() }
         // Lancé en portrait puis tourné : la barre s'ouvre quand la fenêtre s'élargit.
@@ -270,12 +293,14 @@ struct RacineView: View {
     }
 
     /// Un onglet demandé d'ailleurs : Ce soir et les sources ouvrent Regarder sur elles ; Réglages et Préférences, leur
-    /// feuille (8.0 : plus d'onglet Réglages, la roue dentée de chaque page).
+    /// onglet sur l'iPad et le Mac, leur feuille sur l'iPhone.
     private func aller(a demande: OngletRacine) {
         // Toute demande referme d'abord les feuilles ouvertes par le haut de page.
         etat.preferencesOuvertes = false
         etat.reglagesOuverts = false
         switch demande {
+        case .profil where classeTaille == .regular, .reglages where classeTaille == .regular:
+            onglet = demande
         case .profil:
             etat.preferencesOuvertes = true
         case .reglages:
@@ -354,6 +379,8 @@ extension View {
 /// Les Réglages en feuille, ouverts par la roue dentée de chaque page (8.0). Sur l'iPhone, une pile ; sur l'iPad et le
 /// Mac, deux colonnes — la liste à gauche, la page choisie à droite — pour régler sans aller-retour.
 private struct FeuilleReglages: View {
+    /// `false` : l'onglet Réglages de l'iPad et du Mac, une page complète sans « OK ».
+    var enFeuille = true
     @Environment(\.dismiss) private var fermer
     @Environment(\.horizontalSizeClass) private var classe
 
@@ -364,7 +391,7 @@ private struct FeuilleReglages: View {
                     ReglagesView()
                         .destinationsTitres()
                         .toolbar {
-                            ToolbarItem(placement: .confirmationAction) { Button("OK") { fermer() } }
+                            if enFeuille { ToolbarItem(placement: .confirmationAction) { Button("OK") { fermer() } } }
                         }
                         .navigationSplitViewColumnWidth(min: 380, ideal: 440, max: 500)
                 } detail: {
@@ -383,7 +410,7 @@ private struct FeuilleReglages: View {
                     ReglagesView()
                         .destinationsTitres()
                         .toolbar {
-                            ToolbarItem(placement: .confirmationAction) { Button("OK") { fermer() } }
+                            if enFeuille { ToolbarItem(placement: .confirmationAction) { Button("OK") { fermer() } } }
                         }
                 }
             }

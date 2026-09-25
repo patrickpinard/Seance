@@ -35,17 +35,27 @@ extension XCUIApplication {
         return element.exists && element.isHittable
     }
 
-    /// Les Préférences (7.0) : le portrait en haut à gauche de chaque page, qui les ouvre en feuille.
+    /// Vrai sur l'iPad (et le Mac) : Préférences et Réglages y sont des onglets du menu (8.0).
+    @MainActor
+    var ongletsPreferences: Bool {
+        // Sur l'iPhone, la roue est là ; sur l'iPad, pas de roue, mais un onglet « Réglages » dans le menu du haut.
+        if buttons["reglages"].firstMatch.waitForExistence(timeout: 8) { return false }
+        return buttons["Réglages"].firstMatch.exists
+    }
+
+    /// Les Préférences : le portrait en haut à gauche sur l'iPhone, qui les ouvre en feuille ; un onglet sur l'iPad.
     @MainActor
     func ouvrirPreferences() {
+        if ongletsPreferences { return onglet("Préférences") }
         let portrait = buttons["preferences"].firstMatch
         _ = portrait.waitForExistence(timeout: 20)
         portrait.tap()
     }
 
-    /// Réglages (7.0) : la roue dentée en haut à droite de chaque page ; en feuille sur l'iPhone, en onglet sur l'iPad.
+    /// Réglages : la roue dentée en haut à droite sur l'iPhone, en feuille ; un onglet sur l'iPad.
     @MainActor
     func ouvrirReglages() {
+        if ongletsPreferences { return onglet("Réglages") }
         let roue = buttons["reglages"].firstMatch
         _ = roue.waitForExistence(timeout: 20)
         roue.tap()
@@ -94,6 +104,10 @@ extension XCUIApplication {
     /// Referme la feuille des Préférences ou des Réglages, en remontant d'abord les pages ouvertes dedans.
     @MainActor
     func fermerPreferences() {
+        // Sur l'iPad, ce sont des onglets : on revient à l'accueil.
+        if !buttons["reglages"].firstMatch.exists, buttons["Réglages"].firstMatch.exists, !navigationBars.buttons["OK"].firstMatch.exists {
+            return onglet("Accueil")
+        }
         for _ in 0..<5 {
             let ok = navigationBars.buttons["OK"].firstMatch
             if ok.waitForExistence(timeout: 2) { ok.tap(); return }

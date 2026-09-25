@@ -89,6 +89,8 @@ struct SoireeView: View {
 
     /// Grandes cartes : une colonne sur l'iPhone, deux ou trois sur le Mac.
     private static let colonnesCartes = CarteLargeTitre.colonnes
+    /// Des rangées de 340 points au moins : une colonne sur l'iPhone, deux à quatre sur l'iPad et le Mac.
+    private static let colonnesListe = [GridItem(.adaptive(minimum: 340, maximum: 560), spacing: 12, alignment: .top)]
 
     private var contenu: some View {
         ScrollView {
@@ -118,16 +120,20 @@ struct SoireeView: View {
                     .foregroundStyle(.secondary)
             }
 
-            if ceSoirAffiche {
-                ForEach(enAttente) { titre in
-                    CarteSoireePassee(titre: titre, decor: etat.decors.decor(titre.reference)) {
-                        Task { await marquerVu(titre) }
-                    } ceSoir: {
-                        deplacer(titre, vers: nil)
-                    } retirer: {
-                        retirer(titre)
+            // Les soirs passés à confirmer : en grille, pour occuper la largeur de l'iPad et du Mac (une colonne sur
+            // l'iPhone).
+            if ceSoirAffiche, !enAttente.isEmpty {
+                EnTeteSection("Tu les as regardés ?")
+                LazyVGrid(columns: Self.colonnesListe, alignment: .leading, spacing: 12) {
+                    ForEach(enAttente) { titre in
+                        CarteSoireePassee(titre: titre, decor: etat.decors.decor(titre.reference)) {
+                            Task { await marquerVu(titre) }
+                        } ceSoir: {
+                            deplacer(titre, vers: nil)
+                        } retirer: {
+                            retirer(titre)
+                        }
                     }
-                    .frame(maxWidth: 560)
                 }
             }
 
@@ -217,6 +223,7 @@ struct SoireeView: View {
         if !liste.isEmpty {
             VStack(alignment: .leading, spacing: 10) {
                 EnTeteSection(ceSoirAffiche ? "Aussi ce soir" : "Ce jour-là")
+                LazyVGrid(columns: Self.colonnesListe, alignment: .leading, spacing: 10) {
                 ForEach(liste) { echeance in
                     NavigationLink(value: echeance.reference) {
                         HStack(spacing: 12) {
@@ -233,7 +240,7 @@ struct SoireeView: View {
                         .background(Theme.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                     }
                     .buttonStyle(.plain)
-                    .frame(maxWidth: 720)
+                }
                 }
             }
         }
@@ -348,7 +355,6 @@ struct SoireeView: View {
         .padding(.vertical, 48)
         .padding(.horizontal, 20)
         .background(Theme.surface, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
-        .frame(maxWidth: 720)
     }
 
     /// « Surprends-moi » : un titre tiré au sort parmi ceux de ta liste qui sont regardables ce soir-là.
