@@ -511,6 +511,7 @@ struct CarteLargeNAS: View {
         if let reference = oeuvre.reference {
             NavigationLink(value: reference) { carte }
                 .buttonStyle(.plain)
+                .menuSoiree(TitreChoisi(reference: reference, titre: oeuvre.titre, cheminAffiche: oeuvre.cheminAffiche))
         } else {
             carte
         }

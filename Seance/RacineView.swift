@@ -58,17 +58,18 @@ struct RacineView: View {
             }
             // iPad et Mac (demande de Patrick, 25 septembre 2026) : Préférences et Réglages sont des onglets du menu, en
             // pages complètes. L'iPhone, dont la barre du bas ne tient que cinq onglets, garde le portrait et la roue.
-            // Des icônes seules, comme sur l'Apple TV : en mots, l'iPad en portrait les repoussait derrière une flèche.
+            // Des icônes seules sur l'iPad, comme sur l'Apple TV (en mots, le portrait les repoussait derrière une flèche) ;
+            // des mots sur le Mac, dont le menu n'affiche pas d'icônes — les onglets y restaient vides.
             if classeTaille == .regular {
                 Tab(value: .profil) {
                     ProfilView()
                 } label: {
-                    Label("Préférences", systemImage: "person.crop.circle").labelStyle(.iconOnly)
+                    Self.etiquette("Préférences", "person.crop.circle")
                 }
                 Tab(value: .reglages) {
                     FeuilleReglages(enFeuille: false)
                 } label: {
-                    Label("Réglages", systemImage: "gearshape").labelStyle(.iconOnly)
+                    Self.etiquette("Réglages", "gearshape")
                 }
             }
             Tab("Recherche", systemImage: "magnifyingglass", value: .explorer, role: .search) {
@@ -292,6 +293,16 @@ struct RacineView: View {
         }
     }
 
+    /// Icône seule sur l'iPad, mot seul sur le Mac (onglets Préférences et Réglages).
+    @ViewBuilder
+    private static func etiquette(_ nom: String, _ symbole: String) -> some View {
+        #if targetEnvironment(macCatalyst)
+        Text(nom)
+        #else
+        Label(nom, systemImage: symbole).labelStyle(.iconOnly)
+        #endif
+    }
+
     /// Un onglet demandé d'ailleurs : Ce soir et les sources ouvrent Regarder sur elles ; Réglages et Préférences, leur
     /// onglet sur l'iPad et le Mac, leur feuille sur l'iPhone.
     private func aller(a demande: OngletRacine) {
@@ -386,7 +397,9 @@ private struct FeuilleReglages: View {
 
     var body: some View {
         Group {
-            if classe == .regular {
+            // En feuille sur un grand écran : deux colonnes. En onglet (iPad, Mac), une seule pile pleine page : deux colonnes
+            // dans un onglet font se replier le menu du Mac en liste déroulante.
+            if classe == .regular, enFeuille {
                 NavigationSplitView {
                     ReglagesView()
                         .destinationsTitres()
@@ -418,3 +431,4 @@ private struct FeuilleReglages: View {
         .presentationSizing(.page)
     }
 }
+

@@ -150,6 +150,7 @@ struct MenuActionsTitre: View {
     @Environment(\.modelContext) private var contexte
 
     var body: some View {
+        MenuJourChoisi(titre: choisi)
         Button { lancer(.aVoir) } label: { Label("Ajouter à voir", systemImage: "plus") }
         if titre.reference.type == .film {
             Button { lancer(.vuAujourdhui) } label: { Label("Vu aujourd'hui", systemImage: "eye") }
@@ -177,7 +178,48 @@ struct MenuActionsTitre: View {
     }
 }
 
+/// Dans Regarder, un autre jour choisi dans la rangée (25.09.2026) : le titre se prévoit pour ce soir-là d'un geste,
+/// sans passer par le calendrier.
+struct MenuJourChoisi: View {
+    let titre: TitreChoisi
+
+    @Environment(EtatApp.self) private var etat
+    @Environment(\.modelContext) private var contexte
+    @Environment(\.dansRegarder) private var dansRegarder
+
+    var body: some View {
+        if dansRegarder, let jour = etat.jourRegarder {
+            Button { PrevoirSoiree.prevoir(titre, le: jour, etat: etat, contexte: contexte) } label: {
+                Label("Prévoir pour \(LibelleSoiree.jour(jour).lowercased())", systemImage: "calendar.badge.plus")
+            }
+            Divider()
+        }
+    }
+}
+
+/// Le menu d'une œuvre sans résumé TMDB (le NAS) : prévoir pour le jour choisi, ce soir, ou une autre soirée.
+struct MenuSoireeTitre: View {
+    let titre: TitreChoisi
+
+    @Environment(EtatApp.self) private var etat
+    @Environment(\.modelContext) private var contexte
+
+    var body: some View {
+        MenuJourChoisi(titre: titre)
+        Button { PrevoirSoiree.prevoir(titre, le: .now, etat: etat, contexte: contexte) } label: {
+            Label("Ce soir", systemImage: "moon.stars")
+        }
+        Button { etat.titreADater = titre } label: { Label("Prévoir pour une soirée…", systemImage: "calendar") }
+        Button { etat.titrePourListe = titre } label: { Label("Ajouter à une liste…", systemImage: "list.bullet.rectangle.portrait") }
+    }
+}
+
 extension View {
+    /// Appui long sur iPhone, clic droit sur Mac, pour une œuvre du NAS.
+    func menuSoiree(_ titre: TitreChoisi) -> some View {
+        contextMenu { MenuSoireeTitre(titre: titre) }
+    }
+
     /// Appui long sur iPhone, clic droit sur Mac : À voir, Vu, Déjà vu avant, Ma soirée, Je n'aime pas.
     func actionsRapides(_ titre: TitreResume) -> some View {
         contextMenu { MenuActionsTitre(titre: titre) }

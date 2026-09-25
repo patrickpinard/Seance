@@ -150,7 +150,8 @@ if $mac; then
   compiler "platform=macOS,variant=Mac Catalyst" "le Mac" "$app" || exit 1
   ouverte=false
   # L'app du Mac seulement : une copie qui tourne dans un simulateur porte le même nom de processus.
-  surLeMac() { pgrep -f "^$application/Contents/MacOS/Seance" > /dev/null; }
+  # Par motif : le « é » du chemin n'est pas encodé de la même façon dans la ligne de commande du processus.
+  surLeMac() { pgrep -f "^/Applications/[^/]*\.app/Contents/MacOS/Seance" > /dev/null; }
   if surLeMac; then
     ouverte=true
     # Une feuille ouverte (filtres, bande-annonce) fait refuser la fermeture : rien n'est remplacé dans ce cas.
