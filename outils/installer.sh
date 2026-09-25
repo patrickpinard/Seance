@@ -149,12 +149,14 @@ if $mac; then
   app="$derives/Build/Products/Release-maccatalyst/Seance.app"
   compiler "platform=macOS,variant=Mac Catalyst" "le Mac" "$app" || exit 1
   ouverte=false
-  if pgrep -x Seance > /dev/null; then
+  # L'app du Mac seulement : une copie qui tourne dans un simulateur porte le même nom de processus.
+  surLeMac() { pgrep -f "^$application/Contents/MacOS/Seance" > /dev/null; }
+  if surLeMac; then
     ouverte=true
     # Une feuille ouverte (filtres, bande-annonce) fait refuser la fermeture : rien n'est remplacé dans ce cas.
     osascript -e 'quit app id "ch.patrick.seance"' > /dev/null 2>&1 || true
-    for _ in {1..20}; do pgrep -x Seance > /dev/null || break; sleep 0.5; done
-    if pgrep -x Seance > /dev/null; then
+    for _ in {1..20}; do surLeMac || break; sleep 0.5; done
+    if surLeMac; then
       echo "Séance est occupée sur le Mac (une feuille ou une fenêtre est ouverte) : ferme-la, puis relance outils/installer.sh --mac."
       exit 1
     fi
