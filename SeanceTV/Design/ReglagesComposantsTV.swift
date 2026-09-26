@@ -5,7 +5,13 @@ import SwiftUI
 /// changer la couleur d'un texte secondaire, qui devenait blanc sur blanc. Ici, chaque état de couleur est explicite.
 
 /// La coquille d'une page de réglage : fond opaque, titre, et une colonne centrée, lisible à trois mètres.
+/// Vrai quand la page s'affiche dans la colonne de droite des Réglages (8.1), et non en page à part.
+extension EnvironmentValues {
+    @Entry var pageIntegree = false
+}
+
 struct PageTV<Contenu: View>: View {
+    @Environment(\.pageIntegree) private var integree
     let titre: String
     var sousTitre: String?
     @ViewBuilder let contenu: Contenu
@@ -17,7 +23,7 @@ struct PageTV<Contenu: View>: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 30) {
-                Text(titre).font(.system(size: 58, weight: .heavy))
+                Text(titre).font(.system(size: integree ? 44 : 58, weight: .heavy))
                 contenu
                 let textes = [sousTitre].compactMap { $0 } + explications
                 if !textes.isEmpty {
@@ -34,8 +40,9 @@ struct PageTV<Contenu: View>: View {
             }
             .frame(maxWidth: 1100, alignment: .leading)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, MargesTV.bord)
-            .padding(.top, 60)
+            .padding(.leading, integree ? 10 : MargesTV.bord)
+            .padding(.trailing, MargesTV.bord)
+            .padding(.top, integree ? 40 : 60)
             .padding(.bottom, 80)
         }
         // Opaque : sans cela, la page précédente se lit au travers.

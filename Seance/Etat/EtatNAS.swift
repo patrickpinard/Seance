@@ -72,24 +72,32 @@ final class EtatNAS {
 
     func noterPosition(_ chemin: String, secondes: Double, duree: Double) {
         positions.noter(chemin, secondes: secondes, duree: duree, appareil: Self.nomAppareil)
-        UserDefaults.standard.set(positions.encoder(), forKey: PositionsLecture.cle)
+        enregistrerPositions()
     }
 
     /// « Depuis le début » : la position s'efface, pour tous les appareils.
     func oublierPosition(_ chemin: String) {
         positions.oublier(chemin)
-        UserDefaults.standard.set(positions.encoder(), forKey: PositionsLecture.cle)
+        enregistrerPositions()
     }
 
     /// Les positions d'un autre appareil, les plus récentes l'emportant ; vrai si quelque chose a changé.
     @discardableResult
     func recevoirPositions(_ donnees: Data) -> Bool {
         guard positions.fusionner(PositionsLecture(donnees: donnees)) else { return false }
-        UserDefaults.standard.set(positions.encoder(), forKey: PositionsLecture.cle)
+        enregistrerPositions()
         return true
     }
 
     /// Relit les positions : au lancement, après la démonstration qui les pose.
+    /// Dans les réglages de l'app et dans ceux du groupe d'apps : le widget « Reprendre » (8.1) les lit là.
+    private func enregistrerPositions() {
+        let donnees = positions.encoder()
+        UserDefaults.standard.set(donnees, forKey: PositionsLecture.cle)
+        UserDefaults(suiteName: EntrepotSeance.groupeApp)?.set(donnees, forKey: PositionsLecture.cle)
+        PublicationWidgets.recharger()
+    }
+
     func relirePositions() {
         positions = PositionsLecture(donnees: UserDefaults.standard.data(forKey: PositionsLecture.cle))
     }

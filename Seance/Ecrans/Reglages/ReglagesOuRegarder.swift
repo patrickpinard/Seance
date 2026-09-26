@@ -152,6 +152,11 @@ struct ReglagesTeleView: View {
 struct ReglagesLectureView: View {
     @Environment(EtatApp.self) private var etat
     @Environment(\.openURL) private var openURL
+    @State private var pistes = PreferencesPistes.lire(profil: ProfilsFamille().actif.id)
+
+    private func enregistrer() {
+        pistes.enregistrer(profil: ProfilsFamille().actif.id)
+    }
 
     var body: some View {
         Form {
@@ -180,6 +185,26 @@ struct ReglagesLectureView: View {
                 Text("Lire les films du NAS avec")
             } footer: {
                 Text("Toucher ▶︎ sur un film ou un épisode « Sur ton NAS » le lance avec ce lecteur.")
+            }
+
+            // 8.1 : ce que le lecteur de Séance choisit tout seul à chaque film, pour la personne qui regarde.
+            Section {
+                Picker("Langue", selection: Binding { pistes.audio } set: { pistes.audio = $0; enregistrer() }) {
+                    ForEach(PreferencesPistes.langues, id: \.code) { Text($0.nom).tag($0.code) }
+                    Text("Version originale").tag("")
+                }
+                Picker("Sous-titres", selection: Binding { pistes.sousTitres } set: { pistes.sousTitres = $0; enregistrer() }) {
+                    ForEach(PreferencesPistes.SousTitres.allCases, id: \.self) { Text($0.nom).tag($0) }
+                }
+                if pistes.sousTitres != .jamais {
+                    Picker("Langue des sous-titres", selection: Binding { pistes.langueSousTitres } set: { pistes.langueSousTitres = $0; enregistrer() }) {
+                        ForEach(PreferencesPistes.langues, id: \.code) { Text($0.nom).tag($0.code) }
+                    }
+                }
+            } header: {
+                Text("Langue et sous-titres")
+            } footer: {
+                Text("Choisis à chaque film par le lecteur de Séance, quand le fichier les propose\(ProfilsFamille().aPlusieursProfils ? ", pour \(QuiRegardeActuel.nom ?? "toi")" : "").")
             }
 
             Section("Ce que chaque lecteur demande") {

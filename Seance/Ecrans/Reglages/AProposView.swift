@@ -40,6 +40,9 @@ struct AProposView: View {
                         .accessibilityHidden(true)
                     Text("Séance").font(.title.weight(.heavy))
                     Text(version).font(.footnote).foregroundStyle(.secondary)
+                    if let installee = InstallationsVersions.libelle(numeroVersion) {
+                        Text(installee).font(.footnote).foregroundStyle(.secondary)
+                    }
                     // Compte Apple gratuit : l'installation expire au bout de 7 jours.
                     if let expiration = etat.expirationInstallation {
                         let bientot = expiration.timeIntervalSinceNow < 2 * 86_400

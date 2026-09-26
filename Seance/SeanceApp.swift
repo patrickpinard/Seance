@@ -67,6 +67,12 @@ struct SeanceApp: App {
 /// Les orientations permises (7.0) : l'iPhone reste en portrait, sauf pendant la lecture d'une vidéo, qui se regarde
 /// aussi à l'horizontale ; l'iPad et le Mac tournent librement.
 final class DelegueApp: NSObject, UIApplicationDelegate {
+    func application(_ application: UIApplication, didFinishLaunchingWithOptions options: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
+        // Le jour et l'heure d'arrivée de cette version (8.1), pour À propos › Versions.
+        InstallationsVersions.noter()
+        return true
+    }
+
     func application(_ application: UIApplication, supportedInterfaceOrientationsFor window: UIWindow?) -> UIInterfaceOrientationMask {
         MainActor.assumeIsolated {
             guard UIDevice.current.userInterfaceIdiom == .phone else { return .all }

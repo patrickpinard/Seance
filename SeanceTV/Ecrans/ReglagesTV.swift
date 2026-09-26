@@ -23,6 +23,9 @@ struct ReglagesTV: View {
     @State private var quiRegarde = false
     /// La ligne qui a le focus : l'aperçu de droite la décrit.
     @FocusState private var focus: String?
+    /// 8.1 : le réglage montré à droite, en entier — celui de la ligne qui a (ou vient d'avoir) le focus. `nil` sur une
+    /// ligne d'action (Synchroniser, Famille…) : l'explication prend sa place.
+    @State private var affiche: ReglageTV?
     @State private var chemin: [ReglageTV] = DepartTV.reglage.flatMap { nom in
         ["cle": ReglageTV.cle, "plateformes": .plateformes, "tele": .tele, "nas": .nas, "videosPerso": .videosPerso,
          "lecture": .lecture, "gouts": .gouts, "aPropos": .aPropos, "versions": .versions][nom].map { [$0] }
@@ -30,11 +33,11 @@ struct ReglagesTV: View {
 
     var body: some View {
         NavigationStack(path: $chemin) {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 40) {
-                    // 8.0, charte commune : la liste groupée de l'iPhone — Où regarder, Toi, La maison, L'app —, et à droite
-                    // l'aperçu de la ligne choisie, comme les Réglages de tvOS.
-                    HStack(alignment: .top, spacing: 60) {
+            // 8.0, charte commune : la liste groupée de l'iPhone — Où regarder, Toi, La maison, L'app. 8.1 (demande de
+            // Patrick) : à droite, le réglage lui-même, pas un aperçu — on y entre d'un appui à droite, sans changer de page,
+            // comme dans les Réglages de tvOS.
+            HStack(alignment: .top, spacing: 50) {
+                ScrollView {
                         VStack(alignment: .leading, spacing: 34) {
                             groupe("Où regarder") {
                                 ForEach(points.filter { $0.reglage != .cle }, id: \.reglage) { point in
@@ -81,18 +84,28 @@ struct ReglagesTV: View {
                                     .focused($focus, equals: "À propos")
                             }
                         }
-                        .frame(width: 800)
-                        .focusSection()
+                        .padding(.leading, MargesTV.bord)
+                        .padding(.vertical, 40)
+                }
+                .frame(width: 800 + MargesTV.bord)
+                .focusSection()
+                Group {
+                    if let affiche {
+                        PageReglageTV(reglage: affiche, integree: true)
+                            .id(affiche)
+                    } else {
                         apercu
                             .frame(maxWidth: .infinity)
-                            .padding(.top, 60)
+                            .padding(.top, 100)
                     }
                 }
-                .frame(maxWidth: 1640, alignment: .leading)
-                .frame(maxWidth: .infinity)
-                .padding(.horizontal, MargesTV.bord)
-                .padding(.top, 40)
-                .padding(.bottom, 80)
+                .frame(maxWidth: .infinity, alignment: .topLeading)
+                .focusSection()
+            }
+            .onChange(of: focus) { _, ligne in
+                // Le focus parti dans la page de droite (`nil`) : elle reste affichée.
+                guard let ligne else { return }
+                affiche = Self.reglage(ligne)
             }
             .navigationDestination(for: ReglageTV.self) { PageReglageTV(reglage: $0).pageOuverte() }
         }
@@ -182,6 +195,12 @@ struct ReglagesTV: View {
         .animation(.easeOut(duration: 0.15), value: focus)
     }
 
+    /// Le réglage d'une ligne de la liste, d'après son titre ; `nil` pour une ligne d'action.
+    private static func reglage(_ titre: String) -> ReglageTV? {
+        ["TMDB": .cle, "Plateformes": .plateformes, "TV": .tele, "NAS": .nas, "Vidéos personnelles": .videosPerso,
+         "Lecture": .lecture, "Tes goûts": .gouts, "À propos": .aPropos][titre]
+    }
+
     private static let symboles = ["Tes goûts": "heart.fill", "Tester une alerte": "bell.badge.fill", "Synchroniser maintenant": "arrow.triangle.2.circlepath",
                                    "Configurer depuis mon iPhone": "iphone.and.arrow.forward", "Famille": "person.2.fill", "À propos": "info.circle.fill"]
 
@@ -224,8 +243,9 @@ struct ReglagesTV: View {
                                                : "\(etat.videosPerso.videos.count) vidéos"
     }
 
+    /// Une ligne de réglage : le focus montre sa page à droite ; un clic y montre aussi (l'appui à droite y entre).
     private func ligne(_ reglage: ReglageTV, _ titre: String, _ detail: String, _ enOrdre: Bool?, symbole: String? = nil) -> some View {
-        NavigationLink(value: reglage) {
+        Button { affiche = reglage } label: {
             LigneTVReglage.Contenu(titre: titre, detail: detail, symbole: symbole, enOrdre: enOrdre)
         }
         .buttonStyle(LigneTV())
@@ -317,19 +337,24 @@ struct TuileTV: View {
 
 struct PageReglageTV: View {
     let reglage: ReglageTV
+    /// Dans la colonne de droite des Réglages (8.1) plutôt qu'en page à part : moins de marge, un titre plus petit.
+    var integree = false
 
     var body: some View {
-        switch reglage {
-        case .cle: PageCleTV()
-        case .plateformes: PagePlateformesTV()
-        case .tele: PageChainesTV()
-        case .nas: PageNASTV()
-        case .videosPerso: PageVideosPersoTV()
-        case .lecture: PageLectureTV()
-        case .gouts: PageGoutsTV()
-        case .aPropos: PageAProposTV()
-        case .versions: PageVersionsTV()
+        Group {
+            switch reglage {
+            case .cle: PageCleTV()
+            case .plateformes: PagePlateformesTV()
+            case .tele: PageChainesTV()
+            case .nas: PageNASTV()
+            case .videosPerso: PageVideosPersoTV()
+            case .lecture: PageLectureTV()
+            case .gouts: PageGoutsTV()
+            case .aPropos: PageAProposTV()
+            case .versions: PageVersionsTV()
+            }
         }
+        .environment(\.pageIntegree, integree)
     }
 }
 
@@ -479,15 +504,47 @@ private struct PageNASTV: View {
 /// Un seul lecteur : « Lire » n'ouvre que celui-ci, partout dans l'app.
 private struct PageLectureTV: View {
     @Environment(EtatTV.self) private var etat
+    /// 8.1 : la langue et les sous-titres que le lecteur choisit tout seul, pour la personne qui regarde.
+    @State private var pistes = PreferencesPistes.lire(profil: ConteneurTV.famille.actif.id)
 
     var body: some View {
-        PageTV(titre: "Lecture", sousTitre: "L'app qui lit tes vidéos du NAS. « Lire » n'ouvre que celle-là.") {
-            SectionTV(explication: "Infuse ouvre le titre dans sa bibliothèque : le partage du NAS doit y être ajouté, sur cette Apple TV. VLC lit le fichier directement sur le NAS, avec ton compte et ton mot de passe. Tes vidéos personnelles, elles, n'ont pas de fiche : elles passent par leur adresse dans le lecteur choisi ici.") {
+        PageTV(titre: "Lecture", sousTitre: "Tes films, tes séries et tes vidéos du NAS se lisent dans Séance, avec VLCKit, directement sur le NAS.") {
+            SectionTV(titre: "Langue et sous-titres",
+                      explication: "Choisis à chaque film quand le fichier les propose. Un clic passe au choix suivant ; « Langue et sous-titres » dans le lecteur change d'avis pour un film seulement.") {
+                LigneTVReglage(titre: "Langue", detail: nomLangue(pistes.audio, vo: true), symbole: "speaker.wave.2.fill", action: {
+                    let codes = PreferencesPistes.langues.map(\.code) + [""]
+                    pistes.audio = codes[((codes.firstIndex(of: pistes.audio) ?? 0) + 1) % codes.count]
+                    enregistrer()
+                })
+                LigneTVReglage(titre: "Sous-titres", detail: pistes.sousTitres.nom, symbole: "captions.bubble.fill", action: {
+                    let tous = PreferencesPistes.SousTitres.allCases
+                    pistes.sousTitres = tous[((tous.firstIndex(of: pistes.sousTitres) ?? 0) + 1) % tous.count]
+                    enregistrer()
+                })
+                if pistes.sousTitres != .jamais {
+                    LigneTVReglage(titre: "Langue des sous-titres", detail: nomLangue(pistes.langueSousTitres, vo: false), symbole: "textformat", action: {
+                        let codes = PreferencesPistes.langues.map(\.code)
+                        pistes.langueSousTitres = codes[((codes.firstIndex(of: pistes.langueSousTitres) ?? 0) + 1) % codes.count]
+                        enregistrer()
+                    })
+                }
+            }
+            SectionTV(titre: "Si VLCKit n'y arrive pas",
+                      explication: "Rare : un fichier que même VLCKit ne lit pas part dans cette app. Infuse ouvre le titre dans sa bibliothèque (le partage du NAS doit y être ajouté) ; VLC lit le fichier directement sur le NAS.") {
                 ForEach(LecteurVideo.allCases) { lecteur in
                     LigneTVReglage(titre: lecteur.nom, action: { etat.choisir(lecteur) }) { BoutTV(forme: .coche(etat.lecteur == lecteur)) }
                 }
             }
         }
+    }
+
+    private func nomLangue(_ code: String, vo: Bool) -> String {
+        if code.isEmpty, vo { return "Version originale" }
+        return PreferencesPistes.langues.first { $0.code == code }?.nom ?? code
+    }
+
+    private func enregistrer() {
+        pistes.enregistrer(profil: ConteneurTV.famille.actif.id)
     }
 }
 
@@ -528,11 +585,24 @@ struct PageGoutsTV: View {
 
 private struct PageAProposTV: View {
     @Environment(\.dismiss) private var fermer
+    @Environment(\.openURL) private var ouvrir
+    @Environment(EtatTV.self) private var etat
+
+    /// 8.1 : depuis septembre 2025, l'app Netflix de tvOS semble ignorer les liens des autres apps et s'ouvrir sur son
+    /// accueil. Ces essais — « Stranger Things », sous chaque forme d'adresse connue — disent chez toi laquelle marche encore.
+    private static let essaisNetflix: [(String, String)] = [
+        ("nflx://…/title", "nflx://www.netflix.com/title/80057281"),
+        ("nflx://…/watch", "nflx://www.netflix.com/watch/80057281"),
+        ("https://…/title", "https://www.netflix.com/title/80057281"),
+        ("https://…/watch", "https://www.netflix.com/watch/80057281"),
+    ]
 
     var body: some View {
         PageTV(titre: "À propos", sousTitre: "Séance \(ReglagesTV.version) sur cette Apple TV.") {
             SectionTV(explication: "Avec un compte Apple gratuit, l'app cesse de s'ouvrir au bout de sept jours : relance l'installation depuis le Mac, tes réglages restent.") {
-                LigneTVReglage(titre: "Version", symbole: "number") { BoutTV(forme: .valeur(ReglagesTV.version)) }
+                LigneTVReglage(titre: "Version", detail: InstallationsVersions.libelle(ReglagesTV.version), symbole: "number") {
+                    BoutTV(forme: .valeur(ReglagesTV.version))
+                }
                 // Le même historique que sur l'iPhone (6.3).
                 NavigationLink(value: ReglageTV.versions) {
                     LigneTVReglage(titre: "Ce que chaque version a apporté", detail: "L'historique de Séance, version par version",
@@ -541,6 +611,15 @@ private struct PageAProposTV: View {
                     }
                 }
                 .buttonStyle(LigneTV())
+            }
+            SectionTV(titre: "Essai des liens Netflix",
+                      explication: "Chaque ligne ouvre « Stranger Things » dans Netflix par une adresse différente. Si l'une ouvre la série et non l'accueil, dis-le : Séance l'utilisera pour tous tes titres.") {
+                ForEach(Self.essaisNetflix, id: \.1) { essai in
+                    LigneTVReglage(titre: essai.0, symbole: "play.tv", action: {
+                        guard let lien = URL(string: essai.1) else { return }
+                        ouvrir(lien) { accepte in if !accepte { etat.dire("Netflix refuse cette adresse.") } }
+                    })
+                }
             }
             SectionTV(explication: "Ce produit utilise l'API TMDB mais n'est ni approuvé ni certifié par TMDB. Disponibilités en Suisse fournies par JustWatch, via TMDB. Programme TV : XML TV Fr.") {
                 LigneTVReglage(titre: "Retour aux réglages", symbole: "chevron.left", action: { fermer() })

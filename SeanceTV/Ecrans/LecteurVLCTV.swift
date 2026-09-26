@@ -1,3 +1,4 @@
+import SeanceDonnees
 import SeanceKit
 import SeanceNAS
 import SwiftUI
@@ -18,6 +19,16 @@ struct LecteurVLCTV: View {
     var depart: Double?
     /// Où l'on en est (secondes, durée), toutes les dix secondes et à la fermeture : la reprise le retient.
     var surPosition: (Double, Double) -> Void = { _, _ in }
+    /// Le film ou l'épisode du NAS (8.1) : vu vers la fin, puis l'épisode suivant. `nil` pour un souvenir.
+    var fichier: FichierNAS?
+    /// Lancer l'épisode d'après : l'écran d'appel remplace la vidéo.
+    var surSuivant: (FichierNAS) -> Void = { _ in }
+
+    @Environment(EtatTV.self) private var etat
+    @Environment(\.modelContext) private var contexte
+    @State private var vuMarque = false
+    @State private var suivant: FichierNAS?
+    @State private var compte: Int?
 
     @Environment(\.dismiss) private var fermer
     @State private var moteur = MoteurVLCTV()
@@ -60,10 +71,14 @@ struct LecteurVLCTV: View {
                     .contentShape(Rectangle())
                     .focusable(!commandes && !pistes)
                     .focused($focus, equals: .ecran)
+                    // 8.1 : gauche et droite font apparaître la barre et y déplacent le repère, de plus en plus vite si
+                    // l'on insiste ou si l'on garde le doigt appuyé ; le saut se fait seul un instant après.
                     .onMoveCommand { direction in
                         switch direction {
-                        case .left: moteur.reculer(); montrer()
-                        case .right: moteur.avancer(); montrer()
+                        case .left, .right:
+                            montrer()
+                            focus = .barre
+                            deplacer(direction)
                         default: montrer()
                         }
                     }
@@ -92,8 +107,27 @@ struct LecteurVLCTV: View {
             if cible != nil { cible = nil } else if pistes { fermerPistes() } else if commandes, moteur.enLecture { cacher() } else { fermer() }
         }
         .onPlayPauseCommand { moteur.basculerLecture(); montrer() }
+        .overlay(alignment: .bottomTrailing) { carteSuivant }
+        .onChange(of: Int(moteur.secondes)) { _, _ in marquerVuSiFini() }
+        .onChange(of: moteur.termine) { _, termine in
+            guard termine else { return }
+            marquerVuSiFini(force: true)
+            if suivant != nil { compte = FinDeLecture.delaiEpisodeSuivant } else { fermer() }
+        }
+        .task(id: compte) {
+            guard let restant = compte else { return }
+            try? await Task.sleep(for: .seconds(1))
+            guard !Task.isCancelled, compte != nil else { return }
+            if restant <= 1 { lireSuivant() } else { compte = restant - 1 }
+        }
         .onChange(of: focus) { dernierGeste = .now }
-        .task { await ouvrir() }
+        .task {
+            if let fichier {
+                suivant = FinDeFichierNAS.episodeSuivant(fichier, contexte: contexte)
+                moteur.preferences = PreferencesPistes.lire(profil: ConteneurTV.famille.actif.id)
+            }
+            await ouvrir()
+        }
         .task {
             while !Task.isCancelled {
                 try? await Task.sleep(for: .seconds(10))
@@ -111,6 +145,48 @@ struct LecteurVLCTV: View {
         .onDisappear {
             if moteur.duree > 0 { surPosition(moteur.secondes, moteur.duree) }
             Task { await ranger() }
+        }
+    }
+
+    /// L'épisode d'après : proposé dès le générique, lancé tout seul à la fin après un compte à rebours.
+    @ViewBuilder
+    private var carteSuivant: some View {
+        if let suivant, message == nil, compte != nil || (vuMarque && commandes) {
+            VStack(alignment: .trailing, spacing: 16) {
+                if let compte {
+                    Text("Épisode suivant dans \(compte) s").font(.system(size: 30, weight: .semibold)).foregroundStyle(.white)
+                }
+                Button { lireSuivant() } label: { Label(Self.libelle(suivant), systemImage: "forward.end.fill") }
+                    .buttonStyle(BoutonTV(principal: true))
+            }
+            .padding(.trailing, 90)
+            .padding(.bottom, compte == nil ? 320 : 90)
+            .focusSection()
+        }
+    }
+
+    static func libelle(_ fichier: FichierNAS) -> String {
+        guard let saison = fichier.saison, let episode = fichier.episode else { return "Épisode suivant" }
+        return String(format: "Épisode suivant · S%02dE%02d", saison, episode)
+    }
+
+    private func lireSuivant() {
+        guard let suivant else { return }
+        compte = nil
+        if moteur.duree > 0 { surPosition(moteur.secondes, moteur.duree) }
+        surSuivant(suivant)
+    }
+
+    /// Au-delà de 90 % (ou dans le générique d'un long film), le film ou l'épisode compte comme vu, sans question.
+    private func marquerVuSiFini(force: Bool = false) {
+        guard !vuMarque, let fichier, let sujet = FinDeFichierNAS.lecture(fichier),
+              force || FinDeLecture.presqueFini(secondes: moteur.secondes, duree: moteur.duree) else { return }
+        vuMarque = true
+        let duree = moteur.duree
+        Task {
+            if (try? await FinDeFichierNAS.marquerVu(sujet, dureeSecondes: duree, contexte: contexte, tmdb: etat.tmdb)) == true {
+                etat.dire("« \(sujet.libelle) » marqué vu")
+            }
         }
     }
 
@@ -182,21 +258,7 @@ struct LecteurVLCTV: View {
             .contentShape(Rectangle())
             .focusable()
             .focused($focus, equals: .barre)
-            .onMoveCommand { direction in
-                guard moteur.duree > 0 else { return }
-                let maintenant = Date.now
-                elan = maintenant.timeIntervalSince(dernierPas) < 0.45 ? min(elan * 1.5, 12) : 1
-                dernierPas = maintenant
-                // Un pas : 10 secondes, ou un centième du film s'il est long ; l'élan le multiplie.
-                let pas = max(10 / moteur.duree, 0.01) * elan
-                let depart = cible ?? actuelle
-                switch direction {
-                case .left: cible = max(depart - pas, 0)
-                case .right: cible = min(depart + pas, 1)
-                default: break
-                }
-                dernierGeste = .now
-            }
+            .onMoveCommand { direction in deplacer(direction) }
             .onTapGesture {
                 if let cible { moteur.allerA(cible) }
                 cible = nil
@@ -212,6 +274,33 @@ struct LecteurVLCTV: View {
             .foregroundStyle(Theme.texte2)
         }
         .onChange(of: surLaBarre) { _, dessus in if !dessus { cible = nil } }
+        // Le repère posé, la vidéo y saute d'elle-même après un instant sans appui : plus besoin de cliquer.
+        .task(id: cible) {
+            guard let visee = cible else { return }
+            try? await Task.sleep(for: .seconds(1.4))
+            guard !Task.isCancelled, cible == visee else { return }
+            moteur.allerA(visee)
+            cible = nil
+            elan = 1
+            dernierGeste = .now
+        }
+    }
+
+    /// Un pas sur la barre : 10 secondes, ou un centième du film s'il est long. Des appuis rapprochés — ou le doigt
+    /// gardé sur la télécommande, qui les répète — multiplient le pas, jusqu'à cinq minutes d'un coup.
+    private func deplacer(_ direction: MoveCommandDirection) {
+        guard moteur.duree > 0 else { return }
+        let maintenant = Date.now
+        elan = maintenant.timeIntervalSince(dernierPas) < 0.5 ? min(elan * 1.6, 300 / max(10, moteur.duree / 100)) : 1
+        dernierPas = maintenant
+        let pas = max(10 / moteur.duree, 0.01) * elan
+        let depart = cible ?? min(max(moteur.position, 0), 1)
+        switch direction {
+        case .left: cible = max(depart - pas, 0)
+        case .right: cible = min(depart + pas, 1)
+        default: break
+        }
+        dernierGeste = .now
     }
 
     /// Fait revenir les commandes, le focus sur Lecture / Pause ; après un saut, elles montrent où l'on en est.
@@ -233,8 +322,20 @@ struct LecteurVLCTV: View {
         focus = .pistes
     }
 
+    /// D'abord VLC seul, directement sur le partage en SMB (8.1, comme l'iPhone depuis la 7.0) : il lit par gros
+    /// blocs, en avance. Le relais HTTP, plus lent, ne sert plus que si VLC n'arrive pas à ouvrir le partage.
     private func ouvrir() async {
         guard relais == nil, message == nil else { return }
+        if let adresse = acces.url(chemin: video.chemin) {
+            moteur.lire(adresse, depart: depart, options: [":smb-user=\(acces.utilisateur)", ":smb-pwd=\(motDePasse)", ":network-caching=3000"]
+                        + OptionsVLC.pour(video.chemin))
+            if await moteur.demarre(dans: .seconds(12)) { return }
+            moteur.arreter()
+        }
+        await ouvrirParLeRelais()
+    }
+
+    private func ouvrirParLeRelais() async {
         let nouvelle = SourceVideoSMB(reglages: acces, motDePasse: motDePasse, chemin: video.chemin)
         await nouvelle.ouvrir()
         source = nouvelle
@@ -243,7 +344,7 @@ struct LecteurVLCTV: View {
         do {
             let adresse = try await nouveau.demarrer()
             relais = nouveau
-            moteur.lire(adresse, depart: depart)
+            moteur.lire(adresse, depart: depart, options: [":network-caching=3000"] + OptionsVLC.pour(video.chemin))
         } catch {
             let texte = ErreurNAS.message(error)
             message = texte
@@ -355,33 +456,55 @@ final class MoteurVLCTV {
     private(set) var duree: Double = 0
     /// La position où reprendre, appliquée une fois la durée connue.
     private var depart: Double?
-    /// Le format d'image des pixels non carrés, posé une fois par vidéo.
-    private var formatPose = false
+    /// Langue et sous-titres voulus (8.1), posés une fois que VLC a décrit les pistes.
+    var preferences: PreferencesPistes?
+    private var pistesPosees = false
+    /// Vrai quand la vidéo est allée jusqu'au bout.
+    private(set) var termine = false
+    private var derniereFraction = 0.0
 
     func attacher(a vue: UIView) {
         lecteur.drawable = vue
     }
 
-    func lire(_ adresse: URL, depart: Double? = nil) {
+    /// Vrai dès que l'image avance ; faux si VLC échoue ou si rien ne vient dans le délai.
+    func demarre(dans delai: Duration) async -> Bool {
+        let limite = ContinuousClock.now + delai
+        while ContinuousClock.now < limite {
+            if lecteur.state == .error { return false }
+            if lecteur.isPlaying, lecteur.time.intValue > 0 { return true }
+            try? await Task.sleep(for: .milliseconds(250))
+        }
+        return false
+    }
+
+    func lire(_ adresse: URL, depart: Double? = nil, options: [String] = []) {
+        observateur?.cancel()
         self.depart = depart
-        lecteur.media = VLCMedia(url: adresse)
+        let media = VLCMedia(url: adresse)
+        for option in options { media?.addOption(option) }
+        lecteur.media = media
         lecteur.play()
         enLecture = true
+        enChargement = true
+        pistesPosees = false
+        termine = false
+        derniereFraction = 0
         observateur = Task { [weak self] in
             while !Task.isCancelled {
                 try? await Task.sleep(for: .milliseconds(500))
                 guard let self else { return }
                 self.position = self.lecteur.position
                 self.enLecture = self.lecteur.isPlaying
-                self.enChargement = !self.lecteur.isPlaying && self.lecteur.position == 0
+                if self.lecteur.state == .stopped, self.derniereFraction > 0.97 { self.termine = true }
+                if self.lecteur.isPlaying { self.derniereFraction = Double(self.lecteur.position) }
+                if !self.pistesPosees, let preferences = self.preferences, self.lecteur.isPlaying {
+                    self.pistesPosees = self.lecteur.appliquer(preferences)
+                }
+                self.enChargement = !self.termine && !self.lecteur.isPlaying && self.lecteur.position == 0
                 self.tempsAffiche = self.lecteur.time.stringValue
                 self.secondes = Double(self.lecteur.time.intValue) / 1000
                 self.duree = Double(self.lecteur.media?.length.intValue ?? 0) / 1000
-                // Pixels non carrés : le format d'image annoncé par la piste, une fois qu'elle est connue.
-                if !self.formatPose, let piste = self.lecteur.videoTracks.first(where: \.isSelected)?.video {
-                    self.formatPose = true
-                    if let rapport = FormatImageVLC.rapport(piste) { self.lecteur.videoAspectRatio = rapport }
-                }
                 // Reprendre : dès que VLC connaît la durée, on saute à la position retenue.
                 if let depart = self.depart, self.duree > 0, self.lecteur.isPlaying {
                     self.lecteur.time = VLCTime(int: Int32(depart * 1000))
@@ -460,17 +583,3 @@ final class MoteurVLCTV {
     }
 }
 
-/// Les vidéos anamorphiques (pixels non carrés, comme « Unabomber » : 1280 × 720 à afficher en 2,39:1) : VLCKit 4 ne
-/// tient pas compte du rapport de pixels de la piste et les montrait écrasées. On lui impose le format d'image qu'elles
-/// annoncent. `nil` : des pixels carrés, rien à corriger.
-enum FormatImageVLC {
-    static func rapport(_ piste: VLCMedia.VideoTrack) -> String? {
-        let numerateur = Int(piste.sourceAspectRatio), denominateur = Int(piste.sourceAspectRatioDenominator)
-        guard piste.width > 0, piste.height > 0, numerateur > 0, denominateur > 0, numerateur != denominateur else { return nil }
-        let largeur = Int(piste.width) * numerateur, hauteur = Int(piste.height) * denominateur
-        let diviseur = pgcd(largeur, hauteur)
-        return "\(largeur / diviseur):\(hauteur / diviseur)"
-    }
-
-    private static func pgcd(_ a: Int, _ b: Int) -> Int { b == 0 ? a : pgcd(b, a % b) }
-}

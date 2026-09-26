@@ -85,9 +85,22 @@ struct SectionsStreamingTV: View {
         return criteres
     }
 
+    /// 8.1 : les listes lues sont gardées quatre heures — la page se rouvre aussitôt, sans redemander TMDB à chaque
+    /// visite (deux requêtes par plateforme).
+    @MainActor
+    private enum Memoire {
+        static var lues: (ids: [Int], toutes: [ApercuTV], parPlateforme: [Int: [ApercuTV]], le: Date)?
+        static let duree: TimeInterval = 4 * 3600
+    }
+
     private func charger() async {
         guard let client = etat.tmdb, !abonnements.isEmpty else { return }
         let ids = abonnements.map(\.providerID)
+        if let lues = Memoire.lues, lues.ids == ids, Date.now.timeIntervalSince(lues.le) < Memoire.duree {
+            toutes = lues.toutes
+            parPlateforme = lues.parPlateforme
+            return
+        }
         async let films = try? client.decouvrirFilms(Self.criteres(.film, ids))
         async let series = try? client.decouvrirSeries(Self.criteres(.serie, ids))
         toutes = ApercuTV.meler((await films)?.resultats ?? [], (await series)?.resultats ?? [])
@@ -96,5 +109,7 @@ struct SectionsStreamingTV: View {
             async let series = try? client.decouvrirSeries(Self.criteres(.serie, [id]))
             parPlateforme[id] = ApercuTV.meler((await films)?.resultats ?? [], (await series)?.resultats ?? [])
         }
+        // Rien de gardé si TMDB n'a rien rendu : la prochaine visite réessaiera.
+        if !toutes.isEmpty { Memoire.lues = (ids, toutes, parPlateforme, .now) }
     }
 }

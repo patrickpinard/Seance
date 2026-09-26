@@ -5,6 +5,33 @@ import Foundation
 ///
 /// Ces notes sont les mêmes partout (6.3) : l'app les montre dans À propos › Versions (`ListeVersions`),
 /// l'Apple TV dans Réglages › Versions (`PageVersionsTV`) — d'où ce fichier sans vue, partagé par `project.yml`.
+/// Le jour et l'heure où chaque version est arrivée sur cet appareil (8.1) : l'app note sa version au lancement, avec
+/// la date de son paquet (posée par l'installation). Commun à l'iPhone, à l'iPad, au Mac et à l'Apple TV.
+enum InstallationsVersions {
+    private static let cle = "versions.installations"
+
+    /// À appeler au lancement : retient la version installée si elle est nouvelle.
+    static func noter() {
+        guard let numero = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String else { return }
+        var connues = lues()
+        let paquet = (try? FileManager.default.attributesOfItem(atPath: Bundle.main.bundlePath)[.modificationDate]) as? Date
+        let date = paquet ?? .now
+        // Une réinstallation de la même version (tous les 7 jours) met l'heure à jour.
+        if let connue = connues[numero], abs(connue.timeIntervalSince(date)) < 60 { return }
+        connues[numero] = date
+        UserDefaults.standard.set(connues.mapValues(\.timeIntervalSince1970), forKey: cle)
+    }
+
+    static func lues() -> [String: Date] {
+        ((UserDefaults.standard.dictionary(forKey: cle) as? [String: Double]) ?? [:]).mapValues { Date(timeIntervalSince1970: $0) }
+    }
+
+    /// « Installée le 26 septembre 2026 à 14:32 », si cette version l'a été sur cet appareil.
+    static func libelle(_ numero: String) -> String? {
+        lues()[numero].map { "Installée le \($0.formatted(.dateTime.day().month(.wide).year().locale(Locale(identifier: "fr_CH")))) à \($0.formatted(.dateTime.hour().minute().locale(Locale(identifier: "fr_CH"))))" }
+    }
+}
+
 struct NoteVersion: Identifiable {
     struct Fonctionnalite: Identifiable {
         let symbole: String
@@ -22,6 +49,33 @@ struct NoteVersion: Identifiable {
     var id: String { numero }
 
     static let historique: [NoteVersion] = [
+        NoteVersion(
+            numero: "8.1",
+            date: "26 septembre 2026",
+            resume: "Les séries s'enchaînent, les films se marquent vus tout seuls, ta langue est retenue — et une vidéo commencée sur l'iPhone continue sur l'Apple TV d'un toucher.",
+            fonctionnalites: [
+                Fonctionnalite(symbole: "forward.end", titre: "L'épisode suivant, tout seul",
+                               detail: "À la fin d'un épisode du NAS, le suivant démarre après dix secondes — « Épisode suivant » est proposé dès le générique. Sur l'iPhone, l'iPad et l'Apple TV."),
+                Fonctionnalite(symbole: "checkmark.circle", titre: "Vu, sans question",
+                               detail: "Au-delà de 90 % d'un film ou d'un épisode (ou dans le générique d'un long film), il est marqué vu : l'historique et le suivi des séries se remplissent seuls."),
+                Fonctionnalite(symbole: "captions.bubble", titre: "Ta langue et tes sous-titres, retenus",
+                               detail: "Réglages › Lecture : la langue voulue (français, VO…) et quand mettre les sous-titres. Le lecteur les choisit à chaque film, pour la personne qui regarde."),
+                Fonctionnalite(symbole: "appletv", titre: "Sur l'Apple TV, d'un toucher",
+                               detail: "Dans le lecteur de l'iPhone, « Sur l'Apple TV » envoie la vidéo à Séance ouverte sur la TV, à la seconde où tu en es. La demande est signée : un inconnu du réseau ne peut rien lancer."),
+                Fonctionnalite(symbole: "antenna.radiowaves.left.and.right", titre: "Hors de la maison",
+                               detail: "Sur le réseau mobile, Séance le dit, et emploie l'adresse du NAS par ton VPN ou Tailscale si tu l'as indiquée dans Réglages › NAS."),
+                Fonctionnalite(symbole: "play.circle", titre: "Le widget « Reprendre »",
+                               detail: "Sur l'écran d'accueil, les films et épisodes entamés avec leur progression ; un toucher reprend là où tu t'étais arrêté."),
+                Fonctionnalite(symbole: "tv", titre: "L'Apple TV plus directe",
+                               detail: "La TV lit le NAS en SMB, sans relais : plus rapide. Gauche et droite pendant la lecture avancent ou reculent, de plus en plus vite si l'on insiste. Réglages en deux colonnes, sans changer de page. « Terminé » se défait d'un clic. Sur la page d'un acteur, un seul bouton, et l'appui long pour les choix."),
+                Fonctionnalite(symbole: "bolt", titre: "Plus rapide, plus légère",
+                               detail: "Les images en mémoire sont limitées à 150 Mo et téléchargées une seule fois ; le guide TV et le NAS se lisent en même temps au démarrage ; les nouveautés Streaming de la TV sont gardées quatre heures."),
+                Fonctionnalite(symbole: "clock", titre: "L'heure d'installation",
+                               detail: "À propos et Versions disent le jour et l'heure où chaque version est arrivée sur l'appareil."),
+                Fonctionnalite(symbole: "play.tv", titre: "Netflix sur l'Apple TV",
+                               detail: "Séance attend l'identifiant exact du titre avant d'ouvrir Netflix. Depuis septembre 2025, l'app Netflix de tvOS semble ignorer ces liens : Réglages › À propos › « Essai des liens Netflix » dit lequel marche encore chez toi."),
+            ]
+        ),
         NoteVersion(
             numero: "8.0",
             date: "25 septembre 2026",

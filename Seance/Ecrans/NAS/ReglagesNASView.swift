@@ -8,6 +8,7 @@ struct ReglagesNASView: View {
     @Environment(EtatApp.self) private var etat
     @Environment(\.modelContext) private var contexte
     @State private var hote = ""
+    @State private var hoteDistant = ""
     @State private var partage = ""
     @State private var utilisateur = ""
     @State private var dossiers = ""
@@ -24,6 +25,7 @@ struct ReglagesNASView: View {
         Form {
             Section {
                 champ("Adresse", "192.168.1.220", texte: $hote, clavier: .URL)
+                champ("Hors de la maison", "Facultatif : VPN, Tailscale", texte: $hoteDistant, clavier: .URL)
                 champ("Partage", "Films", texte: $partage)
                 champ("Utilisateur", "admin", texte: $utilisateur)
                 if etat.nas.motDePasseEnregistre {
@@ -40,7 +42,7 @@ struct ReglagesNASView: View {
             } header: {
                 Text("Connexion SMB")
             } footer: {
-                Text("Le mot de passe reste dans le trousseau de l'appareil. Il n'est ni sauvegardé ni envoyé ailleurs qu'au NAS et à l'app de lecture.")
+                Text("Le mot de passe reste dans le trousseau de l'appareil. Il n'est ni sauvegardé ni envoyé ailleurs qu'au NAS et à l'app de lecture. « Hors de la maison » : l'adresse du NAS par ton VPN ou Tailscale ; sur le réseau mobile, le lecteur la prend à la place de l'adresse de la maison.")
             }
 
             Section {
@@ -188,6 +190,7 @@ struct ReglagesNASView: View {
     private func charger() {
         let reglages = etat.nas.reglages
         hote = reglages.hote
+        hoteDistant = reglages.hoteDistant ?? ""
         partage = reglages.partage
         utilisateur = reglages.utilisateur
         dossiers = reglages.dossiers.joined(separator: ", ")
@@ -217,7 +220,7 @@ struct ReglagesNASView: View {
         etat.nas.enregistrer(ReglagesNAS(
             hote: hote.trimmingCharacters(in: .whitespaces), partage: partage.trimmingCharacters(in: .whitespaces),
             dossiers: dossiersChoisis, utilisateur: utilisateur.trimmingCharacters(in: .whitespaces)
-        ))
+        ).avecHoteDistant(hoteDistant))
         if !motDePasse.isEmpty {
             try? etat.nas.enregistrerMotDePasse(motDePasse)
             motDePasse = ""
@@ -229,7 +232,7 @@ struct ReglagesNASView: View {
         etat.nas.enregistrer(ReglagesNAS(
             hote: hote.trimmingCharacters(in: .whitespaces), partage: partage.trimmingCharacters(in: .whitespaces),
             dossiers: liste, utilisateur: utilisateur.trimmingCharacters(in: .whitespaces)
-        ))
+        ).avecHoteDistant(hoteDistant))
         do {
             try etat.nas.enregistrerMotDePasse(motDePasse)
             motDePasse = ""
@@ -282,5 +285,14 @@ private struct CopiesEnDouble: View {
             }
         }
         .accessibilityElement(children: .combine)
+    }
+}
+
+private extension ReglagesNAS {
+    func avecHoteDistant(_ texte: String) -> ReglagesNAS {
+        var copie = self
+        let nettoye = texte.trimmingCharacters(in: .whitespaces)
+        copie.hoteDistant = nettoye.isEmpty ? nil : nettoye
+        return copie
     }
 }

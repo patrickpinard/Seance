@@ -6,7 +6,7 @@ import OSLog
 private let journal = Logger(subsystem: "ch.patrick.seance", category: "transfert")
 
 /// Une seule reprise pour une continuation, quel que soit le nombre de rappels du réseau.
-private final class UneFois: @unchecked Sendable {
+final class UneFois: @unchecked Sendable {
     private let verrou = NSLock()
     private var fait = false
     func tenter(_ action: () -> Void) {
@@ -18,7 +18,7 @@ private final class UneFois: @unchecked Sendable {
     }
 }
 
-private extension NWConnection {
+extension NWConnection {
     /// Lit une trame entière : sa longueur, puis son contenu.
     func lireTrame(_ suite: @escaping @Sendable (Data?) -> Void) {
         receive(minimumIncompleteLength: 4, maximumLength: 4) { entete, _, _, _ in

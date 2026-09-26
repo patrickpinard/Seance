@@ -49,6 +49,28 @@ enum LecteurWidgets {
         return resultat.map(\.0)
     }
 
+    /// « Reprendre » (8.1) : les vidéos du NAS entamées, les plus récentes d'abord, d'après les positions que l'app
+    /// dépose dans le groupe d'apps et les fichiers que connaît le magasin partagé.
+    static func reprises(limite: Int = 3) async -> [RepriseWidget] {
+        guard let contexte = ConteneurPartage.conteneur?.mainContext else { return [] }
+        let positions = PositionsLecture(donnees: UserDefaults(suiteName: EntrepotSeance.groupeApp)?.data(forKey: PositionsLecture.cle))
+        var resultat: [(RepriseWidget, String?)] = []
+        for entree in positions.enCours where resultat.count < limite {
+            let chemin = entree.chemin
+            guard let fichier = try? contexte.fetch(FetchDescriptor<FichierNAS>(predicate: #Predicate { $0.chemin == chemin })).first,
+                  fichier.reference != nil else { continue }
+            let numero = fichier.saison.flatMap { saison in fichier.episode.map { NumeroEpisode(saison: saison, episode: $0) } }
+            let reste = entree.position.reste.map { PositionsLecture.reste($0) }
+            let detail = [numero?.description, reste].compactMap { $0 }.joined(separator: " · ")
+            resultat.append((RepriseWidget(chemin: chemin, titre: fichier.titre, detail: detail.isEmpty ? "Sur ton NAS" : detail,
+                                           fraction: entree.position.fraction ?? 0), fichier.cheminAffiche))
+        }
+        for index in resultat.indices {
+            resultat[index].0.affiche = await Vignettes.donnees(resultat[index].1)
+        }
+        return resultat.map(\.0)
+    }
+
     static func aVenir(maintenant: Date = .now, limite: Int = 6) async -> [EcheanceWidget] {
         guard let contexte = ConteneurPartage.conteneur?.mainContext else { return [] }
         var resultat = futures((try? contexte.fetch(FetchDescriptor<Echeance>(sortBy: [SortDescriptor(\.date)]))) ?? [], maintenant: maintenant)

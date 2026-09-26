@@ -402,3 +402,43 @@ struct VueAVenir: View {
         .widgetURL(LiensWidget.aVenir)
     }
 }
+
+// MARK: - Reprendre (8.1)
+
+/// Les vidéos du NAS entamées : l'affiche, le titre, l'épisode et le temps restant, la barre de progression.
+struct VueReprendre: View {
+    let entree: EntreeReprendre
+    @Environment(\.widgetFamily) private var famille
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            EnteteWidget(titre: "Reprendre", symbole: "play.circle.fill")
+            if entree.reprises.isEmpty {
+                VideWidget(titre: "Rien à reprendre", texte: "Les films du NAS arrêtés en cours de route apparaissent ici.")
+            } else if famille == .systemSmall, let premiere = entree.reprises.first {
+                ligne(premiere, grande: true)
+                    .widgetURL(LiensWidget.reprendre(premiere.chemin))
+            } else {
+                ForEach(entree.reprises) { reprise in
+                    Link(destination: LiensWidget.reprendre(reprise.chemin)) { ligne(reprise, grande: false) }
+                }
+            }
+            Spacer(minLength: 0)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+    }
+
+    private func ligne(_ reprise: RepriseWidget, grande: Bool) -> some View {
+        HStack(alignment: .top, spacing: 8) {
+            AfficheWidget(donnees: reprise.affiche, largeur: grande ? 40 : 26, coins: 4)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(reprise.titre).font(.subheadline.weight(.bold)).lineLimit(grande ? 2 : 1)
+                Text(reprise.detail).font(.caption2).foregroundStyle(.white.opacity(0.7)).lineLimit(1)
+                ProgressView(value: reprise.fraction)
+                    .tint(CouleursWidget.accent)
+                    .accessibilityLabel("Vu à \(Int(reprise.fraction * 100)) %")
+            }
+        }
+        .foregroundStyle(.white)
+    }
+}

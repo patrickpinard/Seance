@@ -12,6 +12,11 @@ struct SeanceTVApp: App {
     /// Change avec le profil de la famille : tous les écrans se reconstruisent sur son magasin.
     @State private var generation = 0
 
+    init() {
+        // Le jour et l'heure d'arrivée de cette version (8.1), pour Réglages › Versions.
+        InstallationsVersions.noter()
+    }
+
     var body: some Scene {
         WindowGroup {
             if let conteneur {

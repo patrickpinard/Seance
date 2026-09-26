@@ -18,6 +18,8 @@ struct RacineTV: View {
         return chemin
     }()
     @State private var configuration = DepartTV.configurer
+    /// « Lire sur l'Apple TV » (8.1) : la vidéo envoyée par un iPhone, lue par-dessus la page où l'on était.
+    @State private var lectureRecue: LectureRecueTV?
     /// Famille : « Qui regarde ? » à l'ouverture, une fois par lancement, dès que la maison a plusieurs profils.
     @State private var quiRegarde = RacineTV.doitDemander
     private static var dejaDemande = false
@@ -81,6 +83,24 @@ struct RacineTV: View {
         }
         .animation(.snappy, value: etat.message)
         .fullScreenCover(isPresented: $configuration) { ConfigurationTV() }
+        .fullScreenCover(item: $lectureRecue) { recue in
+            LecteurVLCTV(video: recue.video, acces: recue.acces, motDePasse: recue.motDePasse,
+                         surEchec: { texte in etat.dire(texte) },
+                         depart: recue.depart,
+                         surPosition: { secondes, duree in etat.noterPosition(recue.video.chemin, secondes: secondes, duree: duree) },
+                         fichier: recue.fichier,
+                         surSuivant: { prochain in lectureRecue = LectureRecueTV(fichier: prochain, etat: etat) })
+        }
+        // Tant que Séance est ouverte, la TV écoute les iPhone de la maison.
+        .task(id: phase == .active) {
+            guard phase == .active else { return }
+            // Lu ici, sur le fil principal : l'écoute tourne sur sa propre file. Relu à chaque retour dans l'app.
+            let secret = etat.motDePasseDuNAS
+            let recepteur = RecepteurLecture { secret }
+            for await commande in recepteur.demarrer(nom: UIDevice.current.name) {
+                recevoir(commande)
+            }
+        }
         .fullScreenCover(isPresented: $quiRegarde) {
             QuiRegardeTV { profil in
                 Self.dejaDemande = true
@@ -128,6 +148,22 @@ struct RacineTV: View {
             etat.ou.actualiserLocal(contexte: contexte)
             PublicationEtagere.publier(contexte: contexte)
         }
+    }
+
+    /// Une vidéo envoyée par l'iPhone : un film ou un épisode de la bibliothèque, ou une vidéo personnelle.
+    private func recevoir(_ commande: CommandeLecture) {
+        if commande.souvenir {
+            guard let motDePasse = etat.videosPerso.motDePasse(films: etat.nas) else { return etat.dire("Les vidéos personnelles ne sont pas réglées sur cette TV.") }
+            lectureRecue = LectureRecueTV(video: VideoPerso(chemin: commande.chemin, taille: 0), acces: etat.videosPerso.reglages.acces,
+                                          motDePasse: motDePasse, depart: commande.depart, fichier: nil)
+        } else {
+            let chemin = commande.chemin
+            guard let fichier = try? contexte.fetch(FetchDescriptor<FichierNAS>(predicate: #Predicate { $0.chemin == chemin })).first else {
+                return etat.dire("Cette vidéo n'est pas encore dans la bibliothèque de la TV : relance l'analyse du NAS.")
+            }
+            lectureRecue = LectureRecueTV(fichier: fichier, etat: etat, depart: commande.depart)
+        }
+        etat.dire("Envoyé par \(commande.expediteur)")
     }
 
     private func marquerVu(_ reference: ReferenceTitre) {
@@ -270,5 +306,30 @@ extension View {
             .navigationDestination(for: FiltresTVDemande.self) { ExplorerTV(sourceImposee: $0.source).pageOuverte() }
             .navigationDestination(for: GoutsTVDemande.self) { _ in PageGoutsTV().pageOuverte() }
             .navigationDestination(for: StatistiquesTVDemande.self) { _ in StatistiquesTV().pageOuverte() }
+    }
+}
+
+/// Une lecture demandée par l'iPhone (8.1).
+struct LectureRecueTV: Identifiable {
+    let id = UUID()
+    let video: VideoPerso
+    let acces: ReglagesNAS
+    let motDePasse: String
+    let depart: Double?
+    let fichier: FichierNAS?
+
+    init(video: VideoPerso, acces: ReglagesNAS, motDePasse: String, depart: Double?, fichier: FichierNAS?) {
+        self.video = video
+        self.acces = acces
+        self.motDePasse = motDePasse
+        self.depart = depart
+        self.fichier = fichier
+    }
+
+    @MainActor
+    init(fichier: FichierNAS, etat: EtatTV, depart: Double? = nil) {
+        self.init(video: VideoPerso(chemin: fichier.chemin, taille: fichier.tailleOctets), acces: etat.nas,
+                  motDePasse: etat.motDePasseDuNAS ?? "", depart: depart ?? etat.positions.aReprendre(fichier.chemin)?.secondes,
+                  fichier: fichier)
     }
 }

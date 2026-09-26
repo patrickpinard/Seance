@@ -7,6 +7,9 @@ public struct ReglagesNAS: Codable, Sendable, Hashable {
     /// Dossiers du partage à analyser ; les autres ne sont jamais lus.
     public var dossiers: [String]
     public var utilisateur: String
+    /// L'adresse du NAS hors de la maison (8.1, facultative) : celle d'un VPN ou de Tailscale. Hors du Wi-Fi, le
+    /// lecteur l'emploie à la place de `hote`, qui n'est joignable que sur le réseau de la maison.
+    public var hoteDistant: String?
 
     /// Valeurs relevées sur le Synology DS220 de Patrick.
     public init(hote: String = "192.168.1.220", partage: String = "Films",
@@ -15,6 +18,14 @@ public struct ReglagesNAS: Codable, Sendable, Hashable {
         self.partage = partage
         self.dossiers = dossiers
         self.utilisateur = utilisateur
+    }
+
+    /// Les mêmes réglages, joints par l'adresse hors de la maison quand il y en a une.
+    public var horsDeLaMaison: ReglagesNAS {
+        guard let distant = hoteDistant?.trimmingCharacters(in: .whitespaces), !distant.isEmpty else { return self }
+        var copie = self
+        copie.hote = distant
+        return copie
     }
 
     public var estComplet: Bool {

@@ -18,8 +18,8 @@ settings:
     # Équipe personnelle de Patrick (compte Apple gratuit).
     DEVELOPMENT_TEAM: GATK475J3P
     # Version affichée dans À propos › Versions ; à changer avec Seance/Ecrans/Reglages/Versions.swift.
-    MARKETING_VERSION: "8.0"
-    CURRENT_PROJECT_VERSION: "54"
+    MARKETING_VERSION: "8.1"
+    CURRENT_PROJECT_VERSION: "55"
 
 packages:
   SeanceKit:
@@ -109,6 +109,8 @@ targets:
         NSLocalNetworkUsageDescription: Séance lit ton NAS et met en route ton Apple TV, sur le réseau de la maison.
         NSBonjourServices:
           - _seance-config._tcp
+          # « Lire sur l'Apple TV » (8.1) : l'iPhone envoie la vidéo à Séance ouverte sur la TV.
+          - _seance-lecture._tcp
         # Apps de lecture qui ouvrent les vidéos du NAS (EF-74).
         LSApplicationQueriesSchemes:
           - infuse
@@ -148,6 +150,10 @@ targets:
       - path: Seance/Ecrans/Reglages/Versions.swift
       # Les premières images des vidéos personnelles (6.4) : le même état que sur l'iPhone.
       - path: Seance/Etat/VignettesSouvenirs.swift
+      # La langue et les sous-titres retenus (8.1), posés sur VLC : les mêmes que sur l'iPhone.
+      - path: Seance/Etat/PistesVLC.swift
+      # La mémoire des images (8.1) : limite en octets, une requête par image, la même que sur l'iPhone.
+      - path: Seance/Design/MemoireImages.swift
     dependencies:
       - package: SeanceKit
       - package: SeanceDonnees
@@ -175,6 +181,8 @@ targets:
         NSLocalNetworkUsageDescription: Séance lit ton NAS et met en route ton Apple TV, sur le réseau de la maison.
         NSBonjourServices:
           - _seance-config._tcp
+          # « Lire sur l'Apple TV » (8.1) : l'iPhone envoie la vidéo à Séance ouverte sur la TV.
+          - _seance-lecture._tcp
         # Apps de lecture que Séance sait ouvrir sur l'Apple TV.
         LSApplicationQueriesSchemes:
           - infuse

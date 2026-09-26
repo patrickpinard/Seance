@@ -54,6 +54,10 @@ struct ListeVersions: View {
                 Spacer()
                 Text(version.date).font(.caption).foregroundStyle(.secondary)
             }
+            // 8.1 : le jour et l'heure de son arrivée sur cet appareil.
+            if let installee = InstallationsVersions.libelle(version.numero) {
+                Label(installee, systemImage: "arrow.down.circle").font(.caption).foregroundStyle(.secondary)
+            }
             Text(version.resume)
                 .font(.footnote)
                 .foregroundStyle(.secondary)

@@ -63,36 +63,42 @@ struct ImageDistante: View {
     }
 }
 
-/// Affiches et fonds TMDB : décodés une fois, gardés en mémoire, et sur disque par `URLCache`.
+/// Affiches et fonds TMDB : décodés une fois, gardés en mémoire (`MemoireImages`, 150 Mo au plus), et sur disque par
+/// `URLCache`.
 final class CacheImages: @unchecked Sendable {
     static let partage = CacheImages()
 
-    private let memoire = NSCache<NSURL, UIImage>()
+    private let memoire: MemoireImages
     private let cacheDisque: URLCache
-    private let session: URLSession
     /// Préchargements en cours, pour ne pas demander deux fois la même image.
     private var enCours: Set<URL> = []
     private let verrou = NSLock()
 
     private init() {
-        memoire.countLimit = 400
         let configuration = URLSessionConfiguration.default
-        cacheDisque = URLCache(memoryCapacity: 30 * 1024 * 1024, diskCapacity: 300 * 1024 * 1024, directory: DossiersSeance.images)
-        configuration.urlCache = cacheDisque
+        let disque = URLCache(memoryCapacity: 30 * 1024 * 1024, diskCapacity: 300 * 1024 * 1024, directory: DossiersSeance.images)
+        configuration.urlCache = disque
         configuration.requestCachePolicy = .returnCacheDataElseLoad
         configuration.timeoutIntervalForRequest = 20
         configuration.httpMaximumConnectionsPerHost = 6
-        session = URLSession(configuration: configuration)
+        let session = URLSession(configuration: configuration)
+        cacheDisque = disque
+        // Les images TMDB arrivent déjà à la taille des cartes (w342, w780) ; le plafond ne rabote que les plus grandes.
+        memoire = MemoireImages(coteMax: 1400) { url in
+            guard let (donnees, reponse) = try? await session.data(from: url),
+                  (reponse as? HTTPURLResponse)?.statusCode ?? 200 < 400 else { return nil }
+            return donnees
+        }
     }
 
     /// « Vider » dans À propos : les affiches se rechargeront à l'affichage.
     func vider() {
-        memoire.removeAllObjects()
+        memoire.vider()
         cacheDisque.removeAllCachedResponses()
     }
 
     func enMemoire(_ url: URL) -> UIImage? {
-        memoire.object(forKey: url as NSURL)
+        memoire.enMemoire(url)
     }
 
     /// Charge en avance les images qu'on va faire défiler — les grandes cartes de l'accueil surtout : quand la
@@ -126,14 +132,10 @@ final class CacheImages: @unchecked Sendable {
         verrou.unlock()
     }
 
-    /// `nil` en cas d'échec ou d'annulation : l'appelant décide de réessayer.
+    /// `nil` en cas d'échec : l'appelant décide de réessayer. Deux cartes qui demandent la même image attendent la
+    /// même requête.
     func charger(_ url: URL) async -> UIImage? {
-        guard let (donnees, reponse) = try? await session.data(from: url),
-              (reponse as? HTTPURLResponse)?.statusCode ?? 200 < 400,
-              let image = await UIImage(data: donnees)?.byPreparingForDisplay()
-        else { return nil }
-        memoire.setObject(image, forKey: url as NSURL)
-        return image
+        await memoire.image(url)
     }
 }
 

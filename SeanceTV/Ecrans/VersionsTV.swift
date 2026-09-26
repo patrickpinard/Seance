@@ -12,7 +12,7 @@ struct PageVersionsTV: View {
                sousTitre: "Ce que chaque version a apporté. Séance \(ReglagesTV.version) sur cette Apple TV.") {
             ForEach(NoteVersion.historique) { version in
                 SectionTV(explication: ouvertes.contains(version.numero) ? nil : version.resume) {
-                    LigneTVReglage(titre: "Version \(version.numero)", detail: version.date,
+                    LigneTVReglage(titre: "Version \(version.numero)", detail: InstallationsVersions.libelle(version.numero) ?? version.date,
                                    symbole: version.numero == ReglagesTV.version ? "checkmark.seal.fill" : "clock.arrow.circlepath",
                                    action: { ouvrirOuFermer(version) }) {
                         BoutTV(forme: .valeur(ouvertes.contains(version.numero) ? "Fermer" : "Voir"))

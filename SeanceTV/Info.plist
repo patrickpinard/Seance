@@ -46,6 +46,7 @@
 	<key>NSBonjourServices</key>
 	<array>
 		<string>_seance-config._tcp</string>
+		<string>_seance-lecture._tcp</string>
 	</array>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>Séance lit ton NAS et met en route ton Apple TV, sur le réseau de la maison.</string>

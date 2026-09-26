@@ -117,12 +117,35 @@ struct PersonneTV: View {
                 Text(fiche?.nom ?? personne.nom).font(.system(size: 48, weight: .heavy)).multilineTextAlignment(.center).lineLimit(2)
                 Text(faits).font(.system(size: 24)).foregroundStyle(Theme.texte2).multilineTextAlignment(.center)
             }
+            // 8.1 (demande de Patrick) : un seul bouton. Un clic suit ou ne suit plus ; l'appui long ouvre les choix, comme
+            // sur les cartes.
             Button { basculerSuivi() } label: {
                 Label(suivi ? "Suivi" : "Suivre", systemImage: suivi ? "bell.fill" : "bell").frame(maxWidth: .infinity)
             }
             .buttonStyle(BoutonTV(principal: !suivi))
+            .accessibilityHint("Appui long : plus de choix")
+            .contextMenu {
+                Button { basculerSuivi() } label: {
+                    Label(suivi ? "Ne plus suivre" : "Suivre et être prévenu", systemImage: suivi ? "bell.slash" : "bell")
+                }
+                Section("Afficher") {
+                    ForEach(Filtre.allCases, id: \.self) { choix in
+                        Button { filtre = choix } label: {
+                            Label(choix.rawValue, systemImage: filtre == choix ? "checkmark" : Self.symbole(choix))
+                        }
+                    }
+                }
+            }
         }
         .frame(maxWidth: .infinity)
+    }
+
+    private static func symbole(_ filtre: Filtre) -> String {
+        switch filtre {
+        case .films: "film"
+        case .series: "tv"
+        case .regardables: "play.circle"
+        }
     }
 
     /// « Acteur · 52 ans · 12 films vus sur 38 ».

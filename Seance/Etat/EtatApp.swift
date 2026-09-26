@@ -51,6 +51,8 @@ final class EtatApp {
     var listeDemandee: MesListesView.Onglet?
     let depot = DepotCles()
     let nas: EtatNAS
+    /// À la maison ou sur le réseau mobile (8.1) : le lecteur choisit l'adresse du NAS en conséquence.
+    let reseau = EtatReseau()
     /// Le second accès au NAS, facultatif : les vidéos personnelles (EF-157).
     let videosPerso: EtatVideosPerso
     let alertes = EtatAlertes()
@@ -188,7 +190,7 @@ final class EtatApp {
     func lire(_ fichier: FichierNAS) {
         lectureEnImage = false
         lecture = LectureEnCours(video: VideoPerso(chemin: fichier.chemin, taille: fichier.tailleOctets),
-                                 acces: nas.reglages, motDePasse: nas.motDePasse ?? "")
+                                 acces: nas.reglages, motDePasse: nas.motDePasse ?? "", fichier: fichier)
     }
 
     /// Montre le sablier, avec ce que l'app est en train de faire. Un garde-fou l'efface au bout de huit secondes :
@@ -269,12 +271,17 @@ final class EtatApp {
     }
 
     /// Au lancement : chaînes par défaut au premier démarrage, puis programmes TV s'ils datent.
+    /// 8.1 : le guide TV et le NAS en même temps, et non l'un après l'autre — avec la RTS, le guide prend des dizaines
+    /// de secondes, que le NAS n'attend plus. Le tout après le premier écran, pour qu'il s'affiche sans attendre.
     func demarrer(contexte: ModelContext) async {
+        try? await Task.sleep(for: .milliseconds(500))
         _ = try? ServiceProgrammesTV.preparerChaines(contexte)
+        // Sur le fil principal, comme le reste : le magasin n'est pas partagé entre fils, les deux s'entrelacent.
+        let bibliotheque = Task { @MainActor in await nas.analyser(contexte: contexte, tmdb: tmdb, automatique: true) }
         await actualiserTele(contexte: contexte)
-        await nas.analyser(contexte: contexte, tmdb: tmdb, automatique: true)
         // Après la TV : les passages des titres suivis entrent dans les alertes.
         await alertes.planifier(contexte: contexte, tmdb: tmdb)
+        await bibliotheque.value
     }
 
     /// Retour dans l'app : programmes TV s'ils datent, puis alertes et « À venir » s'ils datent d'une heure.
@@ -353,4 +360,6 @@ struct LectureEnCours: Identifiable {
     let acces: ReglagesNAS
     let motDePasse: String
     var surEchec: (String) -> Void = { _ in }
+    /// Le film ou l'épisode du NAS (8.1) : marqué vu vers la fin, suivi de l'épisode d'après. `nil` pour un souvenir.
+    var fichier: FichierNAS?
 }

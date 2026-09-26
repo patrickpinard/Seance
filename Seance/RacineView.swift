@@ -135,6 +135,12 @@ struct RacineView: View {
                                                               to: Calendar.current.startOfDay(for: ServiceSoiree.jour(ServiceSoiree.soiree()) ?? .now))
                 }
             }
+            // SEANCE_LIRE_FICHIER=<chemin> : le lecteur VLC sur un fichier du Mac (le NAS monté), pour éprouver l'image.
+            #if !targetEnvironment(macCatalyst)
+            if let fichier = env["SEANCE_LIRE_FICHIER"] {
+                etat.lecture = LectureEnCours(video: VideoPerso(chemin: fichier, taille: 0), acces: ReglagesNAS(), motDePasse: "")
+            }
+            #endif
             if let fiche = env["SEANCE_FICHE"]?.split(separator: ":"), fiche.count == 2,
                let type = TypeTitre(rawValue: String(fiche[0])), let id = Int(fiche[1]) {
                 etat.ficheDemandee = ReferenceTitre(type: type, tmdbID: id)
@@ -271,6 +277,16 @@ struct RacineView: View {
             // Un fichier : une sauvegarde reçue par AirDrop ou ouverte depuis Fichiers.
             if url.isFileURL {
                 etat.sauvegardeRecue = url
+                return
+            }
+            // Le widget « Reprendre » (8.1) : la vidéo repart dans le lecteur, là où elle s'était arrêtée.
+            if url.host() == "reprendre",
+               let chemin = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems?.first(where: { $0.name == "chemin" })?.value {
+                #if !targetEnvironment(macCatalyst)
+                if let fichier = try? contexte.fetch(FetchDescriptor<FichierNAS>(predicate: #Predicate { $0.chemin == chemin })).first {
+                    etat.lire(fichier)
+                }
+                #endif
                 return
             }
             switch LienProfond.onglet(url) {

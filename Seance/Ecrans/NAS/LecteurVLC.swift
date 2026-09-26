@@ -1,4 +1,5 @@
 #if !targetEnvironment(macCatalyst)
+import SeanceDonnees
 import SeanceKit
 import SeanceNAS
 import AVFoundation
@@ -16,11 +17,21 @@ struct LecteurVLC: View {
     /// 8.0 : le lecteur est posé par la racine, par-dessus l'app, pour pouvoir passer en image dans l'image.
     let lecture: LectureEnCours
     private var video: VideoPerso { lecture.video }
-    private var acces: ReglagesNAS { lecture.acces }
+    /// Hors de la maison (8.1), l'adresse du NAS par le VPN ou Tailscale, s'il y en a une.
+    private var acces: ReglagesNAS { etat.reseau.horsMaison ? lecture.acces.horsDeLaMaison : lecture.acces }
     private var motDePasse: String { lecture.motDePasse }
 
     @Environment(EtatApp.self) private var etat
+    @Environment(\.modelContext) private var contexte
     @State private var moteur = MoteurVLC()
+    /// 8.1 : vu vers la fin sans question, puis l'épisode suivant du NAS, après un compte à rebours.
+    @State private var vuMarque = false
+    @State private var suivant: FichierNAS?
+    @State private var compte: Int?
+    /// « Lire sur l'Apple TV » (8.1) : les TV où Séance est ouverte, trouvées sur le réseau de la maison.
+    @State private var televiseurs: [EmetteurConfig.Televiseur] = []
+    @State private var choixTV = false
+    @State private var envoiTV = false
     /// La vidéo a repris où l'on s'était arrêté : « Depuis le début » reste proposé quelques secondes.
     @State private var reprise: PositionLecture?
     @State private var relais: RelaisVideo?
@@ -68,6 +79,14 @@ struct LecteurVLC: View {
                             .foregroundStyle(.white.opacity(0.85))
                             .multilineTextAlignment(.center)
                             .padding(.horizontal, 40)
+                        if etat.reseau.horsMaison {
+                            Label(lecture.acces.hoteDistant == nil ? "Réseau mobile : le NAS de la maison risque de ne pas répondre"
+                                                                   : "Réseau mobile : par l'adresse hors de la maison",
+                                  systemImage: "antenna.radiowaves.left.and.right")
+                                .font(.caption)
+                                .foregroundStyle(.white.opacity(0.75))
+                                .multilineTextAlignment(.center)
+                        }
                         if moteur.tampon > 0, moteur.tampon < 100 {
                             Text("\(Int(moteur.tampon)) %").font(.caption.monospacedDigit()).foregroundStyle(.white.opacity(0.6))
                         }
@@ -78,7 +97,8 @@ struct LecteurVLC: View {
                 }
             }
         }
-        .overlay(alignment: .bottom) { if commandesVisibles, message == nil { commandes } }
+        .overlay(alignment: .bottom) { if commandesVisibles, message == nil, compte == nil { commandes } }
+        .overlay(alignment: .bottomTrailing) { carteSuivant }
         // Deux boutons distincts (8.0) : la croix arrête la lecture ; « Continuer dans Séance » la passe en image
         // dans l'image et rend la main à l'app, la vidéo continuant dans sa petite fenêtre.
         .overlay(alignment: .top) {
@@ -93,6 +113,21 @@ struct LecteurVLC: View {
                     }
                     .accessibilityLabel("Fermer la lecture")
                     Spacer()
+                    if message == nil, !televiseurs.isEmpty {
+                        Button { televiseurs.count == 1 ? envoyer(a: televiseurs[0]) : (choixTV = true) } label: {
+                            Label(envoiTV ? "Envoi…" : "Sur l'Apple TV", systemImage: "appletv")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(.white)
+                                .padding(.horizontal, 14)
+                                .frame(height: 44)
+                                .background(.black.opacity(0.55), in: Capsule())
+                        }
+                        .disabled(envoiTV)
+                        .accessibilityHint("La vidéo continue sur la TV, là où tu en es")
+                        .confirmationDialog("Sur quelle Apple TV ?", isPresented: $choixTV, titleVisibility: .visible) {
+                            ForEach(televiseurs) { tv in Button(tv.nom) { envoyer(a: tv) } }
+                        }
+                    }
                     if message == nil, moteur.imageDisponible {
                         Button { moteur.passerEnImage() } label: {
                             Label("Continuer dans Séance", systemImage: "pip.enter")
@@ -141,6 +176,20 @@ struct LecteurVLC: View {
             }
         }
         .onChange(of: moteur.enImage) { _, enImage in etat.lectureEnImage = enImage }
+        // Vers la fin : vu, sans question (8.1).
+        .onChange(of: Int(moteur.secondes)) { _, _ in marquerVuSiFini() }
+        // Tout à la fin : l'épisode suivant après dix secondes, sinon le lecteur se referme.
+        .onChange(of: moteur.termine) { _, termine in
+            guard termine else { return }
+            marquerVuSiFini(force: true)
+            if suivant != nil { compte = FinDeLecture.delaiEpisodeSuivant } else { fermer() }
+        }
+        .task(id: compte) {
+            guard let restant = compte else { return }
+            try? await Task.sleep(for: .seconds(1))
+            guard !Task.isCancelled, compte != nil else { return }
+            if restant <= 1 { lireSuivant() } else { compte = restant - 1 }
+        }
         // Commandes et croix s'effacent après trois secondes de lecture sans toucher (7.0) ; un toucher les ramène.
         .task(id: Minuterie(geste: dernierGeste, enLecture: moteur.enLecture && !moteur.enChargement && !panneau, visibles: commandesVisibles)) {
             guard commandesVisibles, !panneau, moteur.enLecture, !moteur.enChargement else { return }
@@ -165,7 +214,17 @@ struct LecteurVLC: View {
             try? AVAudioSession.sharedInstance().setCategory(.playback, mode: .moviePlayback)
             try? AVAudioSession.sharedInstance().setActive(true)
         }
-        .task { await ouvrir() }
+        .task {
+            // Les Apple TV où Séance est ouverte : le bouton n'apparaît que s'il y en a une.
+            for await trouves in EmetteurLecture.chercher() { televiseurs = trouves }
+        }
+        .task {
+            if let fichier = lecture.fichier {
+                suivant = FinDeFichierNAS.episodeSuivant(fichier, contexte: contexte)
+                moteur.preferences = PreferencesPistes.lire(profil: ProfilsFamille().actif.id)
+            }
+            await ouvrir()
+        }
         .onDisappear {
             OrientationLecture.fermer()
             Task { await ranger() }
@@ -225,12 +284,19 @@ struct LecteurVLC: View {
     /// que si VLC n'arrive pas à ouvrir le partage lui-même.
     private func ouvrir() async {
         guard relais == nil, message == nil else { return }
+        #if DEBUG
+        if ProcessInfo.processInfo.environment["SEANCE_LIRE_FICHIER"] == video.chemin {
+            moteur.depart = ProcessInfo.processInfo.environment["SEANCE_LIRE_DEPART"].flatMap(Double.init)
+            return moteur.lire(URL(fileURLWithPath: video.chemin))
+        }
+        #endif
         if let position = etat.nas.positions.aReprendre(video.chemin) {
             reprise = position
             moteur.depart = position.secondes
         }
         if let adresse = acces.url(chemin: video.chemin) {
-            moteur.lire(adresse, options: [":smb-user=\(acces.utilisateur)", ":smb-pwd=\(motDePasse)", ":network-caching=3000"])
+            moteur.lire(adresse, options: [":smb-user=\(acces.utilisateur)", ":smb-pwd=\(motDePasse)", ":network-caching=3000"]
+                        + OptionsVLC.pour(video.chemin))
             if await moteur.demarre(dans: .seconds(12)) { return }
             moteur.arreter()
         }
@@ -246,9 +312,12 @@ struct LecteurVLC: View {
         do {
             let adresse = try await nouveau.demarrer()
             relais = nouveau
-            moteur.lire(adresse, options: [":network-caching=3000"])
+            moteur.lire(adresse, options: [":network-caching=3000"] + OptionsVLC.pour(video.chemin))
         } catch {
-            let texte = ErreurNAS.message(error)
+            // Hors de la maison sans adresse pour y arriver : la vraie raison, plutôt qu'une erreur réseau.
+            let texte = etat.reseau.horsMaison && lecture.acces.hoteDistant == nil
+                ? "Tu n'es pas sur le Wi-Fi de la maison : le NAS n'y répond pas. Pour lire hors de chez toi, ajoute son adresse par ton VPN ou Tailscale dans Réglages › NAS › « Hors de la maison »."
+                : ErreurNAS.message(error)
             message = texte
             lecture.surEchec(texte)
             await nouvelle.fermer()
@@ -265,6 +334,74 @@ struct LecteurVLC: View {
         case "wmv": "video/x-ms-wmv"
         case "mpg", "mpeg": "video/mpeg"
         default: "application/octet-stream"
+        }
+    }
+
+    /// L'épisode d'après : proposé dès le générique, lancé tout seul à la fin après un compte à rebours.
+    @ViewBuilder
+    private var carteSuivant: some View {
+        if let suivant, message == nil, compte != nil || (vuMarque && commandesVisibles) {
+            VStack(alignment: .trailing, spacing: 10) {
+                if let compte {
+                    Text("Épisode suivant dans \(compte) s").font(.subheadline.weight(.semibold)).foregroundStyle(.white)
+                }
+                HStack(spacing: 10) {
+                    if compte != nil {
+                        Button("Annuler") { compte = nil; fermer() }
+                            .buttonStyle(StyleBoutonSecondaire())
+                    }
+                    Button { lireSuivant() } label: {
+                        Label(Self.libelle(suivant), systemImage: "forward.end.fill")
+                    }
+                    .buttonStyle(StyleBoutonPrincipal(pleineLargeur: false))
+                }
+            }
+            .padding(20)
+            .padding(.bottom, compte == nil ? 170 : 20)
+            .transition(.opacity)
+        }
+    }
+
+    static func libelle(_ fichier: FichierNAS) -> String {
+        guard let saison = fichier.saison, let episode = fichier.episode else { return "Épisode suivant" }
+        return String(format: "Épisode suivant · S%02dE%02d", saison, episode)
+    }
+
+    private func lireSuivant() {
+        guard let suivant else { return }
+        compte = nil
+        noterPosition()
+        etat.lire(suivant)
+    }
+
+    /// Au-delà de 90 % (ou dans le générique d'un long film), le film ou l'épisode compte comme vu.
+    private func marquerVuSiFini(force: Bool = false) {
+        guard !vuMarque, let fichier = lecture.fichier, let sujet = FinDeFichierNAS.lecture(fichier),
+              force || FinDeLecture.presqueFini(secondes: moteur.secondes, duree: moteur.duree) else { return }
+        vuMarque = true
+        let duree = moteur.duree
+        Task {
+            if (try? await FinDeFichierNAS.marquerVu(sujet, dureeSecondes: duree, contexte: contexte, tmdb: etat.tmdb)) == true {
+                etat.confirmer("« \(sujet.libelle) » marqué vu", symbole: "checkmark.circle")
+            }
+        }
+    }
+
+    /// La vidéo part sur la TV, à la seconde où l'on en est ; le lecteur de l'iPhone se referme.
+    private func envoyer(a televiseur: EmetteurConfig.Televiseur) {
+        guard let secret = etat.nas.motDePasse else { return }
+        let commande = CommandeLecture(chemin: video.chemin, souvenir: lecture.fichier == nil,
+                                       depart: moteur.secondes > 5 ? moteur.secondes : nil, expediteur: UIDevice.current.name)
+        envoiTV = true
+        Task {
+            do {
+                try await EmetteurLecture.envoyer(commande, a: televiseur, secret: secret)
+                fermer()
+                etat.confirmer("« \(video.nom) » continue sur \(televiseur.nom)", symbole: "appletv")
+            } catch {
+                envoiTV = false
+                etat.confirmer("L'Apple TV n'a pas répondu : Séance y est-elle ouverte, avec le même NAS ?", symbole: "exclamationmark.triangle")
+            }
         }
     }
 
@@ -416,14 +553,18 @@ final class MoteurVLC {
     private(set) var duree: Double = 0
     /// Où reprendre, appliqué une fois la lecture partie.
     var depart: Double?
-    /// Le format d'image des pixels non carrés, posé une fois par vidéo.
-    private var formatPose = false
     /// L'image dans l'image (8.0) : prête quand VLC a donné sa fenêtre ; `enImage` quand elle est à l'écran.
     private(set) var imageDisponible = false
     private(set) var enImage = false
     private var fenetreImage: (any VLCPictureInPictureWindowControlling)?
     /// Remplissage de la mémoire tampon, en pour cent, pour le sablier.
     private(set) var tampon: Double = 0
+    /// Langue et sous-titres voulus (8.1), posés une fois que VLC a décrit les pistes.
+    var preferences: PreferencesPistes?
+    private var pistesPosees = false
+    /// Vrai quand la vidéo est allée jusqu'au bout.
+    private(set) var termine = false
+    private var derniereFraction = 0.0
     private var delegue: DelegueMoteurVLC?
 
     func attacher(a vue: UIView) {
@@ -452,26 +593,29 @@ final class MoteurVLC {
         lecteur.delegate = delegue
         lecteur.play()
         enLecture = true
-        formatPose = false
+        pistesPosees = false
+        termine = false
+        derniereFraction = 0
         observateur = Task { [weak self] in
             while !Task.isCancelled {
                 try? await Task.sleep(for: .milliseconds(400))
                 guard let self else { return }
                 self.position = self.lecteur.position
                 self.enLecture = self.lecteur.isPlaying
-                self.enChargement = self.lecteur.state == .opening
-                    || (!self.lecteur.isPlaying && self.lecteur.position == 0)
+                // La fin : VLC s'arrête de lui-même après la dernière image.
+                if self.lecteur.state == .stopped, self.derniereFraction > 0.97 { self.termine = true }
+                if self.lecteur.isPlaying { self.derniereFraction = Double(self.lecteur.position) }
+                if !self.pistesPosees, let preferences = self.preferences, self.lecteur.isPlaying {
+                    self.pistesPosees = self.lecteur.appliquer(preferences)
+                }
+                self.enChargement = !self.termine && (self.lecteur.state == .opening
+                    || (!self.lecteur.isPlaying && self.lecteur.position == 0))
                 self.tempsAffiche = self.lecteur.time.stringValue
                 self.secondes = Double(self.lecteur.time.intValue) / 1000
                 self.duree = Double(self.lecteur.media?.length.intValue ?? 0) / 1000
                 if let depart = self.depart, self.duree > 0, self.lecteur.isPlaying {
                     self.lecteur.time = VLCTime(int: Int32(depart * 1000))
                     self.depart = nil
-                }
-                // Pixels non carrés : le format d'image annoncé par la piste, une fois qu'elle est connue.
-                if !self.formatPose, let piste = self.lecteur.videoTracks.first(where: \.isSelected)?.video {
-                    self.formatPose = true
-                    if let rapport = FormatImageVLC.rapport(piste) { self.lecteur.videoAspectRatio = rapport }
                 }
                 self.fenetreImage?.invalidatePlaybackState()
             }
@@ -571,6 +715,17 @@ private final class VueImageDansLImage: UIView, VLCPictureInPictureDrawable {
 
     required init?(coder: NSCoder) { nil }
 
+    /// VLC pose sa propre vue de dessin dans celle-ci, à la taille du moment, et ne la suit pas quand l'iPhone passe à
+    /// l'horizontale : l'image restait petite dans un coin, ou déformée. Elle suit maintenant chaque changement de taille.
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        for vue in subviews where vue.frame != bounds { vue.frame = bounds }
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        for couche in layer.sublayers ?? [] where couche.frame != bounds { couche.frame = bounds }
+        CATransaction.commit()
+    }
+
     nonisolated func mediaController() -> any VLCPictureInPictureMediaControlling {
         MainActor.assumeIsolated { controleur }
     }
@@ -622,19 +777,5 @@ private final class DelegueMoteurVLC: NSObject, VLCMediaPlayerDelegate, @uncheck
         let pourcent = Double(progress) * 100
         Task { @MainActor [surTampon] in surTampon(pourcent) }
     }
-}
-/// Les vidéos anamorphiques (pixels non carrés, comme « Unabomber » : 1280 × 720 à afficher en 2,39:1) : VLCKit 4 ne
-/// tient pas compte du rapport de pixels de la piste et les montrait écrasées. On lui impose le format d'image qu'elles
-/// annoncent. `nil` : des pixels carrés, rien à corriger.
-enum FormatImageVLC {
-    static func rapport(_ piste: VLCMedia.VideoTrack) -> String? {
-        let numerateur = Int(piste.sourceAspectRatio), denominateur = Int(piste.sourceAspectRatioDenominator)
-        guard piste.width > 0, piste.height > 0, numerateur > 0, denominateur > 0, numerateur != denominateur else { return nil }
-        let largeur = Int(piste.width) * numerateur, hauteur = Int(piste.height) * denominateur
-        let diviseur = pgcd(largeur, hauteur)
-        return "\(largeur / diviseur):\(hauteur / diviseur)"
-    }
-
-    private static func pgcd(_ a: Int, _ b: Int) -> Int { b == 0 ? a : pgcd(b, a % b) }
 }
 #endif

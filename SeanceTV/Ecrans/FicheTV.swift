@@ -120,6 +120,10 @@ struct FicheTV: View {
                 lireDehors(fichier)
             }, depart: departLecture, surPosition: { secondes, duree in
                 etat.noterPosition(fichier.chemin, secondes: secondes, duree: duree)
+            }, fichier: fichier, surSuivant: { prochain in
+                // L'épisode d'après (8.1) : le lecteur se referme et se rouvre sur lui, depuis le début.
+                departLecture = nil
+                filmALire = prochain
             })
         }
         // Une question de Séance, à ses couleurs : reprendre, ou repartir du début.
@@ -203,8 +207,12 @@ struct FicheTV: View {
             if suivi == nil {
                 Button { garder() } label: { Label("Ma liste", systemImage: "plus") }
             } else {
-                // Maquette 8.0, n° 14 : le bouton dit où le titre en est — « En cours », « À voir », « Terminé ».
-                Button {} label: { Label(etatDansLaListe, systemImage: "checkmark") }
+                // Maquette 8.0, n° 14 : le bouton dit où le titre en est — « En cours », « À voir », « Terminé ». 8.1 : il
+                // bascule — un clic le termine, un autre le rouvre (il ne faisait rien, et « Terminé » restait pour de bon).
+                Button { basculerTermine() } label: {
+                    Label(etatDansLaListe, systemImage: estTermine ? "checkmark.circle.fill" : "circle")
+                }
+                .accessibilityLabel(estTermine ? "Terminé, choisir pour le rouvrir" : "\(etatDansLaListe), choisir pour le terminer")
             }
             Button { basculerSoiree() } label: { Image(systemName: prevuCeSoir ? "moon.stars.fill" : "moon.stars") }
                 .buttonStyle(BoutonRondTV(choisi: prevuCeSoir))
@@ -220,8 +228,22 @@ struct FicheTV: View {
         .focusSection()
     }
 
+    private var estTermine: Bool {
+        reference.type == .film ? vu : suivi?.statut == .termine
+    }
+
+    /// Terminé ↔ À voir pour un film (il passe dans les vus, ou en sort) ; Terminé ↔ En cours pour une série.
+    private func basculerTermine() {
+        if reference.type == .film { return basculerVu() }
+        guard let suivi else { return }
+        suivi.statut = suivi.statut == .termine ? .enCours : .termine
+        try? contexte.save()
+        etat.dire(suivi.statut == .termine ? "« \(titre) » terminé" : "« \(titre) » de nouveau en cours")
+    }
+
     private var etatDansLaListe: String {
-        switch suivi?.statut {
+        if reference.type == .film, vu { return "Terminé" }
+        return switch suivi?.statut {
         case .enCours: "En cours"
         case .termine: "Terminé"
         default: "Dans ma liste"
@@ -691,6 +713,22 @@ struct FicheTV: View {
     /// Le titre lui-même, pas la page d'accueil (6.6) : sur tvOS, le lien universel de Netflix n'ouvre que son
     /// accueil. On essaie le schéma de l'app d'abord, puis les autres adresses tant que la précédente est refusée.
     private func ouvrirPlateforme(_ plateforme: Fournisseur) {
+        // 8.1 : l'identifiant du titre chez Netflix ou Disney+ arrive de Wikidata à l'ouverture de la fiche ; choisi trop
+        // tôt, Séance partait sur la recherche — l'accueil de l'app. On l'attend 2,5 secondes au plus, comme sur l'iPhone.
+        guard identifiants != nil || !LiensPlateformes.avecLienDirect.contains(plateforme.id) else {
+            return lancerPlateforme(plateforme)
+        }
+        // La lecture lancée à l'ouverture de la fiche remplit `identifiants` ; on la guette.
+        etat.dire("Ouverture de \(plateforme.nom)…")
+        Task {
+            for _ in 0..<25 where identifiants == nil {
+                try? await Task.sleep(for: .milliseconds(100))
+            }
+            lancerPlateforme(plateforme)
+        }
+    }
+
+    private func lancerPlateforme(_ plateforme: Fournisseur) {
         let liens = LiensPlateformes.liensTV(plateforme: plateforme.id, titre: titre, reference: reference, identifiants: identifiants)
         guard !liens.isEmpty else {
             return etat.dire("Ouvre \(plateforme.nom) sur l'Apple TV et cherche « \(titre) ».")

@@ -149,11 +149,40 @@ private struct VueEntreeAVenir: View {
     }
 }
 
+// MARK: - Reprendre (8.1)
+
+struct FournisseurReprendre: AppIntentTimelineProvider {
+    func placeholder(in context: Context) -> EntreeReprendre { .exemple }
+
+    func snapshot(for configuration: ConfigurationSeance, in context: Context) async -> EntreeReprendre {
+        let reprises = await LecteurWidgets.reprises()
+        return context.isPreview && reprises.isEmpty ? .exemple : EntreeReprendre(date: .now, reprises: reprises)
+    }
+
+    func timeline(for configuration: ConfigurationSeance, in context: Context) async -> Timeline<EntreeReprendre> {
+        Timeline(entries: [EntreeReprendre(date: .now, reprises: await LecteurWidgets.reprises())],
+                 policy: .after(.now.addingTimeInterval(3 * 3600)))
+    }
+}
+
+struct ReprendreWidget: Widget {
+    var body: some WidgetConfiguration {
+        AppIntentConfiguration(kind: "Reprendre", intent: ConfigurationSeance.self, provider: FournisseurReprendre()) { entree in
+            VueReprendre(entree: entree)
+                .containerBackground(for: .widget) { FondWidget() }
+        }
+        .configurationDisplayName("Reprendre")
+        .description("Les films et épisodes du NAS entamés : un toucher reprend là où tu t'étais arrêté.")
+        .supportedFamilies([.systemSmall, .systemMedium])
+    }
+}
+
 @main
 struct SeanceWidgets: WidgetBundle {
     var body: some Widget {
         MaSoireeWidget()
         ProchainEpisodeWidget()
         AVenirWidget()
+        ReprendreWidget()
     }
 }

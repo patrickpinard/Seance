@@ -11,11 +11,10 @@ struct ImageTV: View {
 
     @State private var image: UIImage?
 
-    private static let cache: NSCache<NSURL, UIImage> = {
-        let cache = NSCache<NSURL, UIImage>()
-        cache.countLimit = 300
-        return cache
-    }()
+    /// 8.1 : la même mémoire que l'iPhone — 150 Mo au plus, une requête par image —, à la taille d'un écran 4K.
+    static let memoire = MemoireImages(coteMax: 2200) { url in
+        try? await URLSession.shared.data(from: url).0
+    }
 
     var body: some View {
         Rectangle().fill(Theme.surface)
@@ -32,11 +31,10 @@ struct ImageTV: View {
 
     private func charger() async {
         guard let url else { image = nil; return }
-        if let connue = Self.cache.object(forKey: url as NSURL) { image = connue; return }
+        if let connue = Self.memoire.enMemoire(url) { image = connue; return }
         image = nil
         for tentative in 0..<3 {
-            if let (donnees, _) = try? await URLSession.shared.data(from: url), let lue = UIImage(data: donnees) {
-                Self.cache.setObject(lue, forKey: url as NSURL)
+            if let lue = await Self.memoire.image(url) {
                 image = lue
                 return
             }

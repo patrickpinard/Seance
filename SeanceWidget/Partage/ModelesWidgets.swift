@@ -20,9 +20,29 @@ enum LiensWidget {
     static let ceSoir = URL(string: "seance://cesoir")!
     static let aVenir = URL(string: "seance://avenir")!
 
+    /// Relance une vidéo du NAS là où elle s'était arrêtée (8.1) : `seance://reprendre?chemin=Films/Heat.mkv`.
+    static func reprendre(_ chemin: String) -> URL {
+        var composants = URLComponents()
+        composants.scheme = "seance"
+        composants.host = "reprendre"
+        composants.queryItems = [URLQueryItem(name: "chemin", value: chemin)]
+        return composants.url ?? ceSoir
+    }
+
     static func fiche(_ reference: ReferenceTitre) -> URL {
         URL(string: "seance://\(reference.type.rawValue)/\(reference.tmdbID)")!
     }
+}
+
+/// Une vidéo du NAS entamée (8.1), pour le widget « Reprendre ».
+struct RepriseWidget: Hashable, Identifiable, Sendable {
+    let chemin: String
+    let titre: String
+    let detail: String
+    let fraction: Double
+    var affiche: Data?
+
+    var id: String { chemin }
 }
 
 struct TitreWidget: Hashable, Identifiable, Sendable {
@@ -114,3 +134,14 @@ struct EntreeAVenir: TimelineEntry {
                        date: .now.addingTimeInterval(5 * 86_400), nature: .sortie),
     ])
 }
+
+struct EntreeReprendre: TimelineEntry {
+    let date: Date
+    let reprises: [RepriseWidget]
+
+    static let exemple = EntreeReprendre(date: .now, reprises: [
+        RepriseWidget(chemin: "Films/Heat.mkv", titre: "Heat", detail: "Reste 1 h 12", fraction: 0.42),
+        RepriseWidget(chemin: "Séries/Reacher/S02E03.mkv", titre: "Reacher", detail: "S02E03 · reste 21 min", fraction: 0.55),
+    ])
+}
+
