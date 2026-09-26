@@ -331,49 +331,28 @@ struct NASView: View {
         }
     }
 
+    /// Une seule ligne (8.2.7, demande de Patrick) : le rangement en pastilles — A→Z, ajouts, année, genre —, et à côté
+    /// le nombre de vidéos non reconnues. Les comptes (titres, vidéos, date d'analyse) ont quitté la page.
     private var resume: some View {
-        HStack(spacing: 8) {
-            let reconnus = fichiers.filter { $0.tmdbID != nil }
-            VStack(alignment: .leading, spacing: 2) {
-                Text("\(Set(reconnus.compactMap(\.reference)).count) titres · \(fichiers.count) vidéos")
-                if let date = etat.nas.derniereAnalyse {
-                    Text("Analysé \(date.formatted(.relative(presentation: .named)))")
-                }
-            }
-            .font(.caption)
-            .foregroundStyle(.secondary)
-            Spacer()
-            // « Non reconnus » est un travail d'entretien, pas un rayon : une petite puce suffit (6.3).
-            // Comment ranger la bibliothèque (6.4) : ajouts, année, genre.
-            if rayon == .films || rayon == .series {
-                Menu {
-                    Picker("Ranger par", selection: $rangementBrut) {
-                        ForEach(RangementNAS.allCases) { mode in
-                            Label(mode.rawValue, systemImage: mode.symbole).tag(mode.rawValue)
-                        }
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                if rayon == .films || rayon == .series {
+                    ForEach(RangementNAS.allCases) { mode in
+                        PuceFiltre(libelle: mode.rawValue, active: rangement == mode) { rangementBrut = mode.rawValue }
+                            .accessibilityLabel("Ranger par \(mode.rawValue)")
                     }
-                } label: {
-                    HStack(spacing: 5) {
-                        Image(systemName: rangement.symbole)
-                        Text(rangement.rawValue)
-                        Image(systemName: "chevron.down").font(.caption2.weight(.heavy))
+                }
+                let restent = compte(.nonReconnus)
+                if restent > 0 || rayon == .nonReconnus {
+                    if rayon != .nonReconnus { Divider().frame(height: 22).padding(.horizontal, 2) }
+                    PuceFiltre(libelle: rayon == .nonReconnus ? "Revenir aux titres" : "\(restent) non reconnu\(restent > 1 ? "s" : "")",
+                               active: rayon == .nonReconnus) {
+                        rayon = rayon == .nonReconnus ? (rayonsMontres.first ?? .films) : .nonReconnus
                     }
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(Theme.accent)
-                    .frame(minHeight: 32)
-                    .zoneDeToucher()
                 }
-                .accessibilityLabel("Ranger la bibliothèque : \(rangement.rawValue)")
-            }
-            let restent = compte(.nonReconnus)
-            if restent > 0 || rayon == .nonReconnus {
-                PuceFiltre(libelle: rayon == .nonReconnus ? "Revenir aux titres" : "\(restent) non reconnus",
-                           active: rayon == .nonReconnus) {
-                    rayon = rayon == .nonReconnus ? (rayonsMontres.first ?? .films) : .nonReconnus
-                }
-                .font(.caption)
             }
         }
+        .scrollClipDisabled()
     }
 
     private var nonReconnus: some View {

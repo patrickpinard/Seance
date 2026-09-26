@@ -56,6 +56,25 @@ struct NoteVersion: Identifiable {
 
     static let historique: [NoteVersion] = [
         NoteVersion(
+            numero: "8.2.7",
+            date: "26 septembre 2026",
+            resume: "Plus de plantage en fin de vidéo, le lecteur respecte l'orientation, le son se règle à l'horizontale, et la recherche se range par année ou par genre.",
+            fonctionnalites: [
+                Fonctionnalite(symbole: "exclamationmark.triangle", titre: "Plus de plantage en fin de vidéo",
+                               detail: "Le moteur de VLC était parfois libéré pendant qu'il servait encore, et Séance se fermait à la fin d'une vidéo — rapports de l'Apple TV à l'appui. Il attend maintenant quelques secondes avant d'être relâché, sur l'iPhone, l'iPad et l'Apple TV."),
+                Fonctionnalite(symbole: "rectangle.portrait.rotate", titre: "L'orientation du moment",
+                               detail: "Le lecteur de l'iPhone s'ouvre comme l'app est tenue, sans basculer d'office à l'horizontale ; il suit l'iPhone si on le tourne."),
+                Fonctionnalite(symbole: "speaker.wave.2", titre: "Le son, à l'horizontale",
+                               detail: "Le petit panneau du son est couché et centré au-dessus des commandes : debout, il sortait de l'écran."),
+                Fonctionnalite(symbole: "arrow.up.arrow.down", titre: "La recherche se range",
+                               detail: "Dans la recherche, les titres trouvés se rangent par pertinence, année, genre ou de A à Z, comme dans Regarder."),
+                Fonctionnalite(symbole: "video", titre: "Vidéos dans Explorer › NAS",
+                               detail: "Avec la source NAS, une pastille « Vidéos » montre tes vidéos personnelles, à côté des films, séries et documentaires."),
+                Fonctionnalite(symbole: "externaldrive", titre: "La page NAS sur une ligne",
+                               detail: "Dans Regarder › NAS, le rangement (A→Z, ajouts, année, genre) en pastilles et le nombre de vidéos non reconnues, sur une seule ligne ; les comptes ont quitté la page."),
+            ]
+        ),
+        NoteVersion(
             numero: "8.2.6",
             date: "26 septembre 2026",
             resume: "Le volume de l'Apple TV ne ferme plus l'app, et l'appui long dans Mes listes ne bloque plus la navigation.",

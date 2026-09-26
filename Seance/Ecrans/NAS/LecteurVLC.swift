@@ -102,11 +102,11 @@ struct LecteurVLC: View {
         }
         .overlay(alignment: .bottom) { if commandesVisibles, message == nil, compte == nil { commandes } }
         .overlay(alignment: .bottomTrailing) { carteSuivant }
-        .overlay(alignment: .bottomTrailing) {
+        .overlay(alignment: .bottom) {
             if panneauSon, commandesVisibles, message == nil {
                 PanneauSon(moteur: moteur) { dernierGeste += 1 }
-                    .padding(.trailing, 110)
-                    .padding(.bottom, 150)
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 170)
                     .transition(.scale(scale: 0.8, anchor: .bottom).combined(with: .opacity))
             }
         }
@@ -437,7 +437,7 @@ struct LecteurVLC: View {
     }
 
     private func ranger() async {
-        moteur.arreter()
+        moteur.liberer()
         await relais?.arreter()
         relais = nil
         await source?.fermer()
@@ -533,42 +533,17 @@ private struct Coche: View {
     }
 }
 
-/// Le volume de l'appareil, debout (8.1) : le curseur d'Apple — le seul qui règle vraiment le son —, tourné d'un quart
-/// de tour pour ne plus ressembler à la barre d'avancement.
-private struct VolumeSysteme: UIViewRepresentable {
-    final class Debout: UIView {
-        let volume = MPVolumeView()
-
-        override init(frame: CGRect) {
-            super.init(frame: frame)
-            volume.tintColor = UIColor(Theme.accent)
-            volume.transform = CGAffineTransform(rotationAngle: -.pi / 2)
-            addSubview(volume)
-        }
-
-        required init?(coder: NSCoder) { nil }
-
-        override func layoutSubviews() {
-            super.layoutSubviews()
-            volume.bounds = CGRect(x: 0, y: 0, width: bounds.height, height: bounds.width)
-            volume.center = CGPoint(x: bounds.midX, y: bounds.midY)
-        }
-    }
-
-    func makeUIView(context: Context) -> Debout { Debout() }
-    func updateUIView(_ uiView: Debout, context: Context) {}
-}
-
-/// Le petit panneau du son : le volume debout, et couper le son d'un toucher.
+/// Le petit panneau du son. 8.2.7 (demande de Patrick) : à l'horizontale, centré au-dessus des commandes — debout, il
+/// sortait de l'écran.
 private struct PanneauSon: View {
     let moteur: MoteurVLC
     let geste: () -> Void
 
     var body: some View {
-        VStack(spacing: 12) {
-            Image(systemName: "speaker.wave.3.fill").font(.caption).foregroundStyle(.white.opacity(0.8)).accessibilityHidden(true)
-            VolumeSysteme().frame(width: 44, height: 150).accessibilityLabel("Volume")
+        HStack(spacing: 12) {
             Image(systemName: "speaker.fill").font(.caption).foregroundStyle(.white.opacity(0.8)).accessibilityHidden(true)
+            VolumeCouche().frame(maxWidth: 240).frame(height: 34).accessibilityLabel("Volume")
+            Image(systemName: "speaker.wave.3.fill").font(.caption).foregroundStyle(.white.opacity(0.8)).accessibilityHidden(true)
             Button { moteur.muet.toggle(); geste() } label: {
                 Image(systemName: moteur.muet ? "speaker.slash.fill" : "speaker.slash")
                     .font(.body.weight(.semibold))
@@ -577,10 +552,21 @@ private struct PanneauSon: View {
             }
             .accessibilityLabel(moteur.muet ? "Remettre le son" : "Couper le son")
         }
-        .padding(.vertical, 14)
-        .padding(.horizontal, 6)
-        .background(.black.opacity(0.7), in: Capsule())
+        .padding(.horizontal, 16)
+        .padding(.vertical, 6)
+        .background(.black.opacity(0.75), in: Capsule())
     }
+}
+
+/// Le curseur du volume de l'appareil, couché : le curseur d'Apple, le seul qui règle vraiment le son.
+private struct VolumeCouche: UIViewRepresentable {
+    func makeUIView(context: Context) -> MPVolumeView {
+        let vue = MPVolumeView()
+        vue.tintColor = UIColor(Theme.accent)
+        return vue
+    }
+
+    func updateUIView(_ uiView: MPVolumeView, context: Context) {}
 }
 
 /// Le choix de la sortie audio : AirPlay, écouteurs, enceinte.
@@ -780,6 +766,13 @@ final class MoteurVLC {
         observateur = nil
         lecteur.stop()
         enLecture = false
+    }
+
+    /// La lecture est finie pour de bon (8.2.7) : le lecteur de VLC part au cimetière, relâché plus tard sur le fil
+    /// principal plutôt que depuis le fil de VLC.
+    func liberer() {
+        arreter()
+        CimetiereVLC.garder(lecteur)
     }
 }
 

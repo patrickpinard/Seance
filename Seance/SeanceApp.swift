@@ -81,15 +81,17 @@ final class DelegueApp: NSObject, UIApplicationDelegate {
     }
 }
 
-/// Le lecteur ouvert laisse tourner l'iPhone, et se met de lui-même à l'horizontale ; refermé, retour au portrait.
+/// Le lecteur ouvert laisse tourner l'iPhone ; refermé, retour au portrait.
 @MainActor
 enum OrientationLecture {
     static var ouverte = false
 
-    static func ouvrir() { changer(ouverte: true, vers: .landscapeRight) }
+    /// 8.2.7 (demande de Patrick) : le lecteur s'ouvre dans l'orientation du moment, sans basculer d'office à
+    /// l'horizontale ; il suit ensuite l'iPhone si on le tourne.
+    static func ouvrir() { changer(ouverte: true, vers: nil) }
     static func fermer() { changer(ouverte: false, vers: .portrait) }
 
-    private static func changer(ouverte: Bool, vers orientation: UIInterfaceOrientationMask) {
+    private static func changer(ouverte: Bool, vers orientation: UIInterfaceOrientationMask?) {
         guard UIDevice.current.userInterfaceIdiom == .phone else { return }
         Self.ouverte = ouverte
         for scene in UIApplication.shared.connectedScenes.compactMap({ $0 as? UIWindowScene }) {
@@ -101,7 +103,7 @@ enum OrientationLecture {
                     presente = vue.presentedViewController
                 }
             }
-            scene.requestGeometryUpdate(.iOS(interfaceOrientations: orientation)) { _ in }
+            if let orientation { scene.requestGeometryUpdate(.iOS(interfaceOrientations: orientation)) { _ in } }
         }
     }
 }

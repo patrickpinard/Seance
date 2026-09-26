@@ -26,6 +26,24 @@ extension VLCMediaPlayer {
     }
 }
 
+/// Où un lecteur de VLC arrêté attend avant d'être libéré (8.2.7). Libéré aussitôt, il l'était parfois depuis le fil de
+/// VLC, qui s'en servait encore : VLC s'arrêtait net (`vlc_player_Lock`), et Séance avec lui — rapports de l'Apple TV
+/// du 26.09.2026. Gardé cinq secondes, il est relâché sur le fil principal, une fois VLC au repos.
+@MainActor
+enum CimetiereVLC {
+    private static var enAttente: [VLCMediaPlayer] = []
+
+    static func garder(_ lecteur: VLCMediaPlayer) {
+        lecteur.delegate = nil
+        lecteur.drawable = nil
+        enAttente.append(lecteur)
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(5))
+            if let rang = enAttente.firstIndex(where: { $0 === lecteur }) { enAttente.remove(at: rang) }
+        }
+    }
+}
+
 /// Les MKV (8.0) : le démultiplexeur MKV de VLCKit 4 lit à l'envers le rapport de pixels des vidéos anamorphiques —
 /// « Unabomber », 1280 × 720 à pixels 90:67, s'affichait en 1,32:1 au lieu de 2,39:1, comme une vingtaine d'autres films
 /// du NAS. Celui de FFmpeg le lit juste ; imposer un format d'image après coup n'y changeait rien.

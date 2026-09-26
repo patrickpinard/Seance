@@ -80,16 +80,24 @@ final class TelecommandeTests: XCTestCase {
         XCTAssertTrue(boutonLecture.waitForExistence(timeout: 10), "Retour ne ramène pas à la fiche")
     }
 
-    /// Les Réglages en liste (8.0) : la première ligne à régler s'ouvre, et Retour en revient.
+    /// Les Réglages en deux colonnes (8.1) : la ligne choisie montre sa page à droite, sans changer de page ; la
+    /// télécommande y entre à droite et en ressort à gauche.
     func testLesReglagesSOuvrentEtSeReferment() throws {
         lancer(["SEANCE_TV_ONGLET": "reglages"])
         XCTAssertTrue(app.staticTexts["OÙ REGARDER"].waitForExistence(timeout: 30))
-        XCTAssertTrue(descendreJusqua(["Plateformes", "TV", "NAS"]), "La télécommande n'atteint pas les cartes des réglages")
+        XCTAssertTrue(descendreJusqua(["Plateformes", "TV", "NAS"]), "La télécommande n'atteint pas les lignes des réglages")
         telecommande.press(.select)
-        XCTAssertFalse(app.staticTexts["OÙ REGARDER"].waitForExistence(timeout: 3), "La carte choisie n'ouvre rien")
-        capture("tv-reglage-tmdb")
-        telecommande.press(.menu)
-        XCTAssertTrue(app.staticTexts["OÙ REGARDER"].waitForExistence(timeout: 10), "Retour ne ramène pas aux Réglages")
+        // La liste reste, et la page du réglage s'affiche à côté : son titre en double (ligne et page).
+        XCTAssertTrue(app.staticTexts["OÙ REGARDER"].exists, "Choisir une ligne a quitté la liste")
+        let titres = ["Plateformes", "TV", "NAS"].map { app.staticTexts.matching(identifier: $0).count }
+        XCTAssertTrue(titres.contains { $0 >= 2 }, "La page du réglage ne s'affiche pas à droite : \(titres)")
+        capture("tv-reglage-a-droite")
+        telecommande.press(.right)
+        Thread.sleep(forTimeInterval: 0.8)
+        XCTAssertFalse(focusSur(["OÙ REGARDER"]), "La télécommande n'entre pas dans la page de droite")
+        telecommande.press(.left)
+        Thread.sleep(forTimeInterval: 0.8)
+        XCTAssertTrue(app.staticTexts["OÙ REGARDER"].exists, "La liste a disparu")
     }
 
     /// Famille : « Qui regarde ? » à l'ouverture ; choisir Anne ouvre ses listes à elle, vides, pas celles du profil principal.
@@ -145,7 +153,7 @@ final class TelecommandeTests: XCTestCase {
         let liste = app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS 'Version 6.3'")).firstMatch
         XCTAssertTrue(liste.waitForExistence(timeout: 30), "La page Versions ne s'ouvre pas sur la TV")
         capture("tv-versions")
-        XCTAssertTrue(descendreJusqua(["Version 6.3"], essais: 8), "La télécommande n'atteint pas la version installée")
+        XCTAssertTrue(descendreJusqua(["Version 6.3"], essais: 30), "La télécommande n'atteint pas la version installée")
         telecommande.press(.select)
         XCTAssertTrue(app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS 'Les logos sur les cartes de la TV'")).firstMatch
             .waitForExistence(timeout: 10), "La version ne s'ouvre pas sur ce qu'elle apporte")

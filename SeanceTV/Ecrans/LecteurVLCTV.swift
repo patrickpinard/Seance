@@ -446,7 +446,7 @@ struct LecteurVLCTV: View {
     }
 
     private func ranger() async {
-        moteur.arreter()
+        moteur.liberer()
         await relais?.arreter()
         relais = nil
         await source?.fermer()
@@ -704,6 +704,13 @@ final class MoteurVLCTV {
         observateur = nil
         lecteur.stop()
         enLecture = false
+    }
+
+    /// La lecture est finie pour de bon (8.2.7) : le lecteur de VLC part au cimetière, relâché plus tard sur le fil
+    /// principal plutôt que depuis le fil de VLC.
+    func liberer() {
+        arreter()
+        CimetiereVLC.garder(lecteur)
     }
 }
 

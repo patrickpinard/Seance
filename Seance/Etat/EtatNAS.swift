@@ -100,6 +100,8 @@ final class EtatNAS {
 
     func relirePositions() {
         positions = PositionsLecture(donnees: UserDefaults.standard.data(forKey: PositionsLecture.cle))
+        // Le widget « Reprendre » les reçoit aussi dès le lancement, sans attendre la prochaine lecture (8.2.7).
+        UserDefaults(suiteName: EntrepotSeance.groupeApp)?.set(positions.encoder(), forKey: PositionsLecture.cle)
     }
 
     func noterLecture(_ fichier: FichierNAS) {

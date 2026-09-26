@@ -54,6 +54,11 @@ struct ExplorerView: View {
     @AppStorage("explorer.recentes") private var recentesBrut = ""
     @FocusState private var rechercheActive: Bool
     @State private var chemin = NavigationPath()
+    /// Explorer › NAS › Vidéos (8.2.7) : les vidéos personnelles, quand elles sont activées, à côté des films et séries.
+    @State private var videosDuNAS = false
+    /// Le rangement des résultats d'une recherche (8.2.7), comme dans Regarder : pertinence, année, genre, A→Z.
+    @AppStorage("explorer.rangement") private var rangementBrut = RangementRecherche.pertinence.rawValue
+    private var rangement: RangementRecherche { RangementRecherche(rawValue: rangementBrut) ?? .pertinence }
 
     @Environment(\.horizontalSizeClass) private var largeurGrille
     /// Affiches plus grandes sur le Mac : 105 points y feraient des timbres-poste.
@@ -194,17 +199,33 @@ struct ExplorerView: View {
                     if vedette != nil, !titres.isEmpty {
                         TitreSection("Titres")
                     }
-                    LazyVGrid(columns: colonnes, spacing: 14) {
-                        ForEach(titres) { titre in
-                            NavigationLink(value: titre.reference) {
-                                CarteLargeTitre(titre)
+                    if titres.count > 1 {
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 8) {
+                                ForEach(RangementRecherche.allCases) { mode in
+                                    PuceFiltre(libelle: mode.rawValue, active: rangement == mode) { rangementBrut = mode.rawValue }
+                                        .accessibilityLabel("Ranger par \(mode.rawValue)")
+                                }
                             }
-                            .buttonStyle(.plain)
-                            .actionsRapides(titre)
-                            .simultaneousGesture(TapGesture().onEnded { memoriser(texte) })
+                            .padding(.horizontal, 20)
                         }
                     }
-                    .padding(.horizontal, 20)
+                    ForEach(RangementRecherche.ranger(titres, par: rangement, genres: nomsDeGenres), id: \.titre) { tranche in
+                        if !tranche.titre.isEmpty {
+                            Text(tranche.titre).font(.headline).padding(.horizontal, 20).padding(.top, 4)
+                        }
+                        LazyVGrid(columns: colonnes, spacing: 14) {
+                            ForEach(tranche.titres) { titre in
+                                NavigationLink(value: titre.reference) {
+                                    CarteLargeTitre(titre)
+                                }
+                                .buttonStyle(.plain)
+                                .actionsRapides(titre)
+                                .simultaneousGesture(TapGesture().onEnded { memoriser(texte) })
+                            }
+                        }
+                        .padding(.horizontal, 20)
+                    }
                 }
                 if titres.isEmpty, personnes.isEmpty, recherchee == CleRecherche(texte: texte, portee: portee) {
                     ContentUnavailableView.search(text: texte)
@@ -214,6 +235,13 @@ struct ExplorerView: View {
         }
         // Parcourir les résultats range le clavier et rend la barre d'onglets.
         .scrollDismissesKeyboard(.immediately)
+    }
+
+    /// Les noms des genres, films et séries confondus.
+    private var nomsDeGenres: [Int: String] {
+        var noms: [Int: String] = [:]
+        for liste in etat.genres.values { for genre in liste { noms[genre.id] = genre.nom } }
+        return noms
     }
 
     private var pastillesPersonnes: some View {
@@ -404,12 +432,16 @@ struct ExplorerView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
                 // Charte 8.0 : Films · Séries · Documentaires en pastilles ; les documentaires sont des films du genre 99.
-                SelecteurPuces(selection: Binding { categorie } set: { choisir($0) },
+                SelecteurPuces(selection: Binding { videosDuNAS && surLeNAS ? "videos" : categorie } set: { choisir($0) },
                                choix: [.init(valeur: "films", nom: "Films"), .init(valeur: "series", nom: "Séries"),
-                                       .init(valeur: "documentaires", nom: "Documentaires")])
+                                       .init(valeur: "documentaires", nom: "Documentaires")]
+                                   + (surLeNAS && etat.videosPerso.actif ? [.init(valeur: "videos", nom: "Vidéos")] : []))
 
                 selecteurSource
 
+                if videosDuNAS, surLeNAS {
+                    VideosPersoView(dossier: DossierVideosPerso(chemin: ""), integree: true)
+                } else {
                 pucesActives
 
                 if !filtresEnregistres.isEmpty {
@@ -425,6 +457,7 @@ struct ExplorerView: View {
                 .padding(.horizontal, 20)
 
                 resultats
+                }
 
                 if let erreur = modele.erreur {
                     MessageEtat(texte: erreur, ton: .probleme, libelleAction: "Réessayer") {
@@ -658,7 +691,12 @@ struct ExplorerView: View {
 
     private static let documentaire = 99
 
+    /// La source NAS est choisie : c'est là, et seulement là, que les vidéos personnelles ont leur pastille.
+    private var surLeNAS: Bool { modele.filtres.source == .nas }
+
     private func choisir(_ categorie: String) {
+        if categorie == "videos" { videosDuNAS = true; return }
+        videosDuNAS = false
         guard categorie != self.categorie else { return }
         switch categorie {
         case "series": changerType(.serie)
@@ -685,5 +723,37 @@ struct ExplorerView: View {
         filtres.typesSortie = []
         filtres.dureeMax = nil
         modele.filtres = filtres
+    }
+}
+
+/// Ranger les résultats d'une recherche (8.2.7) : l'ordre de TMDB, par année, par genre ou de A à Z.
+enum RangementRecherche: String, CaseIterable, Identifiable {
+    case pertinence = "Pertinence"
+    case annee = "Année"
+    case genre = "Genre"
+    case alphabetique = "A→Z"
+
+    var id: String { rawValue }
+
+    struct Tranche {
+        let titre: String
+        let titres: [TitreResume]
+    }
+
+    static func ranger(_ titres: [TitreResume], par mode: RangementRecherche, genres: [Int: String]) -> [Tranche] {
+        switch mode {
+        case .pertinence:
+            return [Tranche(titre: "", titres: titres)]
+        case .alphabetique:
+            return [Tranche(titre: "", titres: titres.sorted { $0.titre.localizedCaseInsensitiveCompare($1.titre) == .orderedAscending })]
+        case .annee:
+            let parAnnee = Dictionary(grouping: titres) { $0.date.map { String($0.annee) } ?? "Date inconnue" }
+            return parAnnee.keys.sorted { $0 == "Date inconnue" ? false : $1 == "Date inconnue" ? true : $0 > $1 }
+                .map { Tranche(titre: $0, titres: parAnnee[$0] ?? []) }
+        case .genre:
+            let parGenre = Dictionary(grouping: titres) { titre in titre.genres.first.flatMap { genres[$0] } ?? "Autres" }
+            return parGenre.keys.sorted { $0 == "Autres" ? false : $1 == "Autres" ? true : $0 < $1 }
+                .map { Tranche(titre: $0, titres: parGenre[$0] ?? []) }
+        }
     }
 }
