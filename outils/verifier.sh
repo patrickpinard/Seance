@@ -37,6 +37,9 @@ etape "Interface, Apple TV"
 tv=$(xcrun simctl list devices available | grep -F "Apple TV 4K (3rd generation) (" | grep -v 1080p | tail -1 | grep -o -E '[0-9A-F]{8}-[0-9A-F-]{27}')
 if [[ -n $tv ]]; then
   xcrun simctl boot $tv > /dev/null 2>&1; xcrun simctl bootstatus $tv -b > /dev/null 2>&1
+  # La vidéo d'essai du lecteur (BarreLectureTests, 8.2.5) : une mire muette de deux minutes.
+  [[ -f "$racine/.build/essai-tv/mire.mp4" ]] || { mkdir -p "$racine/.build/essai-tv"; /opt/homebrew/bin/ffmpeg -nostdin -loglevel error -y \
+    -f lavfi -i testsrc=duration=120:size=1280x720:rate=25 -c:v libx264 -pix_fmt yuv420p -an "$racine/.build/essai-tv/mire.mp4"; }
   xcodebuild test -project "$racine/Seance.xcodeproj" -scheme SeanceTV -destination "platform=tvOS Simulator,id=$tv" \
     -derivedDataPath "$racine/.build/dd-tv" -test-timeouts-enabled YES -default-test-execution-time-allowance 300 \
     > "$racine/.build/tests-tv.log" 2>&1

@@ -56,6 +56,15 @@ struct NoteVersion: Identifiable {
 
     static let historique: [NoteVersion] = [
         NoteVersion(
+            numero: "8.2.5",
+            date: "26 septembre 2026",
+            resume: "Sur l'Apple TV, la barre d'avancement reste fine quand on la choisit et qu'on clique dessus.",
+            fonctionnalites: [
+                Fonctionnalite(symbole: "slider.horizontal.below.rectangle", titre: "La barre d'avancement de la TV, pour de bon",
+                               detail: "tvOS 26 dessine un large halo derrière tout ce qui a le focus : la barre semblait s'élargir sur tout l'écran. C'est maintenant un point invisible qui reçoit la télécommande ; la barre ne montre que le repère et son heure. Vérifié au simulateur, captures à l'appui."),
+            ]
+        ),
+        NoteVersion(
             numero: "8.2.4",
             date: "26 septembre 2026",
             resume: "Le son retrouve son petit panneau dans le lecteur ; le grand panneau de droite garde la langue, les sous-titres, la vitesse et l'image.",

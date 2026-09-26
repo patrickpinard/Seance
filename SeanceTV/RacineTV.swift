@@ -19,7 +19,14 @@ struct RacineTV: View {
     }()
     @State private var configuration = DepartTV.configurer
     /// « Lire sur l'Apple TV » (8.1) : la vidéo envoyée par un iPhone, lue par-dessus la page où l'on était.
-    @State private var lectureRecue: LectureRecueTV?
+    @State private var lectureRecue: LectureRecueTV? = {
+        #if DEBUG
+        if let fichier = ProcessInfo.processInfo.environment["SEANCE_LIRE_FICHIER"] {
+            return LectureRecueTV(video: VideoPerso(chemin: fichier, taille: 0), acces: ReglagesNAS(), motDePasse: "", depart: nil, fichier: nil)
+        }
+        #endif
+        return nil
+    }()
     /// Famille : « Qui regarde ? » à l'ouverture, une fois par lancement, dès que la maison a plusieurs profils.
     @State private var quiRegarde = RacineTV.doitDemander
     private static var dejaDemande = false

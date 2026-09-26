@@ -270,21 +270,19 @@ struct LecteurVLCTV: View {
 
     /// La bande de progression (8.0) : on y monte depuis les boutons ; gauche et droite déplacent un repère — de plus en
     /// plus vite si l'on insiste —, un clic y saute, Retour ou un autre bouton l'abandonne.
+    ///
+    /// 8.2.5 : ce n'est plus la barre qui prend le focus, mais un point invisible posé dessus. tvOS 26 dessine derrière
+    /// tout élément choisi un large halo translucide, que rien ne désactive : la barre semblait s'élargir sur tout l'écran.
     private var barreProgression: some View {
         let surLaBarre = focus == .barre
         let actuelle = min(max(moteur.position, 0), 1)
         return VStack(spacing: 10) {
-            // Un bouton au style neutre (8.2) : ni le focus ni le clic ne soulèvent ni n'agrandissent la barre — tvOS le
-            // faisait pour une vue simplement « focusable ».
-            Button {
-                if let cible { moteur.allerA(cible) }
-                cible = nil
-                dernierGeste = .now
-            } label: {
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
                     Capsule().fill(.white.opacity(0.25))
                     Capsule().fill(.white).frame(width: geo.size.width * actuelle)
+                }
+                .overlay(alignment: .leading) {
                     if surLaBarre {
                         let repere = cible ?? actuelle
                         VStack(spacing: 8) {
@@ -296,22 +294,30 @@ struct LecteurVLCTV: View {
                                 .fixedSize()
                             Circle().fill(.white).frame(width: 30, height: 30)
                         }
-                        .offset(x: geo.size.width * repere - 60, y: -28)
                         .frame(width: 120)
+                        .offset(x: geo.size.width * repere - 60, y: -28)
+                        .allowsHitTesting(false)
                     }
                 }
-                .frame(height: geo.size.height)
+                .overlay {
+                    // Le point qui reçoit la télécommande : invisible, sans effet de focus.
+                    Color.clear
+                        .frame(width: 4, height: 4)
+                        .focusable()
+                        .focusEffectDisabled()
+                        .focused($focus, equals: .barre)
+                        .onMoveCommand { direction in deplacer(direction) }
+                        .onTapGesture {
+                            if let cible { moteur.allerA(cible) }
+                            cible = nil
+                            dernierGeste = .now
+                        }
+                        .accessibilityLabel("Progression, \(moteur.tempsAffiche)")
+                }
             }
-            // 8.2 : la barre garde sa taille quand on y va — l'effet de focus de tvOS l'agrandissait et l'écartait de tout
-            // l'écran ; seul le repère avec le temps dit qu'on est dessus.
             .frame(height: 10)
-            .contentShape(Rectangle())
-            }
-            .buttonStyle(StyleBarreTV())
-            .focusEffectDisabled()
-            .focused($focus, equals: .barre)
-            .onMoveCommand { direction in deplacer(direction) }
-            .accessibilityLabel("Progression, \(moteur.tempsAffiche)")
+            // Une section de focus à elle : « haut » y mène depuis n'importe quel bouton, jusqu'au point du milieu.
+            .focusSection()
             HStack {
                 Text(moteur.tempsAffiche)
                 Spacer()
@@ -373,6 +379,12 @@ struct LecteurVLCTV: View {
     /// blocs, en avance. Le relais HTTP, plus lent, ne sert plus que si VLC n'arrive pas à ouvrir le partage.
     private func ouvrir() async {
         guard relais == nil, message == nil else { return }
+        #if DEBUG
+        // SEANCE_LIRE_FICHIER=<chemin local> : le lecteur sur un fichier du Mac, pour éprouver les commandes au simulateur.
+        if ProcessInfo.processInfo.environment["SEANCE_LIRE_FICHIER"] == video.chemin {
+            return moteur.lire(URL(fileURLWithPath: video.chemin), depart: depart, options: OptionsVLC.pour(video.chemin))
+        }
+        #endif
         if let adresse = acces.url(chemin: video.chemin) {
             moteur.lire(adresse, depart: depart, options: [":smb-user=\(acces.utilisateur)", ":smb-pwd=\(motDePasse)", ":network-caching=3000"]
                         + OptionsVLC.pour(video.chemin))
@@ -671,8 +683,3 @@ final class MoteurVLCTV {
     }
 }
 
-
-/// La barre d'avancement telle quelle : aucun effet de focus ni de clic (8.2).
-private struct StyleBarreTV: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View { configuration.label }
-}

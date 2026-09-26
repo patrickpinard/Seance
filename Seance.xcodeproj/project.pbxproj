@@ -145,6 +145,7 @@
 		C870FFDBAF70AA141536BFD5 /* VideosPersoTV.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1987D3867BA078091BC7D8A1 /* VideosPersoTV.swift */; };
 		CBE171A500AE9BC604731286 /* ProgrammeTele.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F47964B22868DCCC92CA219 /* ProgrammeTele.swift */; };
 		CC898EF9BC0F2AB4B3062CF4 /* SeanceApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4994130740FE5C4E9733D92 /* SeanceApp.swift */; };
+		CF2B64666ADA78FFDC8981D2 /* BarreLectureTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 94B50216176B335E92514544 /* BarreLectureTests.swift */; };
 		CF9E1E93D06F26359CB61324 /* FondTV.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C7A078473F674DE5D855194 /* FondTV.swift */; };
 		D09506312ABD69FBD6A03FA4 /* Lancement.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F521A01F8C00C6861F32A49 /* Lancement.swift */; };
 		D0EC1A46C9C48B351F5DDB19 /* CarteLargeTitre.swift in Sources */ = {isa = PBXBuildFile; fileRef = 015B5FC98ADD1A47A074B635 /* CarteLargeTitre.swift */; };
@@ -366,6 +367,7 @@
 		8D15356F74B00927F6949939 /* ExplorerTV.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExplorerTV.swift; sourceTree = "<group>"; };
 		8D777738E8169D1D6CBA2E0A /* ProfilTV.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfilTV.swift; sourceTree = "<group>"; };
 		90761F2586C2B18FD2046492 /* EtatSynchro.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EtatSynchro.swift; sourceTree = "<group>"; };
+		94B50216176B335E92514544 /* BarreLectureTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BarreLectureTests.swift; sourceTree = "<group>"; };
 		9AE0ECC999FF1CA413FECC30 /* ListesNommees.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ListesNommees.swift; sourceTree = "<group>"; };
 		9B2688F547FDB3FBFBE7E882 /* EtatDocumentaires.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EtatDocumentaires.swift; sourceTree = "<group>"; };
 		9C23EDDC8E46068944BC9CF9 /* SeanceTV.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = SeanceTV.entitlements; sourceTree = "<group>"; };
@@ -873,6 +875,7 @@
 		F4E33D80FAF907B25CE8EBDC /* SeanceTVUITests */ = {
 			isa = PBXGroup;
 			children = (
+				94B50216176B335E92514544 /* BarreLectureTests.swift */,
 				3EA69EFE83C26656E55AC5AB /* TelecommandeTests.swift */,
 			);
 			path = SeanceTVUITests;
@@ -1095,6 +1098,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				CF2B64666ADA78FFDC8981D2 /* BarreLectureTests.swift in Sources */,
 				D68A718D324A69F539944A97 /* TelecommandeTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -1514,7 +1518,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 60;
+				CURRENT_PROJECT_VERSION = 61;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = GATK475J3P;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -1534,7 +1538,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 8.2.4;
+				MARKETING_VERSION = 8.2.5;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -1635,7 +1639,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 60;
+				CURRENT_PROJECT_VERSION = 61;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = GATK475J3P;
 				ENABLE_NS_ASSERTIONS = NO;
@@ -1649,7 +1653,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 8.2.4;
+				MARKETING_VERSION = 8.2.5;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
