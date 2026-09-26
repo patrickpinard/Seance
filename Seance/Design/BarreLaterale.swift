@@ -172,7 +172,7 @@ private struct PastilleQuiRegardeModifier: ViewModifier {
                         // Pas un `Label` : dans la barre d'iOS 26, il se réduit à son icône et le prénom disparaît.
                         Button { etat.preferencesOuvertes = true } label: {
                             HStack(spacing: 6) {
-                                Image(systemName: ProfilsFamille().aPlusieursProfils ? ProfilsFamille().actif.symbole : "person.crop.circle")
+                                Image(systemName: ProfilsFamille().actif.symbole == "person.fill" ? "person.crop.circle" : ProfilsFamille().actif.symbole)
                                 if let nom { Text(nom).lineLimit(1) }
                             }
                             .font(.subheadline.weight(.semibold))

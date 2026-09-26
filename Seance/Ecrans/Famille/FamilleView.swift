@@ -35,15 +35,16 @@ struct FamilleView: View {
                         }
                     }
                     .contentShape(Rectangle())
-                    .swipeActions(edge: .trailing) {
-                        if !profil.estPrincipal, profil.id != actif.id {
+                    // 8.2.3 : glisser de droite à gauche, sur toute personne sauf le profil principal.
+                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                        if !profil.estPrincipal {
                             Button("Supprimer", role: .destructive) { aSupprimer = profil }
                         }
                         Button("Modifier") { aModifier = profil }.tint(Theme.accent)
                     }
                     .contextMenu {
                         Button { aModifier = profil } label: { Label("Modifier", systemImage: "pencil") }
-                        if !profil.estPrincipal, profil.id != actif.id {
+                        if !profil.estPrincipal {
                             Button(role: .destructive) { aSupprimer = profil } label: { Label("Supprimer", systemImage: "trash") }
                         }
                     }
@@ -70,13 +71,22 @@ struct FamilleView: View {
         .sheet(item: $aModifier, onDismiss: relire) { FicheProfil(profil: $0) }
         .confirmationDialog("Supprimer le profil de \(aSupprimer.map(nom) ?? "") ?", isPresented: Binding { aSupprimer != nil } set: { if !$0 { aSupprimer = nil } },
                             titleVisibility: .visible) {
-            Button("Supprimer ses listes et ses notes", role: .destructive) {
-                if let profil = aSupprimer { famille.supprimer(profil) }
-                relire()
+            if aSupprimer?.id == actif.id {
+                // La personne en cours : son magasin est ouvert. On passe d'abord au profil principal.
+                Button("Passer au profil principal") {
+                    if let principal = profils.first(where: \.estPrincipal) { ConteneurApp.changerDeProfil(vers: principal) }
+                }
+            } else {
+                Button("Supprimer ses listes et ses notes", role: .destructive) {
+                    if let profil = aSupprimer { famille.supprimer(profil) }
+                    relire()
+                }
             }
             Button("Annuler", role: .cancel) {}
         } message: {
-            Text("Ses listes, ses notes et ses goûts sont effacés de cet appareil. Ce qu'il a déposé dans le dossier de synchronisation y reste.")
+            Text(aSupprimer?.id == actif.id
+                 ? "C'est la personne en cours : passe d'abord au profil principal, puis glisse de nouveau sa ligne pour la supprimer."
+                 : "Ses listes, ses notes et ses goûts sont effacés de cet appareil. Ce qu'il a déposé dans le dossier de synchronisation y reste.")
         }
     }
 

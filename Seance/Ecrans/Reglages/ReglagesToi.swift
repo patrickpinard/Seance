@@ -17,8 +17,33 @@ struct ReglagesPrenomView: View {
     /// 👍 Ce que tu as dit aimer, le plus récent d'abord.
     @Query(sort: \TitreAime.aimeLe, order: .reverse) private var aimes: [TitreAime]
 
+    /// Ton image (8.2.3) : le symbole du profil en cours, montré en haut de chaque page à côté de ton prénom.
+    @State private var symbole = ProfilsFamille().actif.symbole
+
     var body: some View {
         Form {
+            Section {
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 52), spacing: 10)], spacing: 10) {
+                    ForEach(ProfilsFamille.symboles, id: \.self) { choix in
+                        Button {
+                            symbole = choix
+                            var profil = ProfilsFamille().actif
+                            profil.symbole = choix
+                            ProfilsFamille().modifier(profil)
+                        } label: {
+                            PastilleProfil(profil: ProfilFamille(id: "x", prenom: "", symbole: choix), taille: 44, actif: choix == symbole)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("Image \(choix)")
+                        .accessibilityAddTraits(choix == symbole ? .isSelected : [])
+                    }
+                }
+                .padding(.vertical, 4)
+            } header: {
+                Text("Ton image")
+            } footer: {
+                Text("En haut de chaque page, à côté de ton prénom, et dans « Qui regarde ? ».")
+            }
             Section {
                 TextField("Ton prénom", text: $prenom)
                     .textContentType(.givenName)

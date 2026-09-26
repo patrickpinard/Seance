@@ -56,6 +56,19 @@ struct NoteVersion: Identifiable {
 
     static let historique: [NoteVersion] = [
         NoteVersion(
+            numero: "8.2.3",
+            date: "26 septembre 2026",
+            resume: "Tous les réglages s'ouvrent à droite sur l'iPad et le Mac, ton image se choisit, et une personne se supprime d'un glissement.",
+            fonctionnalites: [
+                Fonctionnalite(symbole: "sidebar.left", titre: "Tous les réglages à droite",
+                               detail: "Accueil, Nouvel appareil et Envoyer à un appareil s'ouvraient dans une fenêtre : ils s'affichent maintenant à droite de la liste, comme les autres réglages. Sur l'iPhone, ils s'ouvrent en page."),
+                Fonctionnalite(symbole: "person.crop.circle", titre: "Ton image",
+                               detail: "Réglages › Toi : choisis ton image parmi vingt-quatre — étoile, couronne, pop-corn, chat, vélo… Elle s'affiche en haut de chaque page, à côté de ton prénom."),
+                Fonctionnalite(symbole: "trash", titre: "Supprimer une personne",
+                               detail: "Réglages › Famille : glisse sa ligne de droite à gauche, puis « Supprimer ». Pour la personne en cours, Séance propose d'abord de passer au profil principal."),
+            ]
+        ),
+        NoteVersion(
             numero: "8.2.2",
             date: "26 septembre 2026",
             resume: "Le même panneau de lecture partout, à droite de l'image : le son, sa sortie, la langue, les sous-titres, la vitesse et l'image.",

@@ -10,6 +10,8 @@ import UIKit
 /// Rien n'est écrit dans un fichier ni ne passe par internet (EF-86, EF-145).
 struct EnvoiAppleTVView: View {
     let fermer: () -> Void
+    /// En page dans les Réglages (8.2.3), plutôt qu'en feuille.
+    var enPage = false
 
     @Environment(EtatApp.self) private var etat
     @Environment(\.modelContext) private var contexte
@@ -23,7 +25,7 @@ struct EnvoiAppleTVView: View {
     @FocusState private var saisie: Bool
 
     var body: some View {
-        NavigationStack {
+        PileSiFeuille(enPage: enPage) {
             Form {
                 Section {
                     etape(1, "Sur l'autre appareil", "Apple TV : Séance › Réglages › « Configurer depuis mon iPhone ». iPhone, iPad ou Mac : « Nouvel appareil » › « Tout recevoir… ». Un code à six chiffres s'affiche.")
@@ -72,8 +74,8 @@ struct EnvoiAppleTVView: View {
                     Text("Ce qui est envoyé")
                 }
             }
-            .titreDeFeuille("Envoyer à un appareil")
-            .toolbar { ToolbarItem(placement: .confirmationAction) { Button(reussi ? "Terminé" : "Fermer", action: fermer) } }
+            .titre("Envoyer à un appareil", enPage: enPage)
+            .toolbar { if !enPage { ToolbarItem(placement: .confirmationAction) { Button(reussi ? "Terminé" : "Fermer", action: fermer) } } }
             .task {
                 for await trouvees in EmetteurConfig.chercher() { televiseurs = trouvees }
             }

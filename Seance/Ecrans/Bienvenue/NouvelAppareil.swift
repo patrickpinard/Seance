@@ -10,6 +10,8 @@ import UniformTypeIdentifiers
 struct NouvelAppareilView: View {
     /// Appelé quand on touche « Terminé ».
     let terminer: () -> Void
+    /// En page dans les Réglages (8.2.3), plutôt qu'en feuille.
+    var enPage = false
 
     @Environment(EtatApp.self) private var etat
     @Environment(\.modelContext) private var contexte
@@ -30,7 +32,7 @@ struct NouvelAppareilView: View {
     }
 
     var body: some View {
-        NavigationStack {
+        PileSiFeuille(enPage: enPage) {
             Form {
                 Section {
                     if let messageCode {
@@ -119,10 +121,12 @@ struct NouvelAppareilView: View {
             }
             .scrollContentBackground(.hidden)
             .background(Theme.fond)
-            .titreDeFeuille("Nouvel appareil")
+            .titre("Nouvel appareil", enPage: enPage)
             .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Terminé") { terminer() }
+                if !enPage {
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Terminé") { terminer() }
+                    }
                 }
             }
             .fileImporter(isPresented: Binding { selection != nil } set: { if !$0 { selection = nil } },

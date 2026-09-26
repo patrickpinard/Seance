@@ -431,10 +431,12 @@ struct AccueilView: View {
 struct ReglageSourcesAccueil: View {
     @Binding var sources: SourcesAccueil
     let abonnements: [Abonnement]
+    /// En page dans les Réglages (8.2.3), plutôt qu'en feuille.
+    var enPage = false
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        NavigationStack {
+        PileSiFeuille(enPage: enPage) {
             Form {
                 // Les plateformes se cochent à un seul endroit, Réglages › Plateformes : ici, on choisit seulement de s'y limiter.
                 Section {
@@ -492,11 +494,11 @@ struct ReglageSourcesAccueil: View {
             }
             .scrollContentBackground(.hidden)
             .background(Theme.fond)
-            .titreDeFeuille("Personnaliser l'accueil")
+            .titre("Personnaliser l'accueil", enPage: enPage)
             .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
+                if !enPage { ToolbarItem(placement: .confirmationAction) {
                     Button("OK") { dismiss() }
-                }
+                } }
             }
         }
         .presentationDetents([.large])

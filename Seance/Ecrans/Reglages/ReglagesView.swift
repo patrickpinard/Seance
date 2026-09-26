@@ -7,7 +7,40 @@ import SwiftUI
 /// Un lien « par vue » vers Réglages, depuis la barre d'outils de Profil, figeait l'iPhone : SwiftUI remettait
 /// la destination à jour à chaque rendu, sans fin, jusqu'à ce qu'iOS tue l'app.
 enum DestinationReglage: Hashable {
-    case reglages, prenom, famille, centrale, tmdb, claude, plateformes, tele, nas, videosPerso, lecture, alertes, alertesRecues, sauvegarde, lettre, aPropos, versions, journal, apercuWidgets
+    case reglages, accueil, nouvelAppareil, envoiAppareil, prenom, famille, centrale, tmdb, claude, plateformes, tele, nas, videosPerso, lecture, alertes, alertesRecues, sauvegarde, lettre, aPropos, versions, journal, apercuWidgets
+}
+
+/// Une vue faite pour une feuille, montrée en page (8.2.3) : dans la colonne de droite des Réglages de l'iPad et du Mac,
+/// ou poussée sur l'iPhone. En page, pas de pile à elle — elle est déjà dans celle des Réglages.
+struct PileSiFeuille<Contenu: View>: View {
+    let enPage: Bool
+    @ViewBuilder let contenu: Contenu
+
+    var body: some View {
+        if enPage { contenu } else { NavigationStack { contenu } }
+    }
+}
+
+extension View {
+    /// Titre de feuille, ou titre de page.
+    @ViewBuilder
+    func titre(_ titre: String, enPage: Bool) -> some View {
+        if enPage { navigationTitle(titre).navigationBarTitleDisplayMode(.inline) } else { titreDeFeuille(titre) }
+    }
+}
+
+/// Réglages › Accueil, en page (8.2.3) : la même feuille que depuis l'accueil.
+private struct PageAccueilReglage: View {
+    @AppStorage("accueil.sources") private var sourcesBrutes = Data()
+    @Query(filter: #Predicate<Abonnement> { $0.actif }, sort: \Abonnement.nom) private var abonnements: [Abonnement]
+
+    var body: some View {
+        ReglageSourcesAccueil(sources: Binding {
+            (try? JSONDecoder().decode(SourcesAccueil.self, from: sourcesBrutes)) ?? SourcesAccueil()
+        } set: { nouvelles in
+            sourcesBrutes = (try? JSONEncoder().encode(nouvelles)) ?? Data()
+        }, abonnements: abonnements, enPage: true)
+    }
 }
 
 struct PageReglage: View {
@@ -17,6 +50,10 @@ struct PageReglage: View {
         switch destination {
         case .reglages: ReglagesView().navigationBarTitleDisplayMode(.inline)
         case .prenom: ReglagesPrenomView()
+        // 8.2.3 : ce qui s'ouvrait en feuille s'ouvre en page, à droite des Réglages sur l'iPad et le Mac.
+        case .accueil: PageAccueilReglage()
+        case .nouvelAppareil: NouvelAppareilView(terminer: {}, enPage: true)
+        case .envoiAppareil: EnvoiAppleTVView(fermer: {}, enPage: true)
         case .famille: FamilleView()
         case .centrale: ReglagesCentraleView()
         case .tmdb: ReglagesTMDBView()
@@ -176,10 +213,7 @@ struct ReglagesView: View {
                           !etat.lettre.reglages.actif ? "Désactivé" : etat.lettre.pret ? libelleJoursLettre : "À terminer",
                           enOrdre: etat.lettre.reglages.actif ? etat.lettre.pret : nil)
                     // L'accueil se personnalise dans sa feuille, la même que depuis l'accueil : un seul réglage, deux portes.
-                    Button { accueil = true } label: {
-                        LigneReglage(titre: "Accueil", symbole: "house.fill", valeur: libelleAccueil)
-                    }
-                    .buttonStyle(.plain)
+                    ligne(.accueil, "Accueil", "house.fill", libelleAccueil)
                 }
                 groupe("La maison") {
                     ligne(.famille, "Famille", "person.2.fill",
@@ -187,14 +221,8 @@ struct ReglagesView: View {
                                                              : "Un seul profil")
                     ligne(.sauvegarde, "Appareils et synchronisation", "arrow.triangle.2.circlepath",
                           etat.synchro.nomDossier.map { "« \($0) »" } ?? "Fichier, AirDrop, iCloud Drive")
-                    Button { nouvelAppareil = true } label: {
-                        LigneReglage(titre: "Nouvel appareil", symbole: "iphone.and.arrow.forward", valeur: "Reprendre données, clé et NAS")
-                    }
-                    .buttonStyle(.plain)
-                    Button { envoiAppleTV = true } label: {
-                        LigneReglage(titre: "Envoyer à un appareil", symbole: "appletv.fill", valeur: "Un code à six chiffres")
-                    }
-                    .buttonStyle(.plain)
+                    ligne(.nouvelAppareil, "Nouvel appareil", "iphone.and.arrow.forward", "Reprendre données, clé et NAS")
+                    ligne(.envoiAppareil, "Envoyer à un appareil", "appletv.fill", "Un code à six chiffres")
                     if EtatCentrale.disponible {
                         ligne(.centrale, "Centrale de la maison", "house.and.flag.fill", etat.centrale.active ? "Active" : "Désactivée")
                     }

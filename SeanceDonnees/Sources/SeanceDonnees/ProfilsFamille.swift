@@ -37,7 +37,12 @@ public struct ProfilFamille: Codable, Sendable, Hashable, Identifiable {
 }
 
 public struct ProfilsFamille {
-    public static let symboles = ["person.fill", "star.fill", "heart.fill", "bolt.fill", "moon.stars.fill", "flame.fill", "leaf.fill", "gamecontroller.fill"]
+    /// Les images qu'une personne peut choisir (8.2.3 : davantage de choix). Des symboles d'Apple et non des émojis : la
+    /// charte de Séance n'en veut pas dans l'interface.
+    public static let symboles = ["person.fill", "star.fill", "heart.fill", "bolt.fill", "moon.stars.fill", "flame.fill", "leaf.fill",
+                                  "gamecontroller.fill", "crown.fill", "sparkles", "sun.max.fill", "cloud.fill", "popcorn.fill",
+                                  "film.fill", "music.note", "soccerball", "bicycle", "pawprint.fill", "cat.fill", "dog.fill",
+                                  "hare.fill", "bird.fill", "fish.fill", "tree.fill"]
 
     private let defauts: UserDefaults
     private static let cleProfils = "famille.profils"
