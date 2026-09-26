@@ -56,6 +56,15 @@ struct NoteVersion: Identifiable {
 
     static let historique: [NoteVersion] = [
         NoteVersion(
+            numero: "8.2.10",
+            date: "26 septembre 2026",
+            resume: "Dans Explorer, « Tout ouvrir » / « Tout fermer » ne recouvre plus les pastilles.",
+            fonctionnalites: [
+                Fonctionnalite(symbole: "rectangle.stack", titre: "Explorer remis en ordre",
+                               detail: "« Tout ouvrir » / « Tout fermer » passe sur sa propre ligne, à droite, sous les pastilles de rangement, qu'il recouvrait."),
+            ]
+        ),
+        NoteVersion(
             numero: "8.2.9",
             date: "26 septembre 2026",
             resume: "Explorer range ses résultats comme Regarder : pertinence, année, genre ou A→Z, en sections qu'on ouvre et qu'on ferme.",

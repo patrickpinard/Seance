@@ -625,19 +625,21 @@ struct ExplorerView: View {
         }
         let tranches = RangementRecherche.ranger(resultatsProposes, par: rangement, genres: nomsDeGenres)
         if resultatsProposes.count > 1 {
-            HStack(spacing: 0) {
-                pucesRangement
-                if tranches.count > 1 {
-                    let titres = tranches.map(\.titre)
-                    let toutes = sectionsRecherche.toutesOuvertes(titres)
+            pucesRangement
+            // Sur sa propre ligne, à droite (8.2.10) : à côté des pastilles, il les recouvrait.
+            if tranches.count > 1 {
+                let titres = tranches.map(\.titre)
+                let toutes = sectionsRecherche.toutesOuvertes(titres)
+                HStack {
+                    Spacer()
                     Button(toutes ? "Tout fermer" : "Tout ouvrir") {
                         withAnimation(.snappy) { sectionsRecherche.toutes(ouvertes: !toutes, titres: titres) }
                     }
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(Theme.accent)
                     .frame(minHeight: 44)
-                    .padding(.trailing, 20)
                 }
+                .padding(.horizontal, 20)
             }
         }
         ForEach(tranches, id: \.titre) { tranche in
