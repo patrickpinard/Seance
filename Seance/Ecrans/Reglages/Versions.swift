@@ -56,6 +56,17 @@ struct NoteVersion: Identifiable {
 
     static let historique: [NoteVersion] = [
         NoteVersion(
+            numero: "8.2.2",
+            date: "26 septembre 2026",
+            resume: "Le même panneau de lecture partout, à droite de l'image : le son, sa sortie, la langue, les sous-titres, la vitesse et l'image.",
+            fonctionnalites: [
+                Fonctionnalite(symbole: "sidebar.right", titre: "Le panneau de lecture, à droite",
+                               detail: "Sur l'iPhone, l'iPad et l'Apple TV, les réglages du film sortent à droite de l'image, qui reste visible : le son d'abord (volume, couper le son, sortie AirPlay), puis la langue, les sous-titres, la vitesse et l'image. Sur l'Apple TV, le volume est celui du film, de 0 à 200 %."),
+                Fonctionnalite(symbole: "info.circle", titre: "À propos, plus court sur l'Apple TV",
+                               detail: "Plus de « Retour aux réglages » ni de « Comment ça marche » : la version, son heure d'installation et l'historique."),
+            ]
+        ),
+        NoteVersion(
             numero: "8.2.1",
             date: "26 septembre 2026",
             resume: "La page d'un acteur sans roue dentée, et la barre d'avancement de l'Apple TV qui garde sa taille.",

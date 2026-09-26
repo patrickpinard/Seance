@@ -43,8 +43,6 @@ struct LecteurVLC: View {
     @State private var dernierGeste = 0
     /// Le panneau des réglages de lecture ; ouvert, les commandes restent affichées.
     @State private var panneau = false
-    /// Le petit panneau du son, au-dessus de son bouton.
-    @State private var panneauSon = false
 
     var body: some View {
         ZStack {
@@ -102,14 +100,6 @@ struct LecteurVLC: View {
         }
         .overlay(alignment: .bottom) { if commandesVisibles, message == nil, compte == nil { commandes } }
         .overlay(alignment: .bottomTrailing) { carteSuivant }
-        .overlay(alignment: .bottomTrailing) {
-            if panneauSon, commandesVisibles, message == nil {
-                PanneauSon(moteur: moteur) { dernierGeste += 1 }
-                    .padding(.trailing, 110)
-                    .padding(.bottom, 150)
-                    .transition(.scale(scale: 0.8, anchor: .bottom).combined(with: .opacity))
-            }
-        }
         // Deux boutons distincts (8.0) : la croix arrête la lecture ; « Continuer dans Séance » la passe en image
         // dans l'image et rend la main à l'app, la vidéo continuant dans sa petite fenêtre.
         .overlay(alignment: .top) {
@@ -202,8 +192,8 @@ struct LecteurVLC: View {
             if restant <= 1 { lireSuivant() } else { compte = restant - 1 }
         }
         // Commandes et croix s'effacent après trois secondes de lecture sans toucher (7.0) ; un toucher les ramène.
-        .task(id: Minuterie(geste: dernierGeste, enLecture: moteur.enLecture && !moteur.enChargement && !panneau && !panneauSon, visibles: commandesVisibles)) {
-            guard commandesVisibles, !panneau, !panneauSon, moteur.enLecture, !moteur.enChargement else { return }
+        .task(id: Minuterie(geste: dernierGeste, enLecture: moteur.enLecture && !moteur.enChargement && !panneau, visibles: commandesVisibles)) {
+            guard commandesVisibles, !panneau, moteur.enLecture, !moteur.enChargement else { return }
             try? await Task.sleep(for: .seconds(3))
             guard !Task.isCancelled else { return }
             withAnimation(.easeOut(duration: 0.3)) { commandesVisibles = false }
@@ -213,9 +203,15 @@ struct LecteurVLC: View {
                 if glissement.translation.height > 80 { fermer() }
             }
         )
-        .sheet(isPresented: $panneau, onDismiss: { dernierGeste += 1 }) {
-            PanneauLecture(moteur: moteur)
-                .presentationDetents([.medium, .large])
+        // Le panneau de lecture (8.2.1) sort à droite de l'image, comme sur l'Apple TV : la vidéo reste visible.
+        .overlay(alignment: .trailing) {
+            if panneau {
+                PanneauLecture(moteur: moteur) {
+                    withAnimation(.snappy) { panneau = false }
+                    dernierGeste += 1
+                }
+                .transition(.move(edge: .trailing))
+            }
         }
         .statusBarHidden()
         .persistentSystemOverlays(commandesVisibles ? .automatic : .hidden)
@@ -245,7 +241,7 @@ struct LecteurVLC: View {
     /// Langue, sous-titres, vitesse et cadrage, dans un panneau : un menu se refermait à chaque rafraîchissement du
     /// lecteur, et disparaissait avec les commandes au bout de trois secondes.
     private var menuReglages: some View {
-        Button { panneau = true } label: {
+        Button { withAnimation(.snappy) { panneau = true } } label: {
             Image(systemName: "slider.horizontal.3")
                 .frame(width: 44, height: 44)
                 .contentShape(Rectangle())
@@ -274,7 +270,7 @@ struct LecteurVLC: View {
                 Spacer()
                 Text(moteur.tempsAffiche).font(.caption.monospacedDigit())
                 // Le son (8.1) : un bouton, et non plus un second curseur qu'on prenait pour la barre d'avancement.
-                Button { withAnimation(.snappy) { panneauSon.toggle() }; dernierGeste += 1 } label: {
+                Button { withAnimation(.snappy) { panneau = true }; dernierGeste += 1 } label: {
                     Image(systemName: moteur.muet ? "speaker.slash.fill" : "speaker.wave.2.fill")
                         .frame(width: 44, height: 44)
                         .contentShape(Rectangle())
@@ -442,13 +438,36 @@ struct LecteurVLC: View {
 /// Les réglages de la lecture en cours : ce que le fichier propose, lu à l'ouverture du panneau.
 private struct PanneauLecture: View {
     let moteur: MoteurVLC
-    @Environment(\.dismiss) private var fermer
+    let fermer: () -> Void
     @State private var audio: [MoteurVLC.Piste] = []
     @State private var texte: [MoteurVLC.Piste] = []
 
     var body: some View {
-        NavigationStack {
+        VStack(spacing: 0) {
+            HStack {
+                Text("Lecture").font(.headline)
+                Spacer()
+                Button("OK", action: fermer).fontWeight(.semibold)
+            }
+            .padding(.horizontal, 20)
+            .frame(height: 52)
             Form {
+                // Le son d'abord (8.2.1) : le volume debout, couper le son, la sortie — les mêmes que sur l'Apple TV.
+                Section("Son") {
+                    HStack(spacing: 16) {
+                        VolumeSysteme().frame(width: 44, height: 130).accessibilityLabel("Volume")
+                        VStack(alignment: .leading, spacing: 10) {
+                            Button { moteur.muet.toggle() } label: {
+                                Label(moteur.muet ? "Remettre le son" : "Couper le son",
+                                      systemImage: moteur.muet ? "speaker.wave.2" : "speaker.slash")
+                            }
+                            HStack(spacing: 8) {
+                                SortieAudio().frame(width: 32, height: 32)
+                                Text("Sortie du son").foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+                }
                 Section("Langue") {
                     if audio.isEmpty {
                         Text("Aucune piste audio annoncée par le fichier").foregroundStyle(.secondary)
@@ -471,9 +490,6 @@ private struct PanneauLecture: View {
                             texte = moteur.pistesTexte()
                         } label: { Coche(piste.nom, piste.choisie) }
                     }
-                    if texte.isEmpty {
-                        Text("Ce fichier n'a pas de sous-titres").font(.footnote).foregroundStyle(.secondary)
-                    }
                 }
                 Section("Vitesse") {
                     ForEach([0.75, 1.0, 1.25, 1.5, 2.0], id: \.self) { vitesse in
@@ -488,13 +504,13 @@ private struct PanneauLecture: View {
                     Button { moteur.remplir = true } label: { Coche("Remplir l'écran", moteur.remplir) }
                 }
             }
+            .scrollContentBackground(.hidden)
             .tint(.primary)
-            .navigationTitle("Lecture")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) { Button("OK") { fermer() } }
-            }
         }
+        .frame(width: 340)
+        .frame(maxHeight: .infinity)
+        .background(.ultraThinMaterial)
+        .environment(\.colorScheme, .dark)
         .onAppear {
             audio = moteur.pistesAudio()
             texte = moteur.pistesTexte()
@@ -562,29 +578,6 @@ private struct SortieAudio: UIViewRepresentable {
     func updateUIView(_ uiView: AVRoutePickerView, context: Context) {}
 }
 
-/// Le panneau du son : le volume debout, et couper le son d'un toucher.
-private struct PanneauSon: View {
-    let moteur: MoteurVLC
-    let geste: () -> Void
-
-    var body: some View {
-        VStack(spacing: 12) {
-            Image(systemName: "speaker.wave.3.fill").font(.caption).foregroundStyle(.white.opacity(0.8)).accessibilityHidden(true)
-            VolumeSysteme().frame(width: 44, height: 150).accessibilityLabel("Volume")
-            Image(systemName: "speaker.fill").font(.caption).foregroundStyle(.white.opacity(0.8)).accessibilityHidden(true)
-            Button { moteur.muet.toggle(); geste() } label: {
-                Image(systemName: moteur.muet ? "speaker.slash.fill" : "speaker.slash")
-                    .font(.body.weight(.semibold))
-                    .foregroundStyle(moteur.muet ? Theme.accent : .white)
-                    .frame(width: 44, height: 44)
-            }
-            .accessibilityLabel(moteur.muet ? "Remettre le son" : "Couper le son")
-        }
-        .padding(.vertical, 14)
-        .padding(.horizontal, 6)
-        .background(.black.opacity(0.7), in: Capsule())
-    }
-}
 
 /// La vue où VLC dessine. `VLCVideoView` est une vue UIKit : SwiftUI la reçoit telle quelle.
 private struct VueVLC: UIViewRepresentable {

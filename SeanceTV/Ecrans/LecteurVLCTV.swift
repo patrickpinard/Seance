@@ -1,6 +1,7 @@
 import SeanceDonnees
 import SeanceKit
 import SeanceNAS
+import AVKit
 import SwiftUI
 import VLCKit
 
@@ -211,7 +212,7 @@ struct LecteurVLCTV: View {
                     .focused($focus, equals: .avancer)
                     .accessibilityLabel("Avancer de 10 secondes")
                 Spacer()
-                Button { pistes = true } label: { Label("Langue et sous-titres", systemImage: "captions.bubble") }
+                Button { pistes = true } label: { Label("Son, langue et image", systemImage: "slider.horizontal.3") }
                     .buttonStyle(BoutonTV())
                     .focused($focus, equals: .pistes)
                 Button { fermer() } label: { Label("Quitter", systemImage: "xmark") }
@@ -391,7 +392,30 @@ private struct PanneauPistesTV: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
-                Text("LANGUE").font(.system(size: 24, weight: .bold)).foregroundStyle(Theme.texte2)
+                // 8.2.1 : les mêmes réglages que sur l'iPhone et l'iPad — le son d'abord.
+                Text("SON").font(.system(size: 24, weight: .bold)).foregroundStyle(Theme.texte2)
+                HStack(spacing: 16) {
+                    Button { moteur.volume -= 10 } label: { Image(systemName: "speaker.minus") }
+                        .buttonStyle(BoutonRondTV())
+                        .accessibilityLabel("Moins fort")
+                    VStack(spacing: 8) {
+                        Text(moteur.muet ? "Coupé" : "\(moteur.volume) %").font(.system(size: 26, weight: .semibold).monospacedDigit())
+                        Capsule().fill(.white.opacity(0.25)).frame(width: 200, height: 8)
+                            .overlay(alignment: .leading) {
+                                Capsule().fill(.white).frame(width: 200 * CGFloat(moteur.muet ? 0 : moteur.volume) / 200, height: 8)
+                            }
+                    }
+                    .accessibilityHidden(true)
+                    Button { moteur.volume += 10 } label: { Image(systemName: "speaker.plus") }
+                        .buttonStyle(BoutonRondTV())
+                        .accessibilityLabel("Plus fort")
+                }
+                ligne(moteur.muet ? "Remettre le son" : "Couper le son", moteur.muet) { moteur.muet.toggle() }
+                HStack(spacing: 16) {
+                    SortieAudioTV().frame(width: 70, height: 70)
+                    Text("Sortie du son").font(.system(size: 26)).foregroundStyle(Theme.texte2)
+                }
+                Text("LANGUE").font(.system(size: 24, weight: .bold)).foregroundStyle(Theme.texte2).padding(.top, 24)
                 if audio.isEmpty {
                     Text("Aucune piste audio annoncée par le fichier").font(.system(size: 26)).foregroundStyle(Theme.texte2)
                 }
@@ -403,6 +427,14 @@ private struct PanneauPistesTV: View {
                 ForEach(texte.filter { $0.id != "-1" }) { piste in
                     ligne(piste.nom, piste.choisie) { moteur.choisirTexte(piste.id); relire() }
                 }
+                Text("VITESSE").font(.system(size: 24, weight: .bold)).foregroundStyle(Theme.texte2).padding(.top, 24)
+                ForEach([0.75, 1.0, 1.25, 1.5, 2.0], id: \.self) { vitesse in
+                    ligne(vitesse == 1 ? "Normale" : "× \(vitesse.formatted(.number.precision(.fractionLength(0...2))))",
+                          moteur.vitesse == vitesse) { moteur.vitesse = vitesse }
+                }
+                Text("IMAGE").font(.system(size: 24, weight: .bold)).foregroundStyle(Theme.texte2).padding(.top, 24)
+                ligne("Image entière", !moteur.remplir) { moteur.remplir = false }
+                ligne("Remplir l'écran", moteur.remplir) { moteur.remplir = true }
             }
             .padding(50)
         }
@@ -430,6 +462,18 @@ private struct PanneauPistesTV: View {
         audio = moteur.pistesAudio()
         texte = moteur.pistesTexte()
     }
+}
+
+/// La sortie du son de l'Apple TV : AirPlay vers des enceintes, un HomePod, des écouteurs.
+private struct SortieAudioTV: UIViewRepresentable {
+    func makeUIView(context: Context) -> AVRoutePickerView {
+        let vue = AVRoutePickerView()
+        vue.tintColor = .white
+        vue.activeTintColor = UIColor(Theme.accent)
+        return vue
+    }
+
+    func updateUIView(_ uiView: AVRoutePickerView, context: Context) {}
 }
 
 /// La vue où VLC dessine, sur la TV.
@@ -462,6 +506,27 @@ final class MoteurVLCTV {
     private(set) var duree: Double = 0
     /// La position où reprendre, appliquée une fois la durée connue.
     private var depart: Double?
+    /// Le volume de VLC (8.2.1), de 0 à 200 % : celui du téléviseur reste à la télécommande.
+    var volume: Int = 100 {
+        didSet {
+            volume = min(max(volume, 0), 200)
+            lecteur.audio?.volume = Int32(volume)
+        }
+    }
+
+    var muet = false {
+        didSet { lecteur.audio?.isMuted = muet }
+    }
+
+    var vitesse: Double = 1 {
+        didSet { lecteur.rate = Float(vitesse) }
+    }
+
+    /// Remplir l'écran rogne les bords ; sinon l'image entière, avec des bandes noires au besoin.
+    var remplir = false {
+        didSet { lecteur.videoFitMode = remplir ? .larger : .smaller }
+    }
+
     /// Langue et sous-titres voulus (8.1), posés une fois que VLC a décrit les pistes.
     var preferences: PreferencesPistes?
     private var pistesPosees = false

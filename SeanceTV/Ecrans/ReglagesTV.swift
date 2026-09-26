@@ -584,11 +584,10 @@ struct PageGoutsTV: View {
 }
 
 private struct PageAProposTV: View {
-    @Environment(\.dismiss) private var fermer
-
     var body: some View {
-        PageTV(titre: "À propos", sousTitre: "Séance \(ReglagesTV.version) sur cette Apple TV.") {
-            SectionTV(explication: "Avec un compte Apple gratuit, l'app cesse de s'ouvrir au bout de sept jours : relance l'installation depuis le Mac, tes réglages restent.") {
+        // 8.2.1 (demande de Patrick) : ni « Retour aux réglages » — la liste est à gauche —, ni « Comment ça marche ».
+        PageTV(titre: "À propos") {
+            SectionTV {
                 LigneTVReglage(titre: "Version", detail: InstallationsVersions.libelle(ReglagesTV.version), symbole: "number") {
                     BoutTV(forme: .valeur(ReglagesTV.version))
                 }
@@ -601,9 +600,10 @@ private struct PageAProposTV: View {
                 }
                 .buttonStyle(LigneTV())
             }
-            SectionTV(explication: "Ce produit utilise l'API TMDB mais n'est ni approuvé ni certifié par TMDB. Disponibilités en Suisse fournies par JustWatch, via TMDB. Programme TV : XML TV Fr.") {
-                LigneTVReglage(titre: "Retour aux réglages", symbole: "chevron.left", action: { fermer() })
-            }
+            // La mention que demandent les conditions de TMDB.
+            Text("Ce produit utilise l'API TMDB mais n'est ni approuvé ni certifié par TMDB. Disponibilités en Suisse : JustWatch, via TMDB. Programme TV : XML TV Fr.")
+                .font(.system(size: 22))
+                .foregroundStyle(Theme.texte2)
         }
     }
 }
