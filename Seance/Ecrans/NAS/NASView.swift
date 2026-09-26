@@ -163,6 +163,8 @@ struct NASView: View {
     /// Dates d'ajout et genres, relevés par la dernière analyse (6.4).
     @State private var detailsNAS = DetailsNAS()
     @State private var fichierChoisi: FichierNAS?
+    /// Les sections ouvertes ou fermées (8.2.8) : par genre, fermées au départ — une liste de genres à ouvrir.
+    @State private var sections = SectionsRepliables()
 
     @Environment(\.horizontalSizeClass) private var largeurGrille
     /// Affiches plus grandes sur le Mac : 105 points y feraient des timbres-poste.
@@ -297,21 +299,31 @@ struct NASView: View {
                             }
                         } else {
                             // Rangé par ajout, par année ou par genre : une section par tranche, la plus récente d'abord.
-                            ForEach(TrancheNAS.ranger(oeuvres, par: rangement, details: detailsNAS, noms: etat.nomsGenres)) { section in
+                            // Chaque section s'ouvre et se ferme (8.2.8) ; « Tout ouvrir » / « Tout fermer » en tête.
+                            let tranches = TrancheNAS.ranger(oeuvres, par: rangement, details: detailsNAS, noms: etat.nomsGenres)
+                            let titres = tranches.map(\.titre)
+                            HStack {
+                                Spacer()
+                                let toutes = sections.toutesOuvertes(titres)
+                                Button(toutes ? "Tout fermer" : "Tout ouvrir") {
+                                    withAnimation(.snappy) { sections.toutes(ouvertes: !toutes, titres: titres) }
+                                }
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(Theme.accent)
+                                .frame(minHeight: 44)
+                            }
+                            ForEach(tranches) { section in
                                 VStack(alignment: .leading, spacing: 10) {
-                                    HStack(alignment: .firstTextBaseline) {
-                                        Text(section.titre).font(.title3.weight(.bold))
-                                        Spacer()
-                                        Text(Format.pluriel(section.oeuvres.count, "titre"))
-                                            .font(.caption.weight(.semibold)).foregroundStyle(.secondary)
-                                    }
-                                    .accessibilityElement(children: .combine)
-                                    .accessibilityAddTraits(.isHeader)
-                                    LazyVGrid(columns: CarteLargeTitre.colonnes, spacing: 14) {
-                                        ForEach(section.oeuvres) { oeuvre in
-                                            CarteLargeNAS(oeuvre: oeuvre, decor: oeuvre.reference.flatMap(etat.decors.decor),
-                                                          marque: oeuvre.reference.flatMap { marques[$0] })
+                                    EnTeteRepliable(titre: section.titre, detail: Format.pluriel(section.oeuvres.count, "titre"),
+                                                    ouverte: sections.ouverte(section.titre)) { sections.basculer(section.titre) }
+                                    if sections.ouverte(section.titre) {
+                                        LazyVGrid(columns: CarteLargeTitre.colonnes, spacing: 14) {
+                                            ForEach(section.oeuvres) { oeuvre in
+                                                CarteLargeNAS(oeuvre: oeuvre, decor: oeuvre.reference.flatMap(etat.decors.decor),
+                                                              marque: oeuvre.reference.flatMap { marques[$0] })
+                                            }
                                         }
+                                        .transition(.opacity)
                                     }
                                 }
                             }
@@ -322,6 +334,10 @@ struct NASView: View {
             .padding(20)
         }
         .scrollDismissesKeyboard(.immediately)
+        // Par genre, les sections partent fermées ; par année ou par ajout, ouvertes.
+        .onChange(of: rangementBrut, initial: true) { _, _ in
+            sections = SectionsRepliables(ouvertesParDefaut: rangement != .genre)
+        }
         // Les images de fond des nouveautés, pour leurs grandes cartes.
         .task(id: referencesNouveautes) { await etat.decors.charger(referencesNouveautes, client: etat.tmdb) }
         .searchable(text: $recherche, placement: .navigationBarDrawer(displayMode: .automatic), prompt: "Titre")

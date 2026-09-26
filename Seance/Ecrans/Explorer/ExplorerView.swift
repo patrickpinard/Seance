@@ -59,6 +59,8 @@ struct ExplorerView: View {
     /// Le rangement des résultats d'une recherche (8.2.7), comme dans Regarder : pertinence, année, genre, A→Z.
     @AppStorage("explorer.rangement") private var rangementBrut = RangementRecherche.pertinence.rawValue
     private var rangement: RangementRecherche { RangementRecherche(rawValue: rangementBrut) ?? .pertinence }
+    /// Les sections de la recherche rangée, ouvertes ou fermées (8.2.8).
+    @State private var sectionsRecherche = SectionsRepliables()
 
     @Environment(\.horizontalSizeClass) private var largeurGrille
     /// Affiches plus grandes sur le Mac : 105 points y feraient des timbres-poste.
@@ -80,6 +82,10 @@ struct ExplorerView: View {
             }
             .background(Theme.fond)
             .navigationTitle("Recherche")
+            // Par genre, les sections de la recherche partent fermées ; autrement, ouvertes (8.2.8).
+            .onChange(of: rangementBrut, initial: true) { _, _ in
+                sectionsRecherche = SectionsRepliables(ouvertesParDefaut: rangement != .genre)
+            }
             .boutonBarreLaterale()
             .searchable(text: $texte, prompt: "Films, séries, acteurs")
             .searchFocused($rechercheActive)
@@ -212,8 +218,11 @@ struct ExplorerView: View {
                     }
                     ForEach(RangementRecherche.ranger(titres, par: rangement, genres: nomsDeGenres), id: \.titre) { tranche in
                         if !tranche.titre.isEmpty {
-                            Text(tranche.titre).font(.headline).padding(.horizontal, 20).padding(.top, 4)
+                            EnTeteRepliable(titre: tranche.titre, detail: Format.pluriel(tranche.titres.count, "titre"),
+                                            ouverte: sectionsRecherche.ouverte(tranche.titre)) { sectionsRecherche.basculer(tranche.titre) }
+                                .padding(.horizontal, 20)
                         }
+                        if tranche.titre.isEmpty || sectionsRecherche.ouverte(tranche.titre) {
                         LazyVGrid(columns: colonnes, spacing: 14) {
                             ForEach(tranche.titres) { titre in
                                 NavigationLink(value: titre.reference) {
@@ -225,6 +234,7 @@ struct ExplorerView: View {
                             }
                         }
                         .padding(.horizontal, 20)
+                        }
                     }
                 }
                 if titres.isEmpty, personnes.isEmpty, recherchee == CleRecherche(texte: texte, portee: portee) {

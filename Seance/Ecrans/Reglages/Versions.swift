@@ -56,6 +56,17 @@ struct NoteVersion: Identifiable {
 
     static let historique: [NoteVersion] = [
         NoteVersion(
+            numero: "8.2.8",
+            date: "26 septembre 2026",
+            resume: "Les genres, les années et les ajouts s'ouvrent et se ferment ; le panneau du son ne cache plus la barre d'avancement.",
+            fonctionnalites: [
+                Fonctionnalite(symbole: "chevron.right", titre: "Des sections qu'on ouvre et qu'on ferme",
+                               detail: "Dans Regarder › NAS et dans la recherche, rangés par genre, par année ou par ajout : un toucher sur une section l'ouvre ou la ferme, « Tout ouvrir » et « Tout fermer » en tête. Par genre, elles partent fermées : la liste des genres d'abord, puis les films de celui qu'on ouvre."),
+                Fonctionnalite(symbole: "speaker.wave.2", titre: "Le son plus haut",
+                               detail: "Le panneau du son monte au-dessus de la barre d'avancement, qu'il chevauchait."),
+            ]
+        ),
+        NoteVersion(
             numero: "8.2.7",
             date: "26 septembre 2026",
             resume: "Plus de plantage en fin de vidéo, le lecteur respecte l'orientation, le son se règle à l'horizontale, et la recherche se range par année ou par genre.",

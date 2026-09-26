@@ -106,7 +106,8 @@ struct LecteurVLC: View {
             if panneauSon, commandesVisibles, message == nil {
                 PanneauSon(moteur: moteur) { dernierGeste += 1 }
                     .padding(.horizontal, 20)
-                    .padding(.bottom, 170)
+                    // Au-dessus de la barre d'avancement, sans la toucher (8.2.8).
+                    .padding(.bottom, 240)
                     .transition(.scale(scale: 0.8, anchor: .bottom).combined(with: .opacity))
             }
         }
