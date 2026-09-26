@@ -355,6 +355,8 @@ final class MoteurVLCTV {
     private(set) var duree: Double = 0
     /// La position où reprendre, appliquée une fois la durée connue.
     private var depart: Double?
+    /// Le format d'image des pixels non carrés, posé une fois par vidéo.
+    private var formatPose = false
 
     func attacher(a vue: UIView) {
         lecteur.drawable = vue
@@ -375,6 +377,11 @@ final class MoteurVLCTV {
                 self.tempsAffiche = self.lecteur.time.stringValue
                 self.secondes = Double(self.lecteur.time.intValue) / 1000
                 self.duree = Double(self.lecteur.media?.length.intValue ?? 0) / 1000
+                // Pixels non carrés : le format d'image annoncé par la piste, une fois qu'elle est connue.
+                if !self.formatPose, let piste = self.lecteur.videoTracks.first(where: \.isSelected)?.video {
+                    self.formatPose = true
+                    if let rapport = FormatImageVLC.rapport(piste) { self.lecteur.videoAspectRatio = rapport }
+                }
                 // Reprendre : dès que VLC connaît la durée, on saute à la position retenue.
                 if let depart = self.depart, self.duree > 0, self.lecteur.isPlaying {
                     self.lecteur.time = VLCTime(int: Int32(depart * 1000))
@@ -451,4 +458,19 @@ final class MoteurVLCTV {
         lecteur.stop()
         enLecture = false
     }
+}
+
+/// Les vidéos anamorphiques (pixels non carrés, comme « Unabomber » : 1280 × 720 à afficher en 2,39:1) : VLCKit 4 ne
+/// tient pas compte du rapport de pixels de la piste et les montrait écrasées. On lui impose le format d'image qu'elles
+/// annoncent. `nil` : des pixels carrés, rien à corriger.
+enum FormatImageVLC {
+    static func rapport(_ piste: VLCMedia.VideoTrack) -> String? {
+        let numerateur = Int(piste.sourceAspectRatio), denominateur = Int(piste.sourceAspectRatioDenominator)
+        guard piste.width > 0, piste.height > 0, numerateur > 0, denominateur > 0, numerateur != denominateur else { return nil }
+        let largeur = Int(piste.width) * numerateur, hauteur = Int(piste.height) * denominateur
+        let diviseur = pgcd(largeur, hauteur)
+        return "\(largeur / diviseur):\(hauteur / diviseur)"
+    }
+
+    private static func pgcd(_ a: Int, _ b: Int) -> Int { b == 0 ? a : pgcd(b, a % b) }
 }
