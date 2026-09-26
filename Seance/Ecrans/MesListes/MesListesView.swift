@@ -83,8 +83,11 @@ struct MesListesView: View {
         SelecteurCases(selection: $onglet, cases: Onglet.allCases.map { .init(valeur: $0, nom: $0.rawValue, symbole: $0.symbole) })
     }
 
+    /// La pile de Mes listes (8.2.6) : « Voir la fiche », dans le menu de l'appui long, y pousse la fiche.
+    @State private var chemin = NavigationPath()
+
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $chemin) {
             Group {
                 if enDefilementLibre {
                     ScrollView {
@@ -359,7 +362,16 @@ struct MesListesView: View {
                                         episodesVus: reperes.episodesVus[suivi.tmdbID] ?? 0)
                     }
                     .buttonStyle(.plain)
-                    .contextMenu { menu(suivi, statut) }
+                    // Un aperçu à part, qui n'est pas le lien : toucher l'aperçu de l'appui long lançait la navigation
+                    // pendant que le menu se refermait, et la pile restait bloquée (8.2.6).
+                    .contextMenu {
+                        menu(suivi, statut)
+                    } preview: {
+                        CarteLargeTitre(suivi: suivi, rendezVous: prochainRendezVous(suivi, reperes),
+                                        episodesVus: reperes.episodesVus[suivi.tmdbID] ?? 0)
+                            .frame(width: 360)
+                            .environment(etat)
+                    }
                 }
             }
             .padding(.horizontal, 16)
@@ -394,7 +406,11 @@ struct MesListesView: View {
                 .tint(.orange)
             }
             // Clic droit sur le Mac, appui long sur l'iPhone : les mêmes actions que le glissement.
-            .contextMenu { menu(suivi, statut) }
+            .contextMenu {
+                menu(suivi, statut)
+            } preview: {
+                ligne(suivi, reperes).padding().frame(width: 360).background(Theme.surface).environment(etat)
+            }
         }
     }
 
@@ -439,6 +455,7 @@ struct MesListesView: View {
     /// Les actions d'un titre, les mêmes en liste et en grille.
     @ViewBuilder
     private func menu(_ suivi: Suivi, _ statut: StatutSuivi) -> some View {
+        Button { chemin.append(suivi.reference) } label: { Label("Voir la fiche", systemImage: "info.circle") }
         Button {
             try? ServiceSoiree(contexte: contexte).retenir(suivi.reference, titre: suivi.titre, cheminAffiche: suivi.cheminAffiche)
         } label: { Label("Ajouter à ma soirée", systemImage: "moon.stars") }

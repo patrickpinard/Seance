@@ -102,24 +102,45 @@ struct LecteurVLCTV: View {
         }
         .overlay(alignment: .bottomLeading) {
             if son, commandes, !pistes, message == nil {
-                VStack(spacing: 18) {
+                VStack(alignment: .leading, spacing: 18) {
                     Text(moteur.muet ? "Son coupé" : "Volume \(moteur.volume) %")
                         .font(.system(size: 26, weight: .semibold).monospacedDigit())
-                    HStack(spacing: 18) {
-                        Button { moteur.volume -= 10; dernierGeste = .now } label: { Image(systemName: "speaker.minus") }
-                            .buttonStyle(BoutonRondTV())
-                            .accessibilityLabel("Moins fort")
-                        Button { moteur.volume += 10; dernierGeste = .now } label: { Image(systemName: "speaker.plus") }
-                            .buttonStyle(BoutonRondTV())
-                            .focused($focus, equals: .sonPlus)
-                            .accessibilityLabel("Plus fort")
-                        Button { moteur.muet.toggle(); dernierGeste = .now } label: {
-                            Image(systemName: moteur.muet ? "speaker.wave.2" : "speaker.slash")
+                    // Une barre, qu'on règle à gauche et à droite (8.2.6) ; comme la barre d'avancement, c'est un point
+                    // invisible qui reçoit la télécommande, sans halo de focus.
+                    let niveau = moteur.muet ? 0 : Double(moteur.volume) / 200
+                    ZStack(alignment: .leading) {
+                        Capsule().fill(.white.opacity(0.25))
+                        Capsule().fill(.white).frame(width: 420 * niveau)
+                        if focus == .sonPlus {
+                            Circle().fill(.white).frame(width: 30, height: 30).offset(x: 420 * niveau - 15)
                         }
-                        .buttonStyle(BoutonRondTV())
-                        .accessibilityLabel(moteur.muet ? "Remettre le son" : "Couper le son")
+                    }
+                    .frame(width: 420, height: 10)
+                    .overlay {
+                        Color.clear
+                            .frame(width: 4, height: 4)
+                            .focusable()
+                            .focusEffectDisabled()
+                            .focused($focus, equals: .sonPlus)
+                            .onMoveCommand { direction in
+                                switch direction {
+                                case .left: moteur.regler(volume: moteur.volume - 10)
+                                case .right: moteur.regler(volume: moteur.volume + 10)
+                                default: break
+                                }
+                                dernierGeste = .now
+                            }
+                            .accessibilityLabel("Volume, \(moteur.volume) %")
+                    }
+                    .focusSection()
+                    HStack(spacing: 18) {
+                        Button { moteur.muet.toggle(); dernierGeste = .now } label: {
+                            Label(moteur.muet ? "Remettre le son" : "Couper le son", systemImage: moteur.muet ? "speaker.wave.2" : "speaker.slash")
+                        }
+                        .buttonStyle(BoutonTV())
                         SortieAudioTV().frame(width: 70, height: 70)
                     }
+                    .focusSection()
                 }
                 .foregroundStyle(.white)
                 .padding(28)
@@ -535,12 +556,15 @@ final class MoteurVLCTV {
     private(set) var duree: Double = 0
     /// La position où reprendre, appliquée une fois la durée connue.
     private var depart: Double?
-    /// Le volume de VLC (8.2.1), de 0 à 200 % : celui du téléviseur reste à la télécommande.
-    var volume: Int = 100 {
-        didSet {
-            volume = min(max(volume, 0), 200)
-            lecteur.audio?.volume = Int32(volume)
-        }
+    /// Le volume de VLC, de 0 à 200 % : celui du téléviseur reste à la télécommande. 8.2.6 : réglé par `regler`, borné
+    /// avant d'être posé — le borner en le réécrivant dans son propre `didSet` relançait le réglage sans fin, et l'app
+    /// se fermait au premier « plus fort ».
+    private(set) var volume: Int = 100
+
+    func regler(volume nouveau: Int) {
+        volume = min(max(nouveau, 0), 200)
+        lecteur.audio?.volume = Int32(volume)
+        if muet, volume > 0 { muet = false }
     }
 
     var muet = false {

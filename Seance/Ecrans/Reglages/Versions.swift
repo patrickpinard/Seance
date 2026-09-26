@@ -56,6 +56,17 @@ struct NoteVersion: Identifiable {
 
     static let historique: [NoteVersion] = [
         NoteVersion(
+            numero: "8.2.6",
+            date: "26 septembre 2026",
+            resume: "Le volume de l'Apple TV ne ferme plus l'app, et l'appui long dans Mes listes ne bloque plus la navigation.",
+            fonctionnalites: [
+                Fonctionnalite(symbole: "speaker.wave.2", titre: "Le volume de l'Apple TV",
+                               detail: "« Plus fort » fermait l'app : le réglage se relançait sans fin. Le volume est maintenant une barre, qu'on règle à gauche et à droite, avec « Couper le son » et la sortie du son dessous."),
+                Fonctionnalite(symbole: "hand.tap", titre: "L'appui long dans Mes listes",
+                               detail: "Toucher l'aperçu d'une carte lançait la fiche pendant que le menu se refermait, et l'on ne pouvait plus revenir. L'aperçu n'est plus un lien, et « Voir la fiche » ouvre la fiche en tête du menu."),
+            ]
+        ),
+        NoteVersion(
             numero: "8.2.5",
             date: "26 septembre 2026",
             resume: "Sur l'Apple TV, la barre d'avancement reste fine quand on la choisit et qu'on clique dessus.",
