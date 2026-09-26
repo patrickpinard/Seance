@@ -56,6 +56,15 @@ struct NoteVersion: Identifiable {
 
     static let historique: [NoteVersion] = [
         NoteVersion(
+            numero: "8.2.9",
+            date: "26 septembre 2026",
+            resume: "Explorer range ses résultats comme Regarder : pertinence, année, genre ou A→Z, en sections qu'on ouvre et qu'on ferme.",
+            fonctionnalites: [
+                Fonctionnalite(symbole: "rectangle.stack", titre: "Explorer, comme Regarder",
+                               detail: "Les résultats d'Explorer, avec ou sans filtres, se rangent par pertinence, année, genre ou de A à Z, en grille comme en liste. Chaque section s'ouvre et se ferme, « Tout ouvrir » et « Tout fermer » à côté des pastilles ; par genre, elles partent fermées. Rangés en sections, les résultats suivants se demandent d'un bouton."),
+            ]
+        ),
+        NoteVersion(
             numero: "8.2.8",
             date: "26 septembre 2026",
             resume: "Les genres, les années et les ajouts s'ouvrent et se ferment ; le panneau du son ne cache plus la barre d'avancement.",

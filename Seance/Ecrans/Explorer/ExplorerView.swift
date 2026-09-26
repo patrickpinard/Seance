@@ -206,15 +206,7 @@ struct ExplorerView: View {
                         TitreSection("Titres")
                     }
                     if titres.count > 1 {
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: 8) {
-                                ForEach(RangementRecherche.allCases) { mode in
-                                    PuceFiltre(libelle: mode.rawValue, active: rangement == mode) { rangementBrut = mode.rawValue }
-                                        .accessibilityLabel("Ranger par \(mode.rawValue)")
-                                }
-                            }
-                            .padding(.horizontal, 20)
-                        }
+                        pucesRangement
                     }
                     ForEach(RangementRecherche.ranger(titres, par: rangement, genres: nomsDeGenres), id: \.titre) { tranche in
                         if !tranche.titre.isEmpty {
@@ -610,33 +602,83 @@ struct ExplorerView: View {
         .accessibilityIdentifier("compteurResultats")
     }
 
+    /// Les pastilles de rangement, les mêmes que dans Regarder (8.2.9) : pertinence, année, genre, A→Z.
+    private var pucesRangement: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(RangementRecherche.allCases) { mode in
+                    PuceFiltre(libelle: mode.rawValue, active: rangement == mode) { rangementBrut = mode.rawValue }
+                        .accessibilityLabel("Ranger par \(mode.rawValue)")
+                }
+            }
+            .padding(.horizontal, 20)
+        }
+    }
+
+    /// Les résultats d'Explorer comme Regarder › NAS (8.2.9, demande de Patrick) : rangés en sections qu'on ouvre et
+    /// qu'on ferme, en grille ou en liste.
     @ViewBuilder
     private var resultats: some View {
         if modele.resultats.isEmpty, !modele.enCours, modele.total != nil {
             ContentUnavailableView("Aucun résultat", systemImage: "line.3.horizontal.decrease",
                                    description: Text("Retire un filtre pour élargir la recherche."))
         }
-        if enListe {
-            LazyVStack(spacing: 12) {
-                ForEach(resultatsProposes) { titre in
-                    NavigationLink(value: titre.reference) { ligne(titre) }
-                        .buttonStyle(.plain)
-                        .actionsRapides(titre)
-                        .onAppear { suite(apres: titre) }
-                }
-            }
-            .padding(.horizontal, 20)
-        } else {
-            LazyVGrid(columns: colonnes, spacing: 14) {
-                ForEach(resultatsProposes) { titre in
-                    NavigationLink(value: titre.reference) {
-                        CarteLargeTitre(titre)
+        let tranches = RangementRecherche.ranger(resultatsProposes, par: rangement, genres: nomsDeGenres)
+        if resultatsProposes.count > 1 {
+            HStack(spacing: 0) {
+                pucesRangement
+                if tranches.count > 1 {
+                    let titres = tranches.map(\.titre)
+                    let toutes = sectionsRecherche.toutesOuvertes(titres)
+                    Button(toutes ? "Tout fermer" : "Tout ouvrir") {
+                        withAnimation(.snappy) { sectionsRecherche.toutes(ouvertes: !toutes, titres: titres) }
                     }
-                    .buttonStyle(.plain)
-                    .actionsRapides(titre)
-                    .onAppear { suite(apres: titre) }
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Theme.accent)
+                    .frame(minHeight: 44)
+                    .padding(.trailing, 20)
                 }
             }
+        }
+        ForEach(tranches, id: \.titre) { tranche in
+            if !tranche.titre.isEmpty {
+                EnTeteRepliable(titre: tranche.titre, detail: Format.pluriel(tranche.titres.count, "titre"),
+                                ouverte: sectionsRecherche.ouverte(tranche.titre)) { sectionsRecherche.basculer(tranche.titre) }
+                    .padding(.horizontal, 20)
+            }
+            if tranche.titre.isEmpty || sectionsRecherche.ouverte(tranche.titre) {
+                if enListe {
+                    LazyVStack(spacing: 12) {
+                        ForEach(tranche.titres) { titre in
+                            NavigationLink(value: titre.reference) { ligne(titre) }
+                                .buttonStyle(.plain)
+                                .actionsRapides(titre)
+                                .onAppear { suite(apres: titre) }
+                        }
+                    }
+                    .padding(.horizontal, 20)
+                } else {
+                    LazyVGrid(columns: colonnes, spacing: 14) {
+                        ForEach(tranche.titres) { titre in
+                            NavigationLink(value: titre.reference) {
+                                CarteLargeTitre(titre)
+                            }
+                            .buttonStyle(.plain)
+                            .actionsRapides(titre)
+                            .onAppear { suite(apres: titre) }
+                        }
+                    }
+                    .padding(.horizontal, 20)
+                }
+            }
+        }
+        // Rangés en sections, le dernier titre n'arrive plus forcément en bas : la suite se demande d'un bouton.
+        if tranches.count > 1, !modele.enCours, let total = modele.total, modele.resultats.count < total {
+            Button("Afficher plus de résultats") {
+                guard let client = etat.tmdb else { return }
+                Task { await modele.chargerSuite(client: client, contexte: contexte, abonnements: abonnements.map(\.providerID)) }
+            }
+            .buttonStyle(StyleBoutonSecondaire(pleineLargeur: true))
             .padding(.horizontal, 20)
         }
         if modele.enCours, !modele.resultats.isEmpty {
