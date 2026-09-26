@@ -39,10 +39,13 @@ mkdir -p "$racine/.build"
 "$racine/outils/generer-projet.sh" > /dev/null
 
 schema=Seance
+# L'heure de chaque compilation va dans l'Info.plist (SeanceCompileeLe) : c'est l'heure d'installation que montrent
+# À propos et Versions (8.2.1).
 xcode() {
   local destination=$1 nom=$2; shift 2
   if ! xcodebuild -project "$projet" -scheme $schema -configuration Release -destination "$destination" \
-      -derivedDataPath "$derives" -allowProvisioningUpdates "$@" > "$journal" 2>&1; then
+      -derivedDataPath "$derives" -allowProvisioningUpdates \
+      SEANCE_COMPILEE_LE="$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$@" > "$journal" 2>&1; then
     grep -E 'error:' "$journal" | sort -u | head -20
     # Un appareil verrouillé ou endormi n'est pas une erreur de compilation : on le dit, et on passe aux autres.
     if grep -q -i -E "needs to be unlocked|Timed out waiting for all destinations" "$journal"; then

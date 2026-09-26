@@ -8,8 +8,8 @@ import Foundation
 /// Le jour et l'heure où chaque version est arrivée sur cet appareil (8.1) : l'app note sa version au lancement, avec
 /// la date de son paquet (posée par l'installation). Commun à l'iPhone, à l'iPad, au Mac et à l'Apple TV.
 enum InstallationsVersions {
-    /// Nouvelle clé en 8.2 : les heures notées par la 8.1 étaient fausses (date de compilation), elles sont oubliées.
-    private static let cle = "versions.installations.2"
+    /// Nouvelle clé en 8.2.1 : les heures notées par la 8.1 et la 8.2 étaient fausses, elles sont oubliées.
+    private static let cle = "versions.installations.3"
 
     /// À appeler au lancement : retient le jour et l'heure d'installation de la version en cours.
     static func noter() {
@@ -21,17 +21,11 @@ enum InstallationsVersions {
         UserDefaults.standard.set(connues.mapValues(\.timeIntervalSince1970), forKey: cle)
     }
 
-    /// La date de l'installation elle-même. Sur l'iPhone, l'iPad et l'Apple TV, chaque installation crée un dossier neuf
-    /// pour l'app : sa date de création est l'heure exacte. Sur le Mac, c'est la copie de l'app dans /Applications.
-    /// (La date de modification du paquet, lue en 8.1, était celle de la compilation — une heure fausse.)
+    /// L'heure d'installation : celle de la compilation, inscrite dans l'Info.plist par `project.yml` — `installer.sh`
+    /// compile juste avant d'installer. (Les dates des dossiers et des fichiers installés sont remises à zéro par iOS :
+    /// la 8.2 affichait « 1er janvier 1970 ».)
     private static var dateInstallation: Date? {
-        let paquet = Bundle.main.bundleURL
-        #if targetEnvironment(macCatalyst)
-        let dossier = paquet
-        #else
-        let dossier = paquet.deletingLastPathComponent()
-        #endif
-        return (try? dossier.resourceValues(forKeys: [.creationDateKey]))?.creationDate
+        (Bundle.main.object(forInfoDictionaryKey: "SeanceCompileeLe") as? String).flatMap { try? Date($0, strategy: .iso8601) }
     }
 
     static func lues() -> [String: Date] {
@@ -61,6 +55,19 @@ struct NoteVersion: Identifiable {
     var id: String { numero }
 
     static let historique: [NoteVersion] = [
+        NoteVersion(
+            numero: "8.2.1",
+            date: "26 septembre 2026",
+            resume: "La page d'un acteur sans roue dentée, et la barre d'avancement de l'Apple TV qui garde sa taille.",
+            fonctionnalites: [
+                Fonctionnalite(symbole: "person.crop.rectangle", titre: "La page d'un acteur",
+                               detail: "Plus de roue des réglages en haut : la cloche et « Dans la recherche » suffisent. Ouverte depuis tes Préférences, « Dans la recherche » referme d'abord la feuille — l'onglet changeait derrière elle, et rien ne semblait se passer."),
+                Fonctionnalite(symbole: "clock", titre: "La bonne heure d'installation",
+                               detail: "À propos et Versions disent enfin le jour et l'heure où la version est arrivée sur l'appareil — et non plus le 1er janvier 1970 : iOS remet à zéro les dates des fichiers installés, l'heure est maintenant inscrite dans l'app à l'installation."),
+                Fonctionnalite(symbole: "slider.horizontal.below.rectangle", titre: "La barre d'avancement de la TV",
+                               detail: "Elle garde sa taille quand on y va et quand on clique dessus : tvOS l'agrandissait sur toute la largeur."),
+            ]
+        ),
         NoteVersion(
             numero: "8.2",
             date: "26 septembre 2026",

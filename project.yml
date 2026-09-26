@@ -18,8 +18,8 @@ settings:
     # Équipe personnelle de Patrick (compte Apple gratuit).
     DEVELOPMENT_TEAM: GATK475J3P
     # Version affichée dans À propos › Versions ; à changer avec Seance/Ecrans/Reglages/Versions.swift.
-    MARKETING_VERSION: "8.2"
-    CURRENT_PROJECT_VERSION: "56"
+    MARKETING_VERSION: "8.2.1"
+    CURRENT_PROJECT_VERSION: "57"
 
 packages:
   SeanceKit:
@@ -83,6 +83,8 @@ targets:
         LSSupportsOpeningDocumentsInPlace: true
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        # L'heure d'installation (8.2.1) : posée par outils/installer.sh, qui compile juste avant d'installer ; vide sinon.
+        SeanceCompileeLe: $(SEANCE_COMPILEE_LE)
         # Le fond du lancement : sombre, comme l'apparence d'origine.
         UILaunchScreen:
           UIColorName: FondLancement
@@ -177,6 +179,8 @@ targets:
           - fr
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        # L'heure d'installation (8.2.1) : posée par outils/installer.sh, qui compile juste avant d'installer ; vide sinon.
+        SeanceCompileeLe: $(SEANCE_COMPILEE_LE)
         UIUserInterfaceStyle: Dark
         NSLocalNetworkUsageDescription: Séance lit ton NAS et met en route ton Apple TV, sur le réseau de la maison.
         NSBonjourServices:

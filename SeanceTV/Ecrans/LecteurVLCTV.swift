@@ -233,6 +233,13 @@ struct LecteurVLCTV: View {
         let surLaBarre = focus == .barre
         let actuelle = min(max(moteur.position, 0), 1)
         return VStack(spacing: 10) {
+            // Un bouton au style neutre (8.2) : ni le focus ni le clic ne soulèvent ni n'agrandissent la barre — tvOS le
+            // faisait pour une vue simplement « focusable ».
+            Button {
+                if let cible { moteur.allerA(cible) }
+                cible = nil
+                dernierGeste = .now
+            } label: {
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
                     Capsule().fill(.white.opacity(0.25))
@@ -258,15 +265,11 @@ struct LecteurVLCTV: View {
             // l'écran ; seul le repère avec le temps dit qu'on est dessus.
             .frame(height: 10)
             .contentShape(Rectangle())
-            .focusable()
+            }
+            .buttonStyle(StyleBarreTV())
             .focusEffectDisabled()
             .focused($focus, equals: .barre)
             .onMoveCommand { direction in deplacer(direction) }
-            .onTapGesture {
-                if let cible { moteur.allerA(cible) }
-                cible = nil
-                dernierGeste = .now
-            }
             .accessibilityLabel("Progression, \(moteur.tempsAffiche)")
             HStack {
                 Text(moteur.tempsAffiche)
@@ -586,3 +589,8 @@ final class MoteurVLCTV {
     }
 }
 
+
+/// La barre d'avancement telle quelle : aucun effet de focus ni de clic (8.2).
+private struct StyleBarreTV: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View { configuration.label }
+}

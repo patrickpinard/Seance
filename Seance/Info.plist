@@ -87,6 +87,8 @@
 	</array>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>Séance lit ton NAS et met en route ton Apple TV, sur le réseau de la maison.</string>
+	<key>SeanceCompileeLe</key>
+	<string>$(SEANCE_COMPILEE_LE)</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>fetch</string>

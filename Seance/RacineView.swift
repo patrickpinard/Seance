@@ -240,8 +240,17 @@ struct RacineView: View {
             aller(a: demande)
         }
         // « Dans Explorer » depuis une fiche acteur.
+        // 8.2 : depuis une feuille (les acteurs favoris des Préférences), elle se referme d'abord — l'onglet changeait
+        // derrière elle, et le bouton semblait ne rien faire.
         .onChange(of: etat.filtreExplorerDemande) { _, demande in
-            if demande != nil { onglet = .explorer }
+            guard demande != nil else { return }
+            let dansUneFeuille = etat.preferencesOuvertes || etat.reglagesOuverts
+            etat.preferencesOuvertes = false
+            etat.reglagesOuverts = false
+            Task {
+                if dansUneFeuille { try? await Task.sleep(for: .milliseconds(450)) }
+                onglet = .explorer
+            }
         }
         // Une alerte touchée demande une fiche : elle s'ouvre dans l'accueil.
         .onChange(of: etat.ficheDemandee) { _, demande in
@@ -362,7 +371,8 @@ extension View {
             FicheView(reference: reference).boutonBarreLaterale(preferences: false)
         }
         .navigationDestination(for: ReferencePersonne.self) { personne in
-            PersonneView(personne: personne).boutonBarreLaterale(preferences: false)
+            // Pas de roue sur la page d'un acteur (8.2, demande de Patrick) : la cloche et la recherche suffisent.
+            PersonneView(personne: personne).boutonBarreLaterale(preferences: false, reglages: false)
         }
         .navigationDestination(for: DestinationReglage.self) { destination in
             PageReglage(destination: destination)
