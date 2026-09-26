@@ -40,6 +40,8 @@ struct LecteurVLCTV: View {
     @State private var commandes = true
     /// Le panneau des langues et sous-titres, par-dessus les commandes.
     @State private var pistes = false
+    /// Le petit panneau du son (8.2.4), au-dessus de son bouton — à part du panneau de droite.
+    @State private var son = false
     /// Chaque geste relance le compte à rebours qui efface les commandes pendant la lecture.
     @State private var dernierGeste = Date.now
     @FocusState private var focus: Commande?
@@ -49,7 +51,7 @@ struct LecteurVLCTV: View {
     @State private var dernierPas = Date.distantPast
     @State private var elan = 1.0
 
-    enum Commande: Hashable { case ecran, barre, reculer, lecture, avancer, pistes, quitter }
+    enum Commande: Hashable { case ecran, barre, reculer, lecture, avancer, son, pistes, quitter, sonPlus }
 
     var body: some View {
         ZStack {
@@ -98,6 +100,36 @@ struct LecteurVLCTV: View {
                 barreCommandes.transition(.opacity)
             }
         }
+        .overlay(alignment: .bottomLeading) {
+            if son, commandes, !pistes, message == nil {
+                VStack(spacing: 18) {
+                    Text(moteur.muet ? "Son coupé" : "Volume \(moteur.volume) %")
+                        .font(.system(size: 26, weight: .semibold).monospacedDigit())
+                    HStack(spacing: 18) {
+                        Button { moteur.volume -= 10; dernierGeste = .now } label: { Image(systemName: "speaker.minus") }
+                            .buttonStyle(BoutonRondTV())
+                            .accessibilityLabel("Moins fort")
+                        Button { moteur.volume += 10; dernierGeste = .now } label: { Image(systemName: "speaker.plus") }
+                            .buttonStyle(BoutonRondTV())
+                            .focused($focus, equals: .sonPlus)
+                            .accessibilityLabel("Plus fort")
+                        Button { moteur.muet.toggle(); dernierGeste = .now } label: {
+                            Image(systemName: moteur.muet ? "speaker.wave.2" : "speaker.slash")
+                        }
+                        .buttonStyle(BoutonRondTV())
+                        .accessibilityLabel(moteur.muet ? "Remettre le son" : "Couper le son")
+                        SortieAudioTV().frame(width: 70, height: 70)
+                    }
+                }
+                .foregroundStyle(.white)
+                .padding(28)
+                .background(.black.opacity(0.8), in: RoundedRectangle(cornerRadius: 28, style: .continuous))
+                .padding(.leading, 90)
+                .padding(.bottom, 260)
+                .focusSection()
+                .transition(.opacity)
+            }
+        }
         .overlay(alignment: .trailing) {
             if pistes { PanneauPistesTV(moteur: moteur) { fermerPistes() }.transition(.move(edge: .trailing)) }
         }
@@ -105,7 +137,7 @@ struct LecteurVLCTV: View {
         .animation(.easeOut(duration: 0.25), value: pistes)
         // Retour : referme d'abord le panneau, puis les commandes ; commandes cachées, quitte la lecture.
         .onExitCommand {
-            if cible != nil { cible = nil } else if pistes { fermerPistes() } else if commandes, moteur.enLecture { cacher() } else { fermer() }
+            if cible != nil { cible = nil } else if son { son = false; focus = .son } else if pistes { fermerPistes() } else if commandes, moteur.enLecture { cacher() } else { fermer() }
         }
         .onPlayPauseCommand { moteur.basculerLecture(); montrer() }
         .overlay(alignment: .bottomTrailing) { carteSuivant }
@@ -139,7 +171,7 @@ struct LecteurVLCTV: View {
         .task {
             while !Task.isCancelled {
                 try? await Task.sleep(for: .seconds(1))
-                if commandes, !pistes, cible == nil, moteur.enLecture, Date.now.timeIntervalSince(dernierGeste) > 6 { cacher() }
+                if commandes, !pistes, !son, cible == nil, moteur.enLecture, Date.now.timeIntervalSince(dernierGeste) > 6 { cacher() }
             }
         }
         .onAppear { focus = .lecture }
@@ -211,6 +243,14 @@ struct LecteurVLCTV: View {
                     .buttonStyle(BoutonRondTV())
                     .focused($focus, equals: .avancer)
                     .accessibilityLabel("Avancer de 10 secondes")
+                Button {
+                    son.toggle()
+                    dernierGeste = .now
+                    if son { focus = .sonPlus }
+                } label: { Image(systemName: moteur.muet ? "speaker.slash.fill" : "speaker.wave.2.fill") }
+                    .buttonStyle(BoutonRondTV())
+                    .focused($focus, equals: .son)
+                    .accessibilityLabel("Son")
                 Spacer()
                 Button { pistes = true } label: { Label("Son, langue et image", systemImage: "slider.horizontal.3") }
                     .buttonStyle(BoutonTV())
@@ -392,30 +432,7 @@ private struct PanneauPistesTV: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
-                // 8.2.1 : les mêmes réglages que sur l'iPhone et l'iPad — le son d'abord.
-                Text("SON").font(.system(size: 24, weight: .bold)).foregroundStyle(Theme.texte2)
-                HStack(spacing: 16) {
-                    Button { moteur.volume -= 10 } label: { Image(systemName: "speaker.minus") }
-                        .buttonStyle(BoutonRondTV())
-                        .accessibilityLabel("Moins fort")
-                    VStack(spacing: 8) {
-                        Text(moteur.muet ? "Coupé" : "\(moteur.volume) %").font(.system(size: 26, weight: .semibold).monospacedDigit())
-                        Capsule().fill(.white.opacity(0.25)).frame(width: 200, height: 8)
-                            .overlay(alignment: .leading) {
-                                Capsule().fill(.white).frame(width: 200 * CGFloat(moteur.muet ? 0 : moteur.volume) / 200, height: 8)
-                            }
-                    }
-                    .accessibilityHidden(true)
-                    Button { moteur.volume += 10 } label: { Image(systemName: "speaker.plus") }
-                        .buttonStyle(BoutonRondTV())
-                        .accessibilityLabel("Plus fort")
-                }
-                ligne(moteur.muet ? "Remettre le son" : "Couper le son", moteur.muet) { moteur.muet.toggle() }
-                HStack(spacing: 16) {
-                    SortieAudioTV().frame(width: 70, height: 70)
-                    Text("Sortie du son").font(.system(size: 26)).foregroundStyle(Theme.texte2)
-                }
-                Text("LANGUE").font(.system(size: 24, weight: .bold)).foregroundStyle(Theme.texte2).padding(.top, 24)
+                Text("LANGUE").font(.system(size: 24, weight: .bold)).foregroundStyle(Theme.texte2)
                 if audio.isEmpty {
                     Text("Aucune piste audio annoncée par le fichier").font(.system(size: 26)).foregroundStyle(Theme.texte2)
                 }

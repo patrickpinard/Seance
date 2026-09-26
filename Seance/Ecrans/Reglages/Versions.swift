@@ -56,6 +56,15 @@ struct NoteVersion: Identifiable {
 
     static let historique: [NoteVersion] = [
         NoteVersion(
+            numero: "8.2.4",
+            date: "26 septembre 2026",
+            resume: "Le son retrouve son petit panneau dans le lecteur ; le grand panneau de droite garde la langue, les sous-titres, la vitesse et l'image.",
+            fonctionnalites: [
+                Fonctionnalite(symbole: "speaker.wave.2", titre: "Le son, dans son petit panneau",
+                               detail: "Le bouton haut-parleur ouvre juste le son — le volume et « couper le son » —, sans ouvrir le grand panneau de droite, qui ne garde que la langue, les sous-titres, la vitesse et l'image. Sur l'Apple TV aussi, avec « moins fort », « plus fort » et la sortie du son."),
+            ]
+        ),
+        NoteVersion(
             numero: "8.2.3",
             date: "26 septembre 2026",
             resume: "Tous les réglages s'ouvrent à droite sur l'iPad et le Mac, ton image se choisit, et une personne se supprime d'un glissement.",

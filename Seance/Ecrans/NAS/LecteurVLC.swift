@@ -43,6 +43,8 @@ struct LecteurVLC: View {
     @State private var dernierGeste = 0
     /// Le panneau des réglages de lecture ; ouvert, les commandes restent affichées.
     @State private var panneau = false
+    /// Le petit panneau du son, au-dessus de son bouton (8.2.4 : à part du grand panneau, comme en 8.2).
+    @State private var panneauSon = false
 
     var body: some View {
         ZStack {
@@ -100,6 +102,14 @@ struct LecteurVLC: View {
         }
         .overlay(alignment: .bottom) { if commandesVisibles, message == nil, compte == nil { commandes } }
         .overlay(alignment: .bottomTrailing) { carteSuivant }
+        .overlay(alignment: .bottomTrailing) {
+            if panneauSon, commandesVisibles, message == nil {
+                PanneauSon(moteur: moteur) { dernierGeste += 1 }
+                    .padding(.trailing, 110)
+                    .padding(.bottom, 150)
+                    .transition(.scale(scale: 0.8, anchor: .bottom).combined(with: .opacity))
+            }
+        }
         // Deux boutons distincts (8.0) : la croix arrête la lecture ; « Continuer dans Séance » la passe en image
         // dans l'image et rend la main à l'app, la vidéo continuant dans sa petite fenêtre.
         .overlay(alignment: .top) {
@@ -192,8 +202,8 @@ struct LecteurVLC: View {
             if restant <= 1 { lireSuivant() } else { compte = restant - 1 }
         }
         // Commandes et croix s'effacent après trois secondes de lecture sans toucher (7.0) ; un toucher les ramène.
-        .task(id: Minuterie(geste: dernierGeste, enLecture: moteur.enLecture && !moteur.enChargement && !panneau, visibles: commandesVisibles)) {
-            guard commandesVisibles, !panneau, moteur.enLecture, !moteur.enChargement else { return }
+        .task(id: Minuterie(geste: dernierGeste, enLecture: moteur.enLecture && !moteur.enChargement && !panneau && !panneauSon, visibles: commandesVisibles)) {
+            guard commandesVisibles, !panneau, !panneauSon, moteur.enLecture, !moteur.enChargement else { return }
             try? await Task.sleep(for: .seconds(3))
             guard !Task.isCancelled else { return }
             withAnimation(.easeOut(duration: 0.3)) { commandesVisibles = false }
@@ -270,7 +280,7 @@ struct LecteurVLC: View {
                 Spacer()
                 Text(moteur.tempsAffiche).font(.caption.monospacedDigit())
                 // Le son (8.1) : un bouton, et non plus un second curseur qu'on prenait pour la barre d'avancement.
-                Button { withAnimation(.snappy) { panneau = true }; dernierGeste += 1 } label: {
+                Button { withAnimation(.snappy) { panneauSon.toggle() }; dernierGeste += 1 } label: {
                     Image(systemName: moteur.muet ? "speaker.slash.fill" : "speaker.wave.2.fill")
                         .frame(width: 44, height: 44)
                         .contentShape(Rectangle())
@@ -452,22 +462,6 @@ private struct PanneauLecture: View {
             .padding(.horizontal, 20)
             .frame(height: 52)
             Form {
-                // Le son d'abord (8.2.1) : le volume debout, couper le son, la sortie — les mêmes que sur l'Apple TV.
-                Section("Son") {
-                    HStack(spacing: 16) {
-                        VolumeSysteme().frame(width: 44, height: 130).accessibilityLabel("Volume")
-                        VStack(alignment: .leading, spacing: 10) {
-                            Button { moteur.muet.toggle() } label: {
-                                Label(moteur.muet ? "Remettre le son" : "Couper le son",
-                                      systemImage: moteur.muet ? "speaker.wave.2" : "speaker.slash")
-                            }
-                            HStack(spacing: 8) {
-                                SortieAudio().frame(width: 32, height: 32)
-                                Text("Sortie du son").foregroundStyle(.secondary)
-                            }
-                        }
-                    }
-                }
                 Section("Langue") {
                     if audio.isEmpty {
                         Text("Aucune piste audio annoncée par le fichier").foregroundStyle(.secondary)
@@ -563,6 +557,30 @@ private struct VolumeSysteme: UIViewRepresentable {
 
     func makeUIView(context: Context) -> Debout { Debout() }
     func updateUIView(_ uiView: Debout, context: Context) {}
+}
+
+/// Le petit panneau du son : le volume debout, et couper le son d'un toucher.
+private struct PanneauSon: View {
+    let moteur: MoteurVLC
+    let geste: () -> Void
+
+    var body: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "speaker.wave.3.fill").font(.caption).foregroundStyle(.white.opacity(0.8)).accessibilityHidden(true)
+            VolumeSysteme().frame(width: 44, height: 150).accessibilityLabel("Volume")
+            Image(systemName: "speaker.fill").font(.caption).foregroundStyle(.white.opacity(0.8)).accessibilityHidden(true)
+            Button { moteur.muet.toggle(); geste() } label: {
+                Image(systemName: moteur.muet ? "speaker.slash.fill" : "speaker.slash")
+                    .font(.body.weight(.semibold))
+                    .foregroundStyle(moteur.muet ? Theme.accent : .white)
+                    .frame(width: 44, height: 44)
+            }
+            .accessibilityLabel(moteur.muet ? "Remettre le son" : "Couper le son")
+        }
+        .padding(.vertical, 14)
+        .padding(.horizontal, 6)
+        .background(.black.opacity(0.7), in: Capsule())
+    }
 }
 
 /// Le choix de la sortie audio : AirPlay, écouteurs, enceinte.
