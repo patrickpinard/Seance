@@ -254,9 +254,12 @@ struct LecteurVLCTV: View {
                 }
                 .frame(height: geo.size.height)
             }
-            .frame(height: surLaBarre ? 16 : 10)
+            // 8.2 : la barre garde sa taille quand on y va — l'effet de focus de tvOS l'agrandissait et l'écartait de tout
+            // l'écran ; seul le repère avec le temps dit qu'on est dessus.
+            .frame(height: 10)
             .contentShape(Rectangle())
             .focusable()
+            .focusEffectDisabled()
             .focused($focus, equals: .barre)
             .onMoveCommand { direction in deplacer(direction) }
             .onTapGesture {

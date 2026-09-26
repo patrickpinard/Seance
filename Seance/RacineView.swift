@@ -60,18 +60,8 @@ struct RacineView: View {
             // pages complètes. L'iPhone, dont la barre du bas ne tient que cinq onglets, garde le portrait et la roue.
             // Des icônes seules sur l'iPad, comme sur l'Apple TV (en mots, le portrait les repoussait derrière une flèche) ;
             // des mots sur le Mac, dont le menu n'affiche pas d'icônes — les onglets y restaient vides.
-            if classeTaille == .regular {
-                Tab(value: .profil) {
-                    ProfilView()
-                } label: {
-                    Self.etiquette("Préférences", "person.crop.circle")
-                }
-                Tab(value: .reglages) {
-                    FeuilleReglages(enFeuille: false)
-                } label: {
-                    Self.etiquette("Réglages", "gearshape")
-                }
-            }
+            // 8.1 (demande de Patrick) : Préférences et Réglages ne sont plus des onglets, ni sur l'iPad ni sur le Mac — le
+            // portrait (avec le prénom) et la roue en haut de chaque page, la même interface que l'iPhone.
             Tab("Recherche", systemImage: "magnifyingglass", value: .explorer, role: .search) {
                 ExplorerView()
             }
@@ -100,14 +90,6 @@ struct RacineView: View {
         .modifier(SablierOuverture.Calque())
         .tint(Theme.accent)
         .task { await etat.chargerGenres() }
-        // L'iPad passe en largeur compacte (écran partagé) : les onglets Préférences et Réglages disparaissent, la page
-        // ouverte revient en feuille.
-        .onChange(of: classeTaille) { _, classe in
-            guard classe == .compact, onglet == .profil || onglet == .reglages else { return }
-            let ouvert = onglet
-            onglet = .accueil
-            aller(a: ouvert)
-        }
         // Le contrôleur d'onglets n'existe qu'une fois la fenêtre montée, et prend ses dimensions avec un temps de retard.
         .task { await BarreLaterale.ouvrirSurIPadDesQuePossible() }
         // Lancé en portrait puis tourné : la barre s'ouvre quand la fenêtre s'élargit.
@@ -309,16 +291,6 @@ struct RacineView: View {
         }
     }
 
-    /// Icône seule sur l'iPad, mot seul sur le Mac (onglets Préférences et Réglages).
-    @ViewBuilder
-    private static func etiquette(_ nom: String, _ symbole: String) -> some View {
-        #if targetEnvironment(macCatalyst)
-        Text(nom)
-        #else
-        Label(nom, systemImage: symbole).labelStyle(.iconOnly)
-        #endif
-    }
-
     /// Un onglet demandé d'ailleurs : Ce soir et les sources ouvrent Regarder sur elles ; Réglages et Préférences, leur
     /// onglet sur l'iPad et le Mac, leur feuille sur l'iPhone.
     private func aller(a demande: OngletRacine) {
@@ -326,8 +298,6 @@ struct RacineView: View {
         etat.preferencesOuvertes = false
         etat.reglagesOuverts = false
         switch demande {
-        case .profil where classeTaille == .regular, .reglages where classeTaille == .regular:
-            onglet = demande
         case .profil:
             etat.preferencesOuvertes = true
         case .reglages:

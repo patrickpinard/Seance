@@ -45,8 +45,9 @@ struct PageTV<Contenu: View>: View {
             .padding(.top, integree ? 40 : 60)
             .padding(.bottom, 80)
         }
-        // Opaque : sans cela, la page précédente se lit au travers.
-        .background(Theme.fond.ignoresSafeArea())
+        // Opaque : sans cela, la page précédente se lit au travers. Dans la colonne de droite des Réglages (8.2), elle
+        // garde le fond des Réglages, sans cadre plus sombre.
+        .background { if !integree { Theme.fond.ignoresSafeArea() } }
         .onPreferenceChange(ExplicationsTV.self) { explications = $0 }
     }
 }

@@ -124,8 +124,10 @@ public struct LettreHebdo: Sendable, Equatable {
     }
 
     private static func html(_ ligne: Ligne) -> String {
-        let image = ligne.urlAffiche.map {
-            "<img src=\"\(echapper($0.absoluteString))\" width=\"64\" height=\"96\" alt=\"\" style=\"display:block;border-radius:10px;border:0\">"
+        let image = ligne.urlAffiche.map { adresse -> String in
+            let img = "<img src=\"\(echapper(adresse.absoluteString))\" width=\"64\" height=\"96\" alt=\"\" style=\"display:block;border-radius:10px;border:0\">"
+            // L'affiche ouvre la fiche, comme le titre.
+            return ligne.lien.map { "<a href=\"\(echapper($0.absoluteString))\">\(img)</a>" } ?? img
         } ?? "<div style=\"width:64px;height:96px;border-radius:10px;background:\(Couleur.trait)\"></div>"
         let titre = ligne.lien.map { "<a href=\"\(echapper($0.absoluteString))\" style=\"color:#ffffff;text-decoration:none\">\(echapper(ligne.titre))</a>" } ?? echapper(ligne.titre)
         return """

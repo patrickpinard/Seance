@@ -585,17 +585,6 @@ struct PageGoutsTV: View {
 
 private struct PageAProposTV: View {
     @Environment(\.dismiss) private var fermer
-    @Environment(\.openURL) private var ouvrir
-    @Environment(EtatTV.self) private var etat
-
-    /// 8.1 : depuis septembre 2025, l'app Netflix de tvOS semble ignorer les liens des autres apps et s'ouvrir sur son
-    /// accueil. Ces essais — « Stranger Things », sous chaque forme d'adresse connue — disent chez toi laquelle marche encore.
-    private static let essaisNetflix: [(String, String)] = [
-        ("nflx://…/title", "nflx://www.netflix.com/title/80057281"),
-        ("nflx://…/watch", "nflx://www.netflix.com/watch/80057281"),
-        ("https://…/title", "https://www.netflix.com/title/80057281"),
-        ("https://…/watch", "https://www.netflix.com/watch/80057281"),
-    ]
 
     var body: some View {
         PageTV(titre: "À propos", sousTitre: "Séance \(ReglagesTV.version) sur cette Apple TV.") {
@@ -611,15 +600,6 @@ private struct PageAProposTV: View {
                     }
                 }
                 .buttonStyle(LigneTV())
-            }
-            SectionTV(titre: "Essai des liens Netflix",
-                      explication: "Chaque ligne ouvre « Stranger Things » dans Netflix par une adresse différente. Si l'une ouvre la série et non l'accueil, dis-le : Séance l'utilisera pour tous tes titres.") {
-                ForEach(Self.essaisNetflix, id: \.1) { essai in
-                    LigneTVReglage(titre: essai.0, symbole: "play.tv", action: {
-                        guard let lien = URL(string: essai.1) else { return }
-                        ouvrir(lien) { accepte in if !accepte { etat.dire("Netflix refuse cette adresse.") } }
-                    })
-                }
             }
             SectionTV(explication: "Ce produit utilise l'API TMDB mais n'est ni approuvé ni certifié par TMDB. Disponibilités en Suisse fournies par JustWatch, via TMDB. Programme TV : XML TV Fr.") {
                 LigneTVReglage(titre: "Retour aux réglages", symbole: "chevron.left", action: { fermer() })

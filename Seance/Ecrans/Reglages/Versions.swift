@@ -8,18 +8,30 @@ import Foundation
 /// Le jour et l'heure où chaque version est arrivée sur cet appareil (8.1) : l'app note sa version au lancement, avec
 /// la date de son paquet (posée par l'installation). Commun à l'iPhone, à l'iPad, au Mac et à l'Apple TV.
 enum InstallationsVersions {
-    private static let cle = "versions.installations"
+    /// Nouvelle clé en 8.2 : les heures notées par la 8.1 étaient fausses (date de compilation), elles sont oubliées.
+    private static let cle = "versions.installations.2"
 
-    /// À appeler au lancement : retient la version installée si elle est nouvelle.
+    /// À appeler au lancement : retient le jour et l'heure d'installation de la version en cours.
     static func noter() {
-        guard let numero = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String else { return }
+        guard let numero = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String,
+              let date = dateInstallation else { return }
         var connues = lues()
-        let paquet = (try? FileManager.default.attributesOfItem(atPath: Bundle.main.bundlePath)[.modificationDate]) as? Date
-        let date = paquet ?? .now
-        // Une réinstallation de la même version (tous les 7 jours) met l'heure à jour.
-        if let connue = connues[numero], abs(connue.timeIntervalSince(date)) < 60 { return }
+        guard connues[numero] != date else { return }
         connues[numero] = date
         UserDefaults.standard.set(connues.mapValues(\.timeIntervalSince1970), forKey: cle)
+    }
+
+    /// La date de l'installation elle-même. Sur l'iPhone, l'iPad et l'Apple TV, chaque installation crée un dossier neuf
+    /// pour l'app : sa date de création est l'heure exacte. Sur le Mac, c'est la copie de l'app dans /Applications.
+    /// (La date de modification du paquet, lue en 8.1, était celle de la compilation — une heure fausse.)
+    private static var dateInstallation: Date? {
+        let paquet = Bundle.main.bundleURL
+        #if targetEnvironment(macCatalyst)
+        let dossier = paquet
+        #else
+        let dossier = paquet.deletingLastPathComponent()
+        #endif
+        return (try? dossier.resourceValues(forKeys: [.creationDateKey]))?.creationDate
     }
 
     static func lues() -> [String: Date] {
@@ -49,6 +61,19 @@ struct NoteVersion: Identifiable {
     var id: String { numero }
 
     static let historique: [NoteVersion] = [
+        NoteVersion(
+            numero: "8.2",
+            date: "26 septembre 2026",
+            resume: "La même interface sur l'iPad, le Mac et l'iPhone : le portrait et la roue en haut de chaque page. Le son du lecteur a son bouton, et l'e-mail de la semaine ouvre Séance.",
+            fonctionnalites: [
+                Fonctionnalite(symbole: "gearshape", titre: "La roue en haut de chaque page",
+                               detail: "Sur l'iPad et le Mac comme sur l'iPhone : Réglages à la roue dentée en haut à droite de chaque page, et à gauche le portrait avec le prénom de qui regarde, qui ouvre les Préférences. Le menu ne garde que Accueil, Regarder, Mes listes et la loupe."),
+                Fonctionnalite(symbole: "speaker.wave.2", titre: "Le son, à part",
+                               detail: "Dans le lecteur, un bouton haut-parleur ouvre le volume, debout, et coupe le son d'un toucher ; AirPlay a son propre bouton. Plus de second curseur qu'on prenait pour la barre d'avancement."),
+                Fonctionnalite(symbole: "envelope.open", titre: "L'e-mail ouvre Séance",
+                               detail: "Dans l'e-mail de la semaine, le titre ou l'affiche d'un film ouvre sa fiche dans Séance, sur l'iPhone, l'iPad ou le Mac — et non plus la page de TMDB."),
+            ]
+        ),
         NoteVersion(
             numero: "8.1",
             date: "26 septembre 2026",

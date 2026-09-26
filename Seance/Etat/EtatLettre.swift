@@ -184,8 +184,10 @@ final class EtatLettre {
             let texte = date.formatted(.dateTime.weekday(.wide).day().month(.wide).locale(locale))
             return texte.prefix(1).uppercased() + texte.dropFirst()
         }
+        // 8.1 : un clic ouvre la fiche dans Séance, sur l'iPhone, l'iPad ou le Mac où l'on lit l'e-mail — et non plus la
+        // page de TMDB. `seance://film/603`, le même lien que les widgets et Spotlight.
         func lien(_ reference: ReferenceTitre) -> URL? {
-            URL(string: "https://www.themoviedb.org/\(reference.type == .film ? "movie" : "tv")/\(reference.tmdbID)")
+            URL(string: "seance://\(reference.type.rawValue)/\(reference.tmdbID)")
         }
 
         // 1. Tes titres : épisodes, sorties et passages à la TV des sept prochains jours — chaque nature ne paraît
