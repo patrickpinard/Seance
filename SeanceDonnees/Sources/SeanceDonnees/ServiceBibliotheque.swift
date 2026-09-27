@@ -55,7 +55,10 @@ public struct ServiceBibliotheque {
         // 8.2.11 : après les attentes réseau, un changement de personne a pu remplacer ce magasin — on n'y écrit plus.
         // Écrire dans l'ancien faisait planter SwiftData (rapport de l'iPhone du 27.09.2026).
         try Task.checkCancellation()
-        try contexte.delete(model: FichierNAS.self)
+        // Fiche par fiche (8.2.16) : en bloc, les listes affichées gardaient des fiches disparues et SwiftData s'arrêtait.
+        for ancien in try contexte.fetch(FetchDescriptor<FichierNAS>()) {
+            contexte.delete(ancien)
+        }
 
         for r in rattachees {
             let analyse = r.entree.analyse

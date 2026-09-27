@@ -52,7 +52,13 @@ struct AlertesRecuesView: View {
                 List {
                     if !aVenir.isEmpty {
                         Section {
-                            ForEach(aVenir) { alerte in ligne(alerte, prevue: true) }
+                            ForEach(aVenir.filter { !AlertesALire.ensemble(effaceesBrut).contains(AlertesALire.cle($0)) }) { alerte in
+                                ligne(alerte, prevue: true)
+                                    // Glisser de droite à gauche efface, ici aussi (8.2.16).
+                                    .swipeActions(edge: .trailing) {
+                                        Button("Effacer", role: .destructive) { effacer(alerte) }
+                                    }
+                            }
                         } header: {
                             Text("Prévues")
                         } footer: {

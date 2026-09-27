@@ -112,7 +112,12 @@ public struct ServiceAlertes {
         let dejaProgrammees = envoyees.union(enAttente.map(\.motif))
 
         let datees = PlanificateurAlertes.notifications(alertes.filter { !$0.motif.ponctuelle }, dejaEnvoyees: envoyees, reglages: reglages)
-        try contexte.delete(model: AlertePlanifiee.self, where: #Predicate { $0.date > maintenant && !$0.ponctuelle })
+        // Fiche par fiche, et non « en bloc » (8.2.16) : une suppression en bloc laissait aux listes affichées (la cloche,
+        // les échéances) des fiches disparues, et SwiftData s'arrêtait net en les prévenant — au changement de personne
+        // surtout, puisque ces tables sont dans le cache commun à la famille (rapports de l'iPhone du 27.09.2026).
+        for ancienne in try contexte.fetch(FetchDescriptor<AlertePlanifiee>(predicate: #Predicate { $0.date > maintenant && !$0.ponctuelle })) {
+            contexte.delete(ancienne)
+        }
         for notification in datees {
             for alerte in notification.alertes {
                 contexte.insert(AlertePlanifiee(reference: alerte.reference, motif: alerte.cle, date: alerte.date))
@@ -135,7 +140,9 @@ public struct ServiceAlertes {
         // 8.2.11 : après les attentes réseau, un changement de personne a pu remplacer ce magasin — on n'y écrit plus.
         // Écrire dans l'ancien faisait planter SwiftData (rapport de l'iPhone du 27.09.2026).
         try Task.checkCancellation()
-        try contexte.delete(model: Echeance.self)
+        for ancienne in try contexte.fetch(FetchDescriptor<Echeance>()) {
+            contexte.delete(ancienne)
+        }
         for (echeance, affiche) in echeances {
             contexte.insert(Echeance(echeance, cheminAffiche: affiche))
         }

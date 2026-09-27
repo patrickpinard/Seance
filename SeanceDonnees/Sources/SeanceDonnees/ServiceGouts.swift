@@ -153,7 +153,10 @@ public struct ServiceGouts {
 
     /// Remplace les intérêts déclarés par la nouvelle sélection de la grille.
     public func declarer(_ interets: [InteretDeclare]) throws {
-        try contexte.delete(model: Interet.self)
+        // Fiche par fiche (8.2.16) : la page des Préférences affiche ces goûts pendant qu'on coche.
+        for ancien in try contexte.fetch(FetchDescriptor<Interet>()) {
+            contexte.delete(ancien)
+        }
         for interet in interets {
             for genre in interet.genres {
                 contexte.insert(Interet(libelle: interet.libelle, genreID: genre))

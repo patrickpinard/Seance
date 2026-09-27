@@ -56,6 +56,17 @@ struct NoteVersion: Identifiable {
 
     static let historique: [NoteVersion] = [
         NoteVersion(
+            numero: "8.2.16",
+            date: "27 septembre 2026",
+            resume: "Choisir Anne ne ferme plus Séance ; les alertes prévues s'effacent aussi d'un glissement.",
+            fonctionnalites: [
+                Fonctionnalite(symbole: "person.2", titre: "Changer de personne, pour de bon",
+                               detail: "Au démarrage d'une autre personne, le calcul des alertes vidait « en bloc » les échéances et les alertes du cache commun à la famille, pendant que les pages les affichaient encore : SwiftData s'arrêtait net (rapports de l'iPhone, avec Anne). Elles s'effacent maintenant fiche par fiche ; de même la bibliothèque du NAS et tes goûts."),
+                Fonctionnalite(symbole: "hand.draw", titre: "Effacer une alerte d'un glissement",
+                               detail: "De droite à gauche, sur les alertes reçues comme sur les alertes prévues."),
+            ]
+        ),
+        NoteVersion(
             numero: "8.2.15",
             date: "27 septembre 2026",
             resume: "Les mêmes menus sur l'iPhone, l'iPad, le Mac et l'Apple TV ; tes préférences réunies sous ton portrait ; l'Apple TV rattrape l'iPhone.",
