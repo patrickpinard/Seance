@@ -23,6 +23,9 @@ struct ProfilView: View {
     @Query private var acteursSuivis: [ActeurSuivi]
     @AppStorage(Prenom.cle) private var prenom = ""
     @State private var gouts = false
+    /// Les réalisateurs des films vus, gardés sur l'appareil (8.2.11).
+    @State private var reserveRealisateurs = ReserveRealisateurs(donnees: UserDefaults.standard.data(forKey: ReserveRealisateurs.cle))
+    @State private var chargementRealisateurs = false
     @State private var quiRegarde = false
     /// Le classement des acteurs parcourt tous les visionnages et leurs castings : calculé une fois, puis seulement
     /// quand ce qu'il compte a changé, pas à chaque rendu de la page.
@@ -41,6 +44,14 @@ struct ProfilView: View {
                     entete
                     dernieresNotes
                     acteurs
+                    realisateurs
+                    // Les alertes reçues (8.2.11), pour les revoir après les avoir balayées de l'écran verrouillé.
+                    NavigationLink(value: DestinationReglage.alertesRecues) {
+                        LigneReglage(titre: "Alertes reçues", symbole: "bell.badge", valeur: "Les revoir, les effacer")
+                            .background(Theme.surface, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.horizontal, 20)
                     sectionGouts
                     // Les chiffres ne s'imposent pas : une seule entrée, en bas, vers la page qui les réunit tous.
                     statistiques
@@ -184,6 +195,71 @@ struct ProfilView: View {
                 }
             }
         }
+    }
+
+    // MARK: Tes réalisateurs (8.2.11)
+
+    /// Les films vus, par leur identifiant TMDB.
+    private var filmsVus: Set<Int> {
+        Set(visionnages.filter { $0.typeBrut == TypeTitre.film.rawValue }.map(\.tmdbID))
+    }
+
+    /// Ceux dont tu as vu au moins deux films, comme les acteurs ; chacun ouvre sa fiche avec tes films de lui.
+    @ViewBuilder
+    private var realisateurs: some View {
+        let classement = reserveRealisateurs.classement(filmsVus: filmsVus)
+        VStack(alignment: .leading, spacing: 10) {
+            TitreSection("Tes réalisateurs")
+            if classement.isEmpty {
+                Text(chargementRealisateurs ? "Séance cherche les réalisateurs de tes films…"
+                                            : "Ceux dont tu as vu au moins deux films apparaîtront ici.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 20)
+            } else {
+                DefilementHorizontal {
+                    LazyHStack(alignment: .top, spacing: 14) {
+                        ForEach(classement, id: \.realisateur.id) { classe in
+                            portrait(nom: classe.realisateur.nom, id: classe.realisateur.id,
+                                     detail: Format.pluriel(classe.films.count, "film"),
+                                     chemin: classe.realisateur.cheminPortrait, suivi: false,
+                                     titres: classe.films.map { ReferenceTitre(type: .film, tmdbID: $0) })
+                        }
+                    }
+                    .padding(.horizontal, 20)
+                }
+            }
+        }
+        .task(id: filmsVus.count) { await chargerRealisateurs() }
+    }
+
+    /// Les réalisateurs des films vus qu'on ne connaît pas encore : lus sur TMDB, trente films à la fois, puis gardés.
+    private func chargerRealisateurs() async {
+        guard let tmdb = etat.tmdb else { return }
+        let manquants = Array(reserveRealisateurs.manquants(Array(filmsVus)).prefix(30))
+        guard !manquants.isEmpty else { return }
+        chargementRealisateurs = true
+        defer { chargementRealisateurs = false }
+        let lus = await withTaskGroup(of: (Int, [ReserveRealisateurs.Realisateur]?).self) { groupe in
+            for id in manquants {
+                groupe.addTask {
+                    guard let fiche = try? await tmdb.film(id, complements: [.casting]) else { return (id, nil) }
+                    return (id, (fiche.casting?.realisateurs ?? []).map {
+                        ReserveRealisateurs.Realisateur(id: $0.id, nom: $0.nom, cheminPortrait: $0.cheminPortrait)
+                    })
+                }
+            }
+            var resultat: [Int: [ReserveRealisateurs.Realisateur]] = [:]
+            for await (id, realisateurs) in groupe {
+                if let realisateurs { resultat[id] = realisateurs }
+            }
+            return resultat
+        }
+        guard !Task.isCancelled else { return }
+        var reserve = reserveRealisateurs
+        reserve.parFilm.merge(lus) { _, nouveau in nouveau }
+        reserveRealisateurs = reserve
+        UserDefaults.standard.set(reserve.encoder(), forKey: ReserveRealisateurs.cle)
     }
 
     @ViewBuilder

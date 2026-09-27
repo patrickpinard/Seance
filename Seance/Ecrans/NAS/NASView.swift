@@ -53,8 +53,8 @@ struct OeuvreNAS: Identifiable {
 /// Comment la bibliothèque se range (6.4, demande de Patrick) : d'un coup d'œil ce qui vient d'arriver, ou tout
 /// par année de sortie, ou tout par genre. « Alphabétique » reste le rangement d'origine.
 enum RangementNAS: String, CaseIterable, Identifiable {
-    case alphabetique = "A→Z"
     case ajout = "Ajouts"
+    case alphabetique = "A→Z"
     case annee = "Année"
     case genre = "Genre"
 
@@ -157,7 +157,9 @@ struct NASView: View {
     @Query(sort: \FichierNAS.titre) private var fichiers: [FichierNAS]
     @Query private var suivis: [Suivi]
     @State private var rayon = Rayon.films
-    @AppStorage("nas.rangement") private var rangementBrut = RangementNAS.alphabetique.rawValue
+    // 8.2.11 (demande de Patrick) : les derniers arrivés d'abord, par défaut — nouvelle clé, pour que le choix d'avant
+    // (A→Z) ne le masque pas.
+    @AppStorage("nas.rangement.2") private var rangementBrut = RangementNAS.ajout.rawValue
     private var rangement: RangementNAS { RangementNAS(rawValue: rangementBrut) ?? .alphabetique }
     @State private var recherche = ""
     /// Dates d'ajout et genres, relevés par la dernière analyse (6.4).

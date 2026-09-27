@@ -201,6 +201,8 @@ struct CarteSoireePassee: View {
     let regarde: () -> Void
     let ceSoir: () -> Void
     let retirer: () -> Void
+    /// « Pas maintenant » (8.2.11) : la question revient un autre jour ; « Oublier » la retire pour de bon.
+    var plusTard: () -> Void = {}
 
     /// « Hier soir », « Mardi soir ».
     private var quand: String {
@@ -250,6 +252,11 @@ struct CarteSoireePassee: View {
                 }
                 .buttonStyle(.secondaire)
                 .accessibilityLabel("Pas encore : le regarder ce soir")
+                Button(action: plusTard) {
+                    Label("Pas maintenant", systemImage: "clock").fixedSize()
+                }
+                .buttonStyle(.secondaire)
+                .accessibilityHint("La question reviendra demain")
                 // Un nom plutôt qu'une croix seule (charte 8.0).
                 Button(action: retirer) {
                     Label("Oublier", systemImage: "minus.circle.fill").fixedSize()

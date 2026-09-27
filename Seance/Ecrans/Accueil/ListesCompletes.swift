@@ -14,6 +14,10 @@ struct DuMomentView: View {
     @State private var plateformeChoisie: Int?
     @State private var liste = ListePaginee()
     @Query(filter: #Predicate<Abonnement> { $0.actif }, sort: \Abonnement.nom) private var abonnements: [Abonnement]
+    /// Déjà vus ou refusés (8.2.11) : les nouveautés ne les proposent plus.
+    @Query(filter: #Predicate<Suivi> { $0.statutBrut == "exclu" || $0.exclusionLangue || $0.statutBrut == "termine" })
+    private var ecartes: [Suivi]
+    @AppStorage(PasInteresse.cle) private var pasInteresse = ""
 
     @Environment(EtatApp.self) private var etat
 
@@ -30,7 +34,7 @@ struct DuMomentView: View {
     }
 
     var body: some View {
-        GrillePaginee(liste: liste, sousTitre: sousTitre) {
+        GrillePaginee(liste: liste, sousTitre: sousTitre, ecartes: Set(ecartes.map(\.reference)).union(PasInteresse.references(pasInteresse))) {
             if choixPlateformes, abonnements.count > 1 {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 8) {
@@ -117,6 +121,8 @@ final class ListePaginee {
 private struct GrillePaginee<Entete: View>: View {
     let liste: ListePaginee
     let sousTitre: (TitreResume) -> String?
+    /// Les titres à ne plus montrer : déjà vus, refusés.
+    var ecartes: Set<ReferenceTitre> = []
     @ViewBuilder let entete: Entete
     let chargerSuite: () async -> Void
 
@@ -131,14 +137,15 @@ private struct GrillePaginee<Entete: View>: View {
             VStack(alignment: .leading, spacing: 16) {
                 entete
                 LazyVGrid(columns: colonnes, spacing: 18) {
-                    ForEach(liste.titres) { titre in
+                    ForEach(liste.titres.filter { !ecartes.contains($0.reference) }) { titre in
                         NavigationLink(value: titre.reference) {
                             CarteLargeTitre(titre, accroche: sousTitre(titre))
                         }
                         .buttonStyle(.plain)
                         .actionsRapides(titre)
                         .onAppear {
-                            if titre.reference == liste.titres.last?.reference {
+                            // Le dernier titre montré, écartés compris : sinon la suite ne se chargeait plus.
+                            if titre.reference == liste.titres.last(where: { !ecartes.contains($0.reference) })?.reference {
                                 Task { await chargerSuite() }
                             }
                         }

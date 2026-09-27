@@ -72,6 +72,9 @@ public struct ServiceProgrammesTV {
         let guideDuJour = try await guide.programmes(chaines: Set(identifiants))
         let aVenir = guideDuJour.programmes.filter { $0.fin > maintenant }
         let rattaches = try await rattachement.rattacher(aVenir)
+        // 8.2.11 : après les attentes réseau, un changement de personne a pu remplacer ce magasin — on n'y écrit plus.
+        // Écrire dans l'ancien faisait planter SwiftData (rapport de l'iPhone du 27.09.2026).
+        try Task.checkCancellation()
 
         anciennes.forEach(contexte.delete)
         var rapport = Rapport(programmesLus: aVenir.count, recherchesEnEchec: await rattachement.recherchesEnEchec)

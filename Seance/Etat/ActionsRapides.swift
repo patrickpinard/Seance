@@ -100,6 +100,11 @@ struct ActionsRapides {
                 }
                 let diffuses = episodes.filter { $0.dateDiffusion.map { $0 <= aujourdhui } ?? false }
                 try suivi.cocher(diffuses, serie: serie, anterieur: true)
+                // 8.2.11 : vue, elle passe dans Terminés — même encore en cours chez TMDB —, et quitte les Nouveautés.
+                if let suiviSerie = try suivi.suivi(reference) {
+                    suiviSerie.statut = .termine
+                    try contexte.save()
+                }
                 return ("Série marquée déjà vue avant", "clock.arrow.circlepath")
             }
 
@@ -163,6 +168,14 @@ struct MenuActionsTitre: View {
         Button { etat.titrePourListe = choisi } label: { Label("Ajouter à une liste…", systemImage: "list.bullet.rectangle.portrait") }
         Divider()
         Button { lancer(.favori) } label: { Label("Ajouter à mes favoris", systemImage: "star") }
+        // 8.2.11 : pas un goût, juste « pas maintenant » — il reviendra dans deux mois.
+        Button {
+            let reference = titre.reference
+            PasInteresse.ecarter(reference)
+            etat.confirmer("« \(titre.titre) » ne sera plus proposé pendant deux mois", symbole: "hand.raised") {
+                PasInteresse.reproposer(reference)
+            }
+        } label: { Label("Pas intéressé pour l'instant", systemImage: "hand.raised") }
         Button { lancer(.jAime) } label: { Label("J'aime", systemImage: "hand.thumbsup") }
         Button(role: .destructive) { lancer(.pasInteresse) } label: { Label("Je n'aime pas : ne plus me le proposer", systemImage: "hand.thumbsdown") }
     }

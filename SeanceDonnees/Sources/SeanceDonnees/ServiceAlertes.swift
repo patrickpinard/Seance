@@ -35,6 +35,7 @@ public struct ServiceAlertes {
         let suivis = try surveilles()
         let abonnements = Set(try contexte.fetch(FetchDescriptor<Abonnement>(predicate: #Predicate { $0.actif })).map(\.providerID))
         let fiches = await lire(suivis.map(\.reference), source: source)
+        try Task.checkCancellation()
         let aujourdhui = DateTMDB(maintenant, fuseau: reglages.fuseau)
 
         var alertes: [AlertePrevue] = []
@@ -131,6 +132,9 @@ public struct ServiceAlertes {
                                reference: ReferenceTitre(type: TypeTitre(rawValue: alerte.typeBrut) ?? .film, tmdbID: alerte.tmdbID))
         }).sorted { $0.date < $1.date }
 
+        // 8.2.11 : après les attentes réseau, un changement de personne a pu remplacer ce magasin — on n'y écrit plus.
+        // Écrire dans l'ancien faisait planter SwiftData (rapport de l'iPhone du 27.09.2026).
+        try Task.checkCancellation()
         try contexte.delete(model: Echeance.self)
         for (echeance, affiche) in echeances {
             contexte.insert(Echeance(echeance, cheminAffiche: affiche))
@@ -154,6 +158,8 @@ public struct ServiceAlertes {
             }
             return resultat
         }
+        // Après l'attente réseau, le magasin a pu être remplacé (changement de personne, 8.2.11) : on s'arrête là.
+        guard !Task.isCancelled else { return [] }
         var alertes: [AlertePrevue] = []
         for acteur in acteurs {
             guard let filmographie = filmographies[acteur.personneID] else { continue }

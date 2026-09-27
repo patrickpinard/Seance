@@ -87,6 +87,8 @@ final class EtatAlertes {
             for notification in prochaines {
                 try await centre.add(requete(notification))
             }
+        } catch is CancellationError {
+            return
         } catch {
             self.erreur = "Les alertes n'ont pas pu être préparées."
             journal?.noter(.alertes, "Les alertes n'ont pas pu être préparées.", erreur: error)

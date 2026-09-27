@@ -187,13 +187,16 @@ struct SectionIdees: View {
     /// Vus, écartés ou reportés depuis le calcul des idées : la liste est gardée pour la session, pas ce qu'elle exclut.
     /// Sans cela, le film marqué « Regardé » à l'instant revenait en tête des idées.
     @State private var ecartes: Set<ReferenceTitre> = []
+    /// « Pas intéressé pour l'instant » (8.2.11).
+    @AppStorage(PasInteresse.cle) private var pasInteresse = ""
+    private var pasInteresseRefs: Set<ReferenceTitre> { PasInteresse.references(pasInteresse) }
     /// 👍 Tes « J'aime » : le pouce d'une idée déjà aimée reste levé.
     @Query private var aimes: [TitreAime]
 
     /// Trois, cinq ou dix idées à la fois (Réglages › Toi), parmi celles ni traitées ni déjà montrées plus haut.
     private var idees: [SuggestionClassee] {
         Array((modele.resultat?.suggestions ?? [])
-            .filter { !modele.retirees.contains($0.reference) && !dejaMontres.contains($0.reference) && !ecartes.contains($0.reference) }
+            .filter { !modele.retirees.contains($0.reference) && !dejaMontres.contains($0.reference) && !ecartes.contains($0.reference) && !pasInteresseRefs.contains($0.reference) }
             .prefix(NombreIdees.lire(nombreIdees)))
     }
 

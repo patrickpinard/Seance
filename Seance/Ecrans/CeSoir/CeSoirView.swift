@@ -51,7 +51,26 @@ struct SoireeView: View {
     /// Les soirées passées de la semaine, pas encore tranchées : « Hier soir · Heat — regardé ? ».
     private var enAttente: [SelectionSoir] {
         let ceSoir = ServiceSoiree.soiree()
-        return selections.filter { $0.soiree < ceSoir }.sorted { $0.soiree > $1.soiree }
+        let reportees = Self.reportees(reporteesBrut)
+        // « Pas maintenant » (8.2.11) : reportée à demain, la question ne revient pas avant.
+        return selections.filter { $0.soiree < ceSoir && reportees[Self.cle($0)] != ceSoir }.sorted { $0.soiree > $1.soiree }
+    }
+
+    /// Les questions reportées : par titre et soirée, le jour où l'on a dit « Pas maintenant ».
+    @AppStorage("soiree.reportees") private var reporteesBrut = Data()
+
+    private static func reportees(_ donnees: Data) -> [String: String] {
+        (try? JSONDecoder().decode([String: String].self, from: donnees)) ?? [:]
+    }
+
+    private static func cle(_ titre: SelectionSoir) -> String { "\(titre.reference)|\(titre.soiree)" }
+
+    private func reporter(_ titre: SelectionSoir) {
+        let aujourdhui = ServiceSoiree.soiree()
+        // Seules les questions d'aujourd'hui comptent : les anciens reports s'effacent.
+        var reportees = Self.reportees(reporteesBrut).filter { $0.value == aujourdhui }
+        reportees[Self.cle(titre)] = aujourdhui
+        withAnimation { reporteesBrut = (try? JSONEncoder().encode(reportees)) ?? Data() }
     }
 
     var body: some View {
@@ -132,6 +151,8 @@ struct SoireeView: View {
                             deplacer(titre, vers: nil)
                         } retirer: {
                             retirer(titre)
+                        } plusTard: {
+                            reporter(titre)
                         }
                     }
                 }

@@ -34,8 +34,11 @@ struct ExplorerView: View {
     @Query(filter: #Predicate<Suivi> { $0.statutBrut == "termine" }) private var termines: [Suivi]
 
     /// Les résultats sans ce que tu as écarté (« Je n'aime pas », ni VF ni sous-titres) : ils ne sont plus proposés.
+    @AppStorage(PasInteresse.cle) private var pasInteresse = ""
+
     private var resultatsProposes: [TitreResume] {
         let ecartes = Set(mesTitres.filter { $0.statut == .exclu || $0.exclusionLangue }.map(\.reference))
+            .union(PasInteresse.references(pasInteresse))
         return ecartes.isEmpty ? modele.resultats : modele.resultats.filter { !ecartes.contains($0.reference) }
     }
 

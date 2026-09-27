@@ -27,6 +27,8 @@ struct RacineView: View {
         return true
     }
     @State private var onglet = OngletRacine.accueil
+    /// Le travail du retour dans l'app, annulé quand la racine disparaît (changement de personne).
+    @State private var tachePremierPlan: Task<Void, Never>?
     @State private var survolConfirmation = false
     /// Spotlight se refait quand tes listes changent.
     @Query private var suivisPourSpotlight: [Suivi]
@@ -190,8 +192,15 @@ struct RacineView: View {
                                    conseil: "Rien n'est perdu. Détail : \(erreur.prefix(200))")
                 EntrepotSeance.derniereErreurDuPlan = nil
             }
+            // 8.2.11 : tant que « Qui regarde ? » est ouvert, rien ne démarre — la personne choisie va rouvrir un autre
+            // magasin, et le travail commencé dans celui-ci y écrivait après coup (plantage au changement de personne).
+            while quiRegarde {
+                try? await Task.sleep(for: .milliseconds(300))
+                if Task.isCancelled { return }
+            }
             etat.ou.actualiserLocal(contexte: contexte)
             await etat.demarrer(contexte: contexte)
+            guard !Task.isCancelled else { return }
             etat.ou.actualiserLocal(contexte: contexte)
             await etat.alertes.programmerRappelExpiration(etat.expirationInstallation)
             await PublicationWidgets.actualiser(contexte: contexte, tmdb: etat.tmdb, force: true)
@@ -199,13 +208,18 @@ struct RacineView: View {
             RaccourcisSeance.updateAppShortcutParameters()
         }
         // Retour dans l'app : programmes et alertes remis à jour s'ils datent.
+        .onDisappear { tachePremierPlan?.cancel() }
         .onChange(of: phase) { _, nouvelle in
             switch nouvelle {
             case .active:
                 etat.nas.verifierRetour()
                 etat.ou.actualiserLocal(contexte: contexte)
-                Task {
+                // Gardée pour être annulée si l'on change de personne (8.2.11) : détachée, elle écrivait ensuite dans le
+                // magasin remplacé, et SwiftData plantait (rapport de l'iPad du 26.09.2026).
+                tachePremierPlan?.cancel()
+                tachePremierPlan = Task {
                     await etat.revenirAuPremierPlan(contexte: contexte)
+                    guard !Task.isCancelled else { return }
                     await PublicationWidgets.actualiser(contexte: contexte, tmdb: etat.tmdb)
                 }
             case .background:

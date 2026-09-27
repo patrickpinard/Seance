@@ -49,11 +49,14 @@ public struct MembreEquipe: Decodable, Sendable, Hashable {
     public let id: Int
     public let nom: String
     public let poste: String?
+    /// Son portrait (8.2.11), pour « Tes réalisateurs » dans les Préférences.
+    public let cheminPortrait: String?
 
     enum CodingKeys: String, CodingKey {
         case id
         case nom = "name"
         case poste = "job"
+        case cheminPortrait = "profile_path"
     }
 }
 

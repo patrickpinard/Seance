@@ -56,6 +56,27 @@ struct NoteVersion: Identifiable {
 
     static let historique: [NoteVersion] = [
         NoteVersion(
+            numero: "8.2.11",
+            date: "27 septembre 2026",
+            resume: "Changer de personne ne ferme plus Séance ; tes réalisateurs, les alertes reçues à revoir et à effacer, et de quoi dire « pas maintenant ».",
+            fonctionnalites: [
+                Fonctionnalite(symbole: "person.2", titre: "Changer de personne sans fermer Séance",
+                               detail: "Le démarrage et le retour dans l'app calculaient les alertes, puis les enregistraient dans le magasin de la personne d'avant, déjà remplacé : SwiftData s'arrêtait net (rapports de l'iPhone et de l'iPad). Le travail attend maintenant « Qui regarde ? » et s'interrompt au changement de personne."),
+                Fonctionnalite(symbole: "megaphone", titre: "Tes réalisateurs",
+                               detail: "Dans tes Préférences, sous tes acteurs : les réalisateurs dont tu as vu au moins deux films. Chacun ouvre sa fiche avec tes films de lui."),
+                Fonctionnalite(symbole: "bell.badge", titre: "Les alertes reçues, à revoir et à effacer",
+                               detail: "Dans tes Préférences : toutes les alertes envoyées par cet appareil, pour chaque personne de la famille. Glisser une ligne l'efface, « Tout effacer » vide la liste — sans risquer de recevoir deux fois la même."),
+                Fonctionnalite(symbole: "clock", titre: "« Pas maintenant »",
+                               detail: "Sur les soirées passées de Regarder, « Pas maintenant » écarte la question jusqu'à demain ; « Oublier » la retire pour de bon."),
+                Fonctionnalite(symbole: "hand.raised", titre: "Pas intéressé pour l'instant",
+                               detail: "Dans l'appui long d'un titre : il n'est plus proposé pendant deux mois — suggestions, Nouveautés, accueil, Explorer —, sans compter comme un goût. « Je n'aime pas » reste définitif."),
+                Fonctionnalite(symbole: "eye.slash", titre: "Les titres vus quittent les Nouveautés",
+                               detail: "Un film vu ou une série terminée n'y revient plus. « Toute la série déjà vue avant » range la série dans Terminés, même encore en cours."),
+                Fonctionnalite(symbole: "externaldrive", titre: "Les derniers arrivés d'abord",
+                               detail: "La page NAS se range d'abord par ajouts, les plus récents en tête."),
+            ]
+        ),
+        NoteVersion(
             numero: "8.2.10",
             date: "26 septembre 2026",
             resume: "Dans Explorer, « Tout ouvrir » / « Tout fermer » ne recouvre plus les pastilles.",

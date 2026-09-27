@@ -12,10 +12,30 @@ import SwiftUI
 struct AlertesRecuesView: View {
     @Environment(EtatApp.self) private var etat
     @Query(sort: \AlertePlanifiee.date, order: .reverse) private var alertes: [AlertePlanifiee]
+    /// La purge (8.2.11) : les alertes effacées sont masquées, pas détruites — Séance s'en sert pour ne pas prévenir
+    /// deux fois de la même chose. « Tout effacer » masque tout ce qui a été reçu jusqu'ici.
+    @AppStorage("alertes.effaceesAvant") private var effaceesAvant: Double = 0
+    @AppStorage("alertes.effacees") private var effaceesBrut = ""
+    @State private var confirmerToutEffacer = false
 
-    /// Ce qui a vraiment été envoyé, et pas les rendez-vous encore à venir.
+    private var effacees: Set<String> { Set(effaceesBrut.split(separator: "\n").map(String.init)) }
+
+    private static func cle(_ alerte: AlertePlanifiee) -> String {
+        "\(alerte.typeBrut)|\(alerte.tmdbID)|\(alerte.motif)|\(Int(alerte.date.timeIntervalSince1970))"
+    }
+
+    /// Ce qui a vraiment été envoyé, et pas les rendez-vous encore à venir ; sans ce qui a été effacé.
     private var envoyees: [AlertePlanifiee] {
-        alertes.filter { $0.envoyee && $0.date <= .now }
+        let effacees = effacees
+        return alertes.filter {
+            $0.envoyee && $0.date <= .now && $0.date.timeIntervalSince1970 > effaceesAvant && !effacees.contains(Self.cle($0))
+        }
+    }
+
+    private func effacer(_ alerte: AlertePlanifiee) {
+        var liste = effacees
+        liste.insert(Self.cle(alerte))
+        withAnimation { effaceesBrut = liste.joined(separator: "\n") }
     }
 
     private var aVenir: [AlertePlanifiee] {
@@ -40,14 +60,41 @@ struct AlertesRecuesView: View {
                         }
                     }
                     if !envoyees.isEmpty {
-                        Section("Reçues") {
-                            ForEach(envoyees) { alerte in ligne(alerte, prevue: false) }
+                        Section {
+                            ForEach(envoyees) { alerte in
+                                ligne(alerte, prevue: false)
+                                    .swipeActions(edge: .trailing) {
+                                        Button("Effacer", role: .destructive) { effacer(alerte) }
+                                    }
+                            }
+                        } header: {
+                            Text("Reçues")
+                        } footer: {
+                            Text("Toutes les alertes que cet appareil a envoyées, pour chaque personne de la famille. Glisse une ligne vers la gauche pour l'effacer.")
                         }
                     }
                 }
             }
         }
         .pageReglages("Alertes reçues")
+        .toolbar {
+            if !envoyees.isEmpty {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Tout effacer", role: .destructive) { confirmerToutEffacer = true }
+                }
+            }
+        }
+        .confirmationDialog("Effacer les alertes reçues ?", isPresented: $confirmerToutEffacer, titleVisibility: .visible) {
+            Button("Tout effacer", role: .destructive) {
+                withAnimation {
+                    effaceesAvant = Date.now.timeIntervalSince1970
+                    effaceesBrut = ""
+                }
+            }
+            Button("Annuler", role: .cancel) {}
+        } message: {
+            Text("La liste se vide ; les alertes à venir restent prévues.")
+        }
     }
 
     @ViewBuilder

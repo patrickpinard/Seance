@@ -278,10 +278,17 @@ final class EtatApp {
         _ = try? ServiceProgrammesTV.preparerChaines(contexte)
         // Sur le fil principal, comme le reste : le magasin n'est pas partagé entre fils, les deux s'entrelacent.
         let bibliotheque = Task { @MainActor in await nas.analyser(contexte: contexte, tmdb: tmdb, automatique: true) }
-        await actualiserTele(contexte: contexte)
-        // Après la TV : les passages des titres suivis entrent dans les alertes.
-        await alertes.planifier(contexte: contexte, tmdb: tmdb)
-        await bibliotheque.value
+        // 8.2.11 : un changement de personne annule le démarrage — l'analyse du NAS aussi, qui tournait à part et
+        // continuait d'écrire dans le magasin remplacé.
+        await withTaskCancellationHandler {
+            await actualiserTele(contexte: contexte)
+            guard !Task.isCancelled else { return }
+            // Après la TV : les passages des titres suivis entrent dans les alertes.
+            await alertes.planifier(contexte: contexte, tmdb: tmdb)
+            await bibliotheque.value
+        } onCancel: {
+            bibliotheque.cancel()
+        }
     }
 
     /// Retour dans l'app : programmes TV s'ils datent, puis alertes et « À venir » s'ils datent d'une heure.

@@ -170,7 +170,9 @@ struct AccueilView: View {
         let horizon = jour.addingTimeInterval(8 * 86_400)
         _diffusions = Query(filter: #Predicate<Diffusion> { $0.fin > jour }, sort: \Diffusion.debut)
         _echeances = Query(filter: #Predicate<Echeance> { $0.date >= jour && $0.date < horizon }, sort: \Echeance.date)
-        _refuses = Query(filter: #Predicate<Suivi> { $0.statutBrut == "exclu" || $0.exclusionLangue }, sort: \Suivi.ajouteLe)
+        // 8.2.11 : les titres déjà vus (terminés) non plus — « Reacher » revenait dans les Nouveautés.
+        _refuses = Query(filter: #Predicate<Suivi> { $0.statutBrut == "exclu" || $0.exclusionLangue || $0.statutBrut == "termine" },
+                         sort: \Suivi.ajouteLe)
         var candidats = FetchDescriptor<Suivi>(
             predicate: #Predicate { ($0.statutBrut == "aVoir" || $0.statutBrut == "enCours") && !$0.masque },
             sortBy: [SortDescriptor(\Suivi.ajouteLe, order: .reverse)]
@@ -181,8 +183,11 @@ struct AccueilView: View {
 
     /// « Je n'aime pas », « ni VF ni sous-titres » : ces titres ne sont plus proposés, l'accueil compris.
     private var ecartes: Set<ReferenceTitre> {
-        Set(refuses.map(\.reference))
+        Set(refuses.map(\.reference)).union(PasInteresse.references(pasInteresse))
     }
+
+    /// « Pas intéressé pour l'instant » (8.2.11).
+    @AppStorage(PasInteresse.cle) private var pasInteresse = ""
 
     private func proposables(_ titres: [TitreResume]) -> [TitreResume] {
         let ecartes = ecartes
