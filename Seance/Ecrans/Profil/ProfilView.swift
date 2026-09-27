@@ -23,6 +23,8 @@ struct ProfilView: View {
     @Query private var acteursSuivis: [ActeurSuivi]
     @AppStorage(Prenom.cle) private var prenom = ""
     @State private var gouts = false
+    /// La rubrique « Tes goûts », repliée au départ.
+    @State private var goutsOuverts = false
     /// Les réalisateurs des films vus, gardés sur l'appareil (8.2.11).
     @State private var reserveRealisateurs = ReserveRealisateurs(donnees: UserDefaults.standard.data(forKey: ReserveRealisateurs.cle))
     @State private var chargementRealisateurs = false
@@ -303,32 +305,66 @@ struct ProfilView: View {
         }
     }
 
+    /// Tes goûts (8.2.12, demande de Patrick) : une rubrique qui se replie. Fermée, le nombre de genres et leurs noms ;
+    /// ouverte, tous les genres avec une case à cocher — la longue rangée de pastilles prenait toute la page.
     private var sectionGouts: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            TitreSection("Tes goûts")
-            Flux(espacement: 8) {
-                ForEach(interets.map(\.libelle).sorted(), id: \.self) { genre in
-                    Text(genre)
-                        .font(.subheadline.weight(.semibold))
-                        .padding(.horizontal, 14)
-                        .frame(height: 34)
-                        .background(Theme.accent.opacity(0.18), in: Capsule())
-                        .foregroundStyle(Theme.accentClair)
+        let choisis = Set(interets.map(\.libelle))
+        return VStack(alignment: .leading, spacing: 10) {
+            EnTeteRepliable(titre: "Tes goûts", detail: choisis.isEmpty ? "À choisir" : Format.pluriel(choisis.count, "genre"),
+                            ouverte: goutsOuverts) { goutsOuverts.toggle() }
+                .padding(.horizontal, 20)
+            if !goutsOuverts, !choisis.isEmpty {
+                Text(choisis.sorted().joined(separator: ", "))
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+                    .padding(.horizontal, 20)
+            }
+            if goutsOuverts {
+                VStack(spacing: 0) {
+                    ForEach(Array(GoutPropose.catalogue.enumerated()), id: \.element.nom) { rang, gout in
+                        if rang > 0 { Divider().padding(.leading, 52) }
+                        let coche = choisis.contains(gout.nom)
+                        Button { basculer(gout, choisis: choisis) } label: {
+                            HStack(spacing: 12) {
+                                Image(systemName: coche ? "checkmark.circle.fill" : "circle")
+                                    .font(.title3)
+                                    .foregroundStyle(coche ? Theme.accent : Theme.texte3)
+                                    .frame(width: 28)
+                                Text(gout.nom).foregroundStyle(Theme.texte)
+                                Spacer()
+                            }
+                            .padding(.horizontal, 14)
+                            .frame(minHeight: 46)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityAddTraits(coche ? .isSelected : [])
+                    }
                 }
+                .background(Theme.surface, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(Theme.trait))
+                .padding(.horizontal, 20)
+                .transition(.opacity)
                 Button { gouts = true } label: {
-                    Label(interets.isEmpty ? "Choisir mes genres" : "Modifier", systemImage: "slider.horizontal.3")
+                    Label("Noter des films connus", systemImage: "star")
                         .font(.subheadline.weight(.semibold))
-                        .padding(.horizontal, 14)
-                        .frame(height: 34)
-                        .background(Theme.surface, in: Capsule())
-                        .overlay(Capsule().strokeBorder(Theme.trait))
-                        .contentShape(Capsule())
+                        .foregroundStyle(Theme.accent)
+                        .frame(minHeight: 44)
                 }
                 .buttonStyle(.plain)
-                .accessibilityHint("Choisir tes genres et noter des films connus")
+                .padding(.horizontal, 20)
             }
-            .padding(.horizontal, 20)
         }
+    }
+
+    /// Coche ou décoche un genre : les intérêts déclarés sont réécrits d'après les cases.
+    private func basculer(_ gout: GoutPropose, choisis: Set<String>) {
+        var noms = choisis
+        if noms.contains(gout.nom) { noms.remove(gout.nom) } else { noms.insert(gout.nom) }
+        let interets = GoutPropose.catalogue.filter { noms.contains($0.nom) }
+            .map { ServiceGouts.InteretDeclare(libelle: $0.nom, genres: $0.genres, motsCles: $0.motsCles) }
+        try? ServiceGouts(contexte: contexte).declarer(interets)
     }
 
     private var statistiques: some View {

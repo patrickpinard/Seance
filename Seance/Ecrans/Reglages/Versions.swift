@@ -56,6 +56,15 @@ struct NoteVersion: Identifiable {
 
     static let historique: [NoteVersion] = [
         NoteVersion(
+            numero: "8.2.12",
+            date: "27 septembre 2026",
+            resume: "Tes goûts, dans les Préférences, se replient : une liste de genres à cocher.",
+            fonctionnalites: [
+                Fonctionnalite(symbole: "checklist", titre: "Tes goûts, à cocher",
+                               detail: "La longue rangée de genres devient une rubrique qui se replie : fermée, le nombre de genres et leurs noms ; ouverte, tous les genres avec une case à cocher. « Noter des films connus » reste dessous."),
+            ]
+        ),
+        NoteVersion(
             numero: "8.2.11",
             date: "27 septembre 2026",
             resume: "Changer de personne ne ferme plus Séance ; tes réalisateurs, les alertes reçues à revoir et à effacer, et de quoi dire « pas maintenant ».",
