@@ -18,8 +18,8 @@ settings:
     # Équipe personnelle de Patrick (compte Apple gratuit).
     DEVELOPMENT_TEAM: GATK475J3P
     # Version affichée dans À propos › Versions ; à changer avec Seance/Ecrans/Reglages/Versions.swift.
-    MARKETING_VERSION: "8.1"
-    CURRENT_PROJECT_VERSION: "77"
+    MARKETING_VERSION: "8.2"
+    CURRENT_PROJECT_VERSION: "78"
 
 packages:
   SeanceKit:
@@ -158,6 +158,7 @@ targets:
       - path: Seance/Design/MemoireImages.swift
       # « Pas intéressé pour l'instant » (8.2.15) : la même mise à l'écart que sur l'iPhone.
       - path: Seance/Etat/PasInteresse.swift
+      - path: Seance/Etat/PropositionSoir.swift
       # Les sections qu'on ouvre et qu'on ferme (8.2.15), comme sur l'iPhone.
       - path: Seance/Design/SectionsRepliables.swift
     dependencies:

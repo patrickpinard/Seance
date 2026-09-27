@@ -301,10 +301,8 @@ struct AccueilTV: View {
         }
         for reprise in aReprendre {
             let fichier = reprise.fichier
-            let quoi = fichier.type == .film ? "Film"
-                : [fichier.saison.map { "S\($0)" }, fichier.episode.map { "E\($0)" }].compactMap { $0 }.joined(separator: " ")
-            let detail = [quoi.isEmpty ? "Série" : quoi, reprise.position.duree > 0 ? Self.duree(reprise.position.duree) : nil,
-                          Self.commence(reprise.position)].compactMap { $0 }.joined(separator: " · ")
+            let detail = LibellesProposition.reprise(film: fichier.type == .film, saison: fichier.saison, episode: fichier.episode,
+                                                     position: reprise.position)
             ajouter(Proposition(reference: reprise.reference,
                                 surtitre: ["Ce soir, pour toi", "Sur ton NAS", fichier.qualite].compactMap { $0 }.joined(separator: " · "),
                                 titre: fichier.titre, detail: detail, cheminImage: fichier.cheminFond ?? fichier.cheminAffiche,
@@ -355,29 +353,6 @@ struct AccueilTV: View {
         aReprendre.first { $0.reference == reference }?.position
     }
 
-    /// « 2 h 46 », « 52 min ».
-    static func duree(_ secondes: Double) -> String {
-        let minutes = Int((secondes / 60).rounded())
-        return minutes >= 60 ? "\(minutes / 60) h \(String(format: "%02d", minutes % 60))" : "\(max(minutes, 1)) min"
-    }
-
-    /// « commencé jeudi sur l'iPhone », « commencé hier sur le Mac ».
-    static func commence(_ position: PositionLecture, maintenant: Date = .now) -> String {
-        let calendrier = Calendar.current
-        let quand: String
-        if calendrier.isDateInToday(position.majLe) {
-            quand = "aujourd'hui"
-        } else if calendrier.isDateInYesterday(position.majLe) {
-            quand = "hier"
-        } else if let jours = calendrier.dateComponents([.day], from: position.majLe, to: maintenant).day, jours < 7 {
-            quand = position.majLe.formatted(.dateTime.weekday(.wide).locale(Locale(identifier: "fr_CH")))
-        } else {
-            quand = "le " + position.majLe.formatted(.dateTime.day().month(.abbreviated).locale(Locale(identifier: "fr_CH")))
-        }
-        guard let appareil = position.appareil else { return "commencé \(quand)" }
-        let article = appareil.first.map { "aeiouyAEIOUY".contains($0) } == true ? "l'" : "le "
-        return "commencé \(quand) sur \(article)\(appareil)"
-    }
 
     /// En ce moment : les films et séries qui passent maintenant, sur une chaîne que blue TV connaît (6.6).
     private var enDirect: [BlocDiffusion] {
@@ -544,39 +519,6 @@ struct OeuvreTV: Hashable {
                             qualite: recent.qualite, indexeLe: arrivee(recent))
         }
         .sorted { ($0.indexeLe, $0.titre) > ($1.indexeLe, $1.titre) }
-    }
-}
-
-/// « Pas ce soir » sur l'accueil : le titre ne revient dans la proposition que le lendemain matin (6 h).
-enum PasCeSoir {
-    static let cle = "accueil.pasCeSoir"
-
-    private static func lire(_ brut: String) -> [String: Double] {
-        (try? JSONDecoder().decode([String: Double].self, from: Data(brut.utf8))) ?? [:]
-    }
-
-    private static func cle(_ reference: ReferenceTitre) -> String { "\(reference.type.rawValue):\(reference.tmdbID)" }
-
-    static func references(_ brut: String, maintenant: Date = .now) -> Set<ReferenceTitre> {
-        Set(lire(brut).compactMap { cle, jusquA -> ReferenceTitre? in
-            guard jusquA > maintenant.timeIntervalSince1970 else { return nil }
-            let morceaux = cle.split(separator: ":")
-            guard morceaux.count == 2, let type = TypeTitre(rawValue: String(morceaux[0])), let id = Int(morceaux[1]) else { return nil }
-            return ReferenceTitre(type: type, tmdbID: id)
-        })
-    }
-
-    static func ecarter(_ reference: ReferenceTitre, maintenant: Date = .now) {
-        var liste = lire(UserDefaults.standard.string(forKey: cle) ?? "").filter { $0.value > maintenant.timeIntervalSince1970 }
-        liste[Self.cle(reference)] = demainMatin(maintenant).timeIntervalSince1970
-        UserDefaults.standard.set(String(data: (try? JSONEncoder().encode(liste)) ?? Data(), encoding: .utf8), forKey: cle)
-    }
-
-    /// 6 h le lendemain, ou ce matin à 6 h pour un « pas ce soir » dit après minuit.
-    static func demainMatin(_ maintenant: Date) -> Date {
-        let calendrier = Calendar.current
-        let sixHeures = calendrier.date(bySettingHour: 6, minute: 0, second: 0, of: maintenant) ?? maintenant
-        return sixHeures > maintenant ? sixHeures : calendrier.date(byAdding: .day, value: 1, to: sixHeures) ?? sixHeures
     }
 }
 

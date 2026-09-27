@@ -21,7 +21,8 @@ struct SourcesAccueil: Codable, Hashable {
     var nombreTop = 5
     /// Titres de « Nouveautés » : 10, 20 ou 30.
     var nombreDuMoment = 20
-    /// Titres du bandeau : 3, 5 ou 8.
+    /// Titres du bandeau : 3, 5 ou 8. Plus montré depuis la 8.1 (la proposition du soir l'a remplacé) ; gardé pour relire
+    /// les anciens réglages.
     var nombreBandeau = 5
     /// « Ce soir à la TV » montre aussi les séries ; sinon, seulement les films.
     var seriesTele = true
@@ -151,7 +152,19 @@ struct AccueilView: View {
     /// Le guide à partir d'aujourd'hui : les passages d'hier ne servent plus à rien ici.
     @Query private var diffusions: [Diffusion]
     @AppStorage("accueil.sources") private var sourcesBrutes = Data()
-    @AppStorage(Prenom.cle) private var prenomBrut = ""
+    @Environment(\.horizontalSizeClass) private var classe
+    /// Les fichiers du NAS : ce qui s'y trouve, et les vidéos entamées de la proposition du soir.
+    @Query private var fichiersNAS: [FichierNAS]
+    /// « Pas ce soir » (8.1) : le titre quitte la proposition jusqu'à demain matin.
+    @AppStorage(PasCeSoir.cle) private var pasCeSoir = ""
+    /// « Autre chose » : le rang de la proposition montrée.
+    @State private var rang = 0
+    /// Quand rien n'est à reprendre : des suggestions tirées de tes goûts, à la place de « Reprendre ».
+    @State private var suggestions: [TitreResume] = []
+    /// La largeur de la page : le panneau des nouveautés ne tient à droite de la proposition qu'à partir de 1000 points
+    /// (l'iPad en paysage, le Mac) ; en dessous, elles passent en carrousel, comme sur l'iPhone.
+    @State private var largeurPage: CGFloat = 0
+    private var panneauADroite: Bool { classe == .regular && largeurPage >= 1000 }
     @State private var modele = AccueilModele()
     @State private var reglageSources = false
     @State private var chemin = NavigationPath()
@@ -242,19 +255,6 @@ struct AccueilView: View {
         return "Pour tes titres : " + morceaux.joined(separator: ", ")
     }
 
-    private var resumeSoiree: String? {
-        let jour = ServiceSoiree.soiree()
-        let ceSoir = selections.filter { $0.soiree == jour }.map(\.titre)
-        if !ceSoir.isEmpty {
-            return "Ce soir : " + ceSoir.prefix(2).joined(separator: ", ") + (ceSoir.count > 2 ? " et \(Format.pluriel(ceSoir.count - 2, "autre"))" : "")
-        }
-        if let passee = selections.filter({ $0.soiree < jour }).max(by: { $0.soiree < $1.soiree }) {
-            return "\(passee.soiree == ServiceSoiree.soiree(Date.now.addingTimeInterval(-86_400)) ? "Hier soir" : "L'autre soir") : \(passee.titre) — regardé ?"
-        }
-        guard let prochaine = selections.filter({ $0.soiree > jour }).min(by: { $0.soiree < $1.soiree }) else { return nil }
-        return "\(LibelleSoiree.soiree(prochaine.soiree)) : \(prochaine.titre)"
-    }
-
     private var sources: SourcesAccueil {
         (try? JSONDecoder().decode(SourcesAccueil.self, from: sourcesBrutes)) ?? SourcesAccueil()
     }
@@ -305,6 +305,10 @@ struct AccueilView: View {
             }
             .background(Theme.fond)
             .boutonBarreLaterale()
+            .task(id: reprisesAccueil.isEmpty) {
+                guard reprisesAccueil.isEmpty, suggestions.isEmpty else { return }
+                await chargerSuggestions()
+            }
             .task(id: candidatsRegardables.map(\.reference)) {
                 guard sources.regardable else { return }
                 for suivi in candidatsRegardables { etat.ou.demander(suivi.reference, client: etat.tmdb) }
@@ -336,8 +340,17 @@ struct AccueilView: View {
     private var contenu: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 28) {
-                // Les premiers du moment qui ont une image de fond : 3, 5 ou 8.
-                BandeauVedette(titres: Array(proposables(modele.duMoment).filter { $0.cheminFond != nil }.prefix(sources.nombreBandeau)))
+                let proposition = proposition
+                if let proposition {
+                    EnTeteAccueil(proposition: proposition, plusieurs: propositions.count > 1,
+                                  nouveautes: panneauADroite && sources.duMoment ? Array(nouveautes(sauf: proposition.reference).prefix(3)) : [],
+                                  ligneNouveaute: { modele.sousTitre($0) },
+                                  autreChose: { withAnimation { rang += 1 } },
+                                  toutesLesNouveautes: { chemin.append(DestinationAccueil.duMoment(plateformes: plateformes)) })
+                } else {
+                    // La place du portrait et de la roue, que la proposition recouvre d'ordinaire.
+                    Color.clear.frame(height: 90)
+                }
 
                 if let erreur = modele.erreur {
                     MessageEtat(texte: erreur, ton: .probleme, libelleAction: "Réessayer") {
@@ -346,35 +359,21 @@ struct AccueilView: View {
                     }
                 }
 
-                if let prenom = Prenom.lire(prenomBrut) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(Prenom.salut(prenom))
-                            .font(.title2.weight(.heavy))
-                            .foregroundStyle(Theme.texte)
-                    }
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, -14)
-                    .accessibilityElement(children: .combine)
-                }
-
-                if let resumeSoiree {
-                    Button { etat.ongletDemande = .ceSoir } label: {
-                        HStack(spacing: 10) {
-                            Image(systemName: "moon.stars.fill").foregroundStyle(Theme.accent)
-                            Text(resumeSoiree).font(.subheadline.weight(.semibold)).lineLimit(1)
-                            Spacer(minLength: 0)
-                            Image(systemName: "chevron.right").font(.caption.weight(.semibold)).foregroundStyle(.tertiary)
+                // Sur l'iPhone (maquette « Retenu · iPhone ») et l'iPad en portrait, les nouveautés en carrousel sous la
+                // proposition ; sur un écran large, elles sont à sa droite.
+                if !panneauADroite || proposition == nil, sources.duMoment {
+                    let titres = nouveautes(sauf: proposition?.reference)
+                    if !titres.isEmpty {
+                        VStack(alignment: .leading, spacing: 12) {
+                            TitreSection(titre: "Nouveautés") {
+                                BoutonToutVoir { chemin.append(DestinationAccueil.duMoment(plateformes: plateformes)) }
+                            }
+                            Carrousel(titres: titres) { modele.sousTitre($0) }
                         }
-                        .padding(.horizontal, 14)
-                        .frame(height: 44)
-                        .background(Theme.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                     }
-                    .buttonStyle(.plain)
-                    .padding(.horizontal, 20)
-                    .accessibilityHint("Ouvre Regarder")
                 }
 
-                SectionReprendre()
+                SectionReprendre(sauf: proposition?.reference, suggestions: suggestions)
 
                 aujourdhui
 
@@ -399,15 +398,6 @@ struct AccueilView: View {
                     }
                 }
 
-                if sources.duMoment, !modele.duMoment.isEmpty {
-                    VStack(alignment: .leading, spacing: 12) {
-                        TitreSection(titre: "Nouveautés") {
-                            BoutonToutVoir { chemin.append(DestinationAccueil.duMoment(plateformes: plateformes)) }
-                        }
-                        Carrousel(titres: proposables(modele.duMoment).recentsDAbord(\.date)) { modele.sousTitre($0) }
-                    }
-                }
-
                 if sources.documentaires, !etat.documentaires.films.isEmpty || !etat.documentaires.series.isEmpty {
                     VStack(alignment: .leading, spacing: 12) {
                         TitreSection(titre: "Documentaires") {
@@ -426,9 +416,95 @@ struct AccueilView: View {
             .padding(.bottom, 40)
         }
         .ignoresSafeArea(edges: .top)
+        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { largeurPage = $0 }
         .overlay {
             if !modele.charge { ProgressView() }
         }
+    }
+
+    // MARK: La proposition du soir (8.1)
+
+    /// Les vidéos du NAS entamées, la plus récente d'abord. Le Mac garde le lecteur d'Apple, sans reprise.
+    private var reprisesAccueil: [(fichier: FichierNAS, position: PositionLecture)] {
+        #if targetEnvironment(macCatalyst)
+        return []
+        #else
+        return etat.nas.positions.enCours.prefix(10).compactMap { entree in
+            fichiersNAS.first { $0.chemin == entree.chemin && $0.reference != nil }.map { ($0, entree.position) }
+        }
+        #endif
+    }
+
+    /// Ce que l'accueil peut proposer ce soir, dans l'ordre : la soirée prévue, les vidéos entamées, ta liste sur le
+    /// NAS, puis le top de l'année — comme sur l'Apple TV. Les titres écartés, vus ou « pas ce soir » n'y sont pas.
+    private var propositions: [PropositionSoir] {
+        let ecartes = ecartes.union(PasCeSoir.references(pasCeSoir))
+        let surLeNAS = Set(fichiersNAS.compactMap(\.reference))
+        let reprises = reprisesAccueil
+        var vues = Set<ReferenceTitre>()
+        var liste: [PropositionSoir] = []
+        func ajouter(_ proposition: PropositionSoir) {
+            guard !ecartes.contains(proposition.reference), vues.insert(proposition.reference).inserted else { return }
+            liste.append(proposition)
+        }
+        func ligne(_ debut: String, _ reference: ReferenceTitre) -> String {
+            let ou = surLeNAS.contains(reference) ? "Sur ton NAS"
+                : etat.ou.badges(reference).first { if case .plateforme = $0 { true } else { false } }.map(BadgeOu.libelle)
+            return [debut, ou].compactMap { $0 }.joined(separator: " · ")
+        }
+        let soiree = ServiceSoiree.soiree()
+        for prevu in selections where prevu.soiree == soiree {
+            ajouter(PropositionSoir(reference: prevu.reference, surtitre: ligne("Prévu ce soir", prevu.reference), titre: prevu.titre,
+                                    detail: prevu.reference.type == .film ? "Film" : "Série",
+                                    cheminFond: fichiersNAS.first { $0.reference == prevu.reference }?.cheminFond,
+                                    cheminAffiche: prevu.cheminAffiche, reprise: reprises.first { $0.fichier.reference == prevu.reference }))
+        }
+        for reprise in reprises {
+            guard let reference = reprise.fichier.reference else { continue }
+            ajouter(PropositionSoir(reference: reference,
+                                    surtitre: ["Ce soir, pour toi", "Sur ton NAS", reprise.fichier.qualite].compactMap { $0 }.joined(separator: " · "),
+                                    titre: reprise.fichier.titre,
+                                    detail: LibellesProposition.reprise(film: reprise.fichier.type == .film, saison: reprise.fichier.saison,
+                                                                        episode: reprise.fichier.episode, position: reprise.position),
+                                    cheminFond: reprise.fichier.cheminFond, cheminAffiche: reprise.fichier.cheminAffiche, reprise: reprise))
+        }
+        for suivi in regardables where surLeNAS.contains(suivi.reference) {
+            let fichier = fichiersNAS.first { $0.reference == suivi.reference }
+            ajouter(PropositionSoir(reference: suivi.reference,
+                                    surtitre: ["Ce soir, pour toi", "Sur ton NAS", fichier?.qualite].compactMap { $0 }.joined(separator: " · "),
+                                    titre: suivi.titre, detail: [suivi.type == .film ? "Film" : "Série", "dans ta liste"].joined(separator: " · "),
+                                    cheminFond: fichier?.cheminFond, cheminAffiche: suivi.cheminAffiche))
+        }
+        for titre in proposables(Array(zip(modele.topFilms, modele.topSeries).flatMap { [$0, $1] })) {
+            ajouter(PropositionSoir(reference: titre.reference, surtitre: ligne("Ce soir, pour toi", titre.reference), titre: titre.titre,
+                                    detail: [titre.reference.type == .film ? "Film" : "Série", titre.date.map { String($0.annee) }]
+                                        .compactMap { $0 }.joined(separator: " · "),
+                                    cheminFond: titre.cheminFond, cheminAffiche: titre.cheminAffiche))
+        }
+        return Array(liste.prefix(12))
+    }
+
+    /// La proposition montrée : « Autre chose » passe à la suivante, et revient à la première après la dernière.
+    private var proposition: PropositionSoir? {
+        let toutes = propositions
+        return toutes.isEmpty ? nil : toutes[rang % toutes.count]
+    }
+
+    /// Les nouveautés, les plus récentes d'abord, sans les titres écartés ni celui de la proposition.
+    private func nouveautes(sauf reference: ReferenceTitre?) -> [TitreResume] {
+        proposables(modele.duMoment).recentsDAbord(\.date).filter { $0.reference != reference }
+    }
+
+    /// Le même classement que « Suggestions pour ce soir » : ton profil de goûts, sans Claude, douze titres.
+    private func chargerSuggestions() async {
+        guard let tmdb = etat.tmdb else { return }
+        let demande = DemandeCeSoir()
+        let gouts = ServiceGouts(contexte: contexte)
+        guard let profil = try? gouts.profil(), let exclusions = try? gouts.contexteCandidats(),
+              let candidats = try? await CollecteurCandidats(client: tmdb).candidats(pour: demande, profil: profil, contexte: exclusions)
+        else { return }
+        suggestions = await ServiceRecommandation(claude: nil, nombre: 12)
+            .suggerer(demande, candidats: candidats, profil: profil, nomsGenres: GenresParDefaut.noms).suggestions.map(\.candidat.titre)
     }
 
     private func nomsPlateformes(_ ids: [Int]) -> String {
@@ -480,7 +556,6 @@ struct ReglageSourcesAccueil: View {
                 }
 
                 Section {
-                    choix("Bandeau du haut", valeur: $sources.nombreBandeau, parmi: SourcesAccueil.choixBandeau)
                     if sources.top10 {
                         choix("Top : films et séries, chacun", valeur: $sources.nombreTop, parmi: SourcesAccueil.choixTop)
                     }
@@ -533,8 +608,14 @@ struct ReglageSourcesAccueil: View {
 /// « Reprendre » (8.0) : les vidéos du NAS entamées ici ou sur un autre appareil, avec leur barre de progression.
 /// Le ▶︎ repart là où l'on s'était arrêté.
 private struct SectionReprendre: View {
+    /// La vidéo que la proposition du soir montre déjà.
+    var sauf: ReferenceTitre?
+    /// Rien à reprendre (8.1) : des suggestions d'après tes goûts à la place.
+    var suggestions: [TitreResume] = []
+
     @Environment(EtatApp.self) private var etat
     @Query private var fichiers: [FichierNAS]
+    @AppStorage(PasCeSoir.cle) private var pasCeSoir = ""
 
     private var reprises: [(fichier: FichierNAS, position: PositionLecture)] {
         #if targetEnvironment(macCatalyst)
@@ -543,12 +624,22 @@ private struct SectionReprendre: View {
         return etat.nas.positions.enCours.prefix(10).compactMap { entree in
             fichiers.first { $0.chemin == entree.chemin && $0.reference != nil }.map { ($0, entree.position) }
         }
+        .filter { $0.fichier.reference != sauf }
         #endif
     }
 
     var body: some View {
         let liste = reprises
-        if !liste.isEmpty {
+        if liste.isEmpty {
+            let ecartes = PasCeSoir.references(pasCeSoir)
+            let idees = suggestions.filter { $0.reference != sauf && !ecartes.contains($0.reference) }
+            if !idees.isEmpty {
+                VStack(alignment: .leading, spacing: 12) {
+                    TitreSection("Suggestions")
+                    Carrousel(titres: idees)
+                }
+            }
+        } else {
             VStack(alignment: .leading, spacing: 12) {
                 TitreSection("Reprendre")
                 DefilementHorizontal {
@@ -623,71 +714,6 @@ private struct SectionRegardable: View {
                 .padding(.horizontal, 20)
             }
         }
-    }
-}
-
-/// UX-01 : bandeau vedette à faire défiler.
-private struct BandeauVedette: View {
-    let titres: [TitreResume]
-    @State private var page = 0
-    @State private var survolFleche = false
-
-    var body: some View {
-        pages
-            .tabViewStyle(.page(indexDisplayMode: .automatic))
-            // Sur le Mac, les pages ne se glissent pas à la souris : une flèche de chaque côté, en boucle. Pendant
-            // le survol d'une flèche, la page du dessous ignore les clics, sinon elle ouvrirait sa fiche.
-            #if targetEnvironment(macCatalyst)
-            .allowsHitTesting(!survolFleche)
-            .overlay(alignment: .leading) {
-                if titres.count > 1 {
-                    FlecheDefilement(sens: .gauche, survol: $survolFleche) { tourner(-1) }
-                        .padding(.leading, 12)
-                }
-            }
-            .overlay(alignment: .trailing) {
-                if titres.count > 1 {
-                    FlecheDefilement(sens: .droite, survol: $survolFleche) { tourner(1) }
-                        .padding(.trailing, 12)
-                }
-            }
-            #endif
-            .frame(height: 440)
-    }
-
-    private var pages: some View {
-        TabView(selection: $page) {
-            ForEach(Array(titres.enumerated()), id: \.element.id) { rang, titre in
-                NavigationLink(value: titre.reference) {
-                    ZStack(alignment: .bottomLeading) {
-                        ImageDistante(url: ImageTMDB.url(titre.cheminFond, .fondGrand), coins: 0)
-                        LinearGradient(colors: [.clear, .clear, Theme.fond.opacity(0.8), Theme.fond],
-                                       startPoint: .top, endPoint: .bottom)
-                        VStack(alignment: .leading, spacing: 10) {
-                            Text(titre.titre)
-                                .font(.largeTitle.weight(.heavy))
-                                .lineLimit(2)
-                            HStack(spacing: 10) {
-                                AnneauNote(pourcentage: titre.pourcentageNote)
-                                if let annee = titre.date?.annee { Text(String(annee)) }
-                                Text(titre.reference.type == .film ? "Film" : "Série")
-                            }
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                        }
-                        .padding(.horizontal, 20)
-                        .padding(.bottom, 44)
-                    }
-                }
-                .buttonStyle(.plain)
-                .tag(rang)
-            }
-        }
-    }
-
-    private func tourner(_ sens: Int) {
-        guard !titres.isEmpty else { return }
-        withAnimation(.snappy) { page = (page + sens + titres.count) % titres.count }
     }
 }
 

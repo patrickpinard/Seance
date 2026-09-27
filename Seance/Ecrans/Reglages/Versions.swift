@@ -56,6 +56,21 @@ struct NoteVersion: Identifiable {
 
     static let historique: [NoteVersion] = [
         NoteVersion(
+            numero: "8.2",
+            date: "27 septembre 2026",
+            resume: "Le nouvel accueil de l'Apple TV arrive sur l'iPhone, l'iPad et le Mac : de quoi regarder ce soir, les nouveautés, et reprendre.",
+            fonctionnalites: [
+                Fonctionnalite(symbole: "sparkles.tv", titre: "Ce soir, pour toi",
+                               detail: "En grand, ta soirée prévue, sinon la vidéo entamée, un titre de ta liste sur le NAS ou le top de l'année ; « Reprendre à … » ou le bouton de la fiche, « Autre chose », « Pas ce soir »."),
+                Fonctionnalite(symbole: "square.stack", titre: "Nouveautés",
+                               detail: "À droite de la proposition sur l'iPad en paysage et le Mac ; en carrousel juste dessous sur l'iPhone et l'iPad en portrait."),
+                Fonctionnalite(symbole: "play.rectangle.on.rectangle", titre: "Reprendre, ou des suggestions",
+                               detail: "Les vidéos entamées ; s'il n'y en a pas, des suggestions d'après tes goûts. Le bandeau du haut et le salut laissent la place à la proposition."),
+                Fonctionnalite(symbole: "person.crop.circle", titre: "Ton prénom sur l'Apple TV",
+                               detail: "Dans Préférences › Toi : il remplace « Moi » partout sur la TV."),
+            ]
+        ),
+        NoteVersion(
             numero: "8.1",
             date: "27 septembre 2026",
             resume: "Sur l'Apple TV, l'accueil propose de quoi regarder ce soir, avec les nouveautés à côté.",

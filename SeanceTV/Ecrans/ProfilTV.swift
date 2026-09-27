@@ -17,6 +17,8 @@ struct ProfilTV: View {
     /// Tes réalisateurs (8.2.15), comme sur l'iPhone : lus une fois sur TMDB, gardés sur la TV.
     @State private var reserve = ReserveRealisateurs(donnees: UserDefaults.standard.data(forKey: ReserveRealisateurs.cle))
     @State private var quiRegarde = false
+    /// La personne qui regarde : son prénom s'écrit ici (8.2), à la place de « Moi » sur toute la TV.
+    @State private var profilActif = ConteneurTV.famille.actif
 
     var body: some View {
         ScrollView {
@@ -133,6 +135,7 @@ struct ProfilTV: View {
         VStack(alignment: .leading, spacing: 12) {
             Text("TOI").font(.system(size: 22, weight: .bold)).foregroundStyle(Theme.texte2).padding(.leading, 8)
             VStack(spacing: 2) {
+                ChampTV(titre: "Prénom", invite: "Ton prénom", texte: Binding { profilActif.prenom } set: { renommer($0) })
                 Button { quiRegarde = true } label: {
                     LigneTVReglage.Contenu(titre: "Changer de personne", detail: prenom, symbole: "person.2.fill")
                 }
@@ -202,8 +205,16 @@ struct ProfilTV: View {
     }
 
     private var prenom: String {
-        let nom = QuiRegardeTV.nom(ConteneurTV.famille.actif)
+        let nom = QuiRegardeTV.nom(profilActif)
         return nom.isEmpty ? "Toi" : nom
+    }
+
+    /// Le prénom de la personne en cours, écrit dans le registre de la famille de la TV.
+    private func renommer(_ texte: String) {
+        var profil = profilActif
+        profil.prenom = String(texte.trimmingCharacters(in: .whitespacesAndNewlines).prefix(30))
+        ConteneurTV.famille.modifier(profil)
+        profilActif = profil
     }
 
     private var notes: [Suivi] { suivis.filter { $0.note != nil }.prefix(20).map { $0 } }

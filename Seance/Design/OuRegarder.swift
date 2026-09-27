@@ -483,6 +483,8 @@ struct ChoixLecture: View {
 struct BoutonLectureCarte: View {
     let reference: ReferenceTitre
     let titre: String
+    /// `compact` : le bouton principal de l'accueil (8.1), qui dit ce qu'il fait ; `rond` : le ▶︎ des cartes.
+    var style: ChoixLecture.Style = .rond
 
     @Environment(EtatApp.self) private var etat
 
@@ -513,9 +515,9 @@ struct BoutonLectureCarte: View {
     var body: some View {
         let autres = Self.autresSources(reference, titre: titre, etat: etat)
         if Self.surNAS(reference, etat: etat) {
-            AvecFichierNAS(reference: reference, titre: titre, autres: autres)
+            AvecFichierNAS(reference: reference, titre: titre, autres: autres, style: style)
         } else if !autres.isEmpty {
-            ChoixLecture(reference: reference, titre: titre, sources: autres)
+            ChoixLecture(reference: reference, titre: titre, sources: autres, style: style)
         }
     }
 }
@@ -526,13 +528,15 @@ private struct AvecFichierNAS: View {
     let reference: ReferenceTitre
     let titre: String
     let autres: [SourceLecture]
+    let style: ChoixLecture.Style
     @Query private var fichiers: [FichierNAS]
     @Query private var vus: [Visionnage]
 
-    init(reference: ReferenceTitre, titre: String, autres: [SourceLecture]) {
+    init(reference: ReferenceTitre, titre: String, autres: [SourceLecture], style: ChoixLecture.Style = .rond) {
         self.reference = reference
         self.titre = titre
         self.autres = autres
+        self.style = style
         let id: Int? = reference.tmdbID
         let type = reference.type.rawValue
         _fichiers = Query(filter: #Predicate<FichierNAS> { $0.tmdbID == id && $0.typeBrut == type }, sort: \FichierNAS.chemin)
@@ -554,7 +558,7 @@ private struct AvecFichierNAS: View {
     }
 
     var body: some View {
-        ChoixLecture(reference: reference, titre: titre, sources: [aLancer].compactMap { $0 }.map(SourceLecture.nas) + autres)
+        ChoixLecture(reference: reference, titre: titre, sources: [aLancer].compactMap { $0 }.map(SourceLecture.nas) + autres, style: style)
     }
 }
 

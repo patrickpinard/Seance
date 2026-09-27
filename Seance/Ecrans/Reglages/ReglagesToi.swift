@@ -56,7 +56,7 @@ struct ReglagesPrenomView: View {
             } header: {
                 Text("Prénom")
             } footer: {
-                Text(Prenom.lire(prenom).map { "« \(Prenom.salut($0)) » sur l'accueil, « Des suggestions pour toi, \($0) » le soir. Ton prénom reste sur cet appareil." }
+                Text(Prenom.lire(prenom).map { "« Des suggestions pour toi, \($0) » le soir. Ton prénom reste sur cet appareil." }
                      ?? "Séance te saluera par ton prénom sur l'accueil et quand elle te propose des suggestions. Sans prénom, les phrases restent neutres.")
             }
 
