@@ -82,6 +82,8 @@ struct AccueilTV: View {
                         }
                     }
                 }
+                // Tes souvenirs (8.1) : les derniers albums de vidéos personnelles, à deux clics.
+                RangeeSouvenirsTV()
                 if !nouveautesNAS.isEmpty {
                     EtagereTV(titre: "Nouveaux sur ton NAS", sousTitre: "Prêts à regarder, du plus récent au plus ancien",
                               toutVoir: { etat.demandeRegarder = .nas }) {

@@ -375,6 +375,9 @@ struct AccueilView: View {
 
                 SectionReprendre(sauf: proposition?.reference, suggestions: suggestions)
 
+                // Tes souvenirs (8.1), comme sur l'Apple TV : les derniers albums de vidéos personnelles.
+                SectionSouvenirs()
+
                 aujourdhui
 
                 if sources.regardable {

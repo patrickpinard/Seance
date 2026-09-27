@@ -133,6 +133,7 @@
 		AB855C5A02596D5B9A1741EA /* ReglagesCentraleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 40DE70175786093499565AD1 /* ReglagesCentraleView.swift */; };
 		ABDB1F1CF56254EA3517C885 /* NASView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E818541C3B3B900062945DAE /* NASView.swift */; };
 		ADD29B106F18DD87AE6496BF /* VignettesSouvenirs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AE10CA9BFA6AF63B1BB2D8D /* VignettesSouvenirs.swift */; };
+		AE048DE2A38BE6329A435EE6 /* SouvenirsAccueilTV.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D1A03722CD285F7C65CFF81 /* SouvenirsAccueilTV.swift */; };
 		AE0965C1E675AFBE9CD34867 /* AVenir.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F359EEF2BD50F8A8280CD01 /* AVenir.swift */; };
 		AE3C6E517C3A52185389FEB3 /* Demonstration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59D423F4DD1DA03825519F89 /* Demonstration.swift */; };
 		AEAEBBD9AA98946DA5FA2395 /* LienProfond.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0661326CD01844A8F4B22D2B /* LienProfond.swift */; };
@@ -154,6 +155,7 @@
 		CF9E1E93D06F26359CB61324 /* FondTV.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C7A078473F674DE5D855194 /* FondTV.swift */; };
 		D09506312ABD69FBD6A03FA4 /* Lancement.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F521A01F8C00C6861F32A49 /* Lancement.swift */; };
 		D0EC1A46C9C48B351F5DDB19 /* CarteLargeTitre.swift in Sources */ = {isa = PBXBuildFile; fileRef = 015B5FC98ADD1A47A074B635 /* CarteLargeTitre.swift */; };
+		D14110BA2388D3880B0CE07B /* SectionSouvenirs.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC2BF3E1AEC219545049966C /* SectionSouvenirs.swift */; };
 		D27C1FC5A3614E1EDF282F6F /* AccueilTV.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10CC0E2C253A873F99B0EBDA /* AccueilTV.swift */; };
 		D3692AACDB2EE1BC63A706F2 /* ReglagesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = ABA6924ED64F1E1D2244C779 /* ReglagesView.swift */; };
 		D3D291714E7E7727508D57A7 /* PublicationEtagere.swift in Sources */ = {isa = PBXBuildFile; fileRef = E44F427370D5E25552689ED0 /* PublicationEtagere.swift */; };
@@ -185,6 +187,7 @@
 		F3631B58722536201E41B063 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6507C62249A2769DB1E60E0 /* Theme.swift */; };
 		F5B34AC8F424664BD6AFB00E /* BandeSoirees.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1716806C1D6DA6DE569DF0C9 /* BandeSoirees.swift */; };
 		F783EE50ED242E87C26070E9 /* ModelesWidgets.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED0B44CF550A1F10AF3049BA /* ModelesWidgets.swift */; };
+		F9D6558D6A503AA7F40ECCF4 /* RegarderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C5E7E2C0119FEB5DDE97519 /* RegarderTests.swift */; };
 		FC66DDA64C3A840C4CB2D4F3 /* ChoixSoiree.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49F605778D99EB9E5C2D53BA /* ChoixSoiree.swift */; };
 		FE0E35586FAD282596C348A4 /* EtatOu.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA553B0B30B7023CD901CBEC /* EtatOu.swift */; };
 		FE7576C913266B279565E431 /* Composants.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1E76531BEB952957EAAEE65 /* Composants.swift */; };
@@ -312,6 +315,8 @@
 		296C605DA0D2EB94945E9572 /* BarreLaterale.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BarreLaterale.swift; sourceTree = "<group>"; };
 		297F7F074F246563F3CA483B /* EtatAlertes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EtatAlertes.swift; sourceTree = "<group>"; };
 		29DE681EF5C1EAA1687286C4 /* MesListesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MesListesView.swift; sourceTree = "<group>"; };
+		2C5E7E2C0119FEB5DDE97519 /* RegarderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegarderTests.swift; sourceTree = "<group>"; };
+		2D1A03722CD285F7C65CFF81 /* SouvenirsAccueilTV.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SouvenirsAccueilTV.swift; sourceTree = "<group>"; };
 		2DE009439CA55CCDE58B6A92 /* NASTV.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NASTV.swift; sourceTree = "<group>"; };
 		316415587B7F86140C8C565A /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		31BBA52A422F777C34C20030 /* Charte.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Charte.swift; sourceTree = "<group>"; };
@@ -416,6 +421,7 @@
 		C99EF37CF4DFD9BE636726D5 /* SeanceTVUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = SeanceTVUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		CA91FBA795C5F100C03F8CC6 /* BandesAnnonces.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BandesAnnonces.swift; sourceTree = "<group>"; };
 		CACE819FB69880D873526A37 /* ListesCompletes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ListesCompletes.swift; sourceTree = "<group>"; };
+		CC2BF3E1AEC219545049966C /* SectionSouvenirs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SectionSouvenirs.swift; sourceTree = "<group>"; };
 		CC61A6DF4F06D93114C33417 /* AlertesALire.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertesALire.swift; sourceTree = "<group>"; };
 		CD94F6BCC152B1B30DE2DF48 /* EtatNAS.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EtatNAS.swift; sourceTree = "<group>"; };
 		CDFE09F876463AE72CAB9C3C /* ParcoursUtilisateurTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParcoursUtilisateurTests.swift; sourceTree = "<group>"; };
@@ -745,6 +751,7 @@
 				B2D544A2F476D4FABAD52710 /* EnTeteAccueil.swift */,
 				CACE819FB69880D873526A37 /* ListesCompletes.swift */,
 				6F47964B22868DCCC92CA219 /* ProgrammeTele.swift */,
+				CC2BF3E1AEC219545049966C /* SectionSouvenirs.swift */,
 			);
 			path = Accueil;
 			sourceTree = "<group>";
@@ -829,6 +836,7 @@
 				8D777738E8169D1D6CBA2E0A /* ProfilTV.swift */,
 				1D582373B008FEB4A9657483 /* RegarderTV.swift */,
 				54B4F4189EFFF7CA18A4B017 /* ReglagesTV.swift */,
+				2D1A03722CD285F7C65CFF81 /* SouvenirsAccueilTV.swift */,
 				5453BA88DED7FB9DE9A90CC5 /* StreamingTV.swift */,
 				76E95955E82BF0843BEFC076 /* TeleTV.swift */,
 				5EFED69699E50F3169D6EA9C /* VersionsTV.swift */,
@@ -897,6 +905,7 @@
 			isa = PBXGroup;
 			children = (
 				94B50216176B335E92514544 /* BarreLectureTests.swift */,
+				2C5E7E2C0119FEB5DDE97519 /* RegarderTests.swift */,
 				3EA69EFE83C26656E55AC5AB /* TelecommandeTests.swift */,
 			);
 			path = SeanceTVUITests;
@@ -1120,6 +1129,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				CF2B64666ADA78FFDC8981D2 /* BarreLectureTests.swift in Sources */,
+				F9D6558D6A503AA7F40ECCF4 /* RegarderTests.swift in Sources */,
 				D68A718D324A69F539944A97 /* TelecommandeTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -1170,6 +1180,7 @@
 				82B7699785ED31DA68C754A9 /* ReglagesTV.swift in Sources */,
 				9D5E919DE0559CD12DD8AB23 /* SeanceTVApp.swift in Sources */,
 				9BFDFE9503E02A88E8C6F5B9 /* SectionsRepliables.swift in Sources */,
+				AE048DE2A38BE6329A435EE6 /* SouvenirsAccueilTV.swift in Sources */,
 				9B42BD02C3CD9559F1A1B2B5 /* StreamingTV.swift in Sources */,
 				2A0E12E18C94B91D230F7950 /* TeleTV.swift in Sources */,
 				F3631B58722536201E41B063 /* Theme.swift in Sources */,
@@ -1284,6 +1295,7 @@
 				D3692AACDB2EE1BC63A706F2 /* ReglagesView.swift in Sources */,
 				CC898EF9BC0F2AB4B3062CF4 /* SeanceApp.swift in Sources */,
 				36BD505CB5A8BD22FAF40C8F /* SectionFavoris.swift in Sources */,
+				D14110BA2388D3880B0CE07B /* SectionSouvenirs.swift in Sources */,
 				706E4E45424BD53BF38B968E /* SectionsRepliables.swift in Sources */,
 				8770272C3FEE7FA90176BBDB /* SelecteurCases.swift in Sources */,
 				EA6D54848C6540918E7FD7A4 /* Sources.swift in Sources */,
