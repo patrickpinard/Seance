@@ -14,6 +14,8 @@ struct ProfilTV: View {
     @Query(sort: \TitreAime.aimeLe, order: .reverse) private var aimes: [TitreAime]
 
     @Environment(EtatTV.self) private var etat
+    /// Tes réalisateurs (8.2.15), comme sur l'iPhone : lus une fois sur TMDB, gardés sur la TV.
+    @State private var reserve = ReserveRealisateurs(donnees: UserDefaults.standard.data(forKey: ReserveRealisateurs.cle))
 
     var body: some View {
         ScrollView {
@@ -87,6 +89,18 @@ struct ProfilTV: View {
                         }
                     }
                 }
+                let realisateurs = reserve.classement(filmsVus: Set(visionnages.filter { $0.type == .film }.map(\.tmdbID)))
+                if !realisateurs.isEmpty {
+                    EtagereTV(titre: "Tes réalisateurs") {
+                        ForEach(realisateurs, id: \.realisateur.id) { classe in
+                            NavigationLink(value: PersonneTVRef(id: classe.realisateur.id, nom: classe.realisateur.nom)) {
+                                AfficheTV(titre: classe.realisateur.nom, sousTitre: "\(classe.films.count) films",
+                                          cheminAffiche: classe.realisateur.cheminPortrait)
+                            }
+                            .buttonStyle(.card)
+                        }
+                    }
+                }
                 // Tes chiffres ont leur page (maquette n° 18) : une ligne qui s'ouvre, que la télécommande atteint.
                 VStack(alignment: .leading, spacing: 12) {
                     NavigationLink(value: StatistiquesTVDemande()) {
@@ -102,6 +116,28 @@ struct ProfilTV: View {
             }
             .padding(.vertical, 40)
         }
+        .task(id: visionnages.count) { await chargerRealisateurs() }
+    }
+
+    /// Les réalisateurs des films vus qu'on ne connaît pas encore, trente à la fois.
+    private func chargerRealisateurs() async {
+        guard let tmdb = etat.tmdb else { return }
+        let films = Array(Set(visionnages.filter { $0.type == .film }.map(\.tmdbID)))
+        let manquants = Array(reserve.manquants(films).prefix(30))
+        guard !manquants.isEmpty else { return }
+        var lus: [Int: [ReserveRealisateurs.Realisateur]] = [:]
+        for id in manquants {
+            guard !Task.isCancelled else { return }
+            if let fiche = try? await tmdb.film(id, complements: [.casting]) {
+                lus[id] = (fiche.casting?.realisateurs ?? []).map {
+                    ReserveRealisateurs.Realisateur(id: $0.id, nom: $0.nom, cheminPortrait: $0.cheminPortrait)
+                }
+            }
+        }
+        var nouvelle = reserve
+        nouvelle.parFilm.merge(lus) { _, neuf in neuf }
+        reserve = nouvelle
+        UserDefaults.standard.set(nouvelle.encoder(), forKey: ReserveRealisateurs.cle)
     }
 
     private var prenom: String {

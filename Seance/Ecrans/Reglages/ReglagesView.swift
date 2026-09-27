@@ -7,7 +7,7 @@ import SwiftUI
 /// Un lien « par vue » vers Réglages, depuis la barre d'outils de Profil, figeait l'iPhone : SwiftUI remettait
 /// la destination à jour à chaque rendu, sans fin, jusqu'à ce qu'iOS tue l'app.
 enum DestinationReglage: Hashable {
-    case reglages, accueil, nouvelAppareil, envoiAppareil, prenom, famille, centrale, tmdb, claude, plateformes, tele, nas, videosPerso, lecture, alertes, alertesRecues, sauvegarde, lettre, aPropos, versions, journal, apercuWidgets
+    case reglages, langue, accueil, nouvelAppareil, envoiAppareil, prenom, famille, centrale, tmdb, claude, plateformes, tele, nas, videosPerso, lecture, alertes, alertesRecues, sauvegarde, lettre, aPropos, versions, journal, apercuWidgets
 }
 
 /// Une vue faite pour une feuille, montrée en page (8.2.3) : dans la colonne de droite des Réglages de l'iPad et du Mac,
@@ -89,6 +89,7 @@ struct PageReglage: View {
         case .prenom: ReglagesPrenomView()
         // 8.2.3 : ce qui s'ouvrait en feuille s'ouvre en page, à droite des Réglages sur l'iPad et le Mac.
         case .accueil: PageAccueilReglage()
+        case .langue: ReglagesLangueView()
         case .nouvelAppareil: NouvelAppareilView(terminer: {}, enPage: true)
         case .envoiAppareil: EnvoiAppleTVView(fermer: {}, enPage: true)
         case .famille: FamilleView()
@@ -113,6 +114,36 @@ struct PageReglage: View {
             #else
             EmptyView()
             #endif
+        }
+    }
+}
+
+/// Un groupe de lignes de réglage, dans son cadre : partagé par Réglages et les Préférences (8.2.15).
+struct GroupeReglages<Lignes: View>: View {
+    /// `nil` : sans titre, quand la page pose le sien (les Préférences, 8.2.15).
+    let titre: String?
+    @ViewBuilder let lignes: Lignes
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            if let titre {
+                Text(titre)
+                    .font(.footnote.weight(.bold))
+                    .foregroundStyle(.secondary)
+                    .textCase(.uppercase)
+                    .padding(.leading, 4)
+                    .accessibilityAddTraits(.isHeader)
+            }
+            VStack(spacing: 0) {
+                Group(subviews: lignes) { lignes in
+                    ForEach(Array(lignes.enumerated()), id: \.offset) { rang, ligne in
+                        if rang > 0 { Divider().padding(.leading, 52) }
+                        ligne
+                    }
+                }
+            }
+            .background(Theme.surface, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(Theme.trait))
         }
     }
 }
@@ -244,16 +275,8 @@ struct ReglagesView: View {
                           enOrdre: !etat.videosPerso.aConfigurer(films: etat.nas.reglages))
                     ligne(.lecture, "Lecture", "play.circle.fill", libelleLecteur)
                 }
-                groupe("Toi") {
-                    ligne(.prenom, "Prénom et suggestions", "person.fill",
-                          "\(Prenom.lire(prenom) ?? "À saisir") · \(Format.pluriel(NombreIdees.lire(nombreIdees), "suggestion"))")
-                    ligne(.alertes, "Alertes", "bell.fill", libelleAlertes, enOrdre: alertesActives)
-                    ligne(.lettre, "E-mail de la semaine", "envelope.fill",
-                          !etat.lettre.reglages.actif ? "Désactivé" : etat.lettre.pret ? libelleJoursLettre : "À terminer",
-                          enOrdre: etat.lettre.reglages.actif ? etat.lettre.pret : nil)
-                    // L'accueil se personnalise dans sa feuille, la même que depuis l'accueil : un seul réglage, deux portes.
-                    ligne(.accueil, "Accueil", "house.fill", libelleAccueil)
-                }
+                // 8.2.15 (demande de Patrick) : ce qui est à toi — prénom, image, alertes, e-mail, accueil, langue — est
+                // passé dans les Préférences. Ici, la maison et l'appareil.
                 groupe("La maison") {
                     ligne(.famille, "Famille", "person.2.fill",
                           ProfilsFamille().aPlusieursProfils ? ProfilsFamille().profils.map { $0.prenom.isEmpty ? "Moi" : $0.prenom }.joined(separator: ", ")

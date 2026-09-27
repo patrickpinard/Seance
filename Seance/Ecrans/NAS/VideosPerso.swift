@@ -16,6 +16,9 @@ struct VideosPersoView: View {
 
     @Environment(EtatApp.self) private var etat
     @Environment(\.openURL) private var ouvrir
+    /// Rangement et sections repliables des souvenirs (8.2.15), comme les films et les séries.
+    @AppStorage("videos.rangement") private var rangementSouvenirs = "Année"
+    @State private var sectionsSouvenirs = SectionsRepliables()
     @State private var illisible: VideoPerso?
     /// La vidéo ouverte dans le lecteur de Séance (Réglages › Vidéos personnelles).
     @State private var aLire: VideoPerso?
@@ -123,21 +126,55 @@ struct VideosPersoView: View {
         if albums.isEmpty {
             vide
         }
-        ForEach(ArbreVideosPerso.parAnnee(filtrer(albums)), id: \.titre) { section in
-            HStack(alignment: .firstTextBaseline) {
-                Text(section.titre).font(.title2.weight(.bold))
-                Spacer()
-                Text(Format.pluriel(section.albums.count, "souvenir")).font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+        // 8.2.15 (demande de Patrick) : la même présentation que les films et les séries — les pastilles de
+        // rangement, et par année des sections qu'on ouvre et qu'on ferme, les plus récentes d'abord.
+        if !albums.isEmpty {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(["Année", "A→Z"], id: \.self) { mode in
+                        PuceFiltre(libelle: mode, active: rangementSouvenirs == mode) { rangementSouvenirs = mode }
+                            .accessibilityLabel("Ranger par \(mode)")
+                    }
+                }
+                .padding(.horizontal, 20)
             }
-            .padding(.horizontal, 20)
-            .accessibilityElement(children: .combine)
-            .accessibilityAddTraits(.isHeader)
+        }
+        if rangementSouvenirs == "A→Z" {
             LazyVGrid(columns: Self.colonnesSouvenirs, spacing: 12) {
-                ForEach(section.albums) { album in
+                ForEach(filtrer(albums).sorted { $0.titre.localizedCaseInsensitiveCompare($1.titre) == .orderedAscending }) { album in
                     carteAlbum(album)
                 }
             }
             .padding(.horizontal, 16)
+        } else {
+            let annees = ArbreVideosPerso.parAnnee(filtrer(albums))
+            if annees.count > 1 {
+                let titres = annees.map(\.titre)
+                let toutes = sectionsSouvenirs.toutesOuvertes(titres)
+                HStack {
+                    Spacer()
+                    Button(toutes ? "Tout fermer" : "Tout ouvrir") {
+                        withAnimation(.snappy) { sectionsSouvenirs.toutes(ouvertes: !toutes, titres: titres) }
+                    }
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Theme.accent)
+                    .frame(minHeight: 44)
+                }
+                .padding(.horizontal, 20)
+            }
+            ForEach(annees, id: \.titre) { section in
+                EnTeteRepliable(titre: section.titre, detail: Format.pluriel(section.albums.count, "souvenir"),
+                                ouverte: sectionsSouvenirs.ouverte(section.titre)) { sectionsSouvenirs.basculer(section.titre) }
+                    .padding(.horizontal, 20)
+                if sectionsSouvenirs.ouverte(section.titre) {
+                    LazyVGrid(columns: Self.colonnesSouvenirs, spacing: 12) {
+                        ForEach(section.albums) { album in
+                            carteAlbum(album)
+                        }
+                    }
+                    .padding(.horizontal, 16)
+                }
+            }
         }
     }
 

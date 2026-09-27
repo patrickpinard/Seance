@@ -263,8 +263,20 @@ struct FicheTV: View {
         if reference.type == .film {
             choix.append(DialogueTV.Choix(libelle: vu ? "Pas encore vu" : "Terminé") { basculerVu() })
         }
+        // 8.2.15 : comme le « ⋯ » de l'iPhone — « Déjà vu avant », et pour une série le choix des alertes.
+        if !vu {
+            choix.append(DialogueTV.Choix(libelle: ActionTitre.dejaVuAvant.libelle(reference.type)) { Task { await dejaVuAvant() } })
+        }
         if let suivi {
-            choix.append(DialogueTV.Choix(libelle: suivi.alertesActives ? "Ne plus me prévenir" : "Me prévenir") { basculerAlertes(suivi) })
+            if reference.type == .serie {
+                choix.append(DialogueTV.Choix(libelle: "Me prévenir à chaque épisode") { reglerAlertes(suivi, .episodes) })
+                choix.append(DialogueTV.Choix(libelle: "Me prévenir aux nouvelles saisons seulement") { reglerAlertes(suivi, .saisons) })
+                if suivi.alertesActives {
+                    choix.append(DialogueTV.Choix(libelle: "Ne plus me prévenir") { reglerAlertes(suivi, nil) })
+                }
+            } else {
+                choix.append(DialogueTV.Choix(libelle: suivi.alertesActives ? "Ne plus me prévenir" : "Me prévenir") { basculerAlertes(suivi) })
+            }
         }
         if prevuCeSoir {
             choix.append(DialogueTV.Choix(libelle: "Retirer de ce soir") { basculerSoiree() })
@@ -699,6 +711,27 @@ struct FicheTV: View {
     }
 
     /// La cloche : l'Apple TV n'affiche pas de notification, c'est l'iPhone qui prévient, une fois synchronisé.
+    /// Les alertes d'une série, comme sur l'iPhone : à chaque épisode, aux nouvelles saisons, ou plus du tout.
+    private func reglerAlertes(_ suivi: Suivi, _ mode: ModeAlerteSerie?) {
+        suivi.alertesActives = mode != nil
+        if let mode { suivi.modeAlertes = mode }
+        try? contexte.save()
+        etat.dire(mode == nil ? "Plus d'alertes pour « \(titre) »"
+                  : mode == .saisons ? "Ton iPhone te préviendra des nouvelles saisons" : "Ton iPhone te préviendra à chaque épisode")
+    }
+
+    /// La même action que le menu de l'iPhone (`ActionsCommunes`).
+    private func dejaVuAvant() async {
+        guard let tmdb = etat.tmdb else { return etat.dire("Il faut la clé TMDB pour cela.") }
+        do {
+            try await ActionsCommunes.dejaVuAvant(reference, contexte: contexte, tmdb: tmdb)
+            vu = reference.type == .film ? true : vu
+            etat.dire(reference.type == .film ? "« \(titre) » marqué déjà vu" : "« \(titre) » : toute la série marquée vue")
+        } catch {
+            etat.dire("TMDB ne répond pas : réessaie dans un instant.")
+        }
+    }
+
     private func basculerAlertes(_ suivi: Suivi) {
         suivi.alertesActives.toggle()
         try? contexte.save()

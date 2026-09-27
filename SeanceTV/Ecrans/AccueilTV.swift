@@ -15,6 +15,11 @@ struct AccueilTV: View {
     @Query private var chaines: [Chaine]
 
     @State private var duMoment: [ApercuTV] = []
+    /// Déjà vus, refusés ou « pas intéressé pour l'instant » (8.2.15) : comme sur l'iPhone, plus proposés ici.
+    @Query(filter: #Predicate<Suivi> { $0.statutBrut == "exclu" || $0.exclusionLangue || $0.statutBrut == "termine" })
+    private var suivisEcartes: [Suivi]
+    @AppStorage(PasInteresse.cle) private var pasInteresse = ""
+    private var ecartes: Set<ReferenceTitre> { Set(suivisEcartes.map(\.reference)).union(PasInteresse.references(pasInteresse)) }
     @State private var top: [ApercuTV] = []
     @State private var configuration = false
     /// Images de fond des titres de la soirée, lues sur TMDB quand le NAS ne les connaît pas.
@@ -124,7 +129,9 @@ struct AccueilTV: View {
     }
 
     @ViewBuilder
-    private func etagere(_ titre: String, _ sousTitre: String, _ apercus: [ApercuTV]) -> some View {
+    private func etagere(_ titre: String, _ sousTitre: String, _ tous: [ApercuTV]) -> some View {
+        let ecartes = ecartes
+        let apercus = tous.filter { !ecartes.contains($0.reference) }
         if !apercus.isEmpty {
             EtagereTV(titre: titre, sousTitre: sousTitre) {
                 ForEach(apercus) { apercu in
@@ -288,6 +295,9 @@ struct ApercuTV: Identifiable, Hashable {
     let cheminAffiche: String?
     var cheminFond: String?
     let popularite: Double
+    /// Pour ranger les résultats par genre et par année (8.2.15), comme sur l'iPhone.
+    var genres: [Int] = []
+    var annee: Int?
 
     var id: ReferenceTitre { reference }
 
@@ -296,11 +306,13 @@ struct ApercuTV: Identifiable, Hashable {
         let deFilms = films.map {
             ApercuTV(reference: ReferenceTitre(type: .film, tmdbID: $0.id), titre: $0.titre,
                      sousTitre: ["Film", $0.dateSortie.map { String($0.annee) }].compactMap { $0 }.joined(separator: " · "),
-                     cheminAffiche: $0.cheminAffiche, cheminFond: $0.cheminFond, popularite: $0.popularite)
+                     cheminAffiche: $0.cheminAffiche, cheminFond: $0.cheminFond, popularite: $0.popularite,
+                     genres: $0.genres, annee: $0.dateSortie?.annee)
         }
         let deSeries = series.map {
             ApercuTV(reference: ReferenceTitre(type: .serie, tmdbID: $0.id), titre: $0.nom, sousTitre: "Série",
-                     cheminAffiche: $0.cheminAffiche, cheminFond: $0.cheminFond, popularite: $0.popularite)
+                     cheminAffiche: $0.cheminAffiche, cheminFond: $0.cheminFond, popularite: $0.popularite,
+                     genres: $0.genres, annee: $0.premiereDiffusion?.annee)
         }
         let tous = (deFilms + deSeries).filter { $0.cheminAffiche != nil }
         return (garderLOrdre ? tous : tous.sorted { $0.popularite > $1.popularite }).prefix(garderLOrdre ? 40 : 24).map { $0 }

@@ -54,6 +54,27 @@ struct ExplorerTV: View {
     @FocusState private var choixAuFocus: Int?
     @State private var recherche = ""
     @State private var resultats: [ApercuTV] = []
+    /// Le rangement des résultats et ses sections (8.2.15).
+    @State private var rangement = "Pertinence"
+    @State private var sections = SectionsRepliables()
+    /// Explorer › NAS › Vidéos : les vidéos personnelles plutôt que les films (8.2.15).
+    @State private var videos = false
+
+    private var tranches: [(titre: String, titres: [ApercuTV])] {
+        switch rangement {
+        case "A→Z":
+            return [("", resultats.sorted { $0.titre.localizedCaseInsensitiveCompare($1.titre) == .orderedAscending })]
+        case "Année":
+            let parAnnee = Dictionary(grouping: resultats) { $0.annee }
+            return parAnnee.keys.sorted { ($0 ?? 0) > ($1 ?? 0) }.map { ($0.map(String.init) ?? "Année inconnue", parAnnee[$0] ?? []) }
+        case "Genre":
+            let noms = Dictionary((GenresParDefaut.films + GenresParDefaut.series).map { ($0.id, $0.nom) }, uniquingKeysWith: { premier, _ in premier })
+            let parGenre = Dictionary(grouping: resultats) { $0.genres.first.flatMap { noms[$0] } ?? "Autres" }
+            return parGenre.keys.sorted { $0 == "Autres" ? false : $1 == "Autres" ? true : $0 < $1 }.map { ($0, parGenre[$0] ?? []) }
+        default:
+            return [("", resultats)]
+        }
+    }
     @State private var enCours = false
 
     private var source: Source { sourceImposee ?? sourceChoisie }
@@ -152,7 +173,7 @@ struct ExplorerTV: View {
     /// Ce que la ligne dit à droite : le choix en cours, en quelques mots.
     private func valeur(_ critere: Critere) -> String {
         switch critere {
-        case .categorie: return categorie.rawValue
+        case .categorie: return source == .nas && videos ? "Vidéos" : categorie.rawValue
         case .disponibilite: return source == .streaming ? "Mes plateformes" : source.rawValue
         case .genres:
             let noms = genres.filter { genresChoisis.contains($0.id) }.map(\.nom) + genres.filter { genresExclus.contains($0.id) }.map { "− \($0.nom)" }
@@ -182,7 +203,11 @@ struct ExplorerTV: View {
         switch critere {
         case .categorie:
             ForEach(Array(Categorie.allCases.enumerated()), id: \.element) { rang, choix in
-                puce(choix.rawValue, categorie == choix, rang: rang) { categorie = choix }
+                puce(choix.rawValue, categorie == choix && !videos, rang: rang) { categorie = choix; videos = false }
+            }
+            // Sur le NAS, les vidéos personnelles quand elles sont activées (8.2.15), comme sur l'iPhone.
+            if source == .nas, etat.videosPerso.actif {
+                puce("Vidéos", videos, rang: Categorie.allCases.count) { videos = true }
             }
         case .disponibilite:
             ForEach(Array(Source.allCases.enumerated()), id: \.element) { rang, choix in
@@ -271,15 +296,48 @@ struct ExplorerTV: View {
                                         : "Élargis les filtres.")
                         .font(.system(size: 26)).foregroundStyle(Theme.texte2)
                 }
-                LazyVGrid(columns: Array(repeating: GridItem(.fixed(360), spacing: 34, alignment: .top), count: 3), spacing: 40) {
-                    ForEach(resultats) { apercu in
-                        NavigationLink(value: apercu.reference) {
-                            CarteLargeTV(surtitre: origine(apercu.reference), titre: apercu.titre, detail: apercu.sousTitre,
-                                         cheminImage: apercu.cheminFond ?? apercu.cheminAffiche, largeur: 360, reference: apercu.reference)
+                // Explorer › NAS › Vidéos (8.2.15) : les vidéos personnelles, comme sur l'iPhone.
+                if source == .nas, videos {
+                    VideosPersoTV(integree: true)
+                } else {
+                // 8.2.15 : les mêmes rangements que sur l'iPhone, en sections qu'on ouvre et qu'on ferme.
+                if resultats.count > 1 {
+                    HStack(spacing: 14) {
+                        ForEach(["Pertinence", "Année", "Genre", "A→Z"], id: \.self) { mode in
+                            Button(mode) {
+                                rangement = mode
+                                sections = SectionsRepliables(ouvertesParDefaut: mode != "Genre")
+                            }
+                            .buttonStyle(BoutonTV(principal: rangement == mode, hauteur: 56))
                         }
-                        .buttonStyle(.card)
-                        .menuCarteTV(apercu.reference, titre: apercu.titre, cheminAffiche: apercu.cheminAffiche)
                     }
+                    .focusSection()
+                }
+                ForEach(tranches, id: \.titre) { tranche in
+                    if !tranche.titre.isEmpty {
+                        Button { withAnimation(.snappy) { sections.basculer(tranche.titre) } } label: {
+                            HStack(spacing: 14) {
+                                Image(systemName: "chevron.right").rotationEffect(.degrees(sections.ouverte(tranche.titre) ? 90 : 0))
+                                Text(tranche.titre).font(.system(size: 32, weight: .bold))
+                                Text("\(tranche.titres.count)").font(.system(size: 24)).foregroundStyle(Theme.texte2)
+                            }
+                        }
+                        .buttonStyle(LienTV())
+                    }
+                    if tranche.titre.isEmpty || sections.ouverte(tranche.titre) {
+                        LazyVGrid(columns: Array(repeating: GridItem(.fixed(360), spacing: 34, alignment: .top), count: 3), spacing: 40) {
+                            ForEach(tranche.titres) { apercu in
+                                NavigationLink(value: apercu.reference) {
+                                    CarteLargeTV(surtitre: origine(apercu.reference), titre: apercu.titre, detail: apercu.sousTitre,
+                                                 cheminImage: apercu.cheminFond ?? apercu.cheminAffiche, largeur: 360, reference: apercu.reference)
+                                }
+                                .buttonStyle(.card)
+                                .menuCarteTV(apercu.reference, titre: apercu.titre, cheminAffiche: apercu.cheminAffiche)
+                            }
+                        }
+                        .focusSection()
+                    }
+                }
                 }
             }
             .padding(.vertical, 30)

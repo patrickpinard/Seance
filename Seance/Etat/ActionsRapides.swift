@@ -91,20 +91,8 @@ struct ActionsRapides {
                 }
                 return ("Marqué déjà vu avant", "clock.arrow.circlepath")
             case .serie:
-                let tmdb = try client()
-                let serie = try await tmdb.serie(reference.tmdbID, complements: [.casting])
-                let aujourdhui = DateTMDB(.now)
-                var episodes: [EpisodeTMDB] = []
-                for saison in serie.saisons where saison.numero > 0 && saison.nombreEpisodes > 0 {
-                    episodes += try await tmdb.saison(saison.numero, serie: serie.id).episodes
-                }
-                let diffuses = episodes.filter { $0.dateDiffusion.map { $0 <= aujourdhui } ?? false }
-                try suivi.cocher(diffuses, serie: serie, anterieur: true)
-                // 8.2.11 : vue, elle passe dans Terminés — même encore en cours chez TMDB —, et quitte les Nouveautés.
-                if let suiviSerie = try suivi.suivi(reference) {
-                    suiviSerie.statut = .termine
-                    try contexte.save()
-                }
+                // La même action que sur l'Apple TV (8.2.15) : épisodes diffusés cochés, série rangée dans Terminés.
+                try await ActionsCommunes.dejaVuAvant(reference, contexte: contexte, tmdb: try client())
                 return ("Série marquée déjà vue avant", "clock.arrow.circlepath")
             }
 
@@ -153,31 +141,82 @@ struct MenuActionsTitre: View {
 
     @Environment(EtatApp.self) private var etat
     @Environment(\.modelContext) private var contexte
+    @Environment(\.ouvrirFiche) private var ouvrirFiche
+
+    /// 8.2.15 : la liste commune à l'iPhone, l'iPad, le Mac et l'Apple TV (`ActionTitre`), dans le même ordre et avec
+    /// les mêmes mots ; ce que montre le menu dépend de ce que Séance sait déjà du titre.
+    private var etatMenu: ActionTitre.Etat {
+        let reference = titre.reference
+        let suivi = try? ServiceSuivi(contexte: contexte).suivi(reference)
+        let ceSoir = ServiceSoiree.soiree()
+        let prevu = ((try? contexte.fetch(FetchDescriptor<SelectionSoir>(predicate: #Predicate { $0.soiree == ceSoir }))) ?? [])
+            .contains { $0.reference == reference }
+        return ActionTitre.Etat(dansMaListe: suivi.map { !$0.masque && $0.statut != .exclu } ?? false,
+                                vu: reference.type == .film && ((try? ServiceSuivi(contexte: contexte).estVu(reference)) ?? false),
+                                prevuCeSoir: prevu,
+                                favori: (try? ServiceFavoris(contexte: contexte).estFavori(reference)) ?? false)
+    }
 
     var body: some View {
         MenuJourChoisi(titre: choisi)
-        Button { lancer(.aVoir) } label: { Label("Ajouter à voir", systemImage: "plus") }
-        if titre.reference.type == .film {
-            Button { lancer(.vuAujourdhui) } label: { Label("Vu aujourd'hui", systemImage: "eye") }
-            Button { lancer(.dejaVuAvant) } label: { Label("Déjà vu avant", systemImage: "clock.arrow.circlepath") }
-        } else {
-            Button { lancer(.dejaVuAvant) } label: { Label("Toute la série déjà vue avant", systemImage: "clock.arrow.circlepath") }
+        let etatMenu = etatMenu
+        let type = titre.reference.type
+        ForEach(ActionTitre.menu(type, etat: etatMenu), id: \.self) { action in
+            if action.ouvreUnGroupe { Divider() }
+            Button(role: action.destructive ? .destructive : nil) { executer(action) } label: {
+                Label(action.libelle(type, etat: etatMenu), systemImage: action.symbole)
+            }
         }
-        Button { lancer(.soiree) } label: { Label("Ajouter à ma soirée", systemImage: "moon.stars") }
-        Button { etat.titreADater = choisi } label: { Label("Prévoir pour une soirée…", systemImage: "calendar") }
-        Button { etat.titrePourListe = choisi } label: { Label("Ajouter à une liste…", systemImage: "list.bullet.rectangle.portrait") }
-        Divider()
-        Button { lancer(.favori) } label: { Label("Ajouter à mes favoris", systemImage: "star") }
-        // 8.2.11 : pas un goût, juste « pas maintenant » — il reviendra dans deux mois.
-        Button {
+    }
+
+    /// Chaque action du menu commun : un `switch` sans `default`, pour qu'aucune ne soit oubliée ici.
+    private func executer(_ action: ActionTitre) {
+        switch action {
+        case .regarder: regarder()
+        case .voirFiche: voirFiche()
+        case .aVoir: lancer(.aVoir)
+        case .vuAujourdhui: lancer(.vuAujourdhui)
+        case .dejaVuAvant: lancer(.dejaVuAvant)
+        case .ceSoir: lancer(.soiree)
+        case .autreSoir: etat.titreADater = choisi
+        case .ajouterAUneListe: etat.titrePourListe = choisi
+        case .favori: lancer(.favori)
+        case .pasInteresse:
+            // Pas un goût, juste « pas maintenant » : il reviendra dans deux mois (8.2.11).
             let reference = titre.reference
             PasInteresse.ecarter(reference)
             etat.confirmer("« \(titre.titre) » ne sera plus proposé pendant deux mois", symbole: "hand.raised") {
                 PasInteresse.reproposer(reference)
             }
-        } label: { Label("Pas intéressé pour l'instant", systemImage: "hand.raised") }
-        Button { lancer(.jAime) } label: { Label("J'aime", systemImage: "hand.thumbsup") }
-        Button(role: .destructive) { lancer(.pasInteresse) } label: { Label("Je n'aime pas : ne plus me le proposer", systemImage: "hand.thumbsdown") }
+        case .jAime: lancer(.jAime)
+        case .jeNaimePas: lancer(.pasInteresse)
+        }
+    }
+
+    private func voirFiche() {
+        if let ouvrirFiche { ouvrirFiche(titre.reference) } else { etat.ficheDemandee = titre.reference }
+    }
+
+    /// Regarder : le film ou le prochain épisode du NAS, dans le lecteur de Séance ; sinon la fiche, dont le grand
+    /// bouton lance la plateforme ou la chaîne.
+    private func regarder() {
+        #if !targetEnvironment(macCatalyst)
+        let reference = titre.reference
+        let id: Int? = reference.tmdbID
+        let type = reference.type.rawValue
+        let fichiers = ((try? contexte.fetch(FetchDescriptor<FichierNAS>(predicate: #Predicate { $0.tmdbID == id && $0.typeBrut == type }))) ?? [])
+            .sorted { ($0.saison ?? 0, $0.episode ?? 0) < ($1.saison ?? 0, $1.episode ?? 0) }
+        let vus = (try? ServiceSuivi(contexte: contexte).episodesVus(reference)) ?? []
+        let aLire = reference.type == .film ? fichiers.first : fichiers.first { fichier in
+            guard let saison = fichier.saison, let episode = fichier.episode else { return false }
+            return !vus.contains(NumeroEpisode(saison: saison, episode: episode))
+        } ?? fichiers.first
+        if let aLire, etat.nas.motDePasse != nil {
+            etat.nas.noterLecture(aLire)
+            return etat.lire(aLire)
+        }
+        #endif
+        voirFiche()
     }
 
     private var choisi: TitreChoisi {
@@ -189,6 +228,12 @@ struct MenuActionsTitre: View {
         let titre = titre
         Task { await actions.executer(action, sur: titre) }
     }
+}
+
+extension EnvironmentValues {
+    /// Ouvre une fiche dans la pile de la page (8.2.15) : « Voir la fiche » du menu d'un titre. Sans elle, la fiche
+    /// s'ouvre dans l'accueil.
+    @Entry var ouvrirFiche: ((ReferenceTitre) -> Void)? = nil
 }
 
 /// Dans Regarder, un autre jour choisi dans la rangée (25.09.2026) : le titre se prévoit pour ce soir-là d'un geste,

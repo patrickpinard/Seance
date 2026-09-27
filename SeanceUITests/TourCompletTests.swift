@@ -154,12 +154,12 @@ final class TourCompletTests: XCTestCase {
 
         // Profil : des images, pas de chiffres ; les statistiques en bas, puis Réglages et l'apparence.
         app.ouvrirPreferences()
-        XCTAssertTrue(app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Tes goûts'")).firstMatch.waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["Tes goûts"].firstMatch.waitForExistence(timeout: 10))
         XCTAssertFalse(app.staticTexts["Ta collection"].exists, "Les chiffres sont encore mis en avant dans les Préférences")
         capture("17-profil", attente: 4)
         app.swipeUp()
         capture("18-profil-bas")
-        app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Tes statistiques'")).firstMatch.tap()
+        app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Ta collection et ton année'")).firstMatch.tap()
         XCTAssertTrue(app.staticTexts["Ta collection"].firstMatch.waitForExistence(timeout: 10), "La collection n'est pas dans les statistiques")
         capture("19-statistiques", attente: 3)
         app.fermerPreferences()

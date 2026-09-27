@@ -17,13 +17,10 @@ final class ReglagesTests: XCTestCase {
         continueAfterFailure = true
         app.launchEnvironment["SEANCE_DEMO"] = "1"
         app.launch()
-        app.ouvrirReglages()
-        XCTAssertTrue(app.staticTexts["La maison"].firstMatch.waitForExistence(timeout: 10), "Réglages ne s'ouvre pas")
-        capture("reglages")
-
-        // Le prénom se saisit et se retrouve sur sa ligne.
+        // 8.2.15 : le prénom, les alertes et l'e-mail sont dans les Préférences.
+        app.ouvrirPreferences()
         let prenom = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Prénom'")).firstMatch
-        XCTAssertTrue(app.amener(prenom, essais: 16), "Tuile « Prénom et suggestions » introuvable")
+        XCTAssertTrue(app.amener(prenom, essais: 16), "Ligne « Prénom et image » introuvable dans les Préférences")
         prenom.tap()
         XCTAssertTrue(app.navigationBars["Toi"].waitForExistence(timeout: 8), "La page « Toi » ne s'ouvre pas")
         let champ = app.textFields["Ton prénom"]
@@ -34,7 +31,13 @@ final class ReglagesTests: XCTestCase {
         capture("reglages-Toi")
         app.navigationBars.buttons.firstMatch.tap()
         XCTAssertTrue(app.buttons.matching(NSPredicate(format: "label CONTAINS 'Camille'")).firstMatch.waitForExistence(timeout: 8),
-                      "Le prénom saisi n'apparaît pas dans Réglages")
+                      "Le prénom saisi n'apparaît pas dans les Préférences")
+        XCTAssertTrue(app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Alertes'")).firstMatch.exists, "Pas de ligne Alertes dans les Préférences")
+        app.fermerPreferences()
+
+        app.ouvrirReglages()
+        XCTAssertTrue(app.staticTexts["La maison"].firstMatch.waitForExistence(timeout: 10), "Réglages ne s'ouvre pas")
+        capture("reglages")
 
         let pages: [(ligne: String, repere: String)] = [
             ("TMDB", "Clé TMDB"),
@@ -43,7 +46,6 @@ final class ReglagesTests: XCTestCase {
             ("TV", "Guide des programmes"),
             ("NAS", "NAS"),
             ("Lecture", "Lecture"),
-            ("Alertes", "Alertes"),
             ("Appareils et synchronisation", "Sauvegarde"),
             ("Séance", "L'application"),
             ("Versions", "Versions"),

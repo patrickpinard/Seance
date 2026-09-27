@@ -142,6 +142,8 @@ struct ExplorerView: View {
                 FeuilleFiltres(depart: modele.filtres, modele: modele) { modele.filtres = $0 }
             }
             .destinationsTitres()
+            // « Voir la fiche » du menu d'un titre l'ouvre ici même (8.2.15).
+            .environment(\.ouvrirFiche) { chemin.append($0) }
         }
     }
 

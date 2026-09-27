@@ -310,6 +310,8 @@ struct AccueilView: View {
                 for suivi in candidatsRegardables { etat.ou.demander(suivi.reference, client: etat.tmdb) }
             }
             .destinationsTitres()
+            // « Voir la fiche » du menu d'un titre l'ouvre ici même (8.2.15).
+            .environment(\.ouvrirFiche) { chemin.append($0) }
             .destinationsAccueil()
             // Charte 8.0 : en haut, le portrait et la roue seulement. Personnaliser l'accueil se fait dans
             // Réglages › Accueil.

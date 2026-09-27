@@ -114,3 +114,13 @@ extension TMDBClient {
         return resultat.resultats.filter { $0 != .autre }
     }
 }
+
+public extension TitreResume {
+    /// Un titre connu seulement par sa référence, son nom et son affiche (8.2.15) : pour le menu d'une carte de Mes
+    /// listes ou du NAS, qui n'a pas de fiche TMDB sous la main.
+    init(reference: ReferenceTitre, titre: String, cheminAffiche: String?, cheminFond: String? = nil, genres: [Int] = [],
+         date: DateTMDB? = nil) {
+        self.init(reference: reference, titre: titre, titreOriginal: titre, langueOriginale: nil, synopsis: "", genres: genres,
+                  cheminAffiche: cheminAffiche, cheminFond: cheminFond, noteMoyenne: 0, nombreVotes: 0, date: date)
+    }
+}

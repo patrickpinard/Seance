@@ -47,3 +47,30 @@ public enum FinDeFichierNAS {
             .min { ($0.saison ?? 0, $0.episode ?? 0) < ($1.saison ?? 0, $1.episode ?? 0) }
     }
 }
+
+/// Les actions du menu d'un titre qui doivent faire la même chose sur l'iPhone et sur l'Apple TV (8.2.15).
+@MainActor
+public enum ActionsCommunes {
+    /// « Déjà vu avant » : un film rejoint les vus (hors statistiques) ; une série voit tous ses épisodes déjà diffusés
+    /// cochés, et passe dans Terminés — même encore en cours —, ce qui la sort des Nouveautés.
+    public static func dejaVuAvant(_ reference: ReferenceTitre, contexte: ModelContext, tmdb: TMDBClient) async throws {
+        let suivi = ServiceSuivi(contexte: contexte)
+        switch reference.type {
+        case .film:
+            try suivi.marquerVu(film: try await tmdb.film(reference.tmdbID, complements: [.casting]), anterieur: true)
+        case .serie:
+            let serie = try await tmdb.serie(reference.tmdbID, complements: [.casting])
+            let aujourdhui = DateTMDB(.now)
+            var episodes: [EpisodeTMDB] = []
+            for saison in serie.saisons where saison.numero > 0 && saison.nombreEpisodes > 0 {
+                episodes += try await tmdb.saison(saison.numero, serie: serie.id).episodes
+            }
+            try Task.checkCancellation()
+            try suivi.cocher(episodes.filter { $0.dateDiffusion.map { $0 <= aujourdhui } ?? false }, serie: serie, anterieur: true)
+            if let suiviSerie = try suivi.suivi(reference) {
+                suiviSerie.statut = .termine
+                try contexte.save()
+            }
+        }
+    }
+}

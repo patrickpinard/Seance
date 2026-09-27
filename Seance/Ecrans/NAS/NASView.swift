@@ -508,7 +508,9 @@ struct CarteLargeNAS: View {
         if let reference = oeuvre.reference {
             NavigationLink(value: reference) { carte }
                 .buttonStyle(.plain)
-                .menuSoiree(TitreChoisi(reference: reference, titre: oeuvre.titre, cheminAffiche: oeuvre.cheminAffiche))
+                // Le menu commun à tous les appareils (8.2.15) ; il n'y avait ici que « Ce soir ».
+                .actionsRapides(TitreResume(reference: reference, titre: oeuvre.titre, cheminAffiche: oeuvre.cheminAffiche,
+                                            cheminFond: oeuvre.fichiers.compactMap(\.cheminFond).first))
         } else {
             carte
         }

@@ -126,6 +126,8 @@ struct MesListesView: View {
             .boutonBarreLaterale()
             .searchable(text: $recherche, prompt: "Chercher dans mes listes")
             .destinationsTitres()
+            // « Voir la fiche » du menu d'un titre l'ouvre ici même (8.2.15).
+            .environment(\.ouvrirFiche) { chemin.append($0) }
             .navigationDestination(for: PersistentIdentifier.self) { id in
                 ListePersoView(id: id)
             }
@@ -455,32 +457,26 @@ struct MesListesView: View {
     /// Les actions d'un titre, les mêmes en liste et en grille.
     @ViewBuilder
     private func menu(_ suivi: Suivi, _ statut: StatutSuivi) -> some View {
-        Button { chemin.append(suivi.reference) } label: { Label("Voir la fiche", systemImage: "info.circle") }
-        Button {
-            try? ServiceSoiree(contexte: contexte).retenir(suivi.reference, titre: suivi.titre, cheminAffiche: suivi.cheminAffiche)
-        } label: { Label("Ajouter à ma soirée", systemImage: "moon.stars") }
-        Button {
-            etat.titreADater = TitreChoisi(reference: suivi.reference, titre: suivi.titre, cheminAffiche: suivi.cheminAffiche)
-        } label: { Label("Prévoir pour une soirée…", systemImage: "calendar") }
-        Button {
-            etat.titrePourListe = TitreChoisi(reference: suivi.reference, titre: suivi.titre, cheminAffiche: suivi.cheminAffiche)
-        } label: { Label("Ajouter à une liste…", systemImage: "list.bullet.rectangle.portrait") }
-        if statut != .termine {
-            Button { changer(suivi, en: .termine) } label: { Label("Terminé", systemImage: "checkmark") }
-        } else {
-            Button { changer(suivi, en: .aVoir) } label: { Label("À revoir", systemImage: "arrow.uturn.backward") }
-        }
-        if statut == .enCours {
-            Button { changer(suivi, en: .aVoir) } label: { Label("Remettre à voir", systemImage: "bookmark") }
-        }
-        Button { basculerAlertes(suivi) } label: {
-            Label(suivi.alertesActives ? "Sans alertes" : "Alertes", systemImage: suivi.alertesActives ? "bell.slash" : "bell")
-        }
-        Divider()
-        if statut == .termine {
-            Button(role: .destructive) { supprimerDesTermines(suivi) } label: { Label("Supprimer des terminés", systemImage: "trash") }
-        } else {
-            Button(role: .destructive) { retirer(suivi) } label: { Label("Retirer de mes listes", systemImage: "trash") }
+        // Le menu commun à tous les appareils (8.2.15), puis ce qui ne vaut que dans Mes listes.
+        MenuActionsTitre(titre: TitreResume(reference: suivi.reference, titre: suivi.titre, cheminAffiche: suivi.cheminAffiche,
+                                            genres: suivi.genres))
+        Section("Dans Mes listes") {
+            if statut != .termine {
+                Button { changer(suivi, en: .termine) } label: { Label("Terminé", systemImage: "checkmark") }
+            } else {
+                Button { changer(suivi, en: .aVoir) } label: { Label("À revoir", systemImage: "arrow.uturn.backward") }
+            }
+            if statut == .enCours {
+                Button { changer(suivi, en: .aVoir) } label: { Label("Remettre à voir", systemImage: "bookmark") }
+            }
+            Button { basculerAlertes(suivi) } label: {
+                Label(suivi.alertesActives ? "Ne plus me prévenir" : "Me prévenir", systemImage: suivi.alertesActives ? "bell.slash" : "bell")
+            }
+            if statut == .termine {
+                Button(role: .destructive) { supprimerDesTermines(suivi) } label: { Label("Supprimer des terminés", systemImage: "trash") }
+            } else {
+                Button(role: .destructive) { retirer(suivi) } label: { Label("Retirer de mes listes", systemImage: "trash") }
+            }
         }
     }
 

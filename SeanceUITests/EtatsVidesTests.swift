@@ -43,7 +43,7 @@ final class EtatsVidesTests: XCTestCase {
         capture("09-profil", attente: 3)
         app.swipeUp()
         capture("10-profil-bas")
-        let statistiques = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Tes statistiques'")).firstMatch
+        let statistiques = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Ta collection et ton année'")).firstMatch
         if app.amener(statistiques, essais: 4) {
             statistiques.tap()
             capture("11-statistiques", attente: 3)

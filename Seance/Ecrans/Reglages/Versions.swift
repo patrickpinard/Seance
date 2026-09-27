@@ -56,6 +56,21 @@ struct NoteVersion: Identifiable {
 
     static let historique: [NoteVersion] = [
         NoteVersion(
+            numero: "8.2.15",
+            date: "27 septembre 2026",
+            resume: "Les mêmes menus sur l'iPhone, l'iPad, le Mac et l'Apple TV ; tes préférences réunies sous ton portrait ; l'Apple TV rattrape l'iPhone.",
+            fonctionnalites: [
+                Fonctionnalite(symbole: "list.bullet", titre: "Un seul menu, partout",
+                               detail: "L'appui long (le clic droit sur le Mac) montre les mêmes actions, dans le même ordre et avec les mêmes mots, sur tous les appareils : Regarder, Voir la fiche, Ma liste, Vu aujourd'hui, Déjà vu avant, Ce soir, Un autre soir, Ajouter à une liste, Favoris, Pas intéressé pour l'instant, J'aime, Je n'aime pas. Les cartes du NAS et de Mes listes l'ont aussi."),
+                Fonctionnalite(symbole: "person.crop.circle", titre: "Tes préférences, sous ton portrait",
+                               detail: "Prénom et image, langue et sous-titres, alertes, e-mail de la semaine et accueil passent dans les Préférences, avec tes goûts, tes acteurs, tes réalisateurs, tes statistiques et tes alertes reçues — chaque partie sous le même titre. Réglages garde la maison et l'appareil."),
+                Fonctionnalite(symbole: "appletv", titre: "L'Apple TV rattrape l'iPhone",
+                               detail: "Les Nouveautés sans les titres vus ni écartés ; le NAS et la recherche rangés par ajouts, année, genre ou A→Z, en sections qu'on ouvre et qu'on ferme ; « Vidéos » dans la recherche sur le NAS ; tes réalisateurs ; « Déjà vu avant » et le choix des alertes dans le « ⋯ » de la fiche."),
+                Fonctionnalite(symbole: "video", titre: "Tes vidéos, comme les films",
+                               detail: "Les vidéos personnelles se rangent par année ou de A à Z, en sections qu'on ouvre et qu'on ferme, les plus récentes d'abord."),
+            ]
+        ),
+        NoteVersion(
             numero: "8.2.14",
             date: "27 septembre 2026",
             resume: "Une cloche à côté de la roue compte les alertes à lire ; on en accuse réception dans Séance, en plus de la notification.",

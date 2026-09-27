@@ -46,19 +46,25 @@ struct ProfilView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 28) {
                     entete
+                    // 8.2.15 (demande de Patrick) : ce qui est à toi se règle ici, et non plus dans Réglages.
+                    reglagesDeToi
+                    sectionGouts
                     dernieresNotes
                     acteurs
                     realisateurs
-                    // Les alertes reçues (8.2.11), pour les revoir après les avoir balayées de l'écran verrouillé.
-                    NavigationLink(value: DestinationReglage.alertesRecues) {
-                        LigneReglage(titre: "Alertes reçues", symbole: "bell.badge", valeur: "Les revoir, les effacer")
-                            .background(Theme.surface, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-                    }
-                    .buttonStyle(.plain)
-                    .padding(.horizontal, 20)
-                    sectionGouts
                     // Les chiffres ne s'imposent pas : une seule entrée, en bas, vers la page qui les réunit tous.
                     statistiques
+                    // Les alertes reçues (8.2.11), pour les revoir après les avoir balayées de l'écran verrouillé.
+                    VStack(alignment: .leading, spacing: 10) {
+                        TitreSection("Tes alertes")
+                        GroupeReglages(titre: nil) {
+                            NavigationLink(value: DestinationReglage.alertesRecues) {
+                                LigneReglage(titre: "Alertes reçues", symbole: "bell.badge", valeur: "Les revoir, les effacer")
+                            }
+                            .buttonStyle(.plain)
+                        }
+                        .padding(.horizontal, 20)
+                    }
                 }
                 .padding(.vertical, 16)
                 // Toute la largeur, comme les autres pages : bornée à 1180 points, elle laissait deux bandes vides sur le Mac.
@@ -201,6 +207,66 @@ struct ProfilView: View {
         }
     }
 
+    // MARK: Toi (8.2.15)
+
+    @AppStorage(NombreIdees.cle) private var nombreIdees = NombreIdees.parDefaut
+    @AppStorage("accueil.sources") private var sourcesAccueil = Data()
+
+    /// Tes réglages à toi, les mêmes lignes que Réglages : prénom et image, langue, alertes, e-mail, accueil.
+    private var reglagesDeToi: some View {
+        VStack(alignment: .leading, spacing: 10) {
+        TitreSection("Toi")
+        GroupeReglages(titre: nil) {
+            ligneReglage(.prenom, "Prénom et image", ProfilsFamille().actif.symbole == "person.fill" ? "person.fill" : ProfilsFamille().actif.symbole,
+                         "\(Prenom.lire(prenom) ?? "À saisir") · \(Format.pluriel(NombreIdees.lire(nombreIdees), "suggestion"))")
+            #if !targetEnvironment(macCatalyst)
+            ligneReglage(.langue, "Langue et sous-titres", "captions.bubble.fill", libelleLangue)
+            #endif
+            ligneReglage(.alertes, "Alertes", "bell.fill", libelleAlertes, enOrdre: alertesActives)
+            ligneReglage(.lettre, "E-mail de la semaine", "envelope.fill",
+                         !etat.lettre.reglages.actif ? "Désactivé" : etat.lettre.pret ? "Activé" : "À terminer",
+                         enOrdre: etat.lettre.reglages.actif ? etat.lettre.pret : nil)
+            ligneReglage(.accueil, "Accueil", "house.fill", libelleAccueilSources)
+        }
+        .padding(.horizontal, 20)
+        }
+        .task { await etat.alertes.actualiserAutorisation() }
+    }
+
+    private func ligneReglage(_ destination: DestinationReglage, _ titre: String, _ symbole: String, _ valeur: String,
+                              enOrdre: Bool? = nil) -> some View {
+        NavigationLink(value: destination) {
+            LigneReglage(titre: titre, symbole: symbole, valeur: valeur, enOrdre: enOrdre)
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var libelleLangue: String {
+        let pistes = PreferencesPistes.lire(profil: ProfilsFamille().actif.id)
+        let langue = pistes.audio.isEmpty ? "VO" : PreferencesPistes.langues.first { $0.code == pistes.audio }?.nom ?? pistes.audio
+        return "\(langue) · sous-titres : \(pistes.sousTitres.nom.lowercased())"
+    }
+
+    private var alertesActives: Bool {
+        switch etat.alertes.autorisation {
+        case .authorized, .provisional, .ephemeral: true
+        default: false
+        }
+    }
+
+    private var libelleAlertes: String {
+        switch etat.alertes.autorisation {
+        case .authorized, .provisional, .ephemeral: "Activées"
+        case .denied: "Désactivées dans les réglages de l'appareil"
+        default: "À activer"
+        }
+    }
+
+    private var libelleAccueilSources: String {
+        let sources = (try? JSONDecoder().decode(SourcesAccueil.self, from: sourcesAccueil)) ?? SourcesAccueil()
+        return sources.modifiees ? "Personnalisé" : "Sections, nombre de titres"
+    }
+
     // MARK: Tes réalisateurs (8.2.11)
 
     /// Les films vus, par leur identifiant TMDB.
@@ -312,9 +378,15 @@ struct ProfilView: View {
     private var sectionGouts: some View {
         let choisis = Set(interets.map(\.libelle))
         return VStack(alignment: .leading, spacing: 10) {
-            EnTeteRepliable(titre: "Tes goûts", detail: choisis.isEmpty ? "À choisir" : Format.pluriel(choisis.count, "genre"),
-                            ouverte: goutsOuverts) { goutsOuverts.toggle() }
-                .padding(.horizontal, 20)
+            // Le même titre que les autres sections (8.2.15) ; « Modifier » ouvre la liste à cocher.
+            TitreSection(titre: "Tes goûts") {
+                Button(goutsOuverts ? "Replier" : (choisis.isEmpty ? "Choisir" : "Modifier")) {
+                    withAnimation(.snappy) { goutsOuverts.toggle() }
+                }
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(Theme.accentClair)
+                .zoneDeToucher()
+            }
             if !goutsOuverts, !choisis.isEmpty {
                 Text(choisis.sorted().joined(separator: ", "))
                     .font(.subheadline)
@@ -369,32 +441,19 @@ struct ProfilView: View {
         try? ServiceGouts(contexte: contexte).declarer(interets)
     }
 
+    /// Tes statistiques (8.2.15) : un titre de section et une ligne, comme le reste de la page.
     private var statistiques: some View {
-        NavigationLink(value: DestinationProfil.statistiques) {
-            HStack(spacing: 12) {
-                Image(systemName: "chart.bar.fill")
-                    .font(.headline.weight(.semibold))
-                    .foregroundStyle(.white)
-                    .frame(width: 38, height: 38)
-                    .background(Theme.degradeAccent, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Tes statistiques").font(.subheadline.weight(.semibold))
-                    Text("Ta collection, tes heures, tes acteurs et genres favoris, ton année en cartes")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(2)
-                        .multilineTextAlignment(.leading)
+        VStack(alignment: .leading, spacing: 10) {
+            TitreSection("Tes statistiques")
+            GroupeReglages(titre: nil) {
+                NavigationLink(value: DestinationProfil.statistiques) {
+                    LigneReglage(titre: "Ta collection et ton année", symbole: "chart.bar.fill",
+                                 valeur: "Heures, acteurs, genres, en cartes")
                 }
-                Spacer(minLength: 0)
-                Image(systemName: "chevron.right").font(.caption.weight(.bold)).foregroundStyle(.tertiary)
+                .buttonStyle(.plain)
             }
-            .padding(12)
-            .background(Theme.surface, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-            .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .padding(.horizontal, 20)
         }
-        .buttonStyle(.plain)
-        .padding(.horizontal, 20)
-        .padding(.top, 6)
     }
 
     // MARK: Données

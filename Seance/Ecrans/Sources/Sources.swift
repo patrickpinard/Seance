@@ -52,6 +52,7 @@ struct RegarderView: View {
     /// Les filtres d'Explorer (8.0), appliqués à la source choisie : sans filtre, la page de la source ; avec, ses résultats.
     @State private var filtres = ExplorerModele(filtres: FiltresExplorer(type: .film))
     @State private var feuilleFiltres = false
+    @State private var chemin = NavigationPath()
 
     /// Les critères posés en plus de la source elle-même.
     private var criteres: [FiltresExplorer.Critere] {
@@ -75,7 +76,7 @@ struct RegarderView: View {
 
     var body: some View {
         @Bindable var etat = etat
-        NavigationStack {
+        NavigationStack(path: $chemin) {
             Group {
                 if criteres.isEmpty {
                     ContenuSource(source: etat.sourceRegarder, jour: jour)
@@ -110,6 +111,8 @@ struct RegarderView: View {
                 .boutonBarreLaterale()
                 .destinationsTitres()
                 .destinationsAccueil()
+                // « Voir la fiche » du menu d'un titre l'ouvre ici même (8.2.15).
+                .environment(\.ouvrirFiche) { chemin.append($0) }
                 .sheet(isPresented: $feuilleFiltres) {
                     FeuilleFiltres(depart: filtres.filtres, modele: filtres) { filtres.filtres = $0 }
                 }

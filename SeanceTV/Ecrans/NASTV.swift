@@ -18,8 +18,11 @@ struct SectionsNASTV: View {
     @State private var rayon = DepartTV.rayon
     /// Les genres des titres, écrits par l'analyse du NAS (6.4) : ce qui fait un documentaire (genre 99).
     @State private var details = DetailsNAS()
-    /// Maquette 8.0, n° 10 : « Ajouts » range par mois d'arrivée, en rangées ; A→Z en grille.
-    @State private var parAjouts = true
+    /// 8.2.15 : les mêmes rangements que sur l'iPhone — Ajouts, Année, Genre, A→Z —, en sections qu'on ouvre et qu'on
+    /// ferme à la télécommande (par genre, fermées au départ).
+    @State private var rangement = "Ajouts"
+    @State private var sections = SectionsRepliables()
+    private static let rangements = ["Ajouts", "Année", "Genre", "A→Z"]
 
     private var rayons: [RayonNASTV] {
         RayonNASTV.allCases.filter { rayon in
@@ -32,15 +35,19 @@ struct SectionsNASTV: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 40) {
-                HStack {
-                    SelecteurTV(selection: $rayon, cases: rayons.map { ($0, nom($0)) }, symbole: symbole)
-                    if rayon != .videos {
-                        Button { parAjouts.toggle() } label: {
-                            Label(parAjouts ? "Ajouts" : "A→Z", systemImage: "arrow.up.arrow.down")
+                SelecteurTV(selection: $rayon, cases: rayons.map { ($0, nom($0)) }, symbole: symbole)
+                if rayon != .videos {
+                    HStack(spacing: 14) {
+                        ForEach(Self.rangements, id: \.self) { mode in
+                            Button(mode) {
+                                rangement = mode
+                                sections = SectionsRepliables(ouvertesParDefaut: mode != "Genre")
+                            }
+                            .buttonStyle(BoutonTV(principal: rangement == mode, hauteur: 60))
                         }
-                        .buttonStyle(LienTV())
-                        .padding(.trailing, MargesTV.bord)
                     }
+                    .padding(.horizontal, MargesTV.bord)
+                    .focusSection()
                 }
                 if rayon == .videos {
                     VideosPersoTV(integree: true)
@@ -100,14 +107,30 @@ struct SectionsNASTV: View {
                     VideTV(symbole: symbole(rayon) ?? "externaldrive", titre: "Aucun titre dans ce rayon",
                            message: rayon == .documentaires ? "Les documentaires se reconnaissent à leur genre sur TMDB, lu à chaque analyse du NAS." : "Rien de reconnu ici sur ton NAS pour l'instant.")
                 }
-                if parAjouts {
-                    ForEach(parMois(oeuvres(rayon)), id: \.titre) { mois in
-                        EtagereTV(titre: mois.titre) {
-                            ForEach(mois.oeuvres, id: \.reference) { oeuvre in carte(oeuvre, largeur: CarteLargeTV.largeurGrille) }
-                        }
-                    }
+                if rangement == "A→Z" {
+                    etagere(rayon.rawValue, oeuvres(rayon).sorted { $0.titre.localizedCaseInsensitiveCompare($1.titre) == .orderedAscending })
                 } else {
-                    etagere(rayon.rawValue, oeuvres(rayon))
+                    ForEach(tranches(oeuvres(rayon)), id: \.titre) { tranche in
+                        VStack(alignment: .leading, spacing: 18) {
+                            Button { withAnimation(.snappy) { sections.basculer(tranche.titre) } } label: {
+                                HStack(spacing: 16) {
+                                    Image(systemName: "chevron.right")
+                                        .rotationEffect(.degrees(sections.ouverte(tranche.titre) ? 90 : 0))
+                                    Text(tranche.titre).font(.system(size: 38, weight: .bold))
+                                    Text("\(tranche.oeuvres.count) titre\(tranche.oeuvres.count > 1 ? "s" : "")")
+                                        .font(.system(size: 26)).foregroundStyle(Theme.texte2)
+                                }
+                            }
+                            .buttonStyle(LienTV())
+                            .padding(.horizontal, MargesTV.bord)
+                            if sections.ouverte(tranche.titre) {
+                                EtagereTV(titre: "") {
+                                    ForEach(tranche.oeuvres, id: \.reference) { oeuvre in carte(oeuvre, largeur: CarteLargeTV.largeurGrille) }
+                                }
+                            }
+                        }
+                        .focusSection()
+                    }
                 }
     }
 
@@ -137,6 +160,28 @@ struct SectionsNASTV: View {
         }
         .buttonStyle(.card)
         .menuCarteTV(oeuvre.reference, titre: oeuvre.titre, cheminAffiche: oeuvre.cheminAffiche)
+    }
+
+    /// Les sections du rangement choisi : par mois d'arrivée, par année de sortie (la plus récente d'abord), par genre.
+    private func tranches(_ liste: [OeuvreTV]) -> [(titre: String, oeuvres: [OeuvreTV])] {
+        switch rangement {
+        case "Année":
+            let annees = Dictionary(grouping: liste) { oeuvre in
+                fichiers.first { $0.reference == oeuvre.reference && $0.annee != nil }?.annee
+            }
+            return annees.keys.sorted { ($0 ?? 0) > ($1 ?? 0) }.map { ($0.map(String.init) ?? "Année inconnue", annees[$0] ?? []) }
+        case "Genre":
+            let noms = Dictionary((GenresParDefaut.films + GenresParDefaut.series).map { ($0.id, $0.nom) }, uniquingKeysWith: { premier, _ in premier })
+            var parGenre: [String: [OeuvreTV]] = [:]
+            for oeuvre in liste {
+                let genres = details.genres[oeuvre.reference.tmdbID] ?? []
+                if genres.isEmpty { parGenre["Autres", default: []].append(oeuvre) }
+                for genre in genres { parGenre[noms[genre] ?? "Autres", default: []].append(oeuvre) }
+            }
+            return parGenre.keys.sorted { $0 == "Autres" ? false : $1 == "Autres" ? true : $0 < $1 }.map { ($0, parGenre[$0] ?? []) }
+        default:
+            return parMois(liste)
+        }
     }
 
     /// Par mois d'arrivée sur le NAS (la date du fichier, lue à l'analyse), du plus récent au plus ancien.

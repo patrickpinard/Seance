@@ -96,9 +96,10 @@ final class ParcoursSoireeTests: XCTestCase {
         capture("soiree-finie", attente: 3)
 
         // 7. Réglages › Toi : l'idée écartée y figure, « Tout reproposer » lève les exclusions.
-        app.ouvrirReglages()
-        let toi = bouton("label BEGINSWITH 'Prénom et suggestions'")
-        XCTAssertTrue(app.amener(toi, essais: 16), "Tuile « Prénom et suggestions » introuvable")
+        // 8.2.15 : « Toi » est dans les Préférences.
+        app.ouvrirPreferences()
+        let toi = bouton("label BEGINSWITH 'Prénom et image'")
+        XCTAssertTrue(app.amener(toi, essais: 16), "Ligne « Prénom et image » introuvable")
         toi.tap()
         let tout = app.buttons["toutReproposer"].firstMatch
         XCTAssertTrue(app.amener(tout), "Pas de « Tout reproposer » dans Réglages › Toi")

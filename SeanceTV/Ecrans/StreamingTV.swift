@@ -10,6 +10,11 @@ struct SectionsStreamingTV: View {
     @Query(filter: #Predicate<Abonnement> { $0.actif }, sort: \Abonnement.nom) private var abonnements: [Abonnement]
 
     @State private var toutes: [ApercuTV] = []
+    /// Déjà vus, refusés ou « pas intéressé pour l'instant » (8.2.15) : comme sur l'iPhone, plus proposés ici.
+    @Query(filter: #Predicate<Suivi> { $0.statutBrut == "exclu" || $0.exclusionLangue || $0.statutBrut == "termine" })
+    private var suivisEcartes: [Suivi]
+    @AppStorage(PasInteresse.cle) private var pasInteresse = ""
+    private var ecartes: Set<ReferenceTitre> { Set(suivisEcartes.map(\.reference)).union(PasInteresse.references(pasInteresse)) }
     @State private var parPlateforme: [Int: [ApercuTV]] = [:]
     /// Maquette 8.0, n° 6 : les logos filtrent les plateformes ; `nil`, toutes.
     @State private var plateforme: Int?
@@ -62,7 +67,9 @@ struct SectionsStreamingTV: View {
     }
 
     @ViewBuilder
-    private func etagere(_ titre: String, _ sousTitre: String, _ apercus: [ApercuTV]) -> some View {
+    private func etagere(_ titre: String, _ sousTitre: String, _ tous: [ApercuTV]) -> some View {
+        let ecartes = ecartes
+        let apercus = tous.filter { !ecartes.contains($0.reference) }
         if !apercus.isEmpty {
             EtagereTV(titre: titre, sousTitre: sousTitre) {
                 ForEach(apercus) { apercu in

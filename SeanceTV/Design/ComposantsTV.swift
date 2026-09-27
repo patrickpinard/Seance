@@ -526,28 +526,29 @@ struct MenuCarteTV: ViewModifier {
     @Environment(\.modelContext) private var contexte
     @Environment(\.ouvrirTV) private var ouvrirTV
     @State private var autreSoir = false
+    @State private var choixListe = false
+
+    /// 8.2.15 : la liste commune à l'iPhone, l'iPad, le Mac et la TV (`ActionTitre`), dans le même ordre et avec les
+    /// mêmes mots.
+    private var etatMenu: ActionTitre.Etat {
+        let suivi = try? ServiceSuivi(contexte: contexte).suivi(reference)
+        let prevu = ((try? contexte.fetch(FetchDescriptor<SelectionSoir>())) ?? [])
+            .contains { $0.reference == reference && $0.soiree == ServiceSoiree.soiree() }
+        return ActionTitre.Etat(dansMaListe: suivi.map { !$0.masque && $0.statut != .exclu } ?? false,
+                                vu: reference.type == .film && ((try? ServiceSuivi(contexte: contexte).estVu(reference)) ?? false),
+                                prevuCeSoir: prevu || soiree != nil,
+                                favori: (try? ServiceFavoris(contexte: contexte).estFavori(reference)) ?? false)
+    }
 
     func body(content: Content) -> some View {
         content
             .contextMenu {
-                if let ouvrirTV {
-                    Button { ouvrirTV.regarder(reference) } label: { Label("Regarder", systemImage: "play.fill") }
-                    Button { ouvrirTV.fiche(reference) } label: { Label("Voir la fiche", systemImage: "info.circle") }
-                }
-                Button { autreSoir = true } label: { Label("Un autre soir", systemImage: "calendar.badge.clock") }
-                if soiree == nil {
-                    let prevu = ((try? contexte.fetch(FetchDescriptor<SelectionSoir>())) ?? [])
-                        .contains { $0.reference == reference && $0.soiree == ServiceSoiree.soiree() }
-                    if !prevu {
-                        Button { ceSoir() } label: { Label("Ce soir", systemImage: "moon.stars") }
+                let etatMenu = etatMenu
+                ForEach(ActionTitre.menu(reference.type, etat: etatMenu).filter { ouvrirTV != nil || ($0 != .regarder && $0 != .voirFiche) },
+                        id: \.self) { action in
+                    Button(role: action.destructive ? .destructive : nil) { executer(action) } label: {
+                        Label(action.libelle(reference.type, etat: etatMenu), systemImage: action.symbole)
                     }
-                }
-                if reference.type == .film, (try? ServiceSuivi(contexte: contexte).estVu(reference)) != true {
-                    Button { Task { await terminer() } } label: { Label("Terminé", systemImage: "checkmark") }
-                }
-                let suivi = try? ServiceSuivi(contexte: contexte).suivi(reference)
-                if suivi == nil {
-                    Button { Task { await ajouterALaListe() } } label: { Label("Ma liste", systemImage: "plus") }
                 }
                 if let reprise {
                     Button(role: .destructive) {
@@ -560,11 +561,6 @@ struct MenuCarteTV: ViewModifier {
                         try? ServiceSoiree(contexte: contexte).retirer(reference, soiree: soiree)
                         etat.dire("« \(titre) » retiré de ta soirée")
                     } label: { Label("Retirer de la soirée", systemImage: "minus.circle") }
-                } else if reprise == nil, suivi?.statut != .exclu {
-                    Button(role: .destructive) {
-                        try? ServiceGouts(contexte: contexte).jamais(reference, titre: titre, cheminAffiche: cheminAffiche)
-                        etat.dire("« \(titre) » ne te sera plus proposé")
-                    } label: { Label("Pas pour moi", systemImage: "hand.thumbsdown") }
                 }
             }
             .fullScreenCover(isPresented: $autreSoir) {
@@ -574,6 +570,43 @@ struct MenuCarteTV: ViewModifier {
                     etat.dire("« \(titre) » prévu pour ce soir-là")
                 }
             }
+            .fullScreenCover(isPresented: $choixListe) {
+                let listes = (try? ServiceListes(contexte: contexte).listes()) ?? []
+                DialogueTV(titre: "Ajouter « \(titre) » à une liste",
+                           message: listes.isEmpty ? "Tu n'as pas encore de liste : crée-la dans Mes listes, sur ton iPhone." : nil,
+                           choix: listes.map { liste in
+                               DialogueTV.Choix(libelle: liste.nom) {
+                                   try? ServiceListes(contexte: contexte).ajouter(reference, titre: titre, cheminAffiche: cheminAffiche, a: liste)
+                                   etat.dire("« \(titre) » ajouté à « \(liste.nom) »")
+                               }
+                           })
+            }
+    }
+
+    /// Chaque action du menu commun : un `switch` sans `default`, pour qu'aucune ne soit oubliée sur la TV.
+    private func executer(_ action: ActionTitre) {
+        switch action {
+        case .regarder: ouvrirTV?.regarder(reference)
+        case .voirFiche: ouvrirTV?.fiche(reference)
+        case .aVoir: Task { await ajouterALaListe() }
+        case .vuAujourdhui: Task { await terminer() }
+        case .dejaVuAvant: Task { await dejaVuAvant() }
+        case .ceSoir: ceSoir()
+        case .autreSoir: autreSoir = true
+        case .ajouterAUneListe: choixListe = true
+        case .favori:
+            let ajoute = (try? ServiceFavoris(contexte: contexte).basculer(reference, titre: titre, cheminAffiche: cheminAffiche)) ?? false
+            etat.dire(ajoute ? "« \(titre) » ajouté à tes favoris" : "« \(titre) » retiré de tes favoris")
+        case .pasInteresse:
+            PasInteresse.ecarter(reference)
+            etat.dire("« \(titre) » ne sera plus proposé pendant deux mois")
+        case .jAime:
+            try? ServiceGouts(contexte: contexte).aimer(reference, titre: titre, cheminAffiche: cheminAffiche, genres: [])
+            etat.dire("Noté : tu aimes « \(titre) »")
+        case .jeNaimePas:
+            try? ServiceGouts(contexte: contexte).jamais(reference, titre: titre, cheminAffiche: cheminAffiche)
+            etat.dire("« \(titre) » ne te sera plus proposé")
+        }
     }
 
     private func ceSoir() {
@@ -601,6 +634,17 @@ struct MenuCarteTV: ViewModifier {
         try? ServiceSuivi(contexte: contexte).marquerVu(film: film)
         if let soiree { try? ServiceSoiree(contexte: contexte).retirer(reference, soiree: soiree) }
         etat.dire("« \(titre) » marqué vu")
+    }
+
+    /// La même action que sur l'iPhone (`ActionsCommunes`).
+    private func dejaVuAvant() async {
+        guard let tmdb = etat.tmdb else { return etat.dire("Il faut la clé TMDB pour cela.") }
+        do {
+            try await ActionsCommunes.dejaVuAvant(reference, contexte: contexte, tmdb: tmdb)
+            etat.dire(reference.type == .film ? "« \(titre) » marqué déjà vu" : "« \(titre) » : toute la série marquée vue")
+        } catch {
+            etat.dire("TMDB ne répond pas : réessaie dans un instant.")
+        }
     }
 }
 

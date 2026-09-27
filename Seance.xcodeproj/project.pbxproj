@@ -112,6 +112,7 @@
 		9B42BD02C3CD9559F1A1B2B5 /* StreamingTV.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5453BA88DED7FB9DE9A90CC5 /* StreamingTV.swift */; };
 		9B9A908F82B4C7E4F5A1F7D2 /* ConfigurationTV.swift in Sources */ = {isa = PBXBuildFile; fileRef = A683B780160AA62BE42AD9C1 /* ConfigurationTV.swift */; };
 		9B9D518CBB779E2321545F3B /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6507C62249A2769DB1E60E0 /* Theme.swift */; };
+		9BFDFE9503E02A88E8C6F5B9 /* SectionsRepliables.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7D955465AE78F58932A9D23 /* SectionsRepliables.swift */; };
 		9D5E919DE0559CD12DD8AB23 /* SeanceTVApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDABBFFE0299F9E2180E680B /* SeanceTVApp.swift */; };
 		9D65549B7C3237C021D34BED /* CocherEpisodeIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F6CA7E0DFEDE70FAE64BAE2 /* CocherEpisodeIntent.swift */; };
 		9D686CB11A2D31B958D5A9CB /* Versions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 832BDD6EB7D6F3C924990D39 /* Versions.swift */; };
@@ -169,6 +170,7 @@
 		E4F3613E523F79F4C481880A /* CartesSoiree.swift in Sources */ = {isa = PBXBuildFile; fileRef = 82DF1E28A7384E4722FD7B71 /* CartesSoiree.swift */; };
 		E724440F732F4BEC1F5D2B3F /* SeanceNAS in Frameworks */ = {isa = PBXBuildFile; productRef = 5419FEA36E6C245006D42ADA /* SeanceNAS */; };
 		E73943D3F2FC9A1C1C9E15AB /* EtatTV.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8D712A6F922DE489158A5E7 /* EtatTV.swift */; };
+		E874D8A585CD13C1B7EF709E /* PasInteresse.swift in Sources */ = {isa = PBXBuildFile; fileRef = B120DA3347972626B83182EB /* PasInteresse.swift */; };
 		E88382E40DBA182DAA361F71 /* BandesAnnonces.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA91FBA795C5F100C03F8CC6 /* BandesAnnonces.swift */; };
 		E90B1B398ADDFE4E1DE18A19 /* EtatCentrale.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C0C8A74971337065B3F6249 /* EtatCentrale.swift */; };
 		EA6D54848C6540918E7FD7A4 /* Sources.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA2DE5978336A2E0AE921BBB /* Sources.swift */; };
@@ -1145,6 +1147,7 @@
 				5DDD07F40FFE3335AC49B8AF /* ListesTV.swift in Sources */,
 				8AF1DCF54CB5BD99881C6186 /* MemoireImages.swift in Sources */,
 				AF221D726CDAD5B2E1814E93 /* NASTV.swift in Sources */,
+				E874D8A585CD13C1B7EF709E /* PasInteresse.swift in Sources */,
 				251E1E9A4053E9869F193746 /* PersonneTV.swift in Sources */,
 				3B4A3B2A81DF68B8E2ADE52F /* PistesVLC.swift in Sources */,
 				2E78913583D012AC8AAC1D1B /* ProfilTV.swift in Sources */,
@@ -1154,6 +1157,7 @@
 				E3C2E603DD238FA97AD800D6 /* ReglagesComposantsTV.swift in Sources */,
 				82B7699785ED31DA68C754A9 /* ReglagesTV.swift in Sources */,
 				9D5E919DE0559CD12DD8AB23 /* SeanceTVApp.swift in Sources */,
+				9BFDFE9503E02A88E8C6F5B9 /* SectionsRepliables.swift in Sources */,
 				9B42BD02C3CD9559F1A1B2B5 /* StreamingTV.swift in Sources */,
 				2A0E12E18C94B91D230F7950 /* TeleTV.swift in Sources */,
 				F3631B58722536201E41B063 /* Theme.swift in Sources */,
@@ -1530,7 +1534,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 70;
+				CURRENT_PROJECT_VERSION = 71;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = GATK475J3P;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -1550,7 +1554,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 8.2.14;
+				MARKETING_VERSION = 8.2.15;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -1651,7 +1655,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 70;
+				CURRENT_PROJECT_VERSION = 71;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = GATK475J3P;
 				ENABLE_NS_ASSERTIONS = NO;
@@ -1665,7 +1669,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 8.2.14;
+				MARKETING_VERSION = 8.2.15;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
