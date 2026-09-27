@@ -66,8 +66,8 @@ mètres), et l'historique des versions s'y lit aussi. La TV se configure depuis 
   <img src="Documentation/Captures/apple-tv-cesoir.jpg" alt="Séance sur Apple TV : ce soir" width="49%">
 </p>
 
-Pour aller plus loin : la [présentation](Documentation/Séance%20—%20présentation.pptx), la
-[fiche de présentation](Documentation/Séance%20—%20fiche%20de%20présentation.pdf), le
+Pour aller plus loin : la [présentation](Documentation/Fiche%20présentation/Séance%20—%20présentation.pptx), la
+[fiche de présentation](Documentation/Fiche%20présentation/Séance%20—%20fiche%20de%20présentation.pdf), le
 [cahier des exigences](Documentation/Séance%20—%20cahier%20des%20exigences.docx) et la
 [charte graphique](Documentation/Charte%20graphique.md). L'historique des versions se lit dans l'app
 (Réglages › Versions) et dans `Seance/Ecrans/Reglages/Versions.swift`.
@@ -92,7 +92,7 @@ Pour aller plus loin : la [présentation](Documentation/Séance%20—%20présent
 | `SeanceUITests/` | Les tests d'interface, qui tournent sans clé ni réseau grâce aux données de démonstration et à un faux TMDB. |
 | `project.yml` | La description du projet pour XcodeGen : `Seance.xcodeproj` est **généré**. |
 | `outils/` | Les scripts ci-dessous. |
-| `Documentation/` | Charte graphique, cahier des exigences, présentation, essais sur les appareils, logo, captures. |
+| `Documentation/` | Charte graphique, cahier des exigences, logo, captures ; `Fiche présentation/` (PDF et PowerPoint) ; `films teaser/` (vidéos, hors git). |
 
 ## Commandes
 

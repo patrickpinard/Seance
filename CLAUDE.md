@@ -52,7 +52,7 @@ Un test d'interface ne doit pas dépendre de l'heure : le guide télé fictif a 
 
 ## Charte 8.0 — prérequis de toute interface
 
-Toute page, sur tous les appareils, **et** tout ce qui porte le nom de Séance hors de l'app (widgets, notifications, e-mail de la semaine, étagère de l'Apple TV) suit la charte validée le 24.09.2026. Les maquettes font foi : `Documentation/Maquette — charte commune.png` et `Maquette — Séance 7, iPhone / iPad et Mac / Apple TV.png` (sources `.build/charte/`). Une interface qui s'en écarte n'est pas terminée.
+Toute page, sur tous les appareils, **et** tout ce qui porte le nom de Séance hors de l'app (widgets, notifications, e-mail de la semaine, étagère de l'Apple TV) suit la charte validée le 24.09.2026. Les maquettes font foi : « Maquette — charte commune.png » et « Maquette — Séance 7, iPhone / iPad et Mac / Apple TV.png », retirées de `Documentation/` le 27.09.2026 mais gardées dans l'historique git (`git show e21a96f:"Documentation/Maquette — charte commune.png"`) ; sources dans `.build/charte/`. Une interface qui s'en écarte n'est pas terminée.
 
 - **Sombre seulement** : les couleurs viennent des jetons de `Theme`, jamais en dur (`Color(red:…)`, `.system(size:)` interdits dans les vues) ; plus d'apparence claire.
 - **L'orange est réservé à ce qui se touche** : bouton principal, liens, onglet choisi, interrupteurs. Dates, lignes d'origine, badges, barres de statistiques : blanc ou gris. Vert = vu, en ordre ; rouge = retirer, en direct.
