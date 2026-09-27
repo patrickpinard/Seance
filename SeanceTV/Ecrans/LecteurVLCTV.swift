@@ -200,7 +200,11 @@ struct LecteurVLCTV: View {
             etat.lecteurOuvert = true
             Plantages.page("Lecteur")
         }
+        // 8.3 : VLC ne compte pas pour tvOS comme une vidéo en cours — sans geste, l'économiseur puis la veille
+        // arrivaient au bout de quelques minutes et Séance sortait (Mayday, 27.09.2026). Pendant la lecture, pas de veille.
+        .onChange(of: moteur.enLecture, initial: true) { _, lit in UIApplication.shared.isIdleTimerDisabled = lit }
         .onDisappear {
+            UIApplication.shared.isIdleTimerDisabled = false
             etat.lecteurOuvert = false
             if moteur.duree > 0 { surPosition(moteur.secondes, moteur.duree) }
             Task { await ranger() }

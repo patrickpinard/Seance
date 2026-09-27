@@ -226,6 +226,8 @@ struct LecteurVLC: View {
         }
         .statusBarHidden()
         .persistentSystemOverlays(commandesVisibles ? .automatic : .hidden)
+        // 8.3 : comme sur l'Apple TV, l'écran ne se verrouille pas pendant la lecture : VLC n'empêche pas la veille.
+        .onChange(of: moteur.enLecture, initial: true) { _, lit in UIApplication.shared.isIdleTimerDisabled = lit }
         .onAppear {
             Plantages.page("Lecteur")
             OrientationLecture.ouvrir()
@@ -245,6 +247,7 @@ struct LecteurVLC: View {
             await ouvrir()
         }
         .onDisappear {
+            UIApplication.shared.isIdleTimerDisabled = false
             OrientationLecture.fermer()
             Task { await ranger() }
         }
