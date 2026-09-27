@@ -37,8 +37,15 @@ final class EtatTV {
 
     /// L'app qui lit les vidéos du NAS : « Lire » n'ouvre que celle-là.
     private(set) var lecteur: LecteurVideo
-    /// Le film lancé dans l'app de lecture : au retour dans Séance, on demande s'il a été regardé.
-    var lectureAConfirmer: ReferenceTitre?
+    /// Le film ou l'épisode lancé dans l'app de lecture ou sur une plateforme (8.2) : au retour dans Séance, on demande
+    /// s'il a été regardé.
+    var lectureAConfirmer: LectureExterne?
+    /// « Qui regarde avec toi ? » (8.2) : posée avant la lecture, les personnes choisies sont cochées d'office à la fin.
+    var compagnons: Set<String> = []
+    /// La question d'après : au bout d'une lecture, après « Terminé », au retour d'une plateforme.
+    var avecQui: DemandeAvecQuiTV?
+    /// Le lecteur est ouvert : il pose la question lui-même, par-dessus l'image.
+    var lecteurOuvert = false
     /// Où l'on s'est arrêté dans chaque vidéo du NAS (8.0) : voyage avec l'iPhone et l'iPad par la synchronisation.
     private(set) var positions = PositionsLecture(donnees: UserDefaults.standard.data(forKey: PositionsLecture.cle))
 
@@ -63,7 +70,7 @@ final class EtatTV {
         guard positions.fusionner(PositionsLecture(donnees: donnees)) else { return }
         UserDefaults.standard.set(positions.encoder(), forKey: PositionsLecture.cle)
     }
-    private var lectureLancee: ReferenceTitre?
+    private var lectureLancee: LectureExterne?
     private(set) var teleEnCours = false
     private(set) var derniereLectureTele = UserDefaults.standard.object(forKey: Cle.derniereLectureTele) as? Date
 
@@ -184,7 +191,9 @@ final class EtatTV {
     @ObservationIgnored private var derniereAVenir: Date?
     @ObservationIgnored private var aVenirEnCours = false
 
-    func synchroniser(contexte: ModelContext, bavard: Bool = false) async {
+    /// `profil` : une autre personne que celle en cours (« Qui regarde avec toi ? ») — son sous-dossier seulement,
+    /// sans toucher aux réglages de cette TV.
+    func synchroniser(contexte: ModelContext, bavard: Bool = false, profil autre: ProfilFamille? = nil) async {
         guard !enDemonstration, !synchroEnCours, nasPret, let motDePasse = (try? coffre.lire(.nas)) ?? nil else {
             if bavard { dire("Règle d'abord le NAS : la synchronisation passe par lui.") }
             return
@@ -194,7 +203,8 @@ final class EtatTV {
         // L'état de la synchronisation précédente vit à côté du magasin, dans le cache : si tvOS a fait le ménage,
         // les deux sont partis ensemble, et tout le dossier se relit.
         // Famille : chaque personne a son sous-dossier (« Séance/Famille/Anne »), ses repères et son état, comme sur l'iPhone.
-        let profil = ConteneurTV.famille.actif
+        let profil = autre ?? ConteneurTV.famille.actif
+        let pourUnAutre = autre != nil && autre?.id != ConteneurTV.famille.actif.id
         let fichierEtat = URL.cachesDirectory.appending(path: profil.estPrincipal ? "Seance/synchro-etat.json" : "Seance/synchro-etat-\(profil.id).json")
         let dossier = [DossierSynchroSMB.dossierParDefaut, profil.dossierSynchro].compactMap { $0 }.joined(separator: "/")
         let moteur = MoteurSynchro(contexte: contexte, transport: DossierSynchroSMB(reglages: nas, motDePasse: motDePasse, dossier: dossier),
@@ -206,12 +216,14 @@ final class EtatTV {
             // l'e-mail de la semaine de la personne en cours, qu'on règle aussi dans ses Préférences ici.
             let id = profil.id
             let bilan = try await moteur.synchroniser(preferences: { [positions] in
+                if pourUnAutre { return [:] }
                 var deposees: [String: Sauvegarde.Preference] = [:]
                 if let brut = positions.encoder() { deposees[PositionsLecture.cle] = .donnees(brut) }
                 if let brut = UserDefaults.standard.data(forKey: ReglagesAlertes.cle(profil: id)) { deposees[ReglagesAlertes.cle] = .donnees(brut) }
                 if let brut = UserDefaults.standard.data(forKey: ReglagesLettre.cle(profil: id)) { deposees[ReglagesLettre.cle] = .donnees(brut) }
                 return deposees
             }, appliquer: { remplacees, recues in
+                if pourUnAutre { return }
                 // Plus récents ailleurs : ils remplacent ; reçus pour la première fois : pris s'il n'y a rien ici.
                 for (reglages, remplacer) in recues.map({ ($0, false) }) + [(remplacees, true)] {
                     for cle in [ReglagesAlertes.cle, ReglagesLettre.cle] {
@@ -231,7 +243,9 @@ final class EtatTV {
             UserDefaults.standard.set(Date.now, forKey: "synchro.nas.derniere")
             erreurSynchro = nil
             let titres = bilan.recus.reduce(0) { $0 + $1.ajouts.suivis.count + $1.ajouts.soirees.count + $1.misAJour + $1.supprimes }
-            if !bilan.recus.isEmpty {
+            if pourUnAutre {
+                // Rien à dire : la question « Qui regarde avec toi ? » a déjà sa confirmation.
+            } else if !bilan.recus.isEmpty {
                 dire(titres > 0 ? "Synchronisé avec tes appareils : \(titres) changement\(titres > 1 ? "s" : "")" : "Synchronisé avec tes appareils")
             } else if bavard {
                 dire("Tout est à jour.")
@@ -318,13 +332,43 @@ final class EtatTV {
 
     /// Un film part dans l'app de lecture : on s'en souvient, pour demander au retour s'il a été regardé.
     func noterLecture(_ fichier: FichierNAS) {
-        lectureLancee = fichier.reference.flatMap { $0.type == .film ? $0 : nil }
+        lectureLancee = FinDeFichierNAS.lecture(fichier).map { LectureExterne(reference: $0.reference, titre: $0.titre, episode: $0.episode, debut: .now) }
     }
 
-    /// Retour dans Séance : « Tu l'as regardé ? »
-    func revenir() {
-        lectureAConfirmer = lectureLancee
+    /// Une plateforme ouverte sur ce titre (8.2) : le film, ou le prochain épisode de la série.
+    func noterLecture(_ lecture: LectureExterne) {
+        lectureLancee = lecture
+    }
+
+    /// Retour dans Séance : « Tu l'as regardé ? », après dix minutes au moins, comme sur l'iPhone.
+    func revenir(maintenant: Date = .now) {
+        guard let lecture = lectureLancee else { return }
+        switch lecture.decision(maintenant: maintenant) {
+        case .attendre: return
+        case .demander: lectureAConfirmer = lecture
+        case .oublier: break
+        }
         lectureLancee = nil
+    }
+
+    /// Inscrit le geste chez chaque personne choisie, puis dépose son sous-dossier de synchronisation, comme l'iPhone.
+    /// Renvoie les prénoms chez qui l'inscription a réussi.
+    func inscrire(_ demande: DemandeAvecQuiTV, chez profils: [ProfilFamille]) async -> [String] {
+        var inscrits: [String] = []
+        for profil in profils {
+            guard let conteneur = ConteneurTV.conteneur(de: profil) else { continue }
+            let contexte = conteneur.mainContext
+            do {
+                try await demande.inscrire(contexte)
+                if demande.reference.type == .film { try? ServiceSoiree(contexte: contexte).retirer(demande.reference) }
+                try contexte.save()
+                inscrits.append(QuiRegardeTV.nom(profil))
+            } catch {
+                continue
+            }
+            await synchroniser(contexte: contexte, profil: profil)
+        }
+        return inscrits
     }
 
     // MARK: Programme TV

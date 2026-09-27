@@ -16,6 +16,8 @@ final class Journal {
         case alertes
         case claude
         case general
+        /// Les arrêts brusques de Séance (8.2), notés au lancement suivant.
+        case plantage
 
         var libelle: String {
             switch self {
@@ -26,6 +28,7 @@ final class Journal {
             case .alertes: "Alertes"
             case .claude: "Suggestions (Claude)"
             case .general: "Séance"
+            case .plantage: "Arrêts de Séance"
             }
         }
 
@@ -38,6 +41,7 @@ final class Journal {
             case .alertes: "bell"
             case .claude: "sparkles"
             case .general: "exclamationmark.circle"
+            case .plantage: "bolt.trianglebadge.exclamationmark"
             }
         }
 
@@ -50,6 +54,7 @@ final class Journal {
             case .alertes: .red
             case .claude: .orange
             case .general: .gray
+            case .plantage: .red
             }
         }
     }
@@ -118,6 +123,21 @@ final class Journal {
 
     func effacer() {
         entrees = []
+        enregistrer()
+    }
+
+    /// Recopie les arrêts brusques pas encore notés (`Plantages`), à leur date, avec la version et la page ou le détail
+    /// du rapport d'iOS — à me transmettre depuis le partage du journal.
+    func noterPlantages() {
+        let nouveaux = Plantages.aNoter()
+        guard !nouveaux.isEmpty else { return }
+        for plantage in nouveaux {
+            entrees.insert(Entree(date: plantage.date, domaine: .plantage, message: Plantages.message(plantage),
+                                  conseil: "Si cela se répète, partage ce journal : le détail aide à trouver la cause.",
+                                  detail: ["Version \(plantage.version)", plantage.detail].compactMap { $0 }.joined(separator: " · ")), at: 0)
+        }
+        entrees.sort { $0.date > $1.date }
+        if entrees.count > Self.maximum { entrees.removeLast(entrees.count - Self.maximum) }
         enregistrer()
     }
 

@@ -124,6 +124,7 @@ final class EtatApp {
         nas = EtatNAS(coffre: depot.coffre)
         videosPerso = EtatVideosPerso(coffre: depot.coffre)
         nas.journal = journal
+        journal.noterPlantages()
         alertes.journal = journal
         let delegue = DelegueNotifications { [weak self] url in
             // Le rappel d'une soirée prévue ouvre « Ce soir » ; les autres alertes, la fiche du titre.

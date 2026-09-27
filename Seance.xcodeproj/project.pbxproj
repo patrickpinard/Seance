@@ -77,10 +77,12 @@
 		5201A683F4BAF8E078552DF1 /* JournalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF2549F1AAD117B2DFF94C9B /* JournalView.swift */; };
 		541D879467869F9C53C59BCB /* ConteneurApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B45A4AC641661F7B7945EAF9 /* ConteneurApp.swift */; };
 		54F323CA789B8DA3749B81CB /* FicheDefilementTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C27D46355FD45FE0B6BCD9F /* FicheDefilementTests.swift */; };
+		5822EFB706F1948FB9E5038C /* Plantages.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4DEA4FCF6726B8F96639320 /* Plantages.swift */; };
 		58E3413AD4CBC28D1ED802AB /* BandeAnnonceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37C7B9F1A78F1017567D37D0 /* BandeAnnonceTests.swift */; };
 		591CF02849D1BB825A3BD08B /* Filtres.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBCCC2C7EB557DC82B0A231D /* Filtres.swift */; };
 		5A5CCACF177BB9999D6A1FA1 /* EpisodesSerie.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0FF991D92C556A3C1303E019 /* EpisodesSerie.swift */; };
 		5DDD07F40FFE3335AC49B8AF /* ListesTV.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F2F9E228CF6FD8AD2ABB788 /* ListesTV.swift */; };
+		5E6E02EBE0407E1455AFCF8F /* AvecQuiTV.swift in Sources */ = {isa = PBXBuildFile; fileRef = 483C11E4B6916508D5574F2D /* AvecQuiTV.swift */; };
 		616A93EDB3DFF0D208EA4B0D /* EtatOu.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA553B0B30B7023CD901CBEC /* EtatOu.swift */; };
 		64488D26CE15E4ABE42FE99F /* PropositionSoir.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2040539CD1EDF2055CE97201 /* PropositionSoir.swift */; };
 		649CB5DBA840F88FAA89C7D5 /* SeanceTVEtagere.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 1F58DEFF9DE77F1E7284865B /* SeanceTVEtagere.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -121,6 +123,7 @@
 		9DDAFDDF85296549D7D3853B /* EnvoiAppleTV.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B0BBB17CE85F8FC16F4470B /* EnvoiAppleTV.swift */; };
 		A052334119F82E47D0C04940 /* BienvenueView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A651E64C91DB8A9F75E0C3FD /* BienvenueView.swift */; };
 		A095CA09A65F0761C23033E4 /* ListeVersions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FD5D7CBD302D4EC89B9626A /* ListeVersions.swift */; };
+		A136EB6C51320A0ED49D5295 /* Plantages.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4DEA4FCF6726B8F96639320 /* Plantages.swift */; };
 		A2EBCE47BF0A1E849E8CF303 /* LecteurWidgets.swift in Sources */ = {isa = PBXBuildFile; fileRef = C53B59D1B4297910EB9B20FA /* LecteurWidgets.swift */; };
 		A413904B2FFE4A73FEE12672 /* VersionsTV.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EFED69699E50F3169D6EA9C /* VersionsTV.swift */; };
 		A58AFB806058CB8363012E8F /* PoucesTitre.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2298F5234FA2A50B5FD985BB /* PoucesTitre.swift */; };
@@ -336,6 +339,7 @@
 		41CC940B3FCF5A8D527E41E2 /* ReglagesSauvegardeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReglagesSauvegardeView.swift; sourceTree = "<group>"; };
 		4586B8C778164A10DBECDF51 /* VisiteCompleteTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisiteCompleteTests.swift; sourceTree = "<group>"; };
 		480DDBB4427776452973C0F2 /* Seance.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Seance.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		483C11E4B6916508D5574F2D /* AvecQuiTV.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AvecQuiTV.swift; sourceTree = "<group>"; };
 		49F605778D99EB9E5C2D53BA /* ChoixSoiree.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChoixSoiree.swift; sourceTree = "<group>"; };
 		4D588BEC051F01FAD8E8B8CB /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		4F6CA7E0DFEDE70FAE64BAE2 /* CocherEpisodeIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CocherEpisodeIntent.swift; sourceTree = "<group>"; };
@@ -413,6 +417,7 @@
 		C008722D573D7286070E193D /* ReglagesAlertesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReglagesAlertesView.swift; sourceTree = "<group>"; };
 		C096216F8F25D89E9BAB625D /* IPadTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IPadTests.swift; sourceTree = "<group>"; };
 		C4994130740FE5C4E9733D92 /* SeanceApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeanceApp.swift; sourceTree = "<group>"; };
+		C4DEA4FCF6726B8F96639320 /* Plantages.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Plantages.swift; sourceTree = "<group>"; };
 		C53B59D1B4297910EB9B20FA /* LecteurWidgets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LecteurWidgets.swift; sourceTree = "<group>"; };
 		C5685087E89C22033827A9C2 /* fr */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = fr; path = fr.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		C7706567EB9521978C37DCC4 /* EtatDecors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EtatDecors.swift; sourceTree = "<group>"; };
@@ -553,6 +558,7 @@
 				0661326CD01844A8F4B22D2B /* LienProfond.swift */,
 				B120DA3347972626B83182EB /* PasInteresse.swift */,
 				FBAF979AEE21224EB816CE9A /* PistesVLC.swift */,
+				C4DEA4FCF6726B8F96639320 /* Plantages.swift */,
 				27A875186D1EBB3CF86647AE /* Preferences.swift */,
 				2040539CD1EDF2055CE97201 /* PropositionSoir.swift */,
 				6F81823D485206B920058D9E /* PublicationWidgets.swift */,
@@ -823,6 +829,7 @@
 			isa = PBXGroup;
 			children = (
 				10CC0E2C253A873F99B0EBDA /* AccueilTV.swift */,
+				483C11E4B6916508D5574F2D /* AvecQuiTV.swift */,
 				3FE25142805AA50B481B3069 /* CeSoirTV.swift */,
 				A683B780160AA62BE42AD9C1 /* ConfigurationTV.swift */,
 				8D15356F74B00927F6949939 /* ExplorerTV.swift */,
@@ -1148,6 +1155,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				D27C1FC5A3614E1EDF282F6F /* AccueilTV.swift in Sources */,
+				5E6E02EBE0407E1455AFCF8F /* AvecQuiTV.swift in Sources */,
 				A861577F856FCEDF01F8C566 /* CarteReglageTV.swift in Sources */,
 				32056F493FAD69C4C9128FA0 /* CeSoirTV.swift in Sources */,
 				93199CD505BB89136E582D70 /* ComposantsTV.swift in Sources */,
@@ -1170,6 +1178,7 @@
 				E874D8A585CD13C1B7EF709E /* PasInteresse.swift in Sources */,
 				251E1E9A4053E9869F193746 /* PersonneTV.swift in Sources */,
 				3B4A3B2A81DF68B8E2ADE52F /* PistesVLC.swift in Sources */,
+				5822EFB706F1948FB9E5038C /* Plantages.swift in Sources */,
 				DABE34465755EE77124EE084 /* PreferencesTV.swift in Sources */,
 				2E78913583D012AC8AAC1D1B /* ProfilTV.swift in Sources */,
 				64488D26CE15E4ABE42FE99F /* PropositionSoir.swift in Sources */,
@@ -1274,6 +1283,7 @@
 				EF245A1FC235E086A1388CB2 /* PasInteresse.swift in Sources */,
 				07DE75AEB94EC0ECF1D894BB /* PersonneView.swift in Sources */,
 				6F3877627BA1B8B92D684B94 /* PistesVLC.swift in Sources */,
+				A136EB6C51320A0ED49D5295 /* Plantages.swift in Sources */,
 				A58AFB806058CB8363012E8F /* PoucesTitre.swift in Sources */,
 				92876E82089F7847852065E2 /* Preferences.swift in Sources */,
 				0301958790324CC4F0427E3F /* ProfilView.swift in Sources */,
@@ -1560,7 +1570,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 78;
+				CURRENT_PROJECT_VERSION = 79;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = GATK475J3P;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -1580,7 +1590,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 8.2;
+				MARKETING_VERSION = 8.3;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -1681,7 +1691,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 78;
+				CURRENT_PROJECT_VERSION = 79;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = GATK475J3P;
 				ENABLE_NS_ASSERTIONS = NO;
@@ -1695,7 +1705,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 8.2;
+				MARKETING_VERSION = 8.3;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";

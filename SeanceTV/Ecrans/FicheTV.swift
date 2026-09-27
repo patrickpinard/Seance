@@ -19,6 +19,8 @@ struct FicheTV: View {
     @State private var departLecture: Double?
     /// Une vidéo entamée : « Reprendre à 1:03:12 ou depuis le début ? ».
     @State private var repriseAProposer: FichierNAS?
+    /// « Qui regarde avec toi ? » avant la lecture (8.2).
+    @State private var compagnonsAChoisir: LectureAvant?
     @Environment(EtatTV.self) private var etat
     @Environment(\.modelContext) private var contexte
     @Environment(\.openURL) private var ouvrir
@@ -111,7 +113,10 @@ struct FicheTV: View {
                 etat.dire("Aucune source pour regarder « \(titre) » : ni sur ton NAS, ni sur tes plateformes.")
             }
         }
-        .task(id: reference) { identifiants = await EtatTV.identifiants.identifiants([reference])[reference] }
+        .task(id: reference) {
+            Plantages.page("Fiche \(reference)")
+            identifiants = await EtatTV.identifiants.identifiants([reference])[reference]
+        }
         .fullScreenCover(item: $filmALire) { fichier in
             LecteurVLCTV(video: VideoPerso(chemin: fichier.chemin, taille: fichier.tailleOctets),
                          acces: etat.nas, motDePasse: etat.motDePasseDuNAS ?? "", surEchec: { _ in
@@ -125,6 +130,15 @@ struct FicheTV: View {
                 departLecture = nil
                 filmALire = prochain
             })
+        }
+        .fullScreenCover(item: $compagnonsAChoisir) { avant in
+            ChoixAvecQuiTV(moment: .avant(titre: titre) { _ in
+                // La question se referme d'abord : le lecteur s'ouvre juste après.
+                Task {
+                    try? await Task.sleep(for: .milliseconds(500))
+                    lancer(avant.fichier, reprendre: avant.reprendre)
+                }
+            }) { compagnonsAChoisir = nil }
         }
         // Une question de Séance, à ses couleurs : reprendre, ou repartir du début.
         .fullScreenCover(item: $repriseAProposer) { fichier in
@@ -239,6 +253,9 @@ struct FicheTV: View {
         suivi.statut = suivi.statut == .termine ? .enCours : .termine
         try? contexte.save()
         etat.dire(suivi.statut == .termine ? "« \(titre) » terminé" : "« \(titre) » de nouveau en cours")
+        if suivi.statut == .termine, let serie {
+            etat.demanderAvecQui(reference, titre: titre) { _ = try ServiceSuivi(contexte: $0).terminer(serie: serie) }
+        }
     }
 
     private var etatDansLaListe: String {
@@ -639,6 +656,21 @@ struct FicheTV: View {
         guard etat.motDePasseDuNAS != nil else {
             return etat.dire("Le mot de passe du NAS manque : vois Réglages › NAS.")
         }
+        // 8.2 : « Qui regarde avec toi ? » avant de lancer, dans une maison à plusieurs personnes.
+        if ConteneurTV.famille.aPlusieursProfils, compagnonsAChoisir == nil {
+            compagnonsAChoisir = LectureAvant(fichier: fichier, reprendre: reprendre)
+            return
+        }
+        lancer(fichier, reprendre: reprendre)
+    }
+
+    private struct LectureAvant: Identifiable {
+        let fichier: FichierNAS
+        let reprendre: Bool
+        var id: String { fichier.chemin }
+    }
+
+    private func lancer(_ fichier: FichierNAS, reprendre: Bool) {
         etat.noterLecture(fichier)
         if reprendre, let position = etat.positions.aReprendre(fichier.chemin) {
             departLecture = position.secondes
@@ -771,7 +803,10 @@ struct FicheTV: View {
                 return etat.dire("\(plateforme.nom) ne s'ouvre pas d'ici : lance l'app et cherche « \(titre) ».")
             }
             ouvrir(lien) { accepte in
-                if !accepte { essayer(Array(reste.dropFirst())) }
+                if !accepte { return essayer(Array(reste.dropFirst())) }
+                // 8.2 : au retour, « As-tu regardé … ? » — le film, ou le prochain épisode de la série.
+                let tmdb = etat.tmdb
+                Task { etat.noterLecture(await ActionsCommunes.lectureSurPlateforme(reference, titre: titre, contexte: contexte, tmdb: tmdb)) }
             }
         }
         essayer(liens)
@@ -807,6 +842,7 @@ struct FicheTV: View {
         if vu { try? service.marquerNonVu(film: reference) } else { try? service.marquerVu(film: film) }
         vu.toggle()
         etat.dire(vu ? "« \(titre) » marqué vu" : "« \(titre) » de nouveau à voir")
+        if vu { etat.demanderAvecQui(reference, titre: titre) { try ServiceSuivi(contexte: $0).marquerVu(film: film) } }
     }
 }
 

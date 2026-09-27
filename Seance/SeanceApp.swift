@@ -70,6 +70,8 @@ final class DelegueApp: NSObject, UIApplicationDelegate {
     func application(_ application: UIApplication, didFinishLaunchingWithOptions options: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
         // Le jour et l'heure d'arrivée de cette version (8.1), pour À propos › Versions.
         InstallationsVersions.noter()
+        // Comment s'est terminée la séance précédente (8.2) : un arrêt brusque va dans Réglages › Journal.
+        Plantages.demarrer()
         return true
     }
 

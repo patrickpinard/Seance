@@ -421,6 +421,15 @@ struct FeuilleCouverture: View {
     @State private var avecDate = false
     @State private var date = Date.now
     @State private var pourToutLAlbum = false
+    /// L'image choisie dans la vidéo (8.2), en secondes ; `nil` : celle de Séance.
+    @State private var instant: Double?
+    @State private var apercus: [(secondes: Double, image: Image)] = []
+    @State private var apercusEnCours = false
+
+    /// Une vidéo (pas un album) dont Séance sait tirer des images.
+    private var avecImages: Bool {
+        cible.etiquette == "VIDÉO" && VignettesSouvenirs.possible(cible.chemin)
+    }
 
     var body: some View {
         NavigationStack {
@@ -459,6 +468,7 @@ struct FeuilleCouverture: View {
                             .accessibilityAddTraits(choisie ? .isSelected : [])
                         }
                     }
+                    if avecImages { choixImage }
                     VStack(spacing: 0) {
                         TextField(cible.titreParDefaut, text: $titre)
                             .accessibilityLabel("Titre")
@@ -499,7 +509,51 @@ struct FeuilleCouverture: View {
             titre = cible.titre
             avecDate = cible.date != nil
             date = cible.date ?? cible.dateParDefaut
+            instant = etat.videosPerso.couvertures.entrees[cible.chemin]?.instantImage
         }
+        .task { await chargerApercus() }
+    }
+
+    /// « Image » (8.2) : six images prises à travers la vidéo ; celle qu'on touche devient sa vignette, partout.
+    private var choixImage: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Image").font(.headline)
+            if apercus.isEmpty {
+                Label(apercusEnCours ? "Séance prend des images dans la vidéo…" : "Aucune image n'a pu être lue sur le NAS.",
+                      systemImage: apercusEnCours ? "hourglass" : "photo")
+                    .font(.footnote).foregroundStyle(.secondary)
+            }
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 10) {
+                    ForEach(apercus, id: \.secondes) { apercu in
+                        let choisie = instant == apercu.secondes
+                        Button { instant = apercu.secondes } label: {
+                            apercu.image.resizable().scaledToFill()
+                                .frame(width: 150, height: 84)
+                                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                                .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                    .strokeBorder(choisie ? Theme.accent : Theme.trait, lineWidth: choisie ? 3 : 1))
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("Image à \(PositionsLecture.horodatage(apercu.secondes))")
+                        .accessibilityAddTraits(choisie ? .isSelected : [])
+                    }
+                }
+            }
+            if instant != nil {
+                Button("Revenir à l'image de Séance") { instant = nil }
+                    .font(.subheadline.weight(.semibold))
+                    .frame(minHeight: 44)
+            }
+        }
+    }
+
+    private func chargerApercus() async {
+        guard avecImages, let motDePasse = etat.videosPerso.motDePasse(films: etat.nas.reglages) else { return }
+        apercusEnCours = true
+        defer { apercusEnCours = false }
+        apercus = await etat.videosPerso.vignettes.apercus(VideoPerso(chemin: cible.chemin, taille: 0),
+                                                          acces: etat.videosPerso.reglages.acces, motDePasse: motDePasse)
     }
 
     private func valider() {
@@ -509,9 +563,9 @@ struct FeuilleCouverture: View {
             // L'icône va à l'album ; la vidéo garde son titre et sa date, et reprend celle de l'album.
             let deLAlbum = etat.videosPerso.couvertures.couverture(album.id)
             etat.videosPerso.choisirCouverture(album.id, symbole: symbole, titre: deLAlbum?.titre, date: deLAlbum?.date)
-            etat.videosPerso.choisirCouverture(cible.chemin, symbole: nil, titre: titreGarde, date: avecDate ? date : nil)
+            etat.videosPerso.choisirCouverture(cible.chemin, symbole: nil, titre: titreGarde, date: avecDate ? date : nil, instantImage: instant)
         } else {
-            etat.videosPerso.choisirCouverture(cible.chemin, symbole: symbole, titre: titreGarde, date: avecDate ? date : nil)
+            etat.videosPerso.choisirCouverture(cible.chemin, symbole: symbole, titre: titreGarde, date: avecDate ? date : nil, instantImage: instant)
         }
         fermer()
     }

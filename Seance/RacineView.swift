@@ -210,6 +210,8 @@ struct RacineView: View {
         // Retour dans l'app : programmes et alertes remis à jour s'ils datent.
         .onDisappear { tachePremierPlan?.cancel() }
         .onChange(of: phase) { _, nouvelle in
+            // Un arrêt en arrière-plan est normal (iOS libère la place) : seul compte celui qui arrive à l'écran (8.2).
+            Plantages.enFond(nouvelle != .active)
             switch nouvelle {
             case .active:
                 etat.nas.verifierRetour()
@@ -232,12 +234,19 @@ struct RacineView: View {
                 break
             }
         }
-        // Retour d'Infuse, de VLC ou du lecteur du Mac : proposer de marquer la vidéo comme vue.
+        // Retour d'Infuse, de VLC, du lecteur du Mac ou d'une plateforme (8.2) : proposer de marquer la vidéo comme vue.
         .alert("As-tu regardé « \(etat.nas.lectureAConfirmer?.libelle ?? "") » ?",
                isPresented: Binding { etat.nas.lectureAConfirmer != nil } set: { if !$0 { etat.nas.lectureAConfirmer = nil } },
                presenting: etat.nas.lectureAConfirmer) { lecture in
             Button("Oui, marquer vu") {
-                Task { await etat.nas.confirmerLecture(lecture, contexte: contexte, tmdb: etat.tmdb) }
+                Task {
+                    await etat.nas.confirmerLecture(lecture, contexte: contexte, tmdb: etat.tmdb)
+                    // 8.2 : puis « Qui regarde avec toi ? ».
+                    guard let tmdb = etat.tmdb else { return }
+                    VuEnsemble.demander(etat, reference: lecture.reference, titre: lecture.libelle) { autre in
+                        try await ActionsCommunes.marquerVu(lecture, contexte: autre, tmdb: tmdb)
+                    }
+                }
             }
             Button("Pas encore", role: .cancel) {}
         } message: { lecture in
@@ -245,6 +254,8 @@ struct RacineView: View {
                  ? "Séance le marquera comme vu : il sortira des suggestions et comptera dans tes statistiques."
                  : "Séance cochera cet épisode et passera au suivant.")
         }
+        // La page à l'écran, pour dire où Séance s'est arrêtée si elle s'arrête (8.2).
+        .onChange(of: onglet, initial: true) { _, choisi in Plantages.page(String(describing: choisi).capitalized) }
         .onChange(of: etat.rechercheDemandee) { _, demandee in
             if demandee { onglet = .explorer }
         }

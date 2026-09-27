@@ -71,11 +71,14 @@ struct ActionsRapides {
         case .vuAujourdhui:
             let avantVu = try suivi.suivi(reference)
             let statutAvantVu = avantVu?.statut
-            try suivi.marquerVu(film: try await client().film(reference.tmdbID, complements: [.casting]))
+            let fiche = try await client().film(reference.tmdbID, complements: [.casting])
+            try suivi.marquerVu(film: fiche)
             annulation = { [contexte] in
                 try? ServiceSuivi(contexte: contexte).marquerNonVu(film: reference)
                 AnnulationTitre.restaurer(reference, existait: avantVu != nil, statut: statutAvantVu, contexte: contexte)
             }
+            // 8.2 : « Qui regarde avec toi ? », comme au bout d'une lecture.
+            VuEnsemble.demander(etat, reference: reference, titre: titre.titre) { try $0.marquerVu(film: fiche) }
             return ("Marqué vu aujourd'hui", "eye.fill")
 
         case .dejaVuAvant:

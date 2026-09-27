@@ -56,6 +56,21 @@ struct NoteVersion: Identifiable {
 
     static let historique: [NoteVersion] = [
         NoteVersion(
+            numero: "8.3",
+            date: "27 septembre 2026",
+            resume: "Qui regarde avec toi ? Tes souvenirs sur l'accueil, l'épisode suivant des plateformes, l'image de tes vidéos, et les arrêts de Séance dans le journal.",
+            fonctionnalites: [
+                Fonctionnalite(symbole: "person.2", titre: "Qui regarde avec toi ?",
+                               detail: "À la fin d'une lecture, après « Vu aujourd'hui » ou « Terminé », et au retour d'une plateforme : coche les personnes qui regardaient avec toi, le titre s'inscrit aussi chez elles. Sur l'Apple TV, la question se pose aussi avant de lancer."),
+                Fonctionnalite(symbole: "play.tv", titre: "L'épisode suivant, même sur Netflix",
+                               detail: "Ouvre une série sur une plateforme depuis Séance : au retour, « As-tu regardé Reacher S02E04 ? » coche l'épisode d'un geste. Aussi pour les films, sur l'iPhone, l'iPad, le Mac et l'Apple TV."),
+                Fonctionnalite(symbole: "photo.on.rectangle", titre: "Tes souvenirs",
+                               detail: "Sur l'accueil, tes dernières vidéos personnelles avec leur image : un clic et elle démarre ; « Tout voir » pour choisir. Dans « Couverture », choisis l'image qui représente une vidéo."),
+                Fonctionnalite(symbole: "bolt.trianglebadge.exclamationmark", titre: "Les arrêts de Séance",
+                               detail: "Si Séance s'arrête brusquement, Réglages › Journal le dit au lancement suivant, avec la page ouverte et le rapport du système ; sur l'Apple TV, dans À propos."),
+            ]
+        ),
+        NoteVersion(
             numero: "8.2",
             date: "27 septembre 2026",
             resume: "Le nouvel accueil de l'Apple TV arrive sur l'iPhone, l'iPad et le Mac : de quoi regarder ce soir, les nouveautés, et reprendre.",

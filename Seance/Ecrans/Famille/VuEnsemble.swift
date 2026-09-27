@@ -11,13 +11,20 @@ struct DemandeAvecQui: Identifiable {
     let reference: ReferenceTitre
     let titre: String
     /// Ce qui s'inscrit chez chacun : le même geste que chez soi, sur son magasin à lui.
-    let inscrire: @MainActor (ServiceSuivi) throws -> Void
+    let inscrire: @MainActor (ModelContext) async throws -> Void
 }
 
 @MainActor
 enum VuEnsemble {
     /// La demande n'a de sens que dans une maison à plusieurs profils.
     static func demander(_ etat: EtatApp, reference: ReferenceTitre, titre: String, inscrire: @escaping @MainActor (ServiceSuivi) throws -> Void) {
+        demander(etat, reference: reference, titre: titre, surLeMagasin: { contexte in try inscrire(ServiceSuivi(contexte: contexte)) })
+    }
+
+    /// 8.2 : un geste qui a besoin d'attendre — lire la fiche TMDB d'un épisode, par exemple — au bout d'une lecture,
+    /// après « Vu aujourd'hui » dans le menu d'une carte, ou au retour d'une plateforme.
+    static func demander(_ etat: EtatApp, reference: ReferenceTitre, titre: String,
+                         surLeMagasin inscrire: @escaping @MainActor (ModelContext) async throws -> Void) {
         guard ProfilsFamille().aPlusieursProfils else { return }
         etat.avecQui = DemandeAvecQui(reference: reference, titre: titre, inscrire: inscrire)
     }
@@ -30,7 +37,7 @@ enum VuEnsemble {
             guard let conteneur = ConteneurApp.conteneur(de: profil) else { continue }
             let contexte = conteneur.mainContext
             do {
-                try demande.inscrire(ServiceSuivi(contexte: contexte))
+                try await demande.inscrire(contexte)
                 if demande.reference.type == .film { try? ServiceSoiree(contexte: contexte).retirer(demande.reference) }
                 try contexte.save()
                 inscrits.append(QuiRegardeActuel.nomDe(profil))
@@ -96,7 +103,7 @@ struct FeuilleAvecQui: View {
             }
             .padding(20)
             .background(Theme.fond)
-            .titreDeFeuille("Vu avec qui ?")
+            .titreDeFeuille("Qui regarde avec toi ?")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Juste moi") { fermer() }

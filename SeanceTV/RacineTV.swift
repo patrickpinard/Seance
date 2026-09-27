@@ -122,11 +122,14 @@ struct RacineTV: View {
             cheminAccueil = NavigationPath([ReferenceTitre(type: type, tmdbID: id)])
         }
         // « Tout voir » d'une étagère de l'accueil : Regarder prend la demande et l'efface.
+        // La page à l'écran, pour dire où Séance s'est arrêtée si elle s'arrête (8.2).
+        .onChange(of: onglet, initial: true) { _, choisi in Plantages.page(String(describing: choisi).capitalized) }
         .onChange(of: etat.demandeRegarder) { _, demande in
             if demande != nil { onglet = .regarder }
         }
         // Retour de l'app de lecture : « Tu l'as regardé ? » (EF-118, sur la TV).
         .onChange(of: phase) { _, nouvelle in
+            Plantages.enFond(nouvelle != .active)
             if nouvelle == .active {
                 etat.revenir()
                 Task { await etat.synchroniser(contexte: contexte) }
@@ -138,11 +141,17 @@ struct RacineTV: View {
         }
         // Une fenêtre de Séance plutôt que celle du système (6.3), toujours lisible sur la TV.
         .fullScreenCover(isPresented: Binding { etat.lectureAConfirmer != nil } set: { if !$0 { etat.lectureAConfirmer = nil } }) {
-            if let reference = etat.lectureAConfirmer {
-                DialogueTV(titre: "Tu l'as regardé ?",
-                           message: "Séance le range dans tes films vus ; tu pourras le noter depuis sa fiche.",
-                           choix: [DialogueTV.Choix(libelle: "Oui, terminé", principal: true) { marquerVu(reference) }])
+            if let lecture = etat.lectureAConfirmer {
+                DialogueTV(titre: "As-tu regardé « \(lecture.libelle) » ?",
+                           message: lecture.episode == nil ? "Séance le range dans tes films vus ; tu pourras le noter depuis sa fiche."
+                                                           : "Séance coche cet épisode et passe au suivant.",
+                           choix: [DialogueTV.Choix(libelle: "Oui, terminé", principal: true) { marquerVu(lecture) },
+                                   DialogueTV.Choix(libelle: "Pas encore") {}])
             }
+        }
+        // « Qui regarde avec toi ? » (8.2) : après « Terminé », au retour d'une plateforme. Le lecteur la pose lui-même.
+        .fullScreenCover(item: Binding { etat.lecteurOuvert ? nil : etat.avecQui } set: { if $0 == nil { etat.avecQui = nil } }) { demande in
+            ChoixAvecQuiTV(moment: .apres(demande)) { etat.avecQui = nil }
         }
         // La bibliothèque du NAS se relit au lancement : le magasin de la TV est un cache (EF-145).
         .task {
@@ -173,12 +182,18 @@ struct RacineTV: View {
         etat.dire("Envoyé par \(commande.expediteur)")
     }
 
-    private func marquerVu(_ reference: ReferenceTitre) {
+    private func marquerVu(_ lecture: LectureExterne) {
         Task {
-            guard let film = try? await etat.tmdb?.film(reference.tmdbID) else { return etat.dire("TMDB ne répond pas : marque-le vu depuis sa fiche.") }
-            try? ServiceSuivi(contexte: contexte).marquerVu(film: film)
-            try? ServiceSoiree(contexte: contexte).retirer(reference)
-            etat.dire("« \(film.titre) » marqué vu")
+            guard let tmdb = etat.tmdb, (try? await ActionsCommunes.marquerVu(lecture, contexte: contexte, tmdb: tmdb)) != nil else {
+                return etat.dire("TMDB ne répond pas : marque-le vu depuis sa fiche.")
+            }
+            if lecture.reference.type == .film { try? ServiceSoiree(contexte: contexte).retirer(lecture.reference) }
+            etat.dire("« \(lecture.libelle) » marqué vu")
+            // Petit délai : la question précédente se referme d'abord.
+            try? await Task.sleep(for: .milliseconds(600))
+            etat.demanderAvecQui(lecture.reference, titre: lecture.libelle) { autre in
+                try await ActionsCommunes.marquerVu(lecture, contexte: autre, tmdb: tmdb)
+            }
         }
     }
 

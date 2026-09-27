@@ -15,6 +15,8 @@ struct SeanceTVApp: App {
     init() {
         // Le jour et l'heure d'arrivée de cette version (8.1), pour Réglages › Versions.
         InstallationsVersions.noter()
+        // Un arrêt brusque de la séance précédente (8.2) : À propos › Arrêts de Séance.
+        Plantages.demarrer()
     }
 
     var body: some Scene {
@@ -87,6 +89,24 @@ enum ConteneurTV {
         let conteneur = try? EntrepotSeance.conteneur(profil.estPrincipal ? .dossier(dossier) : .dossierProfil(dossier, profil.id))
         ouverts[profil.id] = conteneur
         return conteneur
+    }
+
+    /// Le magasin d'une autre personne de la famille (8.2, « Qui regarde avec toi ? ») : gardé ouvert comme les autres.
+    static func conteneur(de profil: ProfilFamille) -> ModelContainer? {
+        if profil.id == famille.actif.id { return conteneur }
+        #if DEBUG
+        if Demonstration.active {
+            if let connu = demonstrations[profil.id] { return connu }
+            let nouveau = try? EntrepotSeance.conteneur(.memoire)
+            demonstrations[profil.id] = nouveau
+            return nouveau
+        }
+        #endif
+        if let ouvert = ouverts[profil.id] { return ouvert }
+        let dossier = URL.cachesDirectory.appending(path: "Seance")
+        let nouveau = try? EntrepotSeance.conteneur(profil.estPrincipal ? .dossier(dossier) : .dossierProfil(dossier, profil.id))
+        ouverts[profil.id] = nouveau
+        return nouveau
     }
 
     /// Comme sur l'iPhone (8.2.18) : le magasin de chaque personne reste ouvert jusqu'à la fin du lancement — les pages

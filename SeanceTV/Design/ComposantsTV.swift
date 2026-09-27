@@ -634,6 +634,8 @@ struct MenuCarteTV: ViewModifier {
         try? ServiceSuivi(contexte: contexte).marquerVu(film: film)
         if let soiree { try? ServiceSoiree(contexte: contexte).retirer(reference, soiree: soiree) }
         etat.dire("« \(titre) » marqué vu")
+        // 8.2 : « Qui regarde avec toi ? », comme sur l'iPhone.
+        etat.demanderAvecQui(reference, titre: titre) { try ServiceSuivi(contexte: $0).marquerVu(film: film) }
     }
 
     /// La même action que sur l'iPhone (`ActionsCommunes`).

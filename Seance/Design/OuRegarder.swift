@@ -583,6 +583,10 @@ enum LancementPlateforme {
             etat.ouverture = nil
             PlateformesApprises.noter(id, ouverte: acceptee)
             if !acceptee { etat.confirmer("\(nom) ne s'ouvre pas d'ici : lance l'app et cherche « \(titre) »", symbole: "exclamationmark.triangle") }
+            // 8.2 : au retour, « As-tu regardé Reacher S02E04 ? » — le film, ou le prochain épisode de la série.
+            guard acceptee, let contexte = ConteneurApp.conteneur?.mainContext else { return }
+            let tmdb = etat.tmdb
+            Task { etat.nas.noterLecture(await ActionsCommunes.lectureSurPlateforme(reference, titre: titre, contexte: contexte, tmdb: tmdb)) }
         }
     }
 

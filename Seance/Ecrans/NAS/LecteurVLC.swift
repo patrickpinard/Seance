@@ -227,6 +227,7 @@ struct LecteurVLC: View {
         .statusBarHidden()
         .persistentSystemOverlays(commandesVisibles ? .automatic : .hidden)
         .onAppear {
+            Plantages.page("Lecteur")
             OrientationLecture.ouvrir()
             // Un lecteur, pour iOS : le son sort même en silencieux, et l'image dans l'image est permise.
             try? AVAudioSession.sharedInstance().setCategory(.playback, mode: .moviePlayback)
@@ -403,6 +404,11 @@ struct LecteurVLC: View {
         Task {
             if (try? await FinDeFichierNAS.marquerVu(sujet, dureeSecondes: duree, contexte: contexte, tmdb: etat.tmdb)) == true {
                 etat.confirmer("« \(sujet.libelle) » marqué vu", symbole: "checkmark.circle")
+                // 8.2 : « Qui regarde avec toi ? » — les autres personnes l'ont vu aussi.
+                let tmdb = etat.tmdb
+                VuEnsemble.demander(etat, reference: sujet.reference, titre: sujet.libelle) { autre in
+                    _ = try await FinDeFichierNAS.marquerVu(sujet, dureeSecondes: duree, contexte: autre, tmdb: tmdb)
+                }
             }
         }
     }

@@ -195,10 +195,19 @@ struct LecteurVLCTV: View {
                 if commandes, !pistes, !son, cible == nil, moteur.enLecture, Date.now.timeIntervalSince(dernierGeste) > 6 { cacher() }
             }
         }
-        .onAppear { focus = .lecture }
+        .onAppear {
+            focus = .lecture
+            etat.lecteurOuvert = true
+            Plantages.page("Lecteur")
+        }
         .onDisappear {
+            etat.lecteurOuvert = false
             if moteur.duree > 0 { surPosition(moteur.secondes, moteur.duree) }
             Task { await ranger() }
+        }
+        // « Qui regarde avec toi ? » (8.2) : posée par-dessus l'image quand le film ou l'épisode est marqué vu.
+        .fullScreenCover(item: Binding { etat.avecQui } set: { if $0 == nil { etat.avecQui = nil } }) { demande in
+            ChoixAvecQuiTV(moment: .apres(demande)) { etat.avecQui = nil }
         }
     }
 
@@ -240,6 +249,10 @@ struct LecteurVLCTV: View {
         Task {
             if (try? await FinDeFichierNAS.marquerVu(sujet, dureeSecondes: duree, contexte: contexte, tmdb: etat.tmdb)) == true {
                 etat.dire("« \(sujet.libelle) » marqué vu")
+                let tmdb = etat.tmdb
+                etat.demanderAvecQui(sujet.reference, titre: sujet.libelle) { autre in
+                    _ = try await FinDeFichierNAS.marquerVu(sujet, dureeSecondes: duree, contexte: autre, tmdb: tmdb)
+                }
             }
         }
     }

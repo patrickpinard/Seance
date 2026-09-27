@@ -16,6 +16,8 @@ final class VignettesSouvenirs {
     /// Les chemins déjà demandés, réussis ou non : une vidéo sans image n'est pas redemandée à chaque défilement.
     private var demandes: Set<String> = []
     private var enCours = 0
+    /// L'image choisie dans chaque vidéo (8.2), en secondes ; `nil` : une seconde après le début.
+    @ObservationIgnored var instantDe: ((String) -> Double?)?
 
     /// Où les images sont gardées entre deux lancements.
     private static var dossier: URL? {
@@ -26,10 +28,10 @@ final class VignettesSouvenirs {
         return dossier
     }
 
-    private static func fichier(_ chemin: String) -> URL? {
+    private static func fichier(_ chemin: String, instant: Double? = nil) -> URL? {
         // Le chemin d'une vidéo contient des « / » et des accents : on le réduit à une empreinte stable.
         let nom = String(format: "%016llx", UInt64(bitPattern: Int64(chemin.hashValue)))
-        return dossier?.appendingPathComponent(nom + ".jpg")
+        return dossier?.appendingPathComponent(nom + (instant.map { "-\(Int($0))" } ?? "") + ".jpg")
     }
 
     /// Les formats dont AVFoundation sait tirer une image : les mêmes qu'il sait lire.
@@ -47,16 +49,17 @@ final class VignettesSouvenirs {
         else { return }
         demandes.insert(video.chemin)
         // Sur le disque depuis un autre lancement : rien à relire sur le NAS.
-        if let fichier = Self.fichier(video.chemin), let donnees = try? Data(contentsOf: fichier),
+        let instant = instantDe?(video.chemin)
+        if let fichier = Self.fichier(video.chemin, instant: instant), let donnees = try? Data(contentsOf: fichier),
            let image = UIImage(data: donnees) {
             vignettes[video.chemin] = Image(uiImage: image)
             return
         }
-        Task { await produire(video, acces: acces, motDePasse: motDePasse) }
+        Task { await produire(video, acces: acces, motDePasse: motDePasse, instant: instant) }
     }
 
     /// Deux vidéos à la fois au plus : chaque image demande d'ouvrir une connexion SMB et de lire le début du fichier.
-    private func produire(_ video: VideoPerso, acces: ReglagesNAS, motDePasse: String) async {
+    private func produire(_ video: VideoPerso, acces: ReglagesNAS, motDePasse: String, instant: Double?) async {
         while enCours >= 2 { try? await Task.sleep(for: .milliseconds(250)) }
         enCours += 1
         defer { enCours -= 1 }
@@ -70,13 +73,44 @@ final class VignettesSouvenirs {
         let generateur = AVAssetImageGenerator(asset: asset)
         generateur.appliesPreferredTrackTransform = true
         generateur.maximumSize = CGSize(width: 640, height: 640)
-        // Une seconde après le début : la toute première image est souvent noire.
-        guard let image = try? await generateur.image(at: CMTime(seconds: 1, preferredTimescale: 600)).image else { return }
+        // Une seconde après le début : la toute première image est souvent noire. Ou l'image choisie (8.2).
+        guard let image = try? await generateur.image(at: CMTime(seconds: instant ?? 1, preferredTimescale: 600)).image else { return }
         let uiImage = UIImage(cgImage: image)
         vignettes[video.chemin] = Image(uiImage: uiImage)
-        if let fichier = Self.fichier(video.chemin), let donnees = uiImage.jpegData(compressionQuality: 0.7) {
+        if let fichier = Self.fichier(video.chemin, instant: instant), let donnees = uiImage.jpegData(compressionQuality: 0.7) {
             try? donnees.write(to: fichier, options: .atomic)
         }
+    }
+
+    /// Une autre image a été choisie pour cette vidéo : la vignette se refait à la prochaine demande.
+    func oublier(_ chemin: String) {
+        vignettes[chemin] = nil
+        demandes.remove(chemin)
+    }
+
+    /// Six images prises à travers la vidéo, pour choisir celle qui la représente (8.2, feuille « Couverture »).
+    func apercus(_ video: VideoPerso, acces: ReglagesNAS, motDePasse: String, nombre: Int = 6) async -> [(secondes: Double, image: Image)] {
+        let source = SourceVideoSMB(reglages: acces, motDePasse: motDePasse, chemin: video.chemin)
+        await source.ouvrir()
+        let extension_ = (video.chemin as NSString).pathExtension.lowercased()
+        let relais = RelaisVideo(source: source, typeMIME: extension_ == "mp4" ? "video/mp4" : "video/quicktime")
+        defer { Task { await relais.arreter(); await source.fermer() } }
+        guard let adresse = try? await relais.demarrer() else { return [] }
+        let asset = AVURLAsset(url: adresse)
+        guard let duree = try? await asset.load(.duration).seconds, duree.isFinite, duree > 2 else { return [] }
+        let generateur = AVAssetImageGenerator(asset: asset)
+        generateur.appliesPreferredTrackTransform = true
+        generateur.maximumSize = CGSize(width: 480, height: 480)
+        var resultat: [(secondes: Double, image: Image)] = []
+        for rang in 0..<nombre {
+            // De 5 % à 90 % de la vidéo, à intervalles réguliers.
+            let secondes = (duree * (0.05 + 0.85 * Double(rang) / Double(max(nombre - 1, 1)))).rounded()
+            guard !Task.isCancelled else { break }
+            if let image = try? await generateur.image(at: CMTime(seconds: secondes, preferredTimescale: 600)).image {
+                resultat.append((secondes, Image(uiImage: UIImage(cgImage: image))))
+            }
+        }
+        return resultat
     }
 
     /// Vide les images gardées : l'utilisateur le demande depuis Réglages › Vidéos personnelles.

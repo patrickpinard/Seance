@@ -123,25 +123,20 @@ final class EtatNAS {
         }
     }
 
-    /// « Oui, marquer vu » : le film, ou l'épisode précis, rejoint l'historique.
+    /// « Oui, marquer vu » : le film, ou l'épisode précis, rejoint l'historique (`ActionsCommunes`, comme sur la TV).
     func confirmerLecture(_ lecture: LectureExterne, contexte: ModelContext, tmdb: TMDBClient?) async {
         guard let tmdb else { return }
-        let service = ServiceSuivi(contexte: contexte)
         do {
-            switch (lecture.reference.type, lecture.episode) {
-            case (.film, _):
-                try service.marquerVu(film: try await tmdb.film(lecture.reference.tmdbID, complements: []))
-            case (.serie, let numero?):
-                async let serie = tmdb.serie(lecture.reference.tmdbID)
-                async let saison = tmdb.saison(numero.saison, serie: lecture.reference.tmdbID)
-                let episodes = try await saison.episodes.filter { $0.numeroEpisode == numero }
-                _ = try service.cocher(episodes, serie: try await serie)
-            case (.serie, nil):
-                return
-            }
+            try await ActionsCommunes.marquerVu(lecture, contexte: contexte, tmdb: tmdb)
         } catch {
             journal?.noter(.lecture, "« \(lecture.libelle) » n'a pas pu être marqué comme vu.", erreur: error)
         }
+    }
+
+    /// Une plateforme s'ouvre sur ce titre (8.2) : au retour, après dix minutes au moins, Séance demande s'il a été
+    /// regardé — le film, ou le prochain épisode de la série.
+    func noterLecture(_ lecture: LectureExterne) {
+        memoriserLecture(lecture)
     }
 
     private func memoriserLecture(_ lecture: LectureExterne?) {

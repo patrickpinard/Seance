@@ -74,3 +74,39 @@ public enum ActionsCommunes {
         }
     }
 }
+
+// MARK: Retour d'une app de lecture ou d'une plateforme (8.2)
+
+extension ActionsCommunes {
+    /// « As-tu regardé … ? » — Oui : le film rejoint les vus, ou l'épisode précis est coché (avec sa vraie durée, lue sur
+    /// TMDB), et une série finie passe dans Terminés. Le même geste sur l'iPhone, l'iPad, le Mac et l'Apple TV, et chez
+    /// les personnes qui regardaient avec toi.
+    public static func marquerVu(_ lecture: LectureExterne, contexte: ModelContext, tmdb: TMDBClient) async throws {
+        let service = ServiceSuivi(contexte: contexte)
+        switch (lecture.reference.type, lecture.episode) {
+        case (.film, _):
+            try service.marquerVu(film: try await tmdb.film(lecture.reference.tmdbID, complements: []))
+        case (.serie, let numero?):
+            async let serie = tmdb.serie(lecture.reference.tmdbID)
+            async let saison = tmdb.saison(numero.saison, serie: lecture.reference.tmdbID)
+            let episodes = try await saison.episodes.filter { $0.numeroEpisode == numero }
+            let detail = try await serie
+            _ = try service.cocher(episodes, serie: detail)
+            _ = try? service.rangerSiTerminee(detail)
+        case (.serie, nil):
+            return
+        }
+    }
+
+    /// Ce qu'on va regarder en ouvrant une plateforme : le film, ou le prochain épisode de la série d'après ce qui est
+    /// déjà coché — « Reacher S02E04 ». Au retour dans Séance, la question porte sur lui.
+    public static func lectureSurPlateforme(_ reference: ReferenceTitre, titre: String, contexte: ModelContext,
+                                            tmdb: TMDBClient?, maintenant: Date = .now) async -> LectureExterne {
+        var episode: NumeroEpisode?
+        if reference.type == .serie, let tmdb, let serie = try? await tmdb.serie(reference.tmdbID) {
+            let vus = (try? ServiceSuivi(contexte: contexte).episodesVus(reference)) ?? []
+            episode = ProgressionSerie.suivant(vus: vus, saisons: serie.saisons, dernierDiffuse: serie.dernierEpisode)?.numero
+        }
+        return LectureExterne(reference: reference, titre: titre, episode: episode, debut: maintenant)
+    }
+}

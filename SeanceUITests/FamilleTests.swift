@@ -104,11 +104,11 @@ final class FamilleTests: XCTestCase {
         let termine = app.buttons["Terminé"].firstMatch
         XCTAssertTrue(termine.waitForExistence(timeout: 5), "Pas de « Terminé » dans le menu ⋯ de la fiche")
         termine.tap()
-        XCTAssertTrue(app.staticTexts["Vu avec qui ?"].firstMatch.waitForExistence(timeout: 8), "« Vu avec qui ? » ne s'ouvre pas")
+        XCTAssertTrue(app.staticTexts["Qui regarde avec toi ?"].firstMatch.waitForExistence(timeout: 8), "« Qui regarde avec toi ? » ne s'ouvre pas")
         XCTAssertTrue(app.buttons["Anne l'a vu aussi"].firstMatch.isSelected, "Anne, qui regarde ce soir, n'est pas cochée d'office")
         capture("famille-vu-avec-qui")
         app.buttons["validerAvecQui"].firstMatch.tap()
-        XCTAssertTrue(app.staticTexts["Vu avec qui ?"].firstMatch.waitForNonExistence(timeout: 10), "La feuille ne se referme pas")
+        XCTAssertTrue(app.staticTexts["Qui regarde avec toi ?"].firstMatch.waitForNonExistence(timeout: 10), "La feuille ne se referme pas")
 
         // Chez Anne, le film est dans Terminés, sous le mois en cours.
         app.navigationBars.buttons.firstMatch.tap()

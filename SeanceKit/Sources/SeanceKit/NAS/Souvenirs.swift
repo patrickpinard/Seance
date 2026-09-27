@@ -73,17 +73,20 @@ public struct CouvertureSouvenir: Codable, Sendable, Hashable {
     public var symbole: String?
     public var titre: String?
     public var date: Date?
+    /// L'image choisie dans la vidéo (8.2), en secondes depuis le début ; absent : l'image de Séance (une seconde).
+    public var instantImage: Double?
     public var majLe: Date
 
-    public init(symbole: String? = nil, titre: String? = nil, date: Date? = nil, majLe: Date) {
+    public init(symbole: String? = nil, titre: String? = nil, date: Date? = nil, instantImage: Double? = nil, majLe: Date) {
         self.symbole = symbole
         self.titre = titre
         self.date = date
+        self.instantImage = instantImage
         self.majLe = majLe
     }
 
     /// Rien de choisi : l'entrée ne sert plus qu'à dire « rétabli » aux autres appareils.
-    public var estVide: Bool { symbole == nil && (titre ?? "").isEmpty && date == nil }
+    public var estVide: Bool { symbole == nil && (titre ?? "").isEmpty && date == nil && instantImage == nil }
 }
 
 /// Toutes les couvertures, par chemin (celui du dossier d'un album, ou d'une vidéo). Elles voyagent dans les réglages
@@ -109,9 +112,11 @@ public struct CouverturesSouvenirs: Codable, Sendable, Hashable {
         entrees[chemin].flatMap { $0.estVide ? nil : $0 }
     }
 
-    public mutating func choisir(_ chemin: String, symbole: String?, titre: String?, date: Date?, le maintenant: Date = .now) {
+    public mutating func choisir(_ chemin: String, symbole: String?, titre: String?, date: Date?, instantImage: Double? = nil,
+                                 le maintenant: Date = .now) {
         let titrePropre = titre?.trimmingCharacters(in: .whitespacesAndNewlines)
-        entrees[chemin] = CouvertureSouvenir(symbole: symbole, titre: (titrePropre ?? "").isEmpty ? nil : titrePropre, date: date, majLe: maintenant)
+        entrees[chemin] = CouvertureSouvenir(symbole: symbole, titre: (titrePropre ?? "").isEmpty ? nil : titrePropre, date: date,
+                                             instantImage: instantImage, majLe: maintenant)
     }
 
     /// Revient à ce que Séance propose : l'entrée reste, vide et datée, pour que les autres appareils l'apprennent.

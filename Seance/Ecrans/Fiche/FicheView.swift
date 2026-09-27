@@ -88,7 +88,10 @@ struct FicheView: View {
             }
         }
         .background(Theme.fond)
-        .task(id: reference) { await charger() }
+        .task(id: reference) {
+            Plantages.page("Fiche \(reference)")
+            await charger()
+        }
         // ⌘[ sur le Mac (6.4) : la page ouverte se referme, comme dans toute app Mac.
         .onChange(of: etat.retourDemande) { _, _ in fermer() }
     }

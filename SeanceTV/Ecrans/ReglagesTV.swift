@@ -584,6 +584,9 @@ struct PageGoutsTV: View {
 }
 
 private struct PageAProposTV: View {
+    /// Les arrêts brusques de Séance sur cette TV (8.2), notés au lancement suivant.
+    @State private var plantages = Plantages.liste
+
     var body: some View {
         // 8.2.1 (demande de Patrick) : ni « Retour aux réglages » — la liste est à gauche —, ni « Comment ça marche ».
         PageTV(titre: "À propos") {
@@ -599,6 +602,20 @@ private struct PageAProposTV: View {
                     }
                 }
                 .buttonStyle(LigneTV())
+            }
+            if !plantages.isEmpty {
+                SectionTV(titre: "Arrêts de Séance",
+                          explication: "Séance s'est arrêtée brusquement à ces moments-là, sur la page indiquée. Si cela se répète, dis-le : la page aide à trouver la cause.") {
+                    ForEach(plantages) { plantage in
+                        LigneTVReglage(titre: plantage.date.formatted(.dateTime.day().month(.wide).hour().minute().locale(Locale(identifier: "fr_CH"))),
+                                       detail: [plantage.page.map { "Page « \($0) »" }, "version \(plantage.version)"].compactMap { $0 }.joined(separator: " · "),
+                                       symbole: "bolt.trianglebadge.exclamationmark")
+                    }
+                    LigneTVReglage(titre: "Effacer la liste", symbole: "trash", action: {
+                        Plantages.effacer()
+                        plantages = []
+                    }) { EmptyView() }
+                }
             }
             // La mention que demandent les conditions de TMDB.
             Text("Ce produit utilise l'API TMDB mais n'est ni approuvé ni certifié par TMDB. Disponibilités en Suisse : JustWatch, via TMDB. Programme TV : XML TV Fr.")

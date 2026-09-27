@@ -40,3 +40,16 @@ import Testing
         #expect(titres.recentsDAbord(\.1).map(\.0) == ["c", "e", "d", "a", "b"])
     }
 }
+
+/// 8.2 : l'image choisie d'une vidéo voyage avec sa couverture ; les anciennes couvertures se relisent sans elle.
+@Suite struct ImageChoisieTests {
+    @Test func lInstantVoyageEtCompteCommeUnChoix() throws {
+        var couvertures = CouverturesSouvenirs()
+        couvertures.choisir("Famille/Noël.mp4", symbole: nil, titre: nil, date: nil, instantImage: 42, le: Date(timeIntervalSince1970: 10))
+        #expect(couvertures.couverture("Famille/Noël.mp4")?.instantImage == 42)
+        let relu = CouverturesSouvenirs(donnees: couvertures.encoder())
+        #expect(relu.couverture("Famille/Noël.mp4")?.instantImage == 42)
+        let ancien = #"{"entrees":{"a.mp4":{"titre":"Plage","majLe":0}}}"#
+        #expect(CouverturesSouvenirs(donnees: Data(ancien.utf8)).couverture("a.mp4")?.instantImage == nil)
+    }
+}
