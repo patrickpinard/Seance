@@ -13,6 +13,8 @@ enum DestinationProfil: Hashable {
 struct ProfilView: View {
     /// 7.0 : ouvertes par le portrait, en feuille, et non plus comme un onglet.
     var enFeuille = false
+    /// Sur le Mac (8.2.13), une page poussée dans la pile où l'on est — une feuille y devient une fenêtre à part.
+    var enPage = false
     @Environment(EtatApp.self) private var etat
     @Environment(\.dismiss) private var fermer
     @Environment(\.horizontalSizeClass) private var classeTaille
@@ -40,7 +42,7 @@ struct ProfilView: View {
     }
 
     var body: some View {
-        NavigationStack {
+        PileSiFeuille(enPage: enPage) {
             ScrollView {
                 VStack(alignment: .leading, spacing: 28) {
                     entete

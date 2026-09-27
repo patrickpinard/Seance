@@ -43,6 +43,43 @@ private struct PageAccueilReglage: View {
     }
 }
 
+extension EnvironmentValues {
+    /// La page Réglages en deux colonnes du Mac (8.2.13) : la ligne choisie, montrée à droite.
+    @Entry var choixReglage: Binding<DestinationReglage?>? = nil
+}
+
+/// Les Réglages en page, sur le Mac (8.2.13) : comme la feuille de l'iPad, la liste à gauche et le réglage à droite —
+/// mais dans la fenêtre de Séance, et non dans une fenêtre à part.
+struct PageReglagesDeuxColonnes: View {
+    @State private var choix: DestinationReglage?
+
+    var body: some View {
+        HStack(spacing: 0) {
+            ReglagesView()
+                .environment(\.choixReglage, $choix)
+                .frame(width: 440)
+            Divider()
+            Group {
+                if let choix {
+                    PageReglage(destination: choix).id(choix)
+                } else {
+                    EtatVide(symbole: "gearshape", titre: "Réglages", message: "Choisis un réglage dans la liste.")
+                        .frame(maxWidth: 440)
+                        .padding(24)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Theme.fond)
+        }
+        .navigationTitle("Réglages")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+/// Les Réglages en page, sur le Mac (8.2.13).
+struct PageReglagesMac: Hashable {}
+
 struct PageReglage: View {
     let destination: DestinationReglage
 
@@ -174,6 +211,8 @@ struct ReglagesView: View {
     @Environment(\.modelContext) private var contexte
     @Query(filter: #Predicate<Abonnement> { $0.actif }, sort: \Abonnement.nom) private var abonnements: [Abonnement]
     @Query(filter: #Predicate<Chaine> { $0.active }) private var chaines: [Chaine]
+    /// Sur le Mac, en deux colonnes : la ligne choisie (8.2.13).
+    @Environment(\.choixReglage) private var choixReglage
     /// Leurs affiches habillent les cartes des réglages.
     @Query private var suivis: [Suivi]
     @AppStorage(Prenom.cle) private var prenom = ""
@@ -287,11 +326,21 @@ struct ReglagesView: View {
     }
 
     /// `enOrdre` : un point vert ou orange, pour ce que Séance surveille ; `nil` pour le reste.
+    @ViewBuilder
     private func ligne(_ destination: DestinationReglage, _ titre: String, _ symbole: String, _ valeur: String, enOrdre: Bool? = nil) -> some View {
-        NavigationLink(value: destination) {
-            LigneReglage(titre: titre, symbole: symbole, valeur: valeur, enOrdre: enOrdre)
+        // Sur le Mac (8.2.13), la page Réglages a deux colonnes : la ligne choisit ce que montre celle de droite.
+        if let choix = choixReglage {
+            Button { choix.wrappedValue = destination } label: {
+                LigneReglage(titre: titre, symbole: symbole, valeur: valeur, enOrdre: enOrdre)
+                    .background(choix.wrappedValue == destination ? Theme.accent.opacity(0.18) : .clear)
+            }
+            .buttonStyle(.plain)
+        } else {
+            NavigationLink(value: destination) {
+                LigneReglage(titre: titre, symbole: symbole, valeur: valeur, enOrdre: enOrdre)
+            }
+            .buttonStyle(.plain)
         }
-        .buttonStyle(.plain)
     }
 
     private var libelleVideosPerso: String {
@@ -381,15 +430,17 @@ struct ReglagesView: View {
             // « Voir l'installation », que la carte Installation montre déjà).
             Flux(espacement: 10) {
                 if let premier = manques.first(where: { $0.action != nil }), let action = premier.action {
-                    NavigationLink(value: premier.destination) {
-                        Label(action, systemImage: premier.symbole)
-                            .font(.subheadline.weight(.bold))
-                            .foregroundStyle(.black)
-                            .padding(.horizontal, 18)
-                            .frame(minHeight: 46)
-                            .background(Theme.degradeAccent, in: RoundedRectangle(cornerRadius: 13, style: .continuous))
+                    let etiquette = Label(action, systemImage: premier.symbole)
+                        .font(.subheadline.weight(.bold))
+                        .foregroundStyle(.black)
+                        .padding(.horizontal, 18)
+                        .frame(minHeight: 46)
+                        .background(Theme.degradeAccent, in: RoundedRectangle(cornerRadius: 13, style: .continuous))
+                    if let choix = choixReglage {
+                        Button { choix.wrappedValue = premier.destination } label: { etiquette }.buttonStyle(.plain)
+                    } else {
+                        NavigationLink(value: premier.destination) { etiquette }.buttonStyle(.plain)
                     }
-                    .buttonStyle(.plain)
                 }
                 boutonSynchroniser
             }

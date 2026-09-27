@@ -321,10 +321,22 @@ struct RacineView: View {
         etat.preferencesOuvertes = false
         etat.reglagesOuverts = false
         switch demande {
-        case .profil:
-            etat.preferencesOuvertes = true
         case .reglages:
+            #if targetEnvironment(macCatalyst)
+            // Sur le Mac, une page dans l'accueil plutôt qu'une fenêtre (8.2.13).
+            onglet = .accueil
+            etat.reglagesEnPage += 1
+            #else
             etat.reglagesOuverts = true
+            #endif
+        case .profil:
+            #if targetEnvironment(macCatalyst)
+            // Sur le Mac, une page dans l'accueil plutôt qu'une fenêtre (8.2.13).
+            onglet = .accueil
+            etat.preferencesEnPage += 1
+            #else
+            etat.preferencesOuvertes = true
+            #endif
         case .ceSoir:
             etat.sourceRegarder = .tout
             etat.jourRegarder = nil
@@ -377,6 +389,9 @@ enum OngletRacine: Hashable {
     case accueil, ceSoir, streaming, tele, nas, regarder, listes, profil, reglages, explorer
 }
 
+/// Les Préférences en page, sur le Mac (8.2.13).
+struct PagePreferences: Hashable {}
+
 /// Destination commune : toucher une affiche ouvre sa fiche (UX-10).
 extension View {
     func destinationsTitres() -> some View {
@@ -387,6 +402,12 @@ extension View {
         .navigationDestination(for: ReferencePersonne.self) { personne in
             // Pas de roue sur la page d'un acteur (8.2, demande de Patrick) : la cloche et la recherche suffisent.
             PersonneView(personne: personne).boutonBarreLaterale(preferences: false, reglages: false)
+        }
+        .navigationDestination(for: PagePreferences.self) { _ in
+            ProfilView(enPage: true)
+        }
+        .navigationDestination(for: PageReglagesMac.self) { _ in
+            PageReglagesDeuxColonnes()
         }
         .navigationDestination(for: DestinationReglage.self) { destination in
             PageReglage(destination: destination)

@@ -39,6 +39,9 @@ final class EtatApp {
     var filtreExplorerDemande: PersonneFiltre?
     /// Préférences (7.0) : plus un onglet, mais le portrait en haut à gauche de chaque page, qui les ouvre en feuille.
     var preferencesOuvertes = false
+    /// Sur le Mac (8.2.13) : chaque demande pousse les Préférences en page dans l'accueil.
+    var preferencesEnPage = 0
+    var reglagesEnPage = 0
     /// Réglages en feuille, sur l'iPhone (7.0) : la roue dentée de chaque page.
     var reglagesOuverts = false
     /// Onglet à ouvrir, demandé depuis un autre écran : `.ceSoir`, `.streaming`, `.tele` et `.nas` ouvrent Regarder sur

@@ -56,6 +56,15 @@ struct NoteVersion: Identifiable {
 
     static let historique: [NoteVersion] = [
         NoteVersion(
+            numero: "8.2.13",
+            date: "27 septembre 2026",
+            resume: "Sur le Mac, les Préférences et les Réglages s'ouvrent en page, comme sur l'iPad, et non plus dans une fenêtre à part.",
+            fonctionnalites: [
+                Fonctionnalite(symbole: "macwindow", titre: "Préférences et Réglages en page, sur le Mac",
+                               detail: "Le portrait et la roue ouvrent une page dans la fenêtre de Séance, avec le retour habituel. Réglages garde ses deux colonnes, comme sur l'iPad : la liste à gauche, le réglage choisi à droite."),
+            ]
+        ),
+        NoteVersion(
             numero: "8.2.12",
             date: "27 septembre 2026",
             resume: "Tes goûts, dans les Préférences, se replient : une liste de genres à cocher.",

@@ -321,6 +321,9 @@ struct AccueilView: View {
                 }, abonnements: abonnements)
             }
         }
+        // Sur le Mac (8.2.13), les Préférences demandées par le menu s'ouvrent en page ici.
+        .onChange(of: etat.preferencesEnPage) { _, _ in chemin.append(PagePreferences()) }
+        .onChange(of: etat.reglagesEnPage) { _, _ in chemin.append(PageReglagesMac()) }
         .onChange(of: etat.ficheDemandee, initial: true) { _, reference in
             guard let reference else { return }
             chemin.append(reference)

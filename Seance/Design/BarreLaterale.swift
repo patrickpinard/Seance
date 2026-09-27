@@ -170,6 +170,19 @@ private struct PastilleQuiRegardeModifier: ViewModifier {
                 if preferences {
                     ToolbarItem(placement: .topBarLeading) {
                         // Pas un `Label` : dans la barre d'iOS 26, il se réduit à son icône et le prénom disparaît.
+                        // Sur le Mac (8.2.13), une page poussée ici même : une feuille y devient une fenêtre à part.
+                        Group {
+                        #if targetEnvironment(macCatalyst)
+                        NavigationLink(value: PagePreferences()) {
+                            HStack(spacing: 6) {
+                                Image(systemName: ProfilsFamille().actif.symbole == "person.fill" ? "person.crop.circle" : ProfilsFamille().actif.symbole)
+                                if let nom { Text(nom).lineLimit(1) }
+                            }
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(Theme.accentClair)
+                            .padding(.horizontal, 6)
+                        }
+                        #else
                         Button { etat.preferencesOuvertes = true } label: {
                             HStack(spacing: 6) {
                                 Image(systemName: ProfilsFamille().actif.symbole == "person.fill" ? "person.crop.circle" : ProfilsFamille().actif.symbole)
@@ -179,6 +192,8 @@ private struct PastilleQuiRegardeModifier: ViewModifier {
                             .foregroundStyle(Theme.accentClair)
                             .padding(.horizontal, 6)
                         }
+                        #endif
+                        }
                         .help("Préférences : tes goûts, tes notes, tes statistiques")
                         .accessibilityLabel(nom.map { "Préférences de \($0)" } ?? "Préférences")
                         .accessibilityIdentifier("preferences")
@@ -186,8 +201,13 @@ private struct PastilleQuiRegardeModifier: ViewModifier {
                 }
                 if reglages {
                     ToolbarItem(placement: .topBarTrailing) {
-                        Button { etat.ongletDemande = .reglages } label: {
-                            Image(systemName: "gearshape")
+                        Group {
+                            // Sur le Mac (8.2.13), une page poussée ici même, en deux colonnes comme sur l'iPad.
+                            #if targetEnvironment(macCatalyst)
+                            NavigationLink(value: PageReglagesMac()) { Image(systemName: "gearshape") }
+                            #else
+                            Button { etat.ongletDemande = .reglages } label: { Image(systemName: "gearshape") }
+                            #endif
                         }
                         .help("Réglages")
                         .accessibilityLabel("Réglages")
