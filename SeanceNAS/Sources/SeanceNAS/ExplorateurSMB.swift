@@ -117,9 +117,10 @@ public struct ExplorateurSMB: ExplorateurFichiers {
         return fichiers
     }
 
-    /// Écarte les fichiers cachés et les dossiers techniques du Synology (`@eaDir`, `#recycle`).
+    /// Écarte les fichiers cachés et les dossiers techniques du Synology (`@eaDir`, `#recycle`), et « Originaux » : les
+    /// vidéos d'avant conversion, mises de côté par `outils/convertir-videos.sh` (8.3) — leur version lisible suffit.
     static func retenu(_ nom: String) -> Bool {
-        !nom.hasPrefix(".") && !nom.hasPrefix("@") && !nom.hasPrefix("#") && nom != "Thumbs.db"
+        !nom.hasPrefix(".") && !nom.hasPrefix("@") && !nom.hasPrefix("#") && nom != "Thumbs.db" && nom != "Originaux"
     }
 
     /// Les dossiers à la racine du partage (6.4) : Séance les connaît, autant les proposer à cocher plutôt que de
