@@ -35,17 +35,24 @@ final class EtatAlertes {
     nonisolated static let categorieTitre = "seance.titre"
     nonisolated static let actionSoiree = "seance.action.soiree"
 
-    init() {
+    /// La personne de la famille dont ce sont les réglages (8.2.17) : vide pour le profil principal.
+    let profil: String
+
+    /// Chacun ses alertes (8.2.17) : une clé par personne de la famille, la clé d'avant pour le profil principal.
+    static func cleReglages(profil: String) -> String { ReglagesAlertes.cle(profil: profil) }
+
+    init(profil: String = ProfilsFamille().actif.id) {
+        self.profil = profil
         let soiree = UNNotificationAction(identifier: Self.actionSoiree, title: "Ajouter à ma soirée", options: [],
                                           icon: UNNotificationActionIcon(systemImageName: "moon.stars"))
         centre.setNotificationCategories([UNNotificationCategory(identifier: Self.categorieTitre, actions: [soiree], intentIdentifiers: [])])
-        reglages = UserDefaults.standard.data(forKey: Cle.reglages)
+        reglages = UserDefaults.standard.data(forKey: Self.cleReglages(profil: profil))
             .flatMap { try? JSONDecoder().decode(ReglagesAlertes.self, from: $0) } ?? ReglagesAlertes()
     }
 
     func modifier(_ changement: (inout ReglagesAlertes) -> Void) {
         changement(&reglages)
-        UserDefaults.standard.set(try? JSONEncoder().encode(reglages), forKey: Cle.reglages)
+        UserDefaults.standard.set(try? JSONEncoder().encode(reglages), forKey: Self.cleReglages(profil: profil))
     }
 
     func actualiserAutorisation() async {

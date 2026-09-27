@@ -760,15 +760,18 @@ private struct SectionTop10: View {
     }
 }
 
-/// Aperçu du NAS : les arrivées du dossier NEW d'abord, puis les films les mieux notés.
+/// Aperçu du NAS (8.2.17) : les derniers fichiers arrivés d'abord, d'après leur date sur le NAS (`DetailsNAS`) — et non
+/// plus le dossier NEW puis les mieux notés.
 private struct SectionNAS: View {
     let toutVoir: () -> Void
-    @Query(filter: #Predicate<FichierNAS> { $0.tmdbID != nil }, sort: \FichierNAS.noteMoyenne, order: .reverse)
+    @Query(filter: #Predicate<FichierNAS> { $0.tmdbID != nil }, sort: \FichierNAS.indexeLe, order: .reverse)
     private var fichiers: [FichierNAS]
+    @State private var details = DetailsNAS()
 
     var body: some View {
-        let oeuvres = OeuvreNAS.regrouper(fichiers)
-        let apercu = Array((oeuvres.filter(\.nouveaute) + oeuvres.filter { !$0.nouveaute }).prefix(15))
+        let apercu = Array(OeuvreNAS.regrouper(fichiers)
+            .sorted { ($0.ajouteLe(details) ?? .distantPast) > ($1.ajouteLe(details) ?? .distantPast) }
+            .prefix(15))
         if !apercu.isEmpty {
             VStack(alignment: .leading, spacing: 12) {
                 // La seule porte vers la bibliothèque depuis l'accueil : le bouton NAS de la barre a été retiré.
@@ -793,6 +796,9 @@ private struct SectionNAS: View {
                     }
                     .padding(.horizontal, 20)
                 }
+            }
+            .task(id: fichiers.count) {
+                details = UserDefaults.standard.data(forKey: DetailsNAS.cle).flatMap(DetailsNAS.decoder) ?? DetailsNAS()
             }
         }
     }

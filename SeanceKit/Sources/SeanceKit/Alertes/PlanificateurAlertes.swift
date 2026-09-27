@@ -455,3 +455,14 @@ extension Date {
         return calendrier.date(byAdding: .day, value: -1, to: self)
     }
 }
+
+extension ReglagesAlertes {
+    /// Nom de ces réglages dans la synchronisation ; sur l'appareil, une clé par personne de la famille (8.2.17), la
+    /// clé d'avant pour le profil principal.
+    public static let cle = "alertes.reglages"
+    public static func cle(profil: String) -> String { profil.isEmpty ? cle : "\(cle).\(profil)" }
+
+    public static func lire(_ defauts: UserDefaults = .standard, profil: String) -> ReglagesAlertes? {
+        defauts.data(forKey: cle(profil: profil)).flatMap { try? JSONDecoder().decode(ReglagesAlertes.self, from: $0) }
+    }
+}

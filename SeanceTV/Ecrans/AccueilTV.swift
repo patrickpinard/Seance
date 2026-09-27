@@ -339,17 +339,21 @@ struct OeuvreTV: Hashable {
     }
 
     /// Du plus récemment arrivé au plus ancien ; les fichiers non reconnus par TMDB n'ont pas de fiche et sont laissés.
+    /// 8.2.17 : « arrivé » veut dire la date du fichier sur le NAS (`DetailsNAS`), et non celle de l'analyse, refaite
+    /// pour tous les fichiers à chaque passage.
     static func regrouper(_ fichiers: [FichierNAS]) -> [OeuvreTV] {
+        let details = UserDefaults.standard.data(forKey: DetailsNAS.cle).flatMap(DetailsNAS.decoder) ?? DetailsNAS()
+        func arrivee(_ fichier: FichierNAS) -> Date { details.ajouts[fichier.chemin] ?? fichier.indexeLe }
         var parTitre: [ReferenceTitre: [FichierNAS]] = [:]
         for fichier in fichiers {
             guard let reference = fichier.reference else { continue }
             parTitre[reference, default: []].append(fichier)
         }
         return parTitre.map { reference, siens in
-            let recent = siens.max { $0.indexeLe < $1.indexeLe } ?? siens[0]
+            let recent = siens.max { arrivee($0) < arrivee($1) } ?? siens[0]
             return OeuvreTV(reference: reference, titre: recent.titre, cheminAffiche: recent.cheminAffiche,
                             cheminFond: siens.compactMap(\.cheminFond).first, fichiers: siens.count,
-                            qualite: recent.qualite, indexeLe: recent.indexeLe)
+                            qualite: recent.qualite, indexeLe: arrivee(recent))
         }
         .sorted { ($0.indexeLe, $0.titre) > ($1.indexeLe, $1.titre) }
     }

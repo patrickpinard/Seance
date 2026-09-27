@@ -75,9 +75,27 @@ final class Journal {
         DossiersSeance.reglages.appending(path: "journal.json")
     }
 
+    /// Deux semaines d'entrées au plus (8.2.17, demande de Patrick) : les plus anciennes s'effacent d'elles-mêmes.
+    static let conservation: TimeInterval = 14 * 86_400
+
     init() {
         entrees = (try? JSONDecoder().decode([Entree].self, from: Data(contentsOf: fichier))) ?? []
         Self.courant = self
+        oublierLesAnciennes()
+    }
+
+    private func oublierLesAnciennes() {
+        let limite = Date.now.addingTimeInterval(-Self.conservation)
+        let avant = entrees.count
+        entrees.removeAll { $0.date < limite }
+        if entrees.count != avant { enregistrer() }
+    }
+
+    /// Efface les entrées jusqu'à ce jour-là compris.
+    func effacer(jusqua jour: Date) {
+        let fin = Calendar.current.startOfDay(for: jour).addingTimeInterval(86_400)
+        entrees.removeAll { $0.date < fin }
+        enregistrer()
     }
 
     /// Note un problème. Le conseil et le détail sont déduits de l'erreur quand ils ne sont pas donnés.
@@ -94,6 +112,7 @@ final class Journal {
             entrees.insert(Entree(date: .now, domaine: domaine, message: message, conseil: conseilRetenu, detail: detail), at: 0)
         }
         if entrees.count > Self.maximum { entrees.removeLast(entrees.count - Self.maximum) }
+        entrees.removeAll { $0.date < Date.now.addingTimeInterval(-Self.conservation) }
         enregistrer()
     }
 

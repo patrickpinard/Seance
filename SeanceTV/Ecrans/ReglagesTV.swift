@@ -502,7 +502,7 @@ private struct PageNASTV: View {
 }
 
 /// Un seul lecteur : « Lire » n'ouvre que celui-ci, partout dans l'app.
-private struct PageLectureTV: View {
+struct PageLectureTV: View {
     @Environment(EtatTV.self) private var etat
     /// 8.1 : la langue et les sous-titres que le lecteur choisit tout seul, pour la personne qui regarde.
     @State private var pistes = PreferencesPistes.lire(profil: ConteneurTV.famille.actif.id)

@@ -96,7 +96,7 @@ struct ReglagesLettreView: View {
                         .foregroundStyle(adresses.isEmpty ? AnyShapeStyle(Color.orange) : AnyShapeStyle(.secondary))
                 }
             } header: {
-                Text("Destinataires")
+                Text(ProfilsFamille().aPlusieursProfils ? "Destinataires de l'e-mail de \(QuiRegardeActuel.nom ?? "ce profil")" : "Destinataires")
             } footer: {
                 Text("Plusieurs adresses : sépare-les par un point-virgule. Chaque semaine : les épisodes, sorties et passages à la TV de tes titres, les nouveautés de tes plateformes et tes soirées prévues, sur sept jours.")
             }
@@ -203,7 +203,7 @@ struct ReglagesLettreView: View {
             } header: {
                 Text("Compte qui envoie")
             } footer: {
-                Text("Connexion chiffrée, port 465 (Bluewin : smtpauths.bluewin.ch ; Gmail : smtp.gmail.com avec un « mot de passe d'application » ; Infomaniak : mail.infomaniak.com). Les serveurs qui n'acceptent que le port 587, comme iCloud, ne conviennent pas. Le mot de passe reste dans le trousseau de cet appareil.")
+                Text("Connexion chiffrée, port 465 (Bluewin : smtpauths.bluewin.ch ; Gmail : smtp.gmail.com avec un « mot de passe d'application » ; Infomaniak : mail.infomaniak.com). Les serveurs qui n'acceptent que le port 587, comme iCloud, ne conviennent pas. Le mot de passe reste dans le trousseau de cet appareil. Ce compte envoie l'e-mail de chaque personne de la famille ; destinataires, rubriques, plateformes, chaînes et jours sont propres à chacune.")
             }
 
             Section {

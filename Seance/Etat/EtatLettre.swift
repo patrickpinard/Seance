@@ -11,57 +11,8 @@ import SwiftData
 @MainActor
 @Observable
 final class EtatLettre {
-    /// Ce que la lettre peut contenir (6.5) : chacun choisit ce qu'il veut recevoir.
-    enum Rubrique: String, Codable, CaseIterable, Identifiable, Sendable {
-        case episodes, sorties, passagesTele, acteurs, nouveautes, soirees
-
-        var id: String { rawValue }
-
-        var nom: String {
-            switch self {
-            case .episodes: "Nouveaux épisodes de mes séries"
-            case .sorties: "Sorties des titres que je suis"
-            case .passagesTele: "Passages à la TV de mes titres"
-            case .acteurs: "Nouveaux films de mes acteurs"
-            case .nouveautes: "Nouveautés de mes plateformes"
-            case .soirees: "Mes soirées prévues"
-            }
-        }
-
-        var symbole: String {
-            switch self {
-            case .episodes: "play.tv"
-            case .sorties: "sparkles"
-            case .passagesTele: "tv"
-            case .acteurs: "person.fill"
-            case .nouveautes: "rectangle.stack.badge.play"
-            case .soirees: "moon.stars"
-            }
-        }
-    }
-
-    struct Reglages: Codable, Equatable {
-        var actif = false
-        /// « a@x.ch ; b@y.ch » : tel que saisi.
-        var destinataires = ""
-        var compte = CompteSMTP()
-        /// Jour de la semaine du calendrier (1 = dimanche … 7 = samedi) : gardé pour les réglages d'avant la 6.5.
-        var jour = 6
-        var heure = 17
-        /// Les jours d'envoi (6.5) : un e-mail peut partir plusieurs fois par semaine. Vide : le seul `jour`.
-        var jours: Set<Int>?
-        /// Les rubriques retenues. Absent : tout, comme avant la 6.5.
-        var rubriques: Set<Rubrique>?
-        /// Les plateformes dont on veut les nouveautés (identifiants TMDB). Vide : toutes celles cochées.
-        var plateformes: Set<Int>?
-        /// Les chaînes dont on veut les passages (identifiants du guide). Vide : toutes celles cochées.
-        var chaines: Set<String>?
-
-        /// Les jours retenus, l'ancien réglage compris.
-        var joursRetenus: Set<Int> { (jours?.isEmpty == false ? jours : nil) ?? [jour] }
-        /// Vrai si cette rubrique doit paraître.
-        func veut(_ rubrique: Rubrique) -> Bool { rubriques?.contains(rubrique) ?? true }
-    }
+    typealias Rubrique = ReglagesLettre.Rubrique
+    typealias Reglages = ReglagesLettre
 
     private(set) var reglages: Reglages
     private(set) var dernierEnvoi: Date?
@@ -72,14 +23,39 @@ final class EtatLettre {
 
     private let coffre: any CoffreCles
     var journal: Journal?
-    /// Ces deux réglages voyagent dans la sauvegarde et la synchronisation (`PreferencesSauvegardees`) ; le mot de passe, non.
-    static let cle = "lettre.reglages"
+    /// La personne de la famille dont ce sont les réglages (8.2.17) : vide pour le profil principal.
+    let profil: String
+    /// Noms des réglages dans la sauvegarde et la synchronisation (`PreferencesSauvegardees`) : chaque profil y dépose
+    /// les siens sous ces noms, dans son sous-dossier ; le mot de passe ne voyage pas.
+    static let cle = ReglagesLettre.cle
     static let cleDernier = "lettre.dernierEnvoi"
 
-    init(coffre: any CoffreCles) {
+    /// Sur l'appareil (8.2.17) : une clé par personne de la famille — chacun ses destinataires, ses jours, ses
+    /// rubriques, ses plateformes et ses chaînes. Le compte d'envoi reste celui de l'appareil, commun à tous.
+    static func cle(profil: String) -> String { ReglagesLettre.cle(profil: profil) }
+    static func cleDernier(profil: String) -> String { profil.isEmpty ? cleDernier : "\(cleDernier).\(profil)" }
+
+    static func lire(profil: String, defauts: UserDefaults = .standard) -> Reglages {
+        var reglages = defauts.data(forKey: cle(profil: profil)).flatMap { try? JSONDecoder().decode(Reglages.self, from: $0) } ?? Reglages()
+        if !profil.isEmpty { reglages.compte = lire(profil: "", defauts: defauts).compte }
+        return reglages
+    }
+
+    private static func ecrire(_ reglages: Reglages, profil: String, defauts: UserDefaults = .standard) {
+        defauts.set(try? JSONEncoder().encode(reglages), forKey: cle(profil: profil))
+        // Le compte d'envoi, changé depuis les préférences d'une autre personne, vaut pour tout l'appareil.
+        guard !profil.isEmpty else { return }
+        var principal = lire(profil: "", defauts: defauts)
+        guard principal.compte != reglages.compte else { return }
+        principal.compte = reglages.compte
+        defauts.set(try? JSONEncoder().encode(principal), forKey: cle)
+    }
+
+    init(coffre: any CoffreCles, profil: String = ProfilsFamille().actif.id) {
         self.coffre = coffre
-        reglages = UserDefaults.standard.data(forKey: Self.cle).flatMap { try? JSONDecoder().decode(Reglages.self, from: $0) } ?? Reglages()
-        dernierEnvoi = UserDefaults.standard.object(forKey: Self.cleDernier) as? Date
+        self.profil = profil
+        reglages = Self.lire(profil: profil)
+        dernierEnvoi = UserDefaults.standard.object(forKey: Self.cleDernier(profil: profil)) as? Date
         aUnMotDePasse = ((try? coffre.lire(.smtp)) ?? nil)?.isEmpty == false
     }
 
@@ -89,7 +65,7 @@ final class EtatLettre {
     /// `motDePasse` vide : on garde celui qui est déjà là.
     func enregistrer(_ nouveaux: Reglages, motDePasse: String = "") {
         reglages = nouveaux
-        UserDefaults.standard.set(try? JSONEncoder().encode(nouveaux), forKey: Self.cle)
+        Self.ecrire(nouveaux, profil: profil)
         if !motDePasse.isEmpty, (try? coffre.enregistrer(motDePasse, pour: .smtp)) != nil { aUnMotDePasse = true }
     }
 
@@ -109,7 +85,7 @@ final class EtatLettre {
     func noterEnvoiAilleurs(_ date: Date) {
         guard date > (dernierEnvoi ?? .distantPast) else { return }
         dernierEnvoi = date
-        UserDefaults.standard.set(date, forKey: Self.cleDernier)
+        UserDefaults.standard.set(date, forKey: Self.cleDernier(profil: profil))
     }
 
     /// Le moment prévu du dernier envoi : le plus récent « jour retenu à l'heure dite » déjà passé. Avec plusieurs
@@ -140,43 +116,67 @@ final class EtatLettre {
     }
 
     /// Au lancement, au retour dans l'app et au réveil en arrière-plan : envoie si l'échéance de la semaine est passée.
+    /// Pour chaque personne de la famille (8.2.17) : chacune a ses réglages, et sa lettre se compose depuis son magasin.
     func envoyerSiDu(etat: EtatApp, contexte: ModelContext) async {
         #if DEBUG
         if Demonstration.coupeeDuMonde { return }
         #endif
-        guard reglages.actif, pret, !enCours,
-              let echeance = Self.echeance(jours: reglages.joursRetenus, heure: reglages.heure, maintenant: .now),
-              (dernierEnvoi ?? .distantPast) < echeance else { return }
-        await envoyer(etat: etat, contexte: contexte, essai: false)
+        guard !enCours else { return }
+        for personne in ProfilsFamille().profils {
+            let lesSiens = personne.id == profil ? reglages : Self.lire(profil: personne.id)
+            let dernier = personne.id == profil ? dernierEnvoi : UserDefaults.standard.object(forKey: Self.cleDernier(profil: personne.id)) as? Date
+            guard lesSiens.actif, lesSiens.compte.estComplet, aUnMotDePasse, !MessageMail.adresses(lesSiens.destinataires).isEmpty,
+                  let echeance = Self.echeance(jours: lesSiens.joursRetenus, heure: lesSiens.heure, maintenant: .now),
+                  (dernier ?? .distantPast) < echeance else { continue }
+            if personne.id == profil {
+                await envoyer(etat: etat, contexte: contexte, essai: false)
+            } else if let conteneur = ConteneurApp.conteneur(de: personne) {
+                await envoyer(etat: etat, contexte: conteneur.mainContext, essai: false, pour: personne, reglages: lesSiens)
+            }
+        }
     }
 
-    func envoyer(etat: EtatApp, contexte: ModelContext, essai: Bool) async {
+    /// `pour` : une autre personne de la famille que celle en cours, avec ses propres réglages.
+    func envoyer(etat: EtatApp, contexte: ModelContext, essai: Bool, pour autre: ProfilFamille? = nil, reglages autres: Reglages? = nil) async {
         guard !enCours else { return }
-        guard pret, let motDePasse = (try? coffre.lire(.smtp)) ?? nil else {
-            message = "Complète d'abord le compte d'envoi, son mot de passe et au moins un destinataire."
+        let reglages = autres ?? self.reglages
+        let adresses = MessageMail.adresses(reglages.destinataires)
+        guard reglages.compte.estComplet, aUnMotDePasse, !adresses.isEmpty, let motDePasse = (try? coffre.lire(.smtp)) ?? nil else {
+            if autre == nil { message = "Complète d'abord le compte d'envoi, son mot de passe et au moins un destinataire." }
             return
         }
         enCours = true
         defer { enCours = false }
-        let lettre = await composer(etat: etat, contexte: contexte, essai: essai)
+        let prenom = autre.map(\.prenom) ?? (UserDefaults.standard.string(forKey: Prenom.cle) ?? "")
+        let lettre = await composer(etat: etat, contexte: contexte, essai: essai, reglages: reglages, prenom: prenom, autreProfil: autre != nil)
         let mail = MessageMail(expediteur: reglages.compte.adresse, destinataires: adresses, sujet: lettre.sujet, texte: lettre.texte, html: lettre.html)
+        let qui = autre.map { " (\($0.prenom))" } ?? ""
         do {
             try await ClientSMTP(compte: reglages.compte, motDePasse: motDePasse).envoyer(mail)
             if !essai {
-                dernierEnvoi = .now
-                UserDefaults.standard.set(Date.now, forKey: Self.cleDernier)
+                UserDefaults.standard.set(Date.now, forKey: Self.cleDernier(profil: autre?.id ?? profil))
+                if autre == nil { dernierEnvoi = .now }
             }
-            message = "\(essai ? "E-mail d'essai" : "E-mail de la semaine") envoyé à \(adresses.joined(separator: ", "))."
-            journal?.noter(.general, message ?? "")
+            let texte = "\(essai ? "E-mail d'essai" : "E-mail de la semaine")\(qui) envoyé à \(adresses.joined(separator: ", "))."
+            if autre == nil { message = texte }
+            journal?.noter(.general, texte)
         } catch {
-            message = (error as? LocalizedError)?.errorDescription ?? "L'envoi n'a pas abouti."
-            journal?.noter(.general, "L'e-mail de la semaine n'a pas pu partir.", erreur: error, conseil: message)
+            let explication = (error as? LocalizedError)?.errorDescription ?? "L'envoi n'a pas abouti."
+            if autre == nil { message = explication }
+            journal?.noter(.general, "L'e-mail de la semaine\(qui) n'a pas pu partir.", erreur: error, conseil: explication)
         }
     }
 
     // MARK: Le contenu de la semaine
 
     func composer(etat: EtatApp, contexte: ModelContext, essai: Bool) async -> LettreHebdo {
+        await composer(etat: etat, contexte: contexte, essai: essai, reglages: reglages,
+                       prenom: UserDefaults.standard.string(forKey: Prenom.cle) ?? "", autreProfil: false)
+    }
+
+    /// `autreProfil` : les échéances sont dans le cache commun, calculées pour la personne en cours ; pour une autre,
+    /// on ne garde que celles de ses propres titres.
+    func composer(etat: EtatApp, contexte: ModelContext, essai: Bool, reglages: Reglages, prenom: String, autreProfil: Bool) async -> LettreHebdo {
         let maintenant = Date.now
         let fin = maintenant.addingTimeInterval(7 * 86_400)
         let locale = Locale(identifier: "fr_CH")
@@ -194,8 +194,10 @@ final class EtatLettre {
         // que si elle est cochée dans les réglages (6.5), et les passages seulement sur les chaînes retenues.
         let chainesVoulues = reglages.chaines ?? []
         let toutes: [Echeance] = (try? contexte.fetch(FetchDescriptor<Echeance>(sortBy: [SortDescriptor(\.date)]))) ?? []
+        let siens: Set<ReferenceTitre>? = autreProfil ? Set(((try? contexte.fetch(FetchDescriptor<Suivi>())) ?? []).map(\.reference)) : nil
         let echeances = toutes
             .filter { $0.date >= maintenant.addingTimeInterval(-3600) && $0.date <= fin }
+            .filter { siens?.contains($0.reference) ?? true }
             .filter { echeance in
                 switch echeance.nature {
                 case .episode, .saison: reglages.veut(.episodes)
@@ -265,7 +267,7 @@ final class EtatLettre {
         if reglages.veut(.soirees), !soirees.isEmpty {
             sections.append(.init(titre: "Tes soirées prévues", lignes: Array(soirees)))
         }
-        return LettreHebdo(prenom: Prenom.lire(UserDefaults.standard.string(forKey: Prenom.cle) ?? ""),
+        return LettreHebdo(prenom: Prenom.lire(prenom),
                            periode: "Du \(debut) au \(terme)", sections: sections, essai: essai)
     }
 }

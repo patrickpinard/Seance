@@ -16,6 +16,7 @@ struct ProfilTV: View {
     @Environment(EtatTV.self) private var etat
     /// Tes réalisateurs (8.2.15), comme sur l'iPhone : lus une fois sur TMDB, gardés sur la TV.
     @State private var reserve = ReserveRealisateurs(donnees: UserDefaults.standard.data(forKey: ReserveRealisateurs.cle))
+    @State private var quiRegarde = false
 
     var body: some View {
         ScrollView {
@@ -33,6 +34,7 @@ struct ProfilTV: View {
                     }
                 }
                 .padding(.horizontal, MargesTV.bord)
+                reglagesDeToi
                 VStack(alignment: .leading, spacing: 18) {
                     HStack {
                         Text("Tes goûts").font(.system(size: 38, weight: .bold))
@@ -117,6 +119,65 @@ struct ProfilTV: View {
             .padding(.vertical, 40)
         }
         .task(id: visionnages.count) { await chargerRealisateurs() }
+        .fullScreenCover(isPresented: $quiRegarde) {
+            QuiRegardeTV { profil in
+                quiRegarde = false
+                ConteneurTV.changerDeProfil(vers: profil)
+            }
+        }
+    }
+
+    /// « Toi » (8.2.17) : les mêmes lignes que les Préférences de l'iPhone et de l'iPad — qui regarde, langue et
+    /// sous-titres, alertes, e-mail de la semaine —, réglées pour la personne en cours.
+    private var reglagesDeToi: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("TOI").font(.system(size: 22, weight: .bold)).foregroundStyle(Theme.texte2).padding(.leading, 8)
+            VStack(spacing: 2) {
+                Button { quiRegarde = true } label: {
+                    LigneTVReglage.Contenu(titre: "Changer de personne", detail: prenom, symbole: "person.2.fill")
+                }
+                .buttonStyle(LigneTV())
+                NavigationLink(value: PreferenceTV.langue) {
+                    LigneTVReglage.Contenu(titre: "Langue et sous-titres", detail: libelleLangue, symbole: "captions.bubble.fill")
+                }
+                .buttonStyle(LigneTV())
+                NavigationLink(value: PreferenceTV.alertes) {
+                    LigneTVReglage.Contenu(titre: "Alertes", detail: libelleAlertes, symbole: "bell.fill")
+                }
+                .buttonStyle(LigneTV())
+                NavigationLink(value: PreferenceTV.lettre) {
+                    LigneTVReglage.Contenu(titre: "E-mail de la semaine", detail: libelleLettre, symbole: "envelope.fill")
+                }
+                .buttonStyle(LigneTV())
+                NavigationLink(value: PreferenceTV.alertesAVenir) {
+                    LigneTVReglage.Contenu(titre: "Tes alertes à venir", symbole: "bell.badge.waveform")
+                }
+                .buttonStyle(LigneTV())
+            }
+            .padding(8)
+            .background(Theme.surface, in: RoundedRectangle(cornerRadius: 26, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 26, style: .continuous).strokeBorder(Theme.trait, lineWidth: 1))
+        }
+        .frame(maxWidth: 1100)
+        .padding(.horizontal, MargesTV.bord)
+        .focusSection()
+    }
+
+    private var libelleLangue: String {
+        let pistes = PreferencesPistes.lire(profil: ConteneurTV.famille.actif.id)
+        let langue = pistes.audio.isEmpty ? "VO" : (PreferencesPistes.langues.first { $0.code == pistes.audio }?.nom ?? pistes.audio)
+        return "\(langue) · \(pistes.sousTitres.nom)"
+    }
+
+    private var libelleAlertes: String {
+        let reglages = ReglagesAlertes.lire(profil: ConteneurTV.famille.actif.id) ?? ReglagesAlertes()
+        let types = ReglagesAlertes.typesProposes.filter { reglages.typesActifs.contains($0) }.count
+        return types == 0 ? "Aucune" : String(format: "%d:%02d", reglages.heure, reglages.minute)
+    }
+
+    private var libelleLettre: String {
+        guard let reglages = ReglagesLettre.lire(profil: ConteneurTV.famille.actif.id), reglages.actif else { return "Désactivé" }
+        return MessageMail.adresses(reglages.destinataires).isEmpty ? "À terminer" : "Activé"
     }
 
     /// Les réalisateurs des films vus qu'on ne connaît pas encore, trente à la fois.

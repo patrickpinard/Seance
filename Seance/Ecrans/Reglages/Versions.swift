@@ -56,6 +56,25 @@ struct NoteVersion: Identifiable {
 
     static let historique: [NoteVersion] = [
         NoteVersion(
+            numero: "8.2.17",
+            date: "27 septembre 2026",
+            resume: "Chacun ses alertes et son e-mail de la semaine ; les Préférences de l'Apple TV rattrapent l'iPhone ; le NAS de l'accueil par arrivée.",
+            fonctionnalites: [
+                Fonctionnalite(symbole: "envelope", titre: "L'e-mail de la semaine, pour chacun",
+                               detail: "Dans les Préférences de chaque personne : ses adresses, ce qu'elle veut recevoir, ses plateformes, ses chaînes et ses jours. Chaque lettre se compose avec les titres de la personne ; le compte d'envoi reste celui de l'appareil."),
+                Fonctionnalite(symbole: "bell", titre: "Les alertes, pour chacun",
+                               detail: "Types d'alertes, heure, veille et rappels se règlent par personne de la famille."),
+                Fonctionnalite(symbole: "appletv", titre: "Tes Préférences sur l'Apple TV",
+                               detail: "Comme sur l'iPhone et l'iPad : changer de personne, langue et sous-titres, alertes, e-mail de la semaine et tes alertes à venir. Tes choix partent vers tes autres appareils par la synchronisation."),
+                Fonctionnalite(symbole: "externaldrive", titre: "Les derniers arrivés sur le NAS",
+                               detail: "Sur l'accueil, iPhone, iPad, Mac et Apple TV, « Sur ton NAS » montre d'abord les fichiers les plus récents, d'après leur date sur le NAS."),
+                Fonctionnalite(symbole: "ipad", titre: "Préférences et Réglages en page sur l'iPad",
+                               detail: "Le portrait et la roue ouvrent une page, comme sur le Mac, et non plus une fenêtre."),
+                Fonctionnalite(symbole: "list.bullet.rectangle", titre: "Le journal, jour par jour",
+                               detail: "Les entrées se rangent par jour, « Effacer jusqu'au… » vide ce qui précède une date, et le journal ne garde que deux semaines."),
+            ]
+        ),
+        NoteVersion(
             numero: "8.2.16",
             date: "27 septembre 2026",
             resume: "Choisir Anne ne ferme plus Séance ; les alertes prévues s'effacent aussi d'un glissement.",

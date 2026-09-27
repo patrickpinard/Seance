@@ -1,3 +1,4 @@
+import SeanceDonnees
 import SeanceKit
 import SwiftData
 import SwiftUI
@@ -52,8 +53,10 @@ struct ReglagesAlertesView: View {
                         }
                     }
                 }
+            } header: {
+                if ProfilsFamille().aPlusieursProfils, let nom = QuiRegardeActuel.nom { Text("Les alertes de \(nom)") }
             } footer: {
-                Text("Les alertes s'affichent en pop-up, même quand Séance est ouverte. Les toucher ouvre la fiche du titre. Pour voir l'essai sur ton Apple Watch : envoie-le, puis verrouille l'iPhone — la montre ne prend le relais que lorsque l'iPhone est verrouillé. « Tester sur mes autres appareils » dépose une demande dans tes dossiers de synchronisation : l'autre appareil prévient dès qu'il ouvre Séance.")
+                Text("Chaque personne de la famille a ses propres réglages d'alertes. Les alertes s'affichent en pop-up, même quand Séance est ouverte. Les toucher ouvre la fiche du titre. Pour voir l'essai sur ton Apple Watch : envoie-le, puis verrouille l'iPhone — la montre ne prend le relais que lorsque l'iPhone est verrouillé. « Tester sur mes autres appareils » dépose une demande dans tes dossiers de synchronisation : l'autre appareil prévient dès qu'il ouvre Séance.")
             }
 
             #if !targetEnvironment(macCatalyst)

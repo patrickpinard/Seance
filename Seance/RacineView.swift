@@ -322,21 +322,21 @@ struct RacineView: View {
         etat.reglagesOuverts = false
         switch demande {
         case .reglages:
-            #if targetEnvironment(macCatalyst)
-            // Sur le Mac, une page dans l'accueil plutôt qu'une fenêtre (8.2.13).
-            onglet = .accueil
-            etat.reglagesEnPage += 1
-            #else
-            etat.reglagesOuverts = true
-            #endif
+            if EtatApp.enPages {
+                // Sur le Mac (8.2.13) et l'iPad (8.2.17), une page dans l'accueil plutôt qu'une fenêtre.
+                onglet = .accueil
+                etat.reglagesEnPage += 1
+            } else {
+                etat.reglagesOuverts = true
+            }
         case .profil:
-            #if targetEnvironment(macCatalyst)
-            // Sur le Mac, une page dans l'accueil plutôt qu'une fenêtre (8.2.13).
-            onglet = .accueil
-            etat.preferencesEnPage += 1
-            #else
-            etat.preferencesOuvertes = true
-            #endif
+            if EtatApp.enPages {
+                // Sur le Mac (8.2.13) et l'iPad (8.2.17), une page dans l'accueil plutôt qu'une fenêtre.
+                onglet = .accueil
+                etat.preferencesEnPage += 1
+            } else {
+                etat.preferencesOuvertes = true
+            }
         case .ceSoir:
             etat.sourceRegarder = .tout
             etat.jourRegarder = nil

@@ -41,6 +41,15 @@ final class EtatApp {
     var preferencesOuvertes = false
     /// Sur le Mac (8.2.13) : chaque demande pousse les Préférences en page dans l'accueil.
     var preferencesEnPage = 0
+    /// Sur l'iPad et le Mac (8.2.17), Préférences et Réglages s'ouvrent en pages dans la pile courante ; en feuilles
+    /// sur l'iPhone seulement.
+    static var enPages: Bool {
+        #if targetEnvironment(macCatalyst)
+        true
+        #else
+        UIDevice.current.userInterfaceIdiom == .pad
+        #endif
+    }
     var reglagesEnPage = 0
     /// Réglages en feuille, sur l'iPhone (7.0) : la roue dentée de chaque page.
     var reglagesOuverts = false

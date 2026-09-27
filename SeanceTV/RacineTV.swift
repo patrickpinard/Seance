@@ -313,6 +313,7 @@ extension View {
             .navigationDestination(for: FiltresTVDemande.self) { ExplorerTV(sourceImposee: $0.source).pageOuverte() }
             .navigationDestination(for: GoutsTVDemande.self) { _ in PageGoutsTV().pageOuverte() }
             .navigationDestination(for: StatistiquesTVDemande.self) { _ in StatistiquesTV().pageOuverte() }
+            .destinationsPreferencesTV()
     }
 }
 

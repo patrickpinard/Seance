@@ -175,6 +175,16 @@ private struct PastilleQuiRegardeModifier: ViewModifier {
         QuiRegardeActuel.nom ?? Prenom.lire()
     }
 
+    private var portrait: some View {
+        HStack(spacing: 6) {
+            Image(systemName: ProfilsFamille().actif.symbole == "person.fill" ? "person.crop.circle" : ProfilsFamille().actif.symbole)
+            if let nom { Text(nom).lineLimit(1) }
+        }
+        .font(.subheadline.weight(.semibold))
+        .foregroundStyle(Theme.accentClair)
+        .padding(.horizontal, 6)
+    }
+
     func body(content: Content) -> some View {
         content
             .toolbar {
@@ -183,27 +193,11 @@ private struct PastilleQuiRegardeModifier: ViewModifier {
                         // Pas un `Label` : dans la barre d'iOS 26, il se réduit à son icône et le prénom disparaît.
                         // Sur le Mac (8.2.13), une page poussée ici même : une feuille y devient une fenêtre à part.
                         Group {
-                        #if targetEnvironment(macCatalyst)
-                        NavigationLink(value: PagePreferences()) {
-                            HStack(spacing: 6) {
-                                Image(systemName: ProfilsFamille().actif.symbole == "person.fill" ? "person.crop.circle" : ProfilsFamille().actif.symbole)
-                                if let nom { Text(nom).lineLimit(1) }
+                            if EtatApp.enPages {
+                                NavigationLink(value: PagePreferences()) { portrait }
+                            } else {
+                                Button { etat.preferencesOuvertes = true } label: { portrait }
                             }
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(Theme.accentClair)
-                            .padding(.horizontal, 6)
-                        }
-                        #else
-                        Button { etat.preferencesOuvertes = true } label: {
-                            HStack(spacing: 6) {
-                                Image(systemName: ProfilsFamille().actif.symbole == "person.fill" ? "person.crop.circle" : ProfilsFamille().actif.symbole)
-                                if let nom { Text(nom).lineLimit(1) }
-                            }
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(Theme.accentClair)
-                            .padding(.horizontal, 6)
-                        }
-                        #endif
                         }
                         .help("Préférences : tes goûts, tes notes, tes statistiques")
                         .accessibilityLabel(nom.map { "Préférences de \($0)" } ?? "Préférences")
@@ -233,12 +227,12 @@ private struct PastilleQuiRegardeModifier: ViewModifier {
                 if reglages {
                     ToolbarItem(placement: .topBarTrailing) {
                         Group {
-                            // Sur le Mac (8.2.13), une page poussée ici même, en deux colonnes comme sur l'iPad.
-                            #if targetEnvironment(macCatalyst)
-                            NavigationLink(value: PageReglagesMac()) { Image(systemName: "gearshape") }
-                            #else
-                            Button { etat.ongletDemande = .reglages } label: { Image(systemName: "gearshape") }
-                            #endif
+                            // Sur le Mac (8.2.13) et l'iPad (8.2.17), une page poussée ici même, en deux colonnes.
+                            if EtatApp.enPages {
+                                NavigationLink(value: PageReglagesMac()) { Image(systemName: "gearshape") }
+                            } else {
+                                Button { etat.ongletDemande = .reglages } label: { Image(systemName: "gearshape") }
+                            }
                         }
                         .help("Réglages")
                         .accessibilityLabel("Réglages")

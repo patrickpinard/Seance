@@ -202,10 +202,24 @@ final class EtatTV {
         if !FileManager.default.fileExists(atPath: fichierEtat.path(percentEncoded: false)) { moteur.oublier() }
         do {
             // Les personnes de la famille, créées sur l'iPhone, arrivent dans les réglages de son fichier.
-            // La TV ne dépose qu'un réglage : où l'on s'est arrêté dans les vidéos du NAS (8.0).
+            // La TV dépose où l'on s'est arrêté dans les vidéos du NAS (8.0) et, depuis la 8.2.17, les alertes et
+            // l'e-mail de la semaine de la personne en cours, qu'on règle aussi dans ses Préférences ici.
+            let id = profil.id
             let bilan = try await moteur.synchroniser(preferences: { [positions] in
-                positions.encoder().map { [PositionsLecture.cle: .donnees($0)] } ?? [:]
+                var deposees: [String: Sauvegarde.Preference] = [:]
+                if let brut = positions.encoder() { deposees[PositionsLecture.cle] = .donnees(brut) }
+                if let brut = UserDefaults.standard.data(forKey: ReglagesAlertes.cle(profil: id)) { deposees[ReglagesAlertes.cle] = .donnees(brut) }
+                if let brut = UserDefaults.standard.data(forKey: ReglagesLettre.cle(profil: id)) { deposees[ReglagesLettre.cle] = .donnees(brut) }
+                return deposees
             }, appliquer: { remplacees, recues in
+                // Plus récents ailleurs : ils remplacent ; reçus pour la première fois : pris s'il n'y a rien ici.
+                for (reglages, remplacer) in recues.map({ ($0, false) }) + [(remplacees, true)] {
+                    for cle in [ReglagesAlertes.cle, ReglagesLettre.cle] {
+                        guard case .donnees(let brut)? = reglages[cle] else { continue }
+                        let ici = cle == ReglagesAlertes.cle ? ReglagesAlertes.cle(profil: id) : ReglagesLettre.cle(profil: id)
+                        if remplacer || UserDefaults.standard.data(forKey: ici) == nil { UserDefaults.standard.set(brut, forKey: ici) }
+                    }
+                }
                 for reglages in recues + [remplacees] {
                     if case .donnees(let brut)? = reglages[ProfilsFamille.cleSynchro] { ConteneurTV.famille.fusionner(brut) }
                     // Les couvertures des souvenirs, choisies sur l'iPhone (6.2) : les plus récentes, entrée par entrée.

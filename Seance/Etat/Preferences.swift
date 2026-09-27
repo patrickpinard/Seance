@@ -53,18 +53,29 @@ enum PreferencesSauvegardees {
     static let cleAlertes = "alertes.reglages"
     static let cleNAS = "nas.reglages"
 
+    /// Les alertes et l'e-mail de la semaine se règlent par personne (8.2.17) : sur l'appareil, sous une clé propre au
+    /// profil en cours ; dans la synchronisation, sous leur nom commun, dans le sous-dossier de ce profil.
+    static func ici(_ cle: String, profil: String = ProfilsFamille().actif.id) -> String {
+        switch cle {
+        case cleAlertes: EtatAlertes.cleReglages(profil: profil)
+        case EtatLettre.cle: EtatLettre.cle(profil: profil)
+        case EtatLettre.cleDernier: EtatLettre.cleDernier(profil: profil)
+        default: cle
+        }
+    }
+
     /// Ce qui a été réglé sur cet appareil ; un réglage jamais touché n'est pas exporté.
     static func lire(_ defauts: UserDefaults = .standard) -> [String: Sauvegarde.Preference] {
         var resultat: [String: Sauvegarde.Preference] = [:]
         for cle in textes { if let valeur = defauts.string(forKey: cle), !valeur.isEmpty { resultat[cle] = .texte(valeur) } }
         for cle in entiers where defauts.object(forKey: cle) != nil { resultat[cle] = .entier(defauts.integer(forKey: cle)) }
         for cle in booleens where defauts.object(forKey: cle) != nil { resultat[cle] = .booleen(defauts.bool(forKey: cle)) }
-        for cle in donnees + [cleAlertes, cleNAS, EtatVideosPerso.cleReglages, EtatLettre.cle, CouverturesSouvenirs.cle, PositionsLecture.cle] { if let valeur = defauts.data(forKey: cle) { resultat[cle] = .donnees(valeur) } }
+        for cle in donnees + [cleAlertes, cleNAS, EtatVideosPerso.cleReglages, EtatLettre.cle, CouverturesSouvenirs.cle, PositionsLecture.cle] { if let valeur = defauts.data(forKey: ici(cle)) { resultat[cle] = .donnees(valeur) } }
         // La famille : les personnes créées ici arrivent sur les autres appareils, Apple TV comprise.
         if let famille = ProfilsFamille().exporter() { resultat[ProfilsFamille.cleSynchro] = .donnees(famille) }
         // L'e-mail de la semaine : ses réglages voyagent (destinataires, jour, compte — jamais le mot de passe), et la
         // date du dernier envoi aussi, pour que deux appareils ne l'envoient pas chacun de leur côté.
-        if let envoi = defauts.object(forKey: EtatLettre.cleDernier) as? Date { resultat[EtatLettre.cleDernier] = .entier(Int(envoi.timeIntervalSince1970)) }
+        if let envoi = defauts.object(forKey: ici(EtatLettre.cleDernier)) as? Date { resultat[EtatLettre.cleDernier] = .entier(Int(envoi.timeIntervalSince1970)) }
         return resultat
     }
 
@@ -75,7 +86,7 @@ enum PreferencesSauvegardees {
         var repris = 0
         // La date du dernier e-mail envoyé se compare toujours : la plus récente l'emporte. Les couvertures des souvenirs
         // aussi, entrée par entrée (6.2).
-        for (cle, valeur) in preferences where remplacer || defauts.object(forKey: cle) == nil || cle == EtatLettre.cleDernier || cle == CouverturesSouvenirs.cle || cle == PositionsLecture.cle {
+        for (cle, valeur) in preferences where remplacer || defauts.object(forKey: ici(cle)) == nil || cle == EtatLettre.cleDernier || cle == CouverturesSouvenirs.cle || cle == PositionsLecture.cle {
             switch (cle, valeur) {
             case (cleAlertes, .donnees(let brut)):
                 // Les alertes et le NAS gardent leurs réglages en mémoire : ils passent par leur propre porte.
