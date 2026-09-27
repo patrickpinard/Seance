@@ -420,12 +420,12 @@ struct LecteurVLCTV: View {
         #if DEBUG
         // SEANCE_LIRE_FICHIER=<chemin local> : le lecteur sur un fichier du Mac, pour éprouver les commandes au simulateur.
         if ProcessInfo.processInfo.environment["SEANCE_LIRE_FICHIER"] == video.chemin {
-            return moteur.lire(URL(fileURLWithPath: video.chemin), depart: depart, options: OptionsVLC.pour(video.chemin))
+            return moteur.lire(URL(fileURLWithPath: video.chemin), depart: depart, options: OptionsVLC.pour(video.chemin), mkv: OptionsVLC.estMKV(video.chemin))
         }
         #endif
         if let adresse = acces.url(chemin: video.chemin) {
             moteur.lire(adresse, depart: depart, options: [":smb-user=\(acces.utilisateur)", ":smb-pwd=\(motDePasse)", ":network-caching=3000"]
-                        + OptionsVLC.pour(video.chemin))
+                        + OptionsVLC.pour(video.chemin), mkv: OptionsVLC.estMKV(video.chemin))
             if await moteur.demarre(dans: .seconds(12)) { return }
             moteur.arreter()
         }
@@ -441,7 +441,7 @@ struct LecteurVLCTV: View {
         do {
             let adresse = try await nouveau.demarrer()
             relais = nouveau
-            moteur.lire(adresse, depart: depart, options: [":network-caching=3000"] + OptionsVLC.pour(video.chemin))
+            moteur.lire(adresse, depart: depart, options: [":network-caching=3000"] + OptionsVLC.pour(video.chemin), mkv: OptionsVLC.estMKV(video.chemin))
         } catch {
             let texte = ErreurNAS.message(error)
             message = texte
@@ -619,9 +619,17 @@ final class MoteurVLCTV {
         return false
     }
 
-    func lire(_ adresse: URL, depart: Double? = nil, options: [String] = []) {
+    /// Un MKV à vérifier (8.3) : s'il a des pixels non carrés, on repart avec FFmpeg (`OptionsVLC.anamorphique`).
+    private var mkvAVerifier = false
+    private var adresseLue: URL?
+    private var optionsLues: [String] = []
+
+    func lire(_ adresse: URL, depart: Double? = nil, options: [String] = [], mkv: Bool = false) {
         observateur?.cancel()
         self.depart = depart
+        adresseLue = adresse
+        optionsLues = options
+        mkvAVerifier = mkv && !options.contains(OptionsVLC.ffmpeg)
         let media = VLCMedia(url: adresse)
         for option in options { media?.addOption(option) }
         lecteur.media = media
@@ -639,6 +647,13 @@ final class MoteurVLCTV {
                 self.enLecture = self.lecteur.isPlaying
                 if self.lecteur.state == .stopped, self.derniereFraction > 0.97 { self.termine = true }
                 if self.lecteur.isPlaying { self.derniereFraction = Double(self.lecteur.position) }
+                if self.mkvAVerifier, self.lecteur.isPlaying, let anamorphique = OptionsVLC.anamorphique(self.lecteur) {
+                    self.mkvAVerifier = false
+                    if anamorphique, let adresse = self.adresseLue {
+                        let reprise = self.secondes > 1 ? self.secondes : self.depart
+                        return self.lire(adresse, depart: reprise, options: self.optionsLues + [OptionsVLC.ffmpeg])
+                    }
+                }
                 if !self.pistesPosees, let preferences = self.preferences, self.lecteur.isPlaying {
                     self.pistesPosees = self.lecteur.appliquer(preferences)
                 }

@@ -47,9 +47,26 @@ enum CimetiereVLC {
 /// Les MKV (8.0) : le démultiplexeur MKV de VLCKit 4 lit à l'envers le rapport de pixels des vidéos anamorphiques —
 /// « Unabomber », 1280 × 720 à pixels 90:67, s'affichait en 1,32:1 au lieu de 2,39:1, comme une vingtaine d'autres films
 /// du NAS. Celui de FFmpeg le lit juste ; imposer un format d'image après coup n'y changeait rien.
+///
+/// 8.3 : mais celui de FFmpeg perd les sous-titres — ils s'appellent « Track 0 » et aucun ne se choisit (Mayday, essai
+/// de VLCKit sur le Mac, 27.09.2026). Un MKV s'ouvre donc avec le démultiplexeur de VLC, qui les garde ; s'il annonce
+/// des pixels non carrés, le lecteur repart aussitôt, à la même seconde, avec celui de FFmpeg (`anamorphique`).
 enum OptionsVLC {
-    static func pour(_ chemin: String) -> [String] {
-        (chemin as NSString).pathExtension.lowercased() == "mkv" ? [":demux=avformat"] : []
+    static let ffmpeg = ":demux=avformat"
+
+    /// Plus rien d'office (8.3) : voir `anamorphique`.
+    static func pour(_ chemin: String) -> [String] { [] }
+
+    static func estMKV(_ chemin: String) -> Bool {
+        (chemin as NSString).pathExtension.lowercased() == "mkv"
+    }
+
+    /// Vrai quand la vidéo a des pixels non carrés (écart de plus de 3 %), faux sinon ; `nil` tant que VLC ne l'a pas
+    /// encore décrite. Mayday, à 100:99, reste avec VLC et ses sous-titres ; Unabomber, à 67:90, passe à FFmpeg.
+    static func anamorphique(_ lecteur: VLCMediaPlayer) -> Bool? {
+        guard let video = lecteur.videoTracks.first?.video, video.sourceAspectRatio > 0, video.sourceAspectRatioDenominator > 0
+        else { return nil }
+        return abs(Double(video.sourceAspectRatio) / Double(video.sourceAspectRatioDenominator) - 1) > 0.03
     }
 }
 #endif
