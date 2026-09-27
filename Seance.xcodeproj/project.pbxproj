@@ -159,6 +159,7 @@
 		D68A718D324A69F539944A97 /* TelecommandeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EA69EFE83C26656E55AC5AB /* TelecommandeTests.swift */; };
 		D7839D09AE2AB89616944451 /* SeanceKit in Frameworks */ = {isa = PBXBuildFile; productRef = 7ADAE3C1D67EB1A73644A89C /* SeanceKit */; };
 		D858C41BE78A019A1105C8E0 /* RegarderTV.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D582373B008FEB4A9657483 /* RegarderTV.swift */; };
+		DABE34465755EE77124EE084 /* PreferencesTV.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2803F5B9929883BB74D6C2E /* PreferencesTV.swift */; };
 		DB78148DCA732B30059925A7 /* EtatsVidesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F81E03F245BE8E927674F9DD /* EtatsVidesTests.swift */; };
 		DC668FDED6FFAFA21E3CE266 /* EtagereDuHaut.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B91968F8C13F8CECB709FC5 /* EtagereDuHaut.swift */; };
 		DD832CF1C927F9D08CAC9673 /* StatistiquesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33C7D56023BA6C0CBD491C53 /* StatistiquesView.swift */; };
@@ -379,6 +380,7 @@
 		9F359EEF2BD50F8A8280CD01 /* AVenir.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AVenir.swift; sourceTree = "<group>"; };
 		9F521A01F8C00C6861F32A49 /* Lancement.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Lancement.swift; sourceTree = "<group>"; };
 		A06907A2B6102E83064C962B /* SynchroTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SynchroTests.swift; sourceTree = "<group>"; };
+		A2803F5B9929883BB74D6C2E /* PreferencesTV.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreferencesTV.swift; sourceTree = "<group>"; };
 		A2AC1B40272C1294A203DA5B /* ReglagesComptes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReglagesComptes.swift; sourceTree = "<group>"; };
 		A33739359CBDF876AD2F1B6E /* MaSoiree.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MaSoiree.swift; sourceTree = "<group>"; };
 		A651E64C91DB8A9F75E0C3FD /* BienvenueView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BienvenueView.swift; sourceTree = "<group>"; };
@@ -816,6 +818,7 @@
 				7F2F9E228CF6FD8AD2ABB788 /* ListesTV.swift */,
 				2DE009439CA55CCDE58B6A92 /* NASTV.swift */,
 				051C2BE31C08E94AC2FB3AC6 /* PersonneTV.swift */,
+				A2803F5B9929883BB74D6C2E /* PreferencesTV.swift */,
 				8D777738E8169D1D6CBA2E0A /* ProfilTV.swift */,
 				1D582373B008FEB4A9657483 /* RegarderTV.swift */,
 				54B4F4189EFFF7CA18A4B017 /* ReglagesTV.swift */,
@@ -1150,6 +1153,7 @@
 				E874D8A585CD13C1B7EF709E /* PasInteresse.swift in Sources */,
 				251E1E9A4053E9869F193746 /* PersonneTV.swift in Sources */,
 				3B4A3B2A81DF68B8E2ADE52F /* PistesVLC.swift in Sources */,
+				DABE34465755EE77124EE084 /* PreferencesTV.swift in Sources */,
 				2E78913583D012AC8AAC1D1B /* ProfilTV.swift in Sources */,
 				D3D291714E7E7727508D57A7 /* PublicationEtagere.swift in Sources */,
 				7FE9E5D984637A420CA60AA8 /* RacineTV.swift in Sources */,
@@ -1534,7 +1538,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 72;
+				CURRENT_PROJECT_VERSION = 73;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = GATK475J3P;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -1554,7 +1558,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 8.2.16;
+				MARKETING_VERSION = 8.2.17;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -1655,7 +1659,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 72;
+				CURRENT_PROJECT_VERSION = 73;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = GATK475J3P;
 				ENABLE_NS_ASSERTIONS = NO;
@@ -1669,7 +1673,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 8.2.16;
+				MARKETING_VERSION = 8.2.17;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
