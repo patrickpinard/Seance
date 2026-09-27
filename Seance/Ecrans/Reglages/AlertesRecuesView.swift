@@ -14,28 +14,28 @@ struct AlertesRecuesView: View {
     @Query(sort: \AlertePlanifiee.date, order: .reverse) private var alertes: [AlertePlanifiee]
     /// La purge (8.2.11) : les alertes effacées sont masquées, pas détruites — Séance s'en sert pour ne pas prévenir
     /// deux fois de la même chose. « Tout effacer » masque tout ce qui a été reçu jusqu'ici.
-    @AppStorage("alertes.effaceesAvant") private var effaceesAvant: Double = 0
-    @AppStorage("alertes.effacees") private var effaceesBrut = ""
+    @AppStorage(AlertesALire.cleEffaceesAvant) private var effaceesAvant: Double = 0
+    @AppStorage(AlertesALire.cleEffacees) private var effaceesBrut = ""
+    /// Accusés de réception (8.2.14) : ce qui est lu ne compte plus dans la pastille.
+    @AppStorage(AlertesALire.cleLuesAvant) private var luesAvant: Double = 0
+    @AppStorage(AlertesALire.cleLues) private var luesBrut = ""
     @State private var confirmerToutEffacer = false
-
-    private var effacees: Set<String> { Set(effaceesBrut.split(separator: "\n").map(String.init)) }
-
-    private static func cle(_ alerte: AlertePlanifiee) -> String {
-        "\(alerte.typeBrut)|\(alerte.tmdbID)|\(alerte.motif)|\(Int(alerte.date.timeIntervalSince1970))"
-    }
 
     /// Ce qui a vraiment été envoyé, et pas les rendez-vous encore à venir ; sans ce qui a été effacé.
     private var envoyees: [AlertePlanifiee] {
-        let effacees = effacees
-        return alertes.filter {
-            $0.envoyee && $0.date <= .now && $0.date.timeIntervalSince1970 > effaceesAvant && !effacees.contains(Self.cle($0))
-        }
+        AlertesALire.recues(alertes, effaceesAvant: effaceesAvant, effacees: effaceesBrut)
+    }
+
+    private var nonLues: Int {
+        envoyees.filter { !AlertesALire.estLue($0, luesAvant: luesAvant, lues: luesBrut) }.count
     }
 
     private func effacer(_ alerte: AlertePlanifiee) {
-        var liste = effacees
-        liste.insert(Self.cle(alerte))
-        withAnimation { effaceesBrut = liste.joined(separator: "\n") }
+        withAnimation { effaceesBrut = AlertesALire.ajouter(alerte, a: effaceesBrut) }
+    }
+
+    private func marquerLue(_ alerte: AlertePlanifiee) {
+        withAnimation { luesBrut = AlertesALire.ajouter(alerte, a: luesBrut) }
     }
 
     private var aVenir: [AlertePlanifiee] {
@@ -63,14 +63,21 @@ struct AlertesRecuesView: View {
                         Section {
                             ForEach(envoyees) { alerte in
                                 ligne(alerte, prevue: false)
+                                    // Ouvrir l'alerte vaut accusé de réception.
+                                    .simultaneousGesture(TapGesture().onEnded { marquerLue(alerte) })
                                     .swipeActions(edge: .trailing) {
                                         Button("Effacer", role: .destructive) { effacer(alerte) }
+                                    }
+                                    .swipeActions(edge: .leading) {
+                                        if !AlertesALire.estLue(alerte, luesAvant: luesAvant, lues: luesBrut) {
+                                            Button("Lu") { marquerLue(alerte) }.tint(Theme.accent)
+                                        }
                                     }
                             }
                         } header: {
                             Text("Reçues")
                         } footer: {
-                            Text("Toutes les alertes que cet appareil a envoyées, pour chaque personne de la famille. Glisse une ligne vers la gauche pour l'effacer.")
+                            Text("Toutes les alertes que cet appareil a envoyées, pour chaque personne de la famille. Un point orange : pas encore lue — l'ouvrir, ou la glisser vers la droite, en accuse réception. Vers la gauche, elle s'efface.")
                         }
                     }
                 }
@@ -78,6 +85,11 @@ struct AlertesRecuesView: View {
         }
         .pageReglages("Alertes reçues")
         .toolbar {
+            if nonLues > 0 {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Tout lu") { withAnimation { luesAvant = Date.now.timeIntervalSince1970; luesBrut = "" } }
+                }
+            }
             if !envoyees.isEmpty {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Tout effacer", role: .destructive) { confirmerToutEffacer = true }
@@ -117,6 +129,10 @@ struct AlertesRecuesView: View {
                         .locale(Locale(identifier: "fr_CH"))))
                         .font(.caption2)
                         .foregroundStyle(.tertiary)
+                }
+                Spacer(minLength: 0)
+                if !prevue, !AlertesALire.estLue(alerte, luesAvant: luesAvant, lues: luesBrut) {
+                    Circle().fill(Theme.accent).frame(width: 10, height: 10).accessibilityLabel("Pas encore lue")
                 }
             }
             .padding(.vertical, 2)

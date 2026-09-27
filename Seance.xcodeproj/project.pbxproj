@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		01DFE03B6E5F19154E4D5C95 /* SeanceKit in Frameworks */ = {isa = PBXBuildFile; productRef = 2E99E22F9857C04125228BE2 /* SeanceKit */; };
+		02DC6CA5E2F737BE484D7BDB /* AlertesALire.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC61A6DF4F06D93114C33417 /* AlertesALire.swift */; };
 		0301958790324CC4F0427E3F /* ProfilView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 701BB30E177402C310C6B51C /* ProfilView.swift */; };
 		030A7DD55F9553A369D2C6EB /* EtatApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51B21A23E9E47516765D2FE0 /* EtatApp.swift */; };
 		04DED8B613DEB61FFF6F58C2 /* ReceptionParCode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 203436E177D09B1A81617C9B /* ReceptionParCode.swift */; };
@@ -406,6 +407,7 @@
 		C99EF37CF4DFD9BE636726D5 /* SeanceTVUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = SeanceTVUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		CA91FBA795C5F100C03F8CC6 /* BandesAnnonces.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BandesAnnonces.swift; sourceTree = "<group>"; };
 		CACE819FB69880D873526A37 /* ListesCompletes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ListesCompletes.swift; sourceTree = "<group>"; };
+		CC61A6DF4F06D93114C33417 /* AlertesALire.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertesALire.swift; sourceTree = "<group>"; };
 		CD94F6BCC152B1B30DE2DF48 /* EtatNAS.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EtatNAS.swift; sourceTree = "<group>"; };
 		CDFE09F876463AE72CAB9C3C /* ParcoursUtilisateurTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParcoursUtilisateurTests.swift; sourceTree = "<group>"; };
 		D0714561FD96B1A09A61A666 /* FauxTMDB.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FauxTMDB.swift; sourceTree = "<group>"; };
@@ -516,6 +518,7 @@
 			isa = PBXGroup;
 			children = (
 				7FFB9E32172B78024002EFD3 /* ActionsRapides.swift */,
+				CC61A6DF4F06D93114C33417 /* AlertesALire.swift */,
 				B45A4AC641661F7B7945EAF9 /* ConteneurApp.swift */,
 				59D423F4DD1DA03825519F89 /* Demonstration.swift */,
 				297F7F074F246563F3CA483B /* EtatAlertes.swift */,
@@ -1181,6 +1184,7 @@
 				AE0965C1E675AFBE9CD34867 /* AVenir.swift in Sources */,
 				B771B1D712E377A57538D7D8 /* AccueilView.swift in Sources */,
 				0AB023B9C5D319279B4BD7C1 /* ActionsRapides.swift in Sources */,
+				02DC6CA5E2F737BE484D7BDB /* AlertesALire.swift in Sources */,
 				9367AAE21A1FCC728F655B0A /* AlertesRecuesView.swift in Sources */,
 				3DC619D9658209E9AFF5A423 /* ApercuWidgets.swift in Sources */,
 				F5B34AC8F424664BD6AFB00E /* BandeSoirees.swift in Sources */,
@@ -1526,7 +1530,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 69;
+				CURRENT_PROJECT_VERSION = 70;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = GATK475J3P;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -1546,7 +1550,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 8.2.13;
+				MARKETING_VERSION = 8.2.14;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -1647,7 +1651,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 69;
+				CURRENT_PROJECT_VERSION = 70;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = GATK475J3P;
 				ENABLE_NS_ASSERTIONS = NO;
@@ -1661,7 +1665,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 8.2.13;
+				MARKETING_VERSION = 8.2.14;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";

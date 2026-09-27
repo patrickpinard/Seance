@@ -56,6 +56,15 @@ struct NoteVersion: Identifiable {
 
     static let historique: [NoteVersion] = [
         NoteVersion(
+            numero: "8.2.14",
+            date: "27 septembre 2026",
+            resume: "Une cloche à côté de la roue compte les alertes à lire ; on en accuse réception dans Séance, en plus de la notification.",
+            fonctionnalites: [
+                Fonctionnalite(symbole: "bell.badge", titre: "Les alertes à lire",
+                               detail: "Un bouton cloche, à part, à côté de la roue des réglages, porte le nombre d'alertes reçues pas encore lues ; il ouvre les alertes reçues. Un point orange marque celles à lire : les ouvrir, ou les glisser vers la droite, en accuse réception ; « Tout lu » les valide toutes."),
+            ]
+        ),
+        NoteVersion(
             numero: "8.2.13",
             date: "27 septembre 2026",
             resume: "Sur le Mac, les Préférences et les Réglages s'ouvrent en page, comme sur l'iPad, et non plus dans une fenêtre à part.",

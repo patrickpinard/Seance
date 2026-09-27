@@ -1,4 +1,5 @@
 import SeanceDonnees
+import SwiftData
 import SwiftUI
 
 /// Sur le Mac, le menu de gauche se masque pour laisser toute la place à la page : bouton dans la barre de chaque
@@ -159,6 +160,16 @@ private struct PastilleQuiRegardeModifier: ViewModifier {
     let preferences: Bool
     let reglages: Bool
     @Environment(EtatApp.self) private var etat
+    @Query(filter: #Predicate<AlertePlanifiee> { $0.envoyee }) private var envoyees: [AlertePlanifiee]
+    @AppStorage(AlertesALire.cleEffaceesAvant) private var effaceesAvant: Double = 0
+    @AppStorage(AlertesALire.cleEffacees) private var effaceesBrut = ""
+    @AppStorage(AlertesALire.cleLuesAvant) private var luesAvant: Double = 0
+    @AppStorage(AlertesALire.cleLues) private var luesBrut = ""
+
+    private var nonLues: Int {
+        AlertesALire.recues(envoyees, effaceesAvant: effaceesAvant, effacees: effaceesBrut)
+            .filter { !AlertesALire.estLue($0, luesAvant: luesAvant, lues: luesBrut) }.count
+    }
 
     private var nom: String? {
         QuiRegardeActuel.nom ?? Prenom.lire()
@@ -197,6 +208,26 @@ private struct PastilleQuiRegardeModifier: ViewModifier {
                         .help("Préférences : tes goûts, tes notes, tes statistiques")
                         .accessibilityLabel(nom.map { "Préférences de \($0)" } ?? "Préférences")
                         .accessibilityIdentifier("preferences")
+                    }
+                }
+                // Les alertes à lire (8.2.14) : un bouton à part, à côté de la roue, avec leur nombre en pastille.
+                if reglages, nonLues > 0 {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        NavigationLink(value: DestinationReglage.alertesRecues) {
+                            Image(systemName: "bell.fill")
+                                .overlay(alignment: .topTrailing) {
+                                    Text(nonLues > 99 ? "99+" : "\(nonLues)")
+                                        .font(.caption2.weight(.heavy))
+                                        .foregroundStyle(.black)
+                                        .padding(.horizontal, 4)
+                                        .frame(minWidth: 16, minHeight: 16)
+                                        .background(Theme.accent, in: Capsule())
+                                        .offset(x: 9, y: -8)
+                                }
+                        }
+                        .help("Alertes à lire")
+                        .accessibilityLabel(Format.pluriel(nonLues, "alerte à lire", "alertes à lire"))
+                        .accessibilityIdentifier("alertesALire")
                     }
                 }
                 if reglages {
