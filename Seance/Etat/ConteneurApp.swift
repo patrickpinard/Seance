@@ -36,8 +36,19 @@ enum ConteneurApp {
             return conteneur
         }
         #endif
-        return try EntrepotSeance.conteneur(ProfilsFamille().actif.emplacement)
+        let profil = ProfilsFamille().actif
+        if let ouvert = ouverts[profil.id] { return ouvert }
+        let conteneur = try EntrepotSeance.conteneur(profil.emplacement)
+        ouverts[profil.id] = conteneur
+        return conteneur
     } }
+
+    /// Les magasins déjà ouverts, un par personne de la famille, gardés jusqu'à la fin du lancement (8.2.18). Relâcher
+    /// celui qu'on quitte arrêtait l'app : SwiftUI défait les pages de l'ancienne personne un peu plus tard, et leurs
+    /// listes (`@Query`), encore à l'écoute, retrouvaient leur magasin disparu au premier enregistrement du nouveau —
+    /// le calcul des alertes (rapports de l'iPhone du 27.09.2026, Anne puis Jonathan). Y revenir reprend le même
+    /// magasin plutôt que d'en ouvrir un second sur les mêmes fichiers.
+    private static var ouverts: [String: ModelContainer] = [:]
 
     /// Passe à un autre profil de la famille : le foyer (plateformes, chaînes) suit, le prénom aussi, puis le magasin
     /// s'ouvre. L'app, prévenue par `Notification.Name.profilChange`, reconstruit son état et ses écrans.
@@ -71,6 +82,7 @@ enum ConteneurApp {
             return nouveau
         }
         #endif
+        if let ouvert = ouverts[profil.id] { return ouvert }
         return try? EntrepotSeance.conteneur(profil.emplacement)
     }
 }

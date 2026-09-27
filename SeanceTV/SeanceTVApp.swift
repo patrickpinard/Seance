@@ -83,6 +83,13 @@ enum ConteneurTV {
         let dossier = URL.cachesDirectory.appending(path: "Seance")
         try? FileManager.default.createDirectory(at: dossier, withIntermediateDirectories: true)
         let profil = famille.actif
-        return try? EntrepotSeance.conteneur(profil.estPrincipal ? .dossier(dossier) : .dossierProfil(dossier, profil.id))
+        if let ouvert = ouverts[profil.id] { return ouvert }
+        let conteneur = try? EntrepotSeance.conteneur(profil.estPrincipal ? .dossier(dossier) : .dossierProfil(dossier, profil.id))
+        ouverts[profil.id] = conteneur
+        return conteneur
     }
+
+    /// Comme sur l'iPhone (8.2.18) : le magasin de chaque personne reste ouvert jusqu'à la fin du lancement — les pages
+    /// de celle qu'on quitte, défaites un peu plus tard, ne retrouvent pas leur magasin relâché.
+    private static var ouverts: [String: ModelContainer] = [:]
 }

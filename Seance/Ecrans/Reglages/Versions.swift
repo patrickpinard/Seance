@@ -56,6 +56,15 @@ struct NoteVersion: Identifiable {
 
     static let historique: [NoteVersion] = [
         NoteVersion(
+            numero: "8.2.18",
+            date: "27 septembre 2026",
+            resume: "Passer d'une personne à l'autre ne ferme plus Séance, quelle que soit la personne.",
+            fonctionnalites: [
+                Fonctionnalite(symbole: "person.2", titre: "Changer de personne, la vraie cause",
+                               detail: "Séance relâchait le magasin de la personne qu'on quitte alors que ses pages, défaites un peu plus tard, l'écoutaient encore : au premier enregistrement de la nouvelle personne (le calcul des alertes), l'une d'elles le cherchait et l'app s'arrêtait — avec Anne, puis avec Jonathan. Chaque magasin ouvert reste maintenant ouvert jusqu'à la fermeture de l'app, sur l'iPhone, l'iPad, le Mac et l'Apple TV."),
+            ]
+        ),
+        NoteVersion(
             numero: "8.2.17",
             date: "27 septembre 2026",
             resume: "Chacun ses alertes et son e-mail de la semaine ; les Préférences de l'Apple TV rattrapent l'iPhone ; le NAS de l'accueil par arrivée.",
