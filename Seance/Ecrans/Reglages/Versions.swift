@@ -56,6 +56,19 @@ struct NoteVersion: Identifiable {
 
     static let historique: [NoteVersion] = [
         NoteVersion(
+            numero: "8.1",
+            date: "27 septembre 2026",
+            resume: "Sur l'Apple TV, l'accueil propose de quoi regarder ce soir, avec les nouveautés à côté.",
+            fonctionnalites: [
+                Fonctionnalite(symbole: "sparkles.tv", titre: "Ce soir, pour toi",
+                               detail: "En grand : ta soirée prévue, sinon la vidéo entamée, un titre de ta liste sur le NAS ou le top de l'année ; « Reprendre à … » ou « Regarder », « Autre chose » pour passer au suivant, « Pas ce soir » pour l'écarter jusqu'à demain."),
+                Fonctionnalite(symbole: "square.stack", titre: "Nouveautés à côté",
+                               detail: "Les trois plus récentes à droite de la proposition, et toutes les autres dans Regarder."),
+                Fonctionnalite(symbole: "play.rectangle.on.rectangle", titre: "Reprendre, ou des suggestions",
+                               detail: "Sous la proposition, les vidéos entamées ; s'il n'y en a pas, des suggestions tirées de tes goûts."),
+            ]
+        ),
+        NoteVersion(
             numero: "8.0",
             date: "27 septembre 2026",
             resume: "Séance 8 à ce jour : une seule charte sur l'iPhone, l'iPad, le Mac et l'Apple TV, tes vidéos lues dans Séance, et chacun ses réglages dans la famille.",

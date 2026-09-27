@@ -147,15 +147,15 @@ final class TelecommandeTests: XCTestCase {
         capture("tv-souvenirs-album")
     }
 
-    /// 6.3 : l'historique des versions sur la TV, la même liste que sur l'iPhone ; une ligne s'ouvre sur ce qu'elle apporte.
+    /// 6.3 : l'historique des versions sur la TV (depuis la 8.0, les versions principales seulement), la même liste que sur l'iPhone ; une ligne s'ouvre sur ce qu'elle apporte.
     func testHistoriqueDesVersions() throws {
         lancer(["SEANCE_TV_ONGLET": "reglages", "SEANCE_TV_REGLAGE": "versions"])
-        let liste = app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS 'Version 6.3'")).firstMatch
+        let liste = app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS 'Version 7.0'")).firstMatch
         XCTAssertTrue(liste.waitForExistence(timeout: 30), "La page Versions ne s'ouvre pas sur la TV")
         capture("tv-versions")
-        XCTAssertTrue(descendreJusqua(["Version 6.3"], essais: 30), "La télécommande n'atteint pas la version installée")
+        XCTAssertTrue(descendreJusqua(["Version 7.0"], essais: 30), "La télécommande n'atteint pas la version installée")
         telecommande.press(.select)
-        XCTAssertTrue(app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS 'Les logos sur les cartes de la TV'")).firstMatch
+        XCTAssertTrue(app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS 'Le lecteur de Séance'")).firstMatch
             .waitForExistence(timeout: 10), "La version ne s'ouvre pas sur ce qu'elle apporte")
         capture("tv-versions-ouverte")
     }
@@ -193,7 +193,7 @@ final class TelecommandeTests: XCTestCase {
     func testToutVoirOuvreRegarderSurLeNAS() throws {
         lancer(["SEANCE_TV_ONGLET": "accueil"])
         // L'étagère est sous l'image de tête, et la tuile n'existe qu'une fois la rangée parcourue : on y va à la télécommande.
-        XCTAssertTrue(app.buttons["Voir la fiche"].waitForExistence(timeout: 20), "L'accueil ne se charge pas")
+        XCTAssertTrue(app.buttons["Pas ce soir"].waitForExistence(timeout: 20), "L'accueil ne se charge pas")
         // Rangée par rangée : on descend, on va au bout à droite ; si ce n'est pas la tuile du NAS, on revient à gauche.
         // La première rangée qui a une tuile « Tout voir » est celle du NAS (« Reprendre » n'en a pas).
         let cible = ["Tout voir"]

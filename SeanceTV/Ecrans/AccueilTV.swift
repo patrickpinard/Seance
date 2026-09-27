@@ -3,7 +3,8 @@ import SeanceKit
 import SwiftData
 import SwiftUI
 
-/// L'accueil de la TV : la soirée d'abord, puis ce qui se regarde tout de suite (le NAS), puis de quoi choisir.
+/// L'accueil de la TV (maquette « Retenu · Apple TV », 27.09.2026) : une proposition pour ce soir en grand, les
+/// nouveautés à côté, puis « Reprendre » et le reste des étagères.
 struct AccueilTV: View {
     @Environment(EtatTV.self) private var etat
     @Environment(\.openURL) private var ouvrir
@@ -19,6 +20,13 @@ struct AccueilTV: View {
     @Query(filter: #Predicate<Suivi> { $0.statutBrut == "exclu" || $0.exclusionLangue || $0.statutBrut == "termine" })
     private var suivisEcartes: [Suivi]
     @AppStorage(PasInteresse.cle) private var pasInteresse = ""
+    /// « Pas ce soir » : le titre quitte la proposition jusqu'à demain matin.
+    @AppStorage(PasCeSoir.cle) private var pasCeSoir = ""
+    /// « Autre chose » : le rang de la proposition montrée parmi celles de ce soir.
+    @State private var rang = 0
+    /// Quand rien n'est à reprendre : des suggestions tirées de tes goûts (le classement local du panneau « Suggestions
+    /// pour ce soir »), à la place de l'étagère.
+    @State private var suggestions: [SuggestionClassee] = []
     private var ecartes: Set<ReferenceTitre> { Set(suivisEcartes.map(\.reference)).union(PasInteresse.references(pasInteresse)) }
     @State private var top: [ApercuTV] = []
     @State private var configuration = false
@@ -38,12 +46,14 @@ struct AccueilTV: View {
                     }
                     .frame(maxWidth: .infinity)
                 }
-                if let vedette { enTete(vedette) } else { Color.clear.frame(height: 40) }
-                // 8.0 : « Reprendre » d'abord — les vidéos du NAS entamées ici ou sur un autre appareil. La soirée, elle,
-                // est dans Regarder.
-                if !aReprendre.isEmpty {
+                let proposition = proposition
+                if let proposition { enTete(proposition) } else { Color.clear.frame(height: 40) }
+                // « Reprendre » sous la proposition — les vidéos du NAS entamées ici ou sur un autre appareil, sauf celle
+                // que la proposition montre déjà.
+                let reprises = aReprendre.filter { $0.reference != proposition?.reference }
+                if !reprises.isEmpty {
                     EtagereTV(titre: "Reprendre", sousTitre: "Là où tu t'es arrêté, ici ou sur un autre appareil") {
-                        ForEach(aReprendre, id: \.fichier.chemin) { reprise in
+                        ForEach(reprises, id: \.fichier.chemin) { reprise in
                             NavigationLink(value: reprise.reference) {
                                 CarteLargeTV(surtitre: reprise.position.appareil.map { "Sur ton NAS · \($0)" } ?? "Sur ton NAS",
                                              titre: reprise.fichier.titre,
@@ -54,6 +64,21 @@ struct AccueilTV: View {
                             .buttonStyle(.card)
                             .menuCarteTV(reprise.reference, titre: reprise.fichier.titre, cheminAffiche: reprise.fichier.cheminAffiche,
                                          reprise: reprise.fichier.chemin)
+                        }
+                    }
+                } else if !suggestionsAMontrer(sauf: proposition?.reference).isEmpty {
+                    EtagereTV(titre: "Suggestions", sousTitre: "D'après tes goûts, pour ce soir") {
+                        ForEach(suggestionsAMontrer(sauf: proposition?.reference)) { idee in
+                            let titre = idee.candidat.titre
+                            NavigationLink(value: titre.reference) {
+                                CarteLargeTV(surtitre: nil, titre: titre.titre,
+                                             detail: [titre.reference.type == .film ? "Film" : "Série", titre.date.map { String($0.annee) }]
+                                                .compactMap { $0 }.joined(separator: " · "),
+                                             cheminImage: titre.cheminFond ?? titre.cheminAffiche, largeur: CarteLargeTV.largeurGrille,
+                                             reference: titre.reference)
+                            }
+                            .buttonStyle(.card)
+                            .menuCarteTV(titre.reference, titre: titre.titre, cheminAffiche: titre.cheminAffiche)
                         }
                     }
                 }
@@ -118,7 +143,6 @@ struct AccueilTV: View {
                         }
                     }
                 }
-                etagere("Nouveautés", "Sorties et nouveaux épisodes du mois, les plus récents d'abord", duMoment.recentsDAbord(\.date))
                 etagere("Top de l'année", "Les mieux notés sur TMDB depuis un an", top)
             }
             .padding(.bottom, 40)
@@ -126,6 +150,10 @@ struct AccueilTV: View {
         .ignoresSafeArea(edges: .top)
         .fullScreenCover(isPresented: $configuration) { ConfigurationTV() }
         .task(id: etat.tmdb == nil) { await charger() }
+        .task(id: aReprendre.count <= 1) {
+            guard aReprendre.count <= 1, suggestions.isEmpty else { return }
+            await chargerSuggestions()
+        }
     }
 
     @ViewBuilder
@@ -147,68 +175,208 @@ struct AccueilTV: View {
         }
     }
 
-    /// La grande image de tête : ta soirée si tu en as prévu une, sinon le titre du moment.
-    private func enTete(_ vedette: Vedette) -> some View {
-        // Maquette 8.0, n° 2 : l'image couvre tout l'écran, bord à bord, sous le menu ; la première rangée (« Reprendre »)
-        // vient mordre sur son bas.
-        ZStack(alignment: .bottomLeading) {
+    /// La tête de l'accueil : l'image de la proposition bord à bord, à gauche son titre et ses trois boutons (Reprendre
+    /// ou Regarder, Autre chose, Pas ce soir), à droite les nouveautés.
+    private func enTete(_ proposition: Proposition) -> some View {
+        ZStack(alignment: .bottom) {
             Color.clear
                 .frame(maxWidth: .infinity)
-                .frame(height: 700)
+                .frame(height: 760)
                 .background(alignment: .top) {
-                    ImageTV(url: ImageTMDB.url(vedette.cheminImage, vedette.large ? .fondGrand : .afficheGrande), symboleVide: "")
+                    ImageTV(url: ImageTMDB.url(proposition.cheminImage, proposition.large ? .fondGrand : .afficheGrande), symboleVide: "")
                         .frame(height: 1080)
                         .overlay {
-                            // Deux dégradés : du bas vers le titre, et de la gauche vers le texte.
+                            // Deux dégradés : du bas vers les étagères, et de la gauche vers le texte.
                             ZStack {
                                 LinearGradient(stops: [.init(color: .clear, location: 0), .init(color: .black.opacity(0.35), location: 0.55),
                                                        .init(color: Theme.fond.opacity(0.9), location: 1)], startPoint: .top, endPoint: .bottom)
-                                LinearGradient(colors: [.black.opacity(0.75), .clear], startPoint: .leading, endPoint: .center)
+                                LinearGradient(colors: [.black.opacity(0.8), .clear], startPoint: .leading, endPoint: .center)
                             }
                         }
                         .ignoresSafeArea()
                 }
-            VStack(alignment: .leading, spacing: 12) {
-                Text(vedette.surtitre).font(.system(size: 26, weight: .bold)).foregroundStyle(.white.opacity(0.78))
-                Text(vedette.titre).font(.system(size: 76, weight: .heavy)).lineLimit(2)
-                if let detail = vedette.detail {
-                    Text(detail).font(.system(size: 26)).foregroundStyle(.white.opacity(0.75))
+            HStack(alignment: .bottom, spacing: 60) {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text(proposition.surtitre).font(.system(size: 26, weight: .bold)).foregroundStyle(.white.opacity(0.78))
+                    Text(proposition.titre).font(.system(size: 76, weight: .heavy)).lineLimit(2)
+                    if let detail = proposition.detail {
+                        Text(detail).font(.system(size: 26)).foregroundStyle(.white.opacity(0.75))
+                    }
+                    if let progression = proposition.progression {
+                        ZStack(alignment: .leading) {
+                            Capsule().fill(.white.opacity(0.25))
+                            Capsule().fill(.white).frame(width: 420 * progression)
+                        }
+                        .frame(width: 420, height: 6)
+                        .padding(.top, 6)
+                        .accessibilityHidden(true)
+                    }
+                    HStack(spacing: 24) {
+                        NavigationLink(value: LectureTVDemande(reference: proposition.reference)) {
+                            Label(proposition.bouton, systemImage: "play.fill")
+                        }
+                        .buttonStyle(BoutonTV(principal: true))
+                        if propositions.count > 1 {
+                            Button("Autre chose") { rang += 1 }.buttonStyle(BoutonTV())
+                        }
+                        Button("Pas ce soir") { PasCeSoir.ecarter(proposition.reference) }.buttonStyle(BoutonTV())
+                    }
+                    .padding(.top, 18)
                 }
-                HStack(spacing: 20) {
-                    NavigationLink(value: LectureTVDemande(reference: vedette.reference)) { Label("Regarder", systemImage: "play.fill") }
-                    NavigationLink(value: vedette.reference) { Label("Voir la fiche", systemImage: "info.circle") }
+                .foregroundStyle(.white)
+                .frame(maxWidth: 1050, alignment: .leading)
+                .focusSection()
+                Spacer(minLength: 0)
+                let nouveautes = nouveautes(sauf: proposition.reference)
+                if !nouveautes.isEmpty {
+                    panneauNouveautes(nouveautes)
                 }
-                .buttonStyle(BoutonTV())
-                .padding(.top, 10)
             }
-            .foregroundStyle(.white)
-            .frame(maxWidth: 1100, alignment: .leading)
             .padding(.horizontal, MargesTV.bord)
             .padding(.bottom, 40)
         }
+        .task(id: proposition.reference) { etat.ou.demander(proposition.reference, client: etat.tmdb) }
+    }
+
+    /// Les trois nouveautés à droite de la proposition, et le lien vers toutes celles de tes plateformes.
+    private func panneauNouveautes(_ nouveautes: [ApercuTV]) -> some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Nouveautés").font(.system(size: 31, weight: .bold)).foregroundStyle(.white)
+                .accessibilityAddTraits(.isHeader)
+            ForEach(nouveautes) { apercu in
+                NavigationLink(value: apercu.reference) {
+                    HStack(spacing: 22) {
+                        ImageTV(url: ImageTMDB.url(apercu.cheminFond ?? apercu.cheminAffiche, .fondGrand), symboleVide: "")
+                            .frame(width: 160, height: 90)
+                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(apercu.titre).font(.system(size: 29, weight: .semibold)).lineLimit(1)
+                            Text([apercu.sousTitre, origine(apercu.reference)].compactMap { $0 }.joined(separator: " · "))
+                                .font(.system(size: 23)).opacity(0.7).lineLimit(1)
+                        }
+                        Spacer(minLength: 0)
+                    }
+                }
+                .buttonStyle(LigneNouveauteTV())
+                .menuCarteTV(apercu.reference, titre: apercu.titre, cheminAffiche: apercu.cheminAffiche)
+                .task(id: apercu.reference) { etat.ou.demander(apercu.reference, client: etat.tmdb) }
+            }
+            Button("Toutes les nouveautés") { etat.demandeRegarder = .streaming }
+                .buttonStyle(BoutonTV(hauteur: 60))
+        }
+        .frame(width: 640)
         .focusSection()
     }
 
-    private struct Vedette {
+    /// Une proposition pour ce soir : un titre, d'où il vient et le bouton qui le lance.
+    private struct Proposition {
         let reference: ReferenceTitre
         let surtitre: String
         let titre: String
         let detail: String?
         let cheminImage: String?
         let large: Bool
-        var surLeNAS = false
+        var reprise: PositionLecture?
+
+        var progression: Double? { reprise?.fraction }
+        /// « Reprendre à 1:03:12 » pour une vidéo entamée, sinon « Regarder » (la fiche choisit la source).
+        var bouton: String { reprise.map { "Reprendre à \(PositionsLecture.horodatage($0.secondes))" } ?? "Regarder" }
     }
 
-    private var vedette: Vedette? {
-        if let prevu = ceSoir.first {
-            let fond = fichiers.first { $0.reference == prevu.reference }?.cheminFond ?? fonds[prevu.reference]
-            return Vedette(reference: prevu.reference, surtitre: ceSoir.count > 1 ? "Ce soir · \(ceSoir.count) titres prévus" : "Ce soir",
-                           titre: prevu.titre, detail: prevu.reference.type == .film ? "Film" : "Série", cheminImage: fond ?? prevu.cheminAffiche, large: fond != nil,
-                           surLeNAS: surLeNAS(prevu.reference))
+    /// Ce que l'accueil peut proposer ce soir, dans l'ordre : la soirée prévue, les vidéos entamées, ta liste sur le NAS,
+    /// puis le top de l'année. Les titres écartés, déjà vus ou « pas ce soir » n'y sont pas.
+    private var propositions: [Proposition] {
+        let ecartes = ecartes.union(PasCeSoir.references(pasCeSoir))
+        var vues = Set<ReferenceTitre>()
+        var liste: [Proposition] = []
+        func ajouter(_ proposition: Proposition) {
+            guard !ecartes.contains(proposition.reference), vues.insert(proposition.reference).inserted else { return }
+            liste.append(proposition)
         }
-        guard let premier = duMoment.first else { return nil }
-        return Vedette(reference: premier.reference, surtitre: "Nouveauté", titre: premier.titre, detail: premier.sousTitre,
-                       cheminImage: premier.cheminFond ?? premier.cheminAffiche, large: premier.cheminFond != nil)
+        for prevu in ceSoir {
+            let fond = fichiers.first { $0.reference == prevu.reference }?.cheminFond ?? fonds[prevu.reference]
+            ajouter(Proposition(reference: prevu.reference, surtitre: ligne("Prévu ce soir", prevu.reference), titre: prevu.titre,
+                                detail: prevu.reference.type == .film ? "Film" : "Série", cheminImage: fond ?? prevu.cheminAffiche,
+                                large: fond != nil, reprise: repriseDe(prevu.reference)))
+        }
+        for reprise in aReprendre {
+            let fichier = reprise.fichier
+            let quoi = fichier.type == .film ? "Film"
+                : [fichier.saison.map { "S\($0)" }, fichier.episode.map { "E\($0)" }].compactMap { $0 }.joined(separator: " ")
+            let detail = [quoi.isEmpty ? "Série" : quoi, reprise.position.duree > 0 ? Self.duree(reprise.position.duree) : nil,
+                          Self.commence(reprise.position)].compactMap { $0 }.joined(separator: " · ")
+            ajouter(Proposition(reference: reprise.reference,
+                                surtitre: ["Ce soir, pour toi", "Sur ton NAS", fichier.qualite].compactMap { $0 }.joined(separator: " · "),
+                                titre: fichier.titre, detail: detail, cheminImage: fichier.cheminFond ?? fichier.cheminAffiche,
+                                large: fichier.cheminFond != nil, reprise: reprise.position))
+        }
+        for suivi in aVoir where surLeNAS(suivi.reference) {
+            let fichier = fichiers.first { $0.reference == suivi.reference }
+            ajouter(Proposition(reference: suivi.reference,
+                                surtitre: ["Ce soir, pour toi", "Sur ton NAS", fichier?.qualite].compactMap { $0 }.joined(separator: " · "),
+                                titre: suivi.titre, detail: [suivi.type == .film ? "Film" : "Série", "dans ta liste"].joined(separator: " · "),
+                                cheminImage: fichier?.cheminFond ?? suivi.cheminAffiche, large: fichier?.cheminFond != nil))
+        }
+        for apercu in top {
+            ajouter(Proposition(reference: apercu.reference, surtitre: ligne("Ce soir, pour toi", apercu.reference), titre: apercu.titre,
+                                detail: apercu.sousTitre, cheminImage: apercu.cheminFond ?? apercu.cheminAffiche,
+                                large: apercu.cheminFond != nil))
+        }
+        return Array(liste.prefix(12))
+    }
+
+    /// La proposition montrée : « Autre chose » passe à la suivante, et revient à la première après la dernière.
+    private var proposition: Proposition? {
+        let toutes = propositions
+        return toutes.isEmpty ? nil : toutes[rang % toutes.count]
+    }
+
+    /// Les trois nouveautés du panneau, les plus récentes d'abord, sans les titres écartés ni celui de la proposition.
+    private func nouveautes(sauf reference: ReferenceTitre) -> [ApercuTV] {
+        let ecartes = ecartes
+        return Array(duMoment.recentsDAbord(\.date).filter { !ecartes.contains($0.reference) && $0.reference != reference }.prefix(3))
+    }
+
+    /// « Prévu ce soir · Sur ton NAS », « Ce soir, pour toi · Netflix ».
+    private func ligne(_ debut: String, _ reference: ReferenceTitre) -> String {
+        [debut, origine(reference)].compactMap { $0 }.joined(separator: " · ")
+    }
+
+    /// Où il se regarde, comme la ligne d'origine des cartes : le NAS, sinon ta plateforme.
+    private func origine(_ reference: ReferenceTitre) -> String? {
+        if surLeNAS(reference) { return "Sur ton NAS" }
+        for badge in etat.ou.badges(reference) {
+            if case .plateforme(_, let nom, _) = badge { return CarteLargeTV.nomCourt(nom) }
+        }
+        return nil
+    }
+
+    private func repriseDe(_ reference: ReferenceTitre) -> PositionLecture? {
+        aReprendre.first { $0.reference == reference }?.position
+    }
+
+    /// « 2 h 46 », « 52 min ».
+    static func duree(_ secondes: Double) -> String {
+        let minutes = Int((secondes / 60).rounded())
+        return minutes >= 60 ? "\(minutes / 60) h \(String(format: "%02d", minutes % 60))" : "\(max(minutes, 1)) min"
+    }
+
+    /// « commencé jeudi sur l'iPhone », « commencé hier sur le Mac ».
+    static func commence(_ position: PositionLecture, maintenant: Date = .now) -> String {
+        let calendrier = Calendar.current
+        let quand: String
+        if calendrier.isDateInToday(position.majLe) {
+            quand = "aujourd'hui"
+        } else if calendrier.isDateInYesterday(position.majLe) {
+            quand = "hier"
+        } else if let jours = calendrier.dateComponents([.day], from: position.majLe, to: maintenant).day, jours < 7 {
+            quand = position.majLe.formatted(.dateTime.weekday(.wide).locale(Locale(identifier: "fr_CH")))
+        } else {
+            quand = "le " + position.majLe.formatted(.dateTime.day().month(.abbreviated).locale(Locale(identifier: "fr_CH")))
+        }
+        guard let appareil = position.appareil else { return "commencé \(quand)" }
+        let article = appareil.first.map { "aeiouyAEIOUY".contains($0) } == true ? "l'" : "le "
+        return "commencé \(quand) sur \(article)\(appareil)"
     }
 
     /// En ce moment : les films et séries qui passent maintenant, sur une chaîne que blue TV connaît (6.6).
@@ -267,6 +435,24 @@ struct AccueilTV: View {
     private func marque(_ reference: ReferenceTitre) -> String? {
         if surLeNAS(reference) { return "externaldrive.fill" }
         return suivis.contains { $0.reference == reference } ? "bookmark.fill" : nil
+    }
+
+    /// Les suggestions de l'étagère, sans les titres écartés ni celui de la proposition.
+    private func suggestionsAMontrer(sauf reference: ReferenceTitre?) -> [SuggestionClassee] {
+        let ecartes = ecartes.union(PasCeSoir.references(pasCeSoir))
+        return suggestions.filter { !ecartes.contains($0.candidat.reference) && $0.candidat.reference != reference }
+    }
+
+    /// Le même classement que « Suggestions pour ce soir » : ton profil de goûts, sans Claude, douze titres.
+    private func chargerSuggestions() async {
+        guard let tmdb = etat.tmdb else { return }
+        let demande = DemandeCeSoir()
+        let gouts = ServiceGouts(contexte: contexte)
+        guard let profil = try? gouts.profil(), let exclusions = try? gouts.contexteCandidats(),
+              let candidats = try? await CollecteurCandidats(client: tmdb).candidats(pour: demande, profil: profil, contexte: exclusions)
+        else { return }
+        suggestions = await ServiceRecommandation(claude: nil, nombre: 12)
+            .suggerer(demande, candidats: candidats, profil: profil, nomsGenres: GenresParDefaut.noms).suggestions
     }
 
     private func charger() async {
@@ -358,5 +544,61 @@ struct OeuvreTV: Hashable {
                             qualite: recent.qualite, indexeLe: arrivee(recent))
         }
         .sorted { ($0.indexeLe, $0.titre) > ($1.indexeLe, $1.titre) }
+    }
+}
+
+/// « Pas ce soir » sur l'accueil : le titre ne revient dans la proposition que le lendemain matin (6 h).
+enum PasCeSoir {
+    static let cle = "accueil.pasCeSoir"
+
+    private static func lire(_ brut: String) -> [String: Double] {
+        (try? JSONDecoder().decode([String: Double].self, from: Data(brut.utf8))) ?? [:]
+    }
+
+    private static func cle(_ reference: ReferenceTitre) -> String { "\(reference.type.rawValue):\(reference.tmdbID)" }
+
+    static func references(_ brut: String, maintenant: Date = .now) -> Set<ReferenceTitre> {
+        Set(lire(brut).compactMap { cle, jusquA -> ReferenceTitre? in
+            guard jusquA > maintenant.timeIntervalSince1970 else { return nil }
+            let morceaux = cle.split(separator: ":")
+            guard morceaux.count == 2, let type = TypeTitre(rawValue: String(morceaux[0])), let id = Int(morceaux[1]) else { return nil }
+            return ReferenceTitre(type: type, tmdbID: id)
+        })
+    }
+
+    static func ecarter(_ reference: ReferenceTitre, maintenant: Date = .now) {
+        var liste = lire(UserDefaults.standard.string(forKey: cle) ?? "").filter { $0.value > maintenant.timeIntervalSince1970 }
+        liste[Self.cle(reference)] = demainMatin(maintenant).timeIntervalSince1970
+        UserDefaults.standard.set(String(data: (try? JSONEncoder().encode(liste)) ?? Data(), encoding: .utf8), forKey: cle)
+    }
+
+    /// 6 h le lendemain, ou ce matin à 6 h pour un « pas ce soir » dit après minuit.
+    static func demainMatin(_ maintenant: Date) -> Date {
+        let calendrier = Calendar.current
+        let sixHeures = calendrier.date(bySettingHour: 6, minute: 0, second: 0, of: maintenant) ?? maintenant
+        return sixHeures > maintenant ? sixHeures : calendrier.date(byAdding: .day, value: 1, to: sixHeures) ?? sixHeures
+    }
+}
+
+/// Une ligne du panneau Nouveautés : grise au repos, blanche à texte noir et soulevée au focus, comme les boutons.
+struct LigneNouveauteTV: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        Corps(configuration: configuration)
+    }
+
+    private struct Corps: View {
+        let configuration: Configuration
+        @Environment(\.isFocused) private var aLeFocus
+
+        var body: some View {
+            configuration.label
+                .foregroundStyle(aLeFocus ? .black : .white)
+                .padding(14)
+                .background(aLeFocus ? AnyShapeStyle(.white) : AnyShapeStyle(Theme.eleve.opacity(0.88)),
+                            in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+                .shadow(color: .black.opacity(aLeFocus ? 0.45 : 0), radius: 18, y: 10)
+                .scaleEffect(aLeFocus ? 1.05 : (configuration.isPressed ? 0.97 : 1))
+                .animation(.easeOut(duration: 0.15), value: aLeFocus)
+        }
     }
 }
