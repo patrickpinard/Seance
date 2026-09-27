@@ -529,7 +529,7 @@ struct FicheTV: View {
         }
     }
 
-    private var acteurs: [PersonneCasting] { film?.casting?.principaux(15) ?? serie?.casting?.principaux(15) ?? [] }
+    private var acteurs: [PersonneCasting] { film?.casting?.avecRealisateurs(15) ?? serie?.casting?.avecRealisateurs(15) ?? [] }
 
     @ViewBuilder
     private var casting: some View {

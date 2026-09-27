@@ -34,7 +34,10 @@ struct PersonneTV: View {
             .union(suivis.filter { $0.statut == .termine }.map(\.reference))
     }
 
-    private var realisateur: Bool { fiche?.domaine == "Directing" }
+    /// Comme sur l'iPhone (8.3) : TMDB le dit, ou la personne a plus de réalisations que de rôles.
+    private var realisateur: Bool {
+        fiche?.domaine == "Directing" || (filmographie.map { $0.realisations.count > $0.roles.count } ?? false)
+    }
 
     private var credits: [CreditPersonne] {
         guard let filmographie else { return [] }

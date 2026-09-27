@@ -35,7 +35,7 @@ struct FicheAffichee {
         duree = film.dureeMinutes.map { "\($0 / 60) h \(String(format: "%02d", $0 % 60))" }
         pourcentage = Int((film.noteMoyenne * 10).rounded())
         offres = film.fournisseurs?.offres()
-        casting = film.casting?.principaux(15) ?? []
+        casting = film.casting?.avecRealisateurs(15) ?? []
         videos = film.videos?.bandesAnnonces ?? []
         langueOriginale = film.langueOriginale
         self.film = film
@@ -52,7 +52,7 @@ struct FicheAffichee {
         duree = "\(serie.nombreSaisons) saison\(serie.nombreSaisons > 1 ? "s" : "")"
         pourcentage = Int((serie.noteMoyenne * 10).rounded())
         offres = serie.fournisseurs?.offres()
-        casting = serie.casting?.principaux(15) ?? []
+        casting = serie.casting?.avecRealisateurs(15) ?? []
         videos = serie.videos?.bandesAnnonces ?? []
         langueOriginale = serie.langueOriginale
         self.serie = serie
@@ -346,7 +346,12 @@ private struct ContenuFiche: View {
     private var pouces: some View {
         PoucesTitre(reference: fiche.reference, titre: fiche.titre, cheminAffiche: fiche.cheminAffiche,
                     genres: fiche.film?.genres.map(\.id) ?? fiche.serie?.genres.map(\.id) ?? [],
-                    acteursIDs: fiche.casting.prefix(5).map(\.id), acteurs: fiche.casting.prefix(5).map(\.nom))
+                    acteursIDs: premiersRoles.map(\.id), acteurs: premiersRoles.map(\.nom))
+    }
+
+    /// Les cinq premiers rôles, sans les réalisateurs placés en tête du casting (8.3).
+    private var premiersRoles: [PersonneCasting] {
+        Array(fiche.casting.filter { $0.personnage != "Réalisation" }.prefix(5))
     }
 
     /// Un bouton d'action et son nom en dessous : les icônes seules ne se comprenaient qu'au survol.

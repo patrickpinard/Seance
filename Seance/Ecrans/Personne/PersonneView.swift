@@ -67,13 +67,13 @@ struct PersonneView: View {
                 Button { basculerSuivi() } label: {
                     Label(suivi ? "Ne plus suivre" : "Suivre", systemImage: suivi ? "bell.fill" : "bell")
                 }
-                .help(suivi ? "Tu es prévenu quand un nouveau film avec \(personne.nom) est annoncé. Touche pour arrêter."
-                            : "Être prévenu quand un nouveau film avec \(personne.nom) est annoncé")
+                .help(suivi ? "Tu es prévenu quand un nouveau film de ou avec \(personne.nom) est annoncé. Touche pour arrêter."
+                            : "Être prévenu quand un nouveau film de ou avec \(personne.nom) est annoncé")
             }
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
                     etat.filtreExplorerDemande = PersonneFiltre(id: personne.id, nom: personne.nom, cheminPortrait: fiche?.cheminPortrait,
-                                                                estRealisateur: fiche?.domaine == "Directing")
+                                                                estRealisateur: filmographie.map(estRealisateur) ?? (fiche?.domaine == "Directing"))
                 } label: {
                     Label("Dans la recherche", systemImage: "line.3.horizontal.decrease.circle")
                 }
@@ -86,17 +86,25 @@ struct PersonneView: View {
 
     // MARK: Contenu
 
+    /// Réalisateur d'abord : TMDB le dit (« Directing »), ou il a plus de réalisations que de rôles.
+    private func estRealisateur(_ filmographie: Filmographie) -> Bool {
+        fiche?.domaine == "Directing" || filmographie.realisations.count > filmographie.roles.count
+    }
+
     private func contenu(_ filmographie: Filmographie) -> some View {
         let aujourdhui = DateTMDB(.now)
-        let credits = AnalyseFilmographie.filtrer(filmographie.roles, filtres: filtres, vus: vus, regardables: regardables)
+        // Un réalisateur (8.3) : ses réalisations en tête, avec les mêmes filtres que les rôles d'un acteur.
+        let realisateur = estRealisateur(filmographie)
+        let principaux = realisateur ? filmographie.realisations : filmographie.roles
+        let credits = AnalyseFilmographie.filtrer(principaux, filtres: filtres, vus: vus, regardables: regardables)
         return ScrollView {
             VStack(alignment: .leading, spacing: 22) {
                 enTete
                 biographie
 
                 HStack(spacing: 12) {
-                    compteur(AnalyseFilmographie.compte(filmographie.roles, type: .film, vus: vus, aujourdhui: aujourdhui), singulier: "film vu", pluriel: "films vus")
-                    compteur(AnalyseFilmographie.compte(filmographie.roles, type: .serie, vus: vus, aujourdhui: aujourdhui), singulier: "série vue", pluriel: "séries vues")
+                    compteur(AnalyseFilmographie.compte(principaux, type: .film, vus: vus, aujourdhui: aujourdhui), singulier: "film vu", pluriel: "films vus")
+                    compteur(AnalyseFilmographie.compte(principaux, type: .serie, vus: vus, aujourdhui: aujourdhui), singulier: "série vue", pluriel: "séries vues")
                 }
                 .padding(.horizontal, 20)
 
@@ -126,10 +134,10 @@ struct PersonneView: View {
                     grilleOuListe(credits, choix: true)
                 }
 
-                let realisations = AnalyseFilmographie.significatifs(filmographie.realisations)
+                let realisations = AnalyseFilmographie.significatifs(realisateur ? filmographie.roles : filmographie.realisations)
                 if !realisations.isEmpty {
                     VStack(alignment: .leading, spacing: 12) {
-                        TitreSection("Réalisations")
+                        TitreSection(realisateur ? "Rôles" : "Réalisations")
                         grilleOuListe(realisations, choix: false)
                     }
                 }

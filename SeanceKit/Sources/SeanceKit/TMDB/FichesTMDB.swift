@@ -43,6 +43,15 @@ public struct PersonneCasting: Decodable, Sendable, Hashable, Identifiable {
         case cheminPortrait = "profile_path"
         case nombreEpisodes = "total_episode_count"
     }
+
+    public init(id: Int, nom: String, personnage: String?, ordre: Int? = nil, cheminPortrait: String?, nombreEpisodes: Int? = nil) {
+        self.id = id
+        self.nom = nom
+        self.personnage = personnage
+        self.ordre = ordre
+        self.cheminPortrait = cheminPortrait
+        self.nombreEpisodes = nombreEpisodes
+    }
 }
 
 public struct MembreEquipe: Decodable, Sendable, Hashable {
@@ -76,6 +85,16 @@ public struct Casting: Decodable, Sendable {
     /// Les premiers rôles, dans l'ordre du générique.
     public func principaux(_ nombre: Int = 5) -> [PersonneCasting] {
         Array(acteurs.sorted { ($0.ordre ?? .max) < ($1.ordre ?? .max) }.prefix(nombre))
+    }
+
+    /// Le casting de la fiche (8.3) : le ou les réalisateurs d'abord, « Réalisation » sous leur nom — on les ouvre et on
+    /// les suit comme un acteur —, puis les premiers rôles. Une personne n'y paraît qu'une fois.
+    public func avecRealisateurs(_ nombre: Int = 15) -> [PersonneCasting] {
+        var vus = Set<Int>()
+        let realisation = realisateurs.filter { vus.insert($0.id).inserted }.map {
+            PersonneCasting(id: $0.id, nom: $0.nom, personnage: "Réalisation", cheminPortrait: $0.cheminPortrait)
+        }
+        return realisation + principaux(nombre).filter { vus.insert($0.id).inserted }
     }
 }
 

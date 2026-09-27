@@ -342,8 +342,11 @@ public enum PlanificateurAlertes {
         // Films et séries partagent la mémoire de l'acteur : une série s'y range sous son identifiant négatif, les deux
         // numérotations de TMDB se recouvrant. Une série déjà diffusée ne s'annonce pas : seules celles à venir comptent.
         func cle(_ credit: CreditPersonne) -> Int { credit.type == .film ? credit.tmdbID : -credit.tmdbID }
-        let films = AnalyseFilmographie.significatifs(filmographie.roles)
-        let tous = Set(filmographie.roles.map(cle))
+        // 8.3 : un réalisateur se suit comme un acteur — ses réalisations comptent avec ses rôles.
+        var dejaLa = Set<ReferenceTitre>()
+        let credits = (filmographie.roles + filmographie.realisations).filter { dejaLa.insert($0.reference).inserted }
+        let films = AnalyseFilmographie.significatifs(credits)
+        let tous = Set(credits.map(cle))
         guard let connus, reglages.annonces, reglages.typesActifs.contains(.sortieFilm) else { return ([], tous.union(connus ?? [])) }
         let aujourdhui = DateTMDB(maintenant, fuseau: reglages.fuseau)
         let envoi = prochainEnvoi(apres: maintenant, reglages: reglages)
