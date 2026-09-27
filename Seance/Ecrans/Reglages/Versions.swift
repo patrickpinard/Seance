@@ -56,6 +56,15 @@ struct NoteVersion: Identifiable {
 
     static let historique: [NoteVersion] = [
         NoteVersion(
+            numero: "8.2.19",
+            date: "27 septembre 2026",
+            resume: "Sur l'accueil, les films, séries et documentaires les plus récents d'abord.",
+            fonctionnalites: [
+                Fonctionnalite(symbole: "calendar", titre: "Les plus récents d'abord",
+                               detail: "Nouveautés et Documentaires se rangent par date de sortie : 2026, puis 2025, et ainsi de suite, sur l'iPhone, l'iPad, le Mac et l'Apple TV. « Sur ton NAS » garde l'ordre des derniers téléchargements ; le Top de l'année garde son classement."),
+            ]
+        ),
+        NoteVersion(
             numero: "8.2.18",
             date: "27 septembre 2026",
             resume: "Passer d'une personne à l'autre ne ferme plus Séance, quelle que soit la personne.",

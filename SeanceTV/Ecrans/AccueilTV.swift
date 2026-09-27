@@ -118,7 +118,7 @@ struct AccueilTV: View {
                         }
                     }
                 }
-                etagere("Nouveautés", "Sorties et nouveaux épisodes du mois, les plus populaires d'abord", duMoment)
+                etagere("Nouveautés", "Sorties et nouveaux épisodes du mois, les plus récents d'abord", duMoment.recentsDAbord(\.date))
                 etagere("Top de l'année", "Les mieux notés sur TMDB depuis un an", top)
             }
             .padding(.bottom, 40)
@@ -298,6 +298,8 @@ struct ApercuTV: Identifiable, Hashable {
     /// Pour ranger les résultats par genre et par année (8.2.15), comme sur l'iPhone.
     var genres: [Int] = []
     var annee: Int?
+    /// Sortie ou première diffusion : les Nouveautés se rangent des plus récentes aux plus anciennes (8.2.19).
+    var date: DateTMDB?
 
     var id: ReferenceTitre { reference }
 
@@ -307,12 +309,12 @@ struct ApercuTV: Identifiable, Hashable {
             ApercuTV(reference: ReferenceTitre(type: .film, tmdbID: $0.id), titre: $0.titre,
                      sousTitre: ["Film", $0.dateSortie.map { String($0.annee) }].compactMap { $0 }.joined(separator: " · "),
                      cheminAffiche: $0.cheminAffiche, cheminFond: $0.cheminFond, popularite: $0.popularite,
-                     genres: $0.genres, annee: $0.dateSortie?.annee)
+                     genres: $0.genres, annee: $0.dateSortie?.annee, date: $0.dateSortie)
         }
         let deSeries = series.map {
             ApercuTV(reference: ReferenceTitre(type: .serie, tmdbID: $0.id), titre: $0.nom, sousTitre: "Série",
                      cheminAffiche: $0.cheminAffiche, cheminFond: $0.cheminFond, popularite: $0.popularite,
-                     genres: $0.genres, annee: $0.premiereDiffusion?.annee)
+                     genres: $0.genres, annee: $0.premiereDiffusion?.annee, date: $0.premiereDiffusion)
         }
         let tous = (deFilms + deSeries).filter { $0.cheminAffiche != nil }
         return (garderLOrdre ? tous : tous.sorted { $0.popularite > $1.popularite }).prefix(garderLOrdre ? 40 : 24).map { $0 }

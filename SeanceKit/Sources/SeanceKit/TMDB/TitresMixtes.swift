@@ -124,3 +124,20 @@ public extension TitreResume {
                   cheminAffiche: cheminAffiche, cheminFond: cheminFond, noteMoyenne: 0, nombreVotes: 0, date: date)
     }
 }
+
+extension Sequence {
+    /// Les plus récents d'abord (8.2.19) : 2026, puis 2025… d'après la date de sortie ou de première diffusion ; à date
+    /// égale, l'ordre d'origine (la popularité) reste ; les titres sans date passent à la fin.
+    public func recentsDAbord(_ date: (Element) -> DateTMDB?) -> [Element] {
+        enumerated()
+            .sorted { a, b in
+                switch (date(a.element), date(b.element)) {
+                case let (x?, y?) where x != y: x > y
+                case (_?, nil): true
+                case (nil, _?): false
+                default: a.offset < b.offset
+                }
+            }
+            .map(\.element)
+    }
+}

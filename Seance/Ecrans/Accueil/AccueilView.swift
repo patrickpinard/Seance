@@ -68,7 +68,7 @@ struct SourcesAccueil: Codable, Hashable {
 @MainActor
 @Observable
 final class AccueilModele {
-    /// « Nouveautés » : sorties et nouveaux épisodes des trente derniers jours, les plus populaires d'abord.
+    /// « Nouveautés » : sorties et nouveaux épisodes des trente derniers jours, les plus récents d'abord sur l'accueil (8.2.19).
     var duMoment: [TitreResume] = []
     /// Pour chaque série du moment : l'épisode diffusé dans le mois, ou sa première diffusion.
     var datesSeries: [ReferenceTitre: String] = [:]
@@ -404,7 +404,7 @@ struct AccueilView: View {
                         TitreSection(titre: "Nouveautés") {
                             BoutonToutVoir { chemin.append(DestinationAccueil.duMoment(plateformes: plateformes)) }
                         }
-                        Carrousel(titres: proposables(modele.duMoment)) { modele.sousTitre($0) }
+                        Carrousel(titres: proposables(modele.duMoment).recentsDAbord(\.date)) { modele.sousTitre($0) }
                     }
                 }
 
@@ -413,7 +413,8 @@ struct AccueilView: View {
                         TitreSection(titre: "Documentaires") {
                             BoutonToutVoir { chemin.append(DestinationAccueil.documentaires) }
                         }
-                        Carrousel(titres: proposables(etat.documentaires.films + etat.documentaires.series)) { _ in nil }
+                        // 8.2.19 : les plus récents d'abord — 2026, puis 2025… Le NAS garde l'ordre de ses arrivées.
+                        Carrousel(titres: proposables(etat.documentaires.films + etat.documentaires.series).recentsDAbord(\.date)) { _ in nil }
                     }
                 }
 

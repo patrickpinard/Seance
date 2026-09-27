@@ -32,3 +32,11 @@ import Testing
         #expect(lu.actif && lu.joursRetenus == [6] && lu.veut(.soirees))
     }
 }
+
+@Suite struct RecentsDAbordTests {
+    @Test func lesPlusRecentsDAbordSansDateALaFin() {
+        let titres: [(String, DateTMDB?)] = [("a", DateTMDB(annee: 2024, mois: 5, jour: 1)), ("b", nil), ("c", DateTMDB(annee: 2026, mois: 1, jour: 2)),
+                                              ("d", DateTMDB(annee: 2025, mois: 3, jour: 1)), ("e", DateTMDB(annee: 2026, mois: 1, jour: 2))]
+        #expect(titres.recentsDAbord(\.1).map(\.0) == ["c", "e", "d", "a", "b"])
+    }
+}
