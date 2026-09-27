@@ -523,21 +523,22 @@ struct FeuilleCouverture: View {
                       systemImage: apercusEnCours ? "hourglass" : "photo")
                     .font(.footnote).foregroundStyle(.secondary)
             }
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 10) {
-                    ForEach(apercus, id: \.secondes) { apercu in
-                        let choisie = instant == apercu.secondes
-                        Button { instant = apercu.secondes } label: {
-                            apercu.image.resizable().scaledToFill()
-                                .frame(width: 150, height: 84)
-                                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                                .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                    .strokeBorder(choisie ? Theme.accent : Theme.trait, lineWidth: choisie ? 3 : 1))
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel("Image à \(PositionsLecture.horodatage(apercu.secondes))")
-                        .accessibilityAddTraits(choisie ? .isSelected : [])
+            // En grille, toutes visibles (8.3) : sur le Mac, une rangée qui défile de côté ne suit pas la molette.
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 140), spacing: 10)], spacing: 10) {
+                ForEach(apercus, id: \.secondes) { apercu in
+                    let choisie = instant == apercu.secondes
+                    Button { instant = apercu.secondes } label: {
+                        Color.clear
+                            .aspectRatio(16 / 9, contentMode: .fit)
+                            .overlay { apercu.image.resizable().scaledToFill() }
+                            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                            .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                .strokeBorder(choisie ? Theme.accent : Theme.trait, lineWidth: choisie ? 3 : 1))
+                            .contentShape(Rectangle())
                     }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Image à \(PositionsLecture.horodatage(apercu.secondes))")
+                    .accessibilityAddTraits(choisie ? .isSelected : [])
                 }
             }
             if instant != nil {
