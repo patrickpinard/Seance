@@ -19,6 +19,9 @@ struct FicheTV: View {
     @State private var departLecture: Double?
     /// Une vidéo entamée : « Reprendre à 1:03:12 ou depuis le début ? ».
     @State private var repriseAProposer: FichierNAS?
+    /// En sortant du lecteur (8.3), le focus revient sur « Regarder » — et non sur le menu du haut, d'où un second
+    /// Retour faisait quitter l'app.
+    @FocusState private var principalAuFocus: Bool
     /// « Qui regarde avec toi ? » avant la lecture (8.2).
     @State private var compagnonsAChoisir: LectureAvant?
     @Environment(EtatTV.self) private var etat
@@ -117,6 +120,13 @@ struct FicheTV: View {
             Plantages.page("Fiche \(reference)")
             identifiants = await EtatTV.identifiants.identifiants([reference])[reference]
         }
+        .onChange(of: filmALire == nil) { _, ferme in
+            guard ferme else { return }
+            Task {
+                try? await Task.sleep(for: .milliseconds(400))
+                principalAuFocus = true
+            }
+        }
         .fullScreenCover(item: $filmALire) { fichier in
             LecteurVLCTV(video: VideoPerso(chemin: fichier.chemin, taille: fichier.tailleOctets),
                          acces: etat.nas, motDePasse: etat.motDePasseDuNAS ?? "", surEchec: { _ in
@@ -204,12 +214,15 @@ struct FicheTV: View {
             if let premiere = sourcesTV.first, premiere.bouton.hasPrefix("Reprendre") {
                 Button { premiere.lancer() } label: { Label(premiere.bouton, systemImage: "play.fill") }
                     .buttonStyle(BoutonTV(principal: true))
+                    .focused($principalAuFocus)
             } else if sourcesTV.count == 1, let seule = sourcesTV.first {
                 Button { seule.lancer() } label: { Label(seule.bouton, systemImage: "play.fill") }
                     .buttonStyle(BoutonTV(principal: true))
+                    .focused($principalAuFocus)
             } else if sourcesTV.count > 1 {
                 Button { choixSource = true } label: { Label("Regarder", systemImage: "play.fill") }
                     .buttonStyle(BoutonTV(principal: true))
+                    .focused($principalAuFocus)
                     // Une fenêtre de Séance, lisible sur la TV (6.3).
                     .fullScreenCover(isPresented: $choixSource) {
                         DialogueTV(titre: "Regarder « \(titre) »", message: "Où veux-tu le lancer ?",

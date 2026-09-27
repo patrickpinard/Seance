@@ -47,6 +47,9 @@ struct LecteurVLCTV: View {
     @FocusState private var focus: Commande?
     /// Sur la barre (8.0) : où l'on veut aller, entre 0 et 1, avant de valider d'un clic.
     @State private var cible: Double?
+    /// « Quitter le film ? » (8.3) : la touche Retour ne sort plus d'un coup de la lecture.
+    @State private var quitterDemande = false
+    @State private var enPauseAvantQuestion = false
     /// Des appuis rapprochés sur la barre vont de plus en plus vite.
     @State private var dernierPas = Date.distantPast
     @State private var elan = 1.0
@@ -158,7 +161,24 @@ struct LecteurVLCTV: View {
         .animation(.easeOut(duration: 0.25), value: pistes)
         // Retour : referme d'abord le panneau, puis les commandes ; commandes cachées, quitte la lecture.
         .onExitCommand {
-            if cible != nil { cible = nil } else if son { son = false; focus = .son } else if pistes { fermerPistes() } else if commandes, moteur.enLecture { cacher() } else { fermer() }
+            if cible != nil { cible = nil } else if son { son = false; focus = .son } else if pistes { fermerPistes() } else if commandes, moteur.enLecture { cacher() } else if message != nil { fermer() } else { demanderAQuitter() }
+        }
+        // 8.3 (demande de Patrick) : Retour pendant la lecture demande avant de quitter ; la vidéo s'arrête le temps de répondre.
+        .fullScreenCover(isPresented: $quitterDemande) {
+            DialogueTV(titre: "Quitter « \(video.nom) » ?",
+                       message: moteur.secondes > 5 ? "Tu reprendras à \(PositionsLecture.horodatage(moteur.secondes))." : nil,
+                       choix: [
+                           DialogueTV.Choix(libelle: "Continuer la lecture", principal: true) {
+                               if !enPauseAvantQuestion { moteur.basculerLecture() }
+                           },
+                           DialogueTV.Choix(libelle: "Quitter") {
+                               // La question se referme d'abord, puis le lecteur.
+                               Task {
+                                   try? await Task.sleep(for: .milliseconds(350))
+                                   fermer()
+                               }
+                           },
+                       ])
         }
         .onPlayPauseCommand { moteur.basculerLecture(); montrer() }
         .overlay(alignment: .bottomTrailing) { carteSuivant }
@@ -213,6 +233,12 @@ struct LecteurVLCTV: View {
         .fullScreenCover(item: Binding { etat.avecQui } set: { if $0 == nil { etat.avecQui = nil } }) { demande in
             ChoixAvecQuiTV(moment: .apres(demande)) { etat.avecQui = nil }
         }
+    }
+
+    private func demanderAQuitter() {
+        enPauseAvantQuestion = !moteur.enLecture
+        if moteur.enLecture { moteur.basculerLecture() }
+        quitterDemande = true
     }
 
     /// L'épisode d'après : proposé dès le générique, lancé tout seul à la fin après un compte à rebours.
