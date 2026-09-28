@@ -27,14 +27,13 @@ final class CarrouselAccueilTests: XCTestCase {
         XCTAssertTrue(app.descendants(matching: .any).matching(NSPredicate(format: "label BEGINSWITH 'Proposition 2 sur'")).firstMatch.exists,
                       "Le glissement ne passe pas à la proposition suivante")
         capture("carrousel-2")
-        // « Autre chose » : la troisième.
-        app.buttons["Autre chose"].firstMatch.tap()
-        Thread.sleep(forTimeInterval: 1.5)
-        capture("carrousel-3")
-        // Le titre ouvre la fiche.
-        let titres = app.buttons.matching(identifier: "titreProposition").allElementsBoundByIndex.filter(\.isHittable)
-        XCTAssertFalse(titres.isEmpty, "Le titre de la proposition n'est pas un bouton")
-        titres.first?.tap()
+        // 8.6, comme Netflix : « Lecture » et « Plus d'infos » ; « Plus d'infos » ouvre la fiche.
+        let infos = app.buttons.matching(identifier: "plusDInfos").allElementsBoundByIndex.filter(\.isHittable)
+        XCTAssertFalse(infos.isEmpty, "Pas de bouton « Plus d'infos »")
+        XCTAssertTrue(app.buttons.matching(identifier: "lectureProposition").allElementsBoundByIndex.contains(where: \.isHittable),
+                      "Pas de bouton « Lecture »")
+        capture("carrousel-boutons")
+        infos.first?.tap()
         Thread.sleep(forTimeInterval: 2.5)
         capture("fiche-ouverte")
         XCTAssertFalse(app.buttons.matching(identifier: "titreProposition").allElementsBoundByIndex.contains(where: \.isHittable),

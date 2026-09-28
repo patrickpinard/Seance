@@ -356,6 +356,9 @@ struct ChoixLecture: View {
         case grand
         /// En tête de fiche (6.1.1) : une petite capsule — « ▶︎ Netflix », ou « ▶︎ Lecture ▾ » pour choisir.
         case compact
+        /// La tête de l'accueil (8.6, « comme Netflix ») : « ▶︎ Lecture » (ou « Reprendre »), qui lance la meilleure source —
+        /// le NAS d'abord — sans rien demander ; le choix est sur la fiche, derrière « Plus d'infos ».
+        case lecture
     }
 
     let reference: ReferenceTitre
@@ -367,7 +370,12 @@ struct ChoixLecture: View {
     @Environment(\.openURL) private var openURL
 
     var body: some View {
-        if sources.count == 1, let seule = sources.first {
+        if style == .lecture, let premiere = sources.first {
+            Button { lancer(premiere) } label: { etiquette(premiere) }
+                .buttonStyle(.plain)
+                .accessibilityLabel("\(libelleLecture(premiere)) : \(premiere.nom)")
+                .accessibilityIdentifier("lectureProposition")
+        } else if sources.count == 1, let seule = sources.first {
             Button { lancer(seule) } label: { etiquette(seule) }
                 .buttonStyle(.plain)
                 .frame(maxWidth: style == .compact ? 720 : nil, alignment: .leading)
@@ -431,6 +439,17 @@ struct ChoixLecture: View {
         case .grand:
             EtiquetteGrandBouton(symbole: seule.map { if case .blueTV = $0 { "play.tv.fill" } else { "play.fill" } } ?? "play.fill",
                                  texte: seule?.action ?? "Choisir où regarder")
+        case .lecture:
+            HStack(spacing: 8) {
+                Image(systemName: "play.fill")
+                Text(libelleLecture(seule)).lineLimit(1)
+            }
+            .font(.headline)
+            .foregroundStyle(.black)
+            .padding(.horizontal, 24)
+            .frame(minHeight: 50)
+            .background(Theme.degradeAccent, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         case .compact:
             // Charte 8.0 : le bouton principal de la fiche, pleine largeur, qui dit ce qu'il fait.
             HStack(spacing: 8) {
@@ -456,6 +475,14 @@ struct ChoixLecture: View {
         }
         #endif
         return seule.action
+    }
+
+    /// « Lecture », ou « Reprendre » pour une vidéo du NAS entamée (8.6).
+    private func libelleLecture(_ source: SourceLecture?) -> String {
+        #if !targetEnvironment(macCatalyst)
+        if case .nas(let fichier)? = source, etat.nas.dansSeance, etat.nas.positions.aReprendre(fichier.chemin) != nil { return "Reprendre" }
+        #endif
+        return "Lecture"
     }
 
     private func lancer(_ source: SourceLecture) {

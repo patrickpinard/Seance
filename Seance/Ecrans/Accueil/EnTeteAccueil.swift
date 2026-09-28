@@ -38,7 +38,8 @@ struct EnTeteAccueil: View {
 
     /// L'iPad et le Mac : le grand titre, et les boutons côte à côte.
     private var large: Bool { classe == .regular }
-    private var hauteur: CGFloat { large ? 620 : 500 }
+    /// Pleine page (8.6, comme Netflix) : la proposition occupe l'écran, la rangée suivante dépasse en bas.
+    private var hauteur: CGFloat { large ? 760 : 620 }
     private var courante: PropositionSoir { propositions[min(max(rang, 0), propositions.count - 1)] }
 
     var body: some View {
@@ -83,8 +84,10 @@ struct EnTeteAccueil: View {
                 }
                 .contentShape(Rectangle())
                 .onTapGesture { voirFiche(proposition.reference) }
+                .contextMenu { menu(proposition) }
                 .accessibilityHidden(true)
             texte(proposition)
+                .contextMenu { menu(proposition) }
                 .frame(maxWidth: large ? (nouveautes.isEmpty ? 700 : 600) : .infinity, alignment: .leading)
                 .padding(.horizontal, large ? 32 : 20)
                 .padding(.bottom, 8)
@@ -177,50 +180,39 @@ struct EnTeteAccueil: View {
         withAnimation(.snappy) { rang = (rang + pas + propositions.count) % propositions.count }
     }
 
-    @ViewBuilder
+    /// 8.6, « comme Netflix » (demande de Patrick) : deux boutons côte à côte — « ▶︎ Lecture » et « Plus d'infos ».
+    /// « Pas ce soir » est dans l'appui long (clic droit sur le Mac) ; « Autre chose » laisse la place au glissement,
+    /// aux points et aux flèches.
     private func boutons(_ proposition: PropositionSoir) -> some View {
-        if large {
-            HStack(spacing: 10) {
-                principal(proposition).fixedSize(horizontal: true, vertical: false)
-                secondaires(proposition)
+        HStack(spacing: 10) {
+            principal(proposition)
+            Button { voirFiche(proposition.reference) } label: {
+                Label("Plus d'infos", systemImage: "info.circle").lineLimit(1)
             }
-        } else {
-            VStack(spacing: 8) {
-                principal(proposition).frame(maxWidth: .infinity)
-                HStack(spacing: 8) { secondaires(proposition) }
-            }
+            .buttonStyle(StyleBoutonSecondaire())
+            .accessibilityIdentifier("plusDInfos")
         }
+        .fixedSize(horizontal: true, vertical: false)
     }
 
-    /// « Reprendre à 1:03:12 » pour une vidéo entamée ; sinon le bouton de la fiche (« Regarder sur Netflix », « Lire
-    /// sur le NAS », ou le choix entre plusieurs accès) ; sans rien pour le regarder, la fiche.
+    /// « ▶︎ Lecture » lance la meilleure source, le NAS d'abord (« Reprendre » pour une vidéo entamée) ; sans rien pour
+    /// le regarder, « Plus d'infos » reste seul.
     @ViewBuilder
     private func principal(_ proposition: PropositionSoir) -> some View {
         if let reprise = proposition.reprise {
-            ChoixLecture(reference: proposition.reference, titre: proposition.titre, sources: [.nas(reprise.fichier)], style: .compact)
+            ChoixLecture(reference: proposition.reference, titre: proposition.titre, sources: [.nas(reprise.fichier)], style: .lecture)
         } else if BoutonLectureCarte.aUneSource(proposition.reference, titre: proposition.titre, etat: etat) {
-            BoutonLectureCarte(reference: proposition.reference, titre: proposition.titre, style: .compact)
-        } else {
-            NavigationLink(value: proposition.reference) {
-                Label("Voir la fiche", systemImage: "info.circle")
-            }
-            .buttonStyle(StyleBoutonPrincipal(pleineLargeur: !large))
+            BoutonLectureCarte(reference: proposition.reference, titre: proposition.titre, style: .lecture)
         }
     }
 
+    /// L'appui long sur la proposition (clic droit sur le Mac).
     @ViewBuilder
-    private func secondaires(_ proposition: PropositionSoir) -> some View {
-        if propositions.count > 1 {
-            Button("Autre chose") { aller(de: 1) }
-                .buttonStyle(StyleBoutonSecondaire(pleineLargeur: !large))
-                .fixedSize(horizontal: large, vertical: false)
-        }
-        Button("Pas ce soir") {
+    private func menu(_ proposition: PropositionSoir) -> some View {
+        Button { voirFiche(proposition.reference) } label: { Label("Plus d'infos", systemImage: "info.circle") }
+        Button {
             withAnimation { PasCeSoir.ecarter(proposition.reference) }
-        }
-        .buttonStyle(StyleBoutonSecondaire(pleineLargeur: !large))
-        .fixedSize(horizontal: large, vertical: false)
-        .accessibilityHint("« \(proposition.titre) » ne sera plus proposé avant demain")
+        } label: { Label("Pas ce soir", systemImage: "moon.zzz") }
     }
 
     /// Les trois dernières nouveautés, à droite de la proposition (iPad et Mac).

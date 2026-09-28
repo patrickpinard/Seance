@@ -203,7 +203,8 @@ struct AccueilTV: View {
         ZStack(alignment: .bottom) {
             Color.clear
                 .frame(maxWidth: .infinity)
-                .frame(height: 760)
+                // Pleine page (8.6, comme Netflix) : la proposition occupe l'écran, « Reprendre » dépasse en bas.
+                .frame(height: 950)
                 .background(alignment: .top) {
                     ImageTV(url: ImageTMDB.url(proposition.cheminImage, proposition.large ? .fondGrand : .afficheGrande), symboleVide: "")
                         .frame(height: 1080)
@@ -233,17 +234,23 @@ struct AccueilTV: View {
                         .padding(.top, 6)
                         .accessibilityHidden(true)
                     }
+                    // 8.6, comme Netflix (demande de Patrick) : « Lecture » et « Plus d'infos », sur une ligne ; « Pas ce soir »
+                    // est dans l'appui long.
                     HStack(spacing: 24) {
-                        // Sur une ligne (8.6) : à côté de « Fiche » et « Pas ce soir », le libellé passait à la ligne.
                         NavigationLink(value: LectureTVDemande(reference: proposition.reference)) {
-                            Label(proposition.bouton, systemImage: "play.fill").lineLimit(1).fixedSize()
+                            Label(proposition.reprise != nil ? "Reprendre" : "Lecture", systemImage: "play.fill").lineLimit(1).fixedSize()
                         }
                         .buttonStyle(BoutonTV(principal: true))
-                        // 8.6 : la fiche, comme un toucher sur l'image de l'iPhone — sur la TV, l'image n'a pas le focus.
-                        NavigationLink(value: proposition.reference) { Text("Fiche").lineLimit(1).fixedSize() }
-                            .buttonStyle(BoutonTV())
-                        Button { PasCeSoir.ecarter(proposition.reference) } label: { Text("Pas ce soir").lineLimit(1).fixedSize() }
-                            .buttonStyle(BoutonTV())
+                        .contextMenu {
+                            Button { PasCeSoir.ecarter(proposition.reference) } label: { Label("Pas ce soir", systemImage: "moon.zzz") }
+                        }
+                        NavigationLink(value: proposition.reference) {
+                            Label("Plus d'infos", systemImage: "info.circle").lineLimit(1).fixedSize()
+                        }
+                        .buttonStyle(BoutonTV())
+                        .contextMenu {
+                            Button { PasCeSoir.ecarter(proposition.reference) } label: { Label("Pas ce soir", systemImage: "moon.zzz") }
+                        }
                     }
                     .padding(.top, 18)
                     // Où l'on en est parmi les propositions, et deux flèches pour les faire défiler (8.6, demande de
