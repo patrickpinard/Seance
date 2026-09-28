@@ -40,11 +40,14 @@ public actor RattachementGuide {
     }
 
     private let recherche: any RechercheTMDB
+    /// Les titres choisis à la main (8.4) : ils l'emportent sur la recherche.
+    private let identifications: IdentificationsTMDB
     private var candidatsParCle: [String: [CandidatRattachement]] = [:]
     public private(set) var recherchesEnEchec = 0
 
-    public init(recherche: any RechercheTMDB) {
+    public init(recherche: any RechercheTMDB, identifications: IdentificationsTMDB = IdentificationsTMDB()) {
         self.recherche = recherche
+        self.identifications = identifications
     }
 
     public func rattacher(_ programmes: [ProgrammeTV]) async throws -> [ProgrammeRattache] {
@@ -81,6 +84,9 @@ public actor RattachementGuide {
         for i in resultat.indices where resultat[i].candidat == nil && programmes[i].annee == nil {
             guard let cle = requetes[i]?.cle, let uniques = dates[cle], uniques.count == 1 else { continue }
             resultat[i].candidat = uniques[0]
+        }
+        for i in resultat.indices {
+            if let choisi = identifications.titre(pour: programmes[i]) { resultat[i].candidat = choisi.candidat }
         }
         return resultat
     }

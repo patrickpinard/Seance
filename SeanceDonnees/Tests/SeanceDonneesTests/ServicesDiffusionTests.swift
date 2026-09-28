@@ -77,7 +77,8 @@ struct ServicesDiffusionTests {
         let rapport = try await service.actualiser(maintenant: maintenant)
         #expect(rapport == ServiceProgrammesTV.Rapport(
             programmesLus: 2, diffusionsEnregistrees: 1, recherchesEnEchec: 0,
-            filmsLus: 2, filmsRattaches: 1, filmsNonRattaches: ["Inconnu au bataillon"]
+            filmsLus: 2, filmsRattaches: 1, filmsNonRattaches: ["Inconnu au bataillon"],
+            filmsNonReconnus: [.init(titre: "Inconnu au bataillon", annee: 2001)]
         ))
 
         // Une seconde actualisation remplace au lieu d'accumuler.

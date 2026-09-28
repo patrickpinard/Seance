@@ -355,7 +355,7 @@ final class EtatApp {
 
     private func service(_ contexte: ModelContext) -> ServiceProgrammesTV? {
         guard let tmdb else { return nil }
-        return ServiceProgrammesTV(contexte: contexte, guide: GuideTVClient(), rattachement: RattachementGuide(recherche: tmdb))
+        return ServiceProgrammesTV(contexte: contexte, guide: GuideTVClient(), rattachement: RattachementGuide(recherche: tmdb, identifications: .lues()))
     }
 
     /// Teste la clé contre TMDB avant de l'enregistrer : une clé refusée ne remplace pas la précédente.

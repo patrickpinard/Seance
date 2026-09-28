@@ -89,6 +89,40 @@ final class EtatNAS {
         return true
     }
 
+    // MARK: Titres identifiés à la main (8.4)
+
+    /// Des choix reçus d'un autre appareil, à poser sur la bibliothèque à la fin de la synchronisation.
+    private var identificationsRecues = false
+
+    /// Le titre choisi parmi les propositions de TMDB pour une vidéo que Séance n'a pas reconnue seule (nil : oublier le
+    /// choix). Toute l'œuvre le reprend tout de suite — épisodes, copies —, sans relire le NAS.
+    func identifier(chemin: String, titre: TitreResume?, contexte: ModelContext) throws {
+        let modifies = try ServiceBibliotheque(contexte: contexte).identifier(chemin: chemin, titre: titre)
+        guard titre != nil, var rapport else { return }
+        let cle = IdentificationsTMDB.cleNAS(chemin: chemin)
+        let avant = rapport.nonReconnues.count
+        rapport.nonReconnues.removeAll { IdentificationsTMDB.cleNAS(chemin: $0) == cle }
+        rapport.reconnues += avant - rapport.nonReconnues.count
+        if modifies > 0 { self.rapport = rapport }
+    }
+
+    /// Les choix d'un autre appareil, les plus récents l'emportant ; vrai si quelque chose a changé.
+    @discardableResult
+    func recevoirIdentifications(_ donnees: Data) -> Bool {
+        var identifications = IdentificationsTMDB.lues()
+        guard identifications.fusionner(IdentificationsTMDB(donnees: donnees)) else { return false }
+        identifications.enregistrer()
+        identificationsRecues = true
+        return true
+    }
+
+    /// Pose sur la bibliothèque les choix reçus pendant la synchronisation.
+    func appliquerIdentificationsRecues(contexte: ModelContext) {
+        guard identificationsRecues else { return }
+        identificationsRecues = false
+        _ = try? ServiceBibliotheque(contexte: contexte).appliquer(IdentificationsTMDB.lues())
+    }
+
     /// Relit les positions : au lancement, après la démonstration qui les pose.
     /// Dans les réglages de l'app et dans ceux du groupe d'apps : le widget « Reprendre » (8.1) les lit là.
     private func enregistrerPositions() {

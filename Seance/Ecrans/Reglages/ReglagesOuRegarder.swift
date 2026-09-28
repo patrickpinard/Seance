@@ -57,6 +57,7 @@ struct ReglagesTeleView: View {
     @Environment(\.modelContext) private var contexte
     @Query private var chaines: [Chaine]
     @State private var nonReconnusVisibles = false
+    @State private var aIdentifier: DemandeIdentification?
     @AppStorage(BlueTV.cle) private var blueTV = true
 
     var body: some View {
@@ -76,14 +77,22 @@ struct ReglagesTeleView: View {
                 if let rapport = etat.rapportTele {
                     LabeledContent("Films reconnus", value: "\(rapport.filmsRattaches) sur \(rapport.filmsLus)")
                     LabeledContent("Diffusions à venir", value: "\(rapport.diffusionsEnregistrees)")
-                    if !rapport.filmsNonRattaches.isEmpty {
-                        DisclosureGroup("Films non reconnus (\(rapport.filmsNonRattaches.count))", isExpanded: $nonReconnusVisibles) {
-                            ForEach(rapport.filmsNonRattaches, id: \.self) { titre in
-                                Text(titre).font(.footnote).foregroundStyle(.secondary)
+                    if !rapport.filmsNonReconnus.isEmpty {
+                        DisclosureGroup("Films non reconnus (\(rapport.filmsNonReconnus.count))", isExpanded: $nonReconnusVisibles) {
+                            // 8.4 : chacun s'identifie parmi ce que TMDB propose, et passe alors dans le programme.
+                            ForEach(rapport.filmsNonReconnus) { film in
+                                Button { aIdentifier = .guide(titre: film.titre, annee: film.annee) } label: {
+                                    LabeledContent {
+                                        Text("Identifier").foregroundStyle(Theme.accent)
+                                    } label: {
+                                        Text(film.annee.map { "\(film.titre) (\($0))" } ?? film.titre).font(.footnote).foregroundStyle(.secondary)
+                                    }
+                                }
                             }
                         }
                     }
                 }
+                IdentifiesALaMain(guide: true, demande: $aIdentifier)
                 if let erreur = etat.erreurTele {
                     Label(erreur, systemImage: "exclamationmark.triangle")
                         .font(.footnote)
@@ -96,7 +105,7 @@ struct ReglagesTeleView: View {
             } header: {
                 Text("Guide des programmes")
             } footer: {
-                Text("Le guide est relu toutes les 12 heures et dès que tu changes de chaînes. Un film n'apparaît que s'il est reconnu dans TMDB sans hésitation.")
+                Text("Le guide est relu toutes les 12 heures et dès que tu changes de chaînes. Un film n'apparaît que s'il est reconnu dans TMDB sans hésitation ; sinon, identifie-le parmi les films non reconnus.")
             }
 
             Section {
@@ -128,6 +137,9 @@ struct ReglagesTeleView: View {
             }
         }
         .pageReglages("TV")
+        .sheet(item: $aIdentifier) { demande in
+            FeuilleIdentification(demande: demande)
+        }
         // Les chaînes ont pu changer : le guide est relu en quittant la page, si nécessaire.
         .onDisappear {
             Task { await etat.actualiserTele(contexte: contexte) }

@@ -23,8 +23,10 @@
 		0AFCD996B554004B80322E4F /* ReglagesNASView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B14FFD401FB239D2AB586936 /* ReglagesNASView.swift */; };
 		0B8E0FE75EE274435457C423 /* VLCKit.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 64DEAE0C43F30D5D4D6DC42F /* VLCKit.xcframework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		0C1554759F9335B488F3610D /* VLCKit.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 64DEAE0C43F30D5D4D6DC42F /* VLCKit.xcframework */; };
+		0F60F7DF868C9513A7DEF7E7 /* IdentifierTitre.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0869FF14CA66EB65ABDA11B4 /* IdentifierTitre.swift */; };
 		100E4A05F21EC14B7F5E40F3 /* SeanceWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70E5C0C6A6037BEC6D806F5F /* SeanceWidget.swift */; };
 		102AC84C06A1F18ABC52AF40 /* MaSoiree.swift in Sources */ = {isa = PBXBuildFile; fileRef = A33739359CBDF876AD2F1B6E /* MaSoiree.swift */; };
+		113B62D11C3CF2D371D671F9 /* IdentificationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24C425BF7A5F28EB8E7E0D5A /* IdentificationTests.swift */; };
 		118ECFD71AC22F4026B74C68 /* LectureTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69DAAF3CA73CDA90FB2F2152 /* LectureTests.swift */; };
 		1714968C940D3BC8713A9F5E /* VLCKit.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 64DEAE0C43F30D5D4D6DC42F /* VLCKit.xcframework */; };
 		18158B1DB5CD34907A7E464A /* ReglagesAlertesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C008722D573D7286070E193D /* ReglagesAlertesView.swift */; };
@@ -124,6 +126,7 @@
 		A052334119F82E47D0C04940 /* BienvenueView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A651E64C91DB8A9F75E0C3FD /* BienvenueView.swift */; };
 		A095CA09A65F0761C23033E4 /* ListeVersions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FD5D7CBD302D4EC89B9626A /* ListeVersions.swift */; };
 		A136EB6C51320A0ED49D5295 /* Plantages.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4DEA4FCF6726B8F96639320 /* Plantages.swift */; };
+		A20B5278C747684EFA588D6E /* IdentificationTV.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54DE4D2D57498C009505C74B /* IdentificationTV.swift */; };
 		A2EBCE47BF0A1E849E8CF303 /* LecteurWidgets.swift in Sources */ = {isa = PBXBuildFile; fileRef = C53B59D1B4297910EB9B20FA /* LecteurWidgets.swift */; };
 		A413904B2FFE4A73FEE12672 /* VersionsTV.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EFED69699E50F3169D6EA9C /* VersionsTV.swift */; };
 		A58AFB806058CB8363012E8F /* PoucesTitre.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2298F5234FA2A50B5FD985BB /* PoucesTitre.swift */; };
@@ -288,6 +291,7 @@
 		0661326CD01844A8F4B22D2B /* LienProfond.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LienProfond.swift; sourceTree = "<group>"; };
 		069F223EF3422117B3EE2BE7 /* FamilleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FamilleView.swift; sourceTree = "<group>"; };
 		06FFBF0A7DCCC85A19A1CEE6 /* ParcoursSoireeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParcoursSoireeTests.swift; sourceTree = "<group>"; };
+		0869FF14CA66EB65ABDA11B4 /* IdentifierTitre.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IdentifierTitre.swift; sourceTree = "<group>"; };
 		0A301A4B4AB1816D72C3C693 /* CarteReglageTV.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CarteReglageTV.swift; sourceTree = "<group>"; };
 		0AE10CA9BFA6AF63B1BB2D8D /* VignettesSouvenirs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VignettesSouvenirs.swift; sourceTree = "<group>"; };
 		0B91968F8C13F8CECB709FC5 /* EtagereDuHaut.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EtagereDuHaut.swift; sourceTree = "<group>"; };
@@ -312,6 +316,7 @@
 		203436E177D09B1A81617C9B /* ReceptionParCode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReceptionParCode.swift; sourceTree = "<group>"; };
 		2040539CD1EDF2055CE97201 /* PropositionSoir.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PropositionSoir.swift; sourceTree = "<group>"; };
 		2298F5234FA2A50B5FD985BB /* PoucesTitre.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PoucesTitre.swift; sourceTree = "<group>"; };
+		24C425BF7A5F28EB8E7E0D5A /* IdentificationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IdentificationTests.swift; sourceTree = "<group>"; };
 		263B09B3342DB42F3A3790D8 /* LecteurVLC.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LecteurVLC.swift; sourceTree = "<group>"; };
 		26AEBE9171098B73D122BD0B /* AccessibiliteTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccessibiliteTests.swift; sourceTree = "<group>"; };
 		27A875186D1EBB3CF86647AE /* Preferences.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Preferences.swift; sourceTree = "<group>"; };
@@ -348,6 +353,7 @@
 		540314EE6294B3465B1CB83B /* ComposantsTV.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComposantsTV.swift; sourceTree = "<group>"; };
 		5453BA88DED7FB9DE9A90CC5 /* StreamingTV.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamingTV.swift; sourceTree = "<group>"; };
 		54B4F4189EFFF7CA18A4B017 /* ReglagesTV.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReglagesTV.swift; sourceTree = "<group>"; };
+		54DE4D2D57498C009505C74B /* IdentificationTV.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IdentificationTV.swift; sourceTree = "<group>"; };
 		562FA0BC92C87B80E5980C1F /* LectureNAS.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LectureNAS.swift; sourceTree = "<group>"; };
 		58EBC481C41A43E2C270B750 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		59D423F4DD1DA03825519F89 /* Demonstration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Demonstration.swift; sourceTree = "<group>"; };
@@ -773,6 +779,7 @@
 				3FAD0B3B3AE70CDCB3242DF4 /* ExplorerTests.swift */,
 				31C67022B73C55F8D0DD9D6B /* FamilleTests.swift */,
 				8C27D46355FD45FE0B6BCD9F /* FicheDefilementTests.swift */,
+				24C425BF7A5F28EB8E7E0D5A /* IdentificationTests.swift */,
 				C096216F8F25D89E9BAB625D /* IPadTests.swift */,
 				9F521A01F8C00C6861F32A49 /* Lancement.swift */,
 				69DAAF3CA73CDA90FB2F2152 /* LectureTests.swift */,
@@ -835,6 +842,7 @@
 				8D15356F74B00927F6949939 /* ExplorerTV.swift */,
 				175681010BEED29FC95F0172 /* FamilleTV.swift */,
 				EC28EF8C6F8FD3DBA038A6B1 /* FicheTV.swift */,
+				54DE4D2D57498C009505C74B /* IdentificationTV.swift */,
 				0E842527E53D34450323EC04 /* LecteurVLCTV.swift */,
 				7F2F9E228CF6FD8AD2ABB788 /* ListesTV.swift */,
 				2DE009439CA55CCDE58B6A92 /* NASTV.swift */,
@@ -863,6 +871,7 @@
 		AF219F7004E2A7292D15FC02 /* NAS */ = {
 			isa = PBXGroup;
 			children = (
+				0869FF14CA66EB65ABDA11B4 /* IdentifierTitre.swift */,
 				5AEDB40E8F08A0608A8ED1BF /* LecteurIntegre.swift */,
 				263B09B3342DB42F3A3790D8 /* LecteurVLC.swift */,
 				562FA0BC92C87B80E5980C1F /* LectureNAS.swift */,
@@ -1171,6 +1180,7 @@
 				3ACD7AF63174915B43570296 /* FauxTMDB.swift in Sources */,
 				8F8CD3C44264D47470182C69 /* FicheTV.swift in Sources */,
 				CF9E1E93D06F26359CB61324 /* FondTV.swift in Sources */,
+				A20B5278C747684EFA588D6E /* IdentificationTV.swift in Sources */,
 				A8D872DFC40F62A8ED3416AB /* LecteurVLCTV.swift in Sources */,
 				5DDD07F40FFE3335AC49B8AF /* ListesTV.swift in Sources */,
 				8AF1DCF54CB5BD99881C6186 /* MemoireImages.swift in Sources */,
@@ -1262,6 +1272,7 @@
 				9465DF498AFBE22D12E9EC5E /* FicheView.swift in Sources */,
 				591CF02849D1BB825A3BD08B /* Filtres.swift in Sources */,
 				FFCD2E7F759C8F02A5857C49 /* IdeesCeSoir.swift in Sources */,
+				0F60F7DF868C9513A7DEF7E7 /* IdentifierTitre.swift in Sources */,
 				68BF5D8AD3F26E24F665DD6A /* IndexSpotlight.swift in Sources */,
 				39CC7B582D020F02F55F50E2 /* Journal.swift in Sources */,
 				5201A683F4BAF8E078552DF1 /* JournalView.swift in Sources */,
@@ -1333,6 +1344,7 @@
 				1D641CB047D9C9801A7F01DE /* FamilleTests.swift in Sources */,
 				54F323CA789B8DA3749B81CB /* FicheDefilementTests.swift in Sources */,
 				3A89356006CFB7C030658FEE /* IPadTests.swift in Sources */,
+				113B62D11C3CF2D371D671F9 /* IdentificationTests.swift in Sources */,
 				D09506312ABD69FBD6A03FA4 /* Lancement.swift in Sources */,
 				118ECFD71AC22F4026B74C68 /* LectureTests.swift in Sources */,
 				25A3FF7733438DD82EE78618 /* ParcoursSoireeTests.swift in Sources */,
@@ -1570,7 +1582,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 84;
+				CURRENT_PROJECT_VERSION = 85;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = GATK475J3P;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -1590,7 +1602,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 8.3;
+				MARKETING_VERSION = 8.4;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -1691,7 +1703,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 84;
+				CURRENT_PROJECT_VERSION = 85;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = GATK475J3P;
 				ENABLE_NS_ASSERTIONS = NO;
@@ -1705,7 +1717,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 8.3;
+				MARKETING_VERSION = 8.4;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";

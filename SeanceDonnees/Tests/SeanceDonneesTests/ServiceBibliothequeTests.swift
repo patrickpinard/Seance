@@ -89,4 +89,29 @@ struct ServiceBibliothequeTests {
         }
         #expect(try contexte.fetchCount(FetchDescriptor<FichierNAS>()) == 1)
     }
+
+    /// 8.4 : « Film Inconnu » choisi à la main parmi les propositions de TMDB — posé tout de suite, gardé à l'analyse suivante.
+    @Test func unTitreChoisiALaMainSAppliqueEtResteAprèsLAnalyse() async throws {
+        let conteneur = try EntrepotSeance.conteneur(.memoire)
+        let contexte = conteneur.mainContext
+        let defauts = try #require(UserDefaults(suiteName: "identifications-\(UUID().uuidString)"))
+        let service = ServiceBibliotheque(contexte: contexte)
+        let nas = NASSimule(fichiers: fichiers)
+        try await service.actualiser(explorateur: nas, recherche: RechercheNAS(), dossiers: ["NEW"], identifications: IdentificationsTMDB.lues(defauts))
+
+        let choisi = try JSONDecoder().decode(FilmResume.self, from: Data(#"{"id": 777, "title": "Le Film Inconnu", "original_title": "Unknown Film", "original_language": "en", "overview": "", "genre_ids": [18], "poster_path": "/inconnu.jpg", "vote_average": 6.5, "vote_count": 40, "popularity": 3, "release_date": "2025-04-02"}"#.utf8)).titreResume
+        #expect(try service.identifier(chemin: "NEW/Film.Inconnu.2025.mkv", titre: choisi, defauts: defauts) == 1)
+        var fichier = try #require(try contexte.fetch(FetchDescriptor<FichierNAS>()).first)
+        #expect(fichier.reference == ReferenceTitre(type: .film, tmdbID: 777) && fichier.titre == "Le Film Inconnu" && fichier.cheminAffiche == "/inconnu.jpg")
+
+        let rapport = try await service.actualiser(explorateur: nas, recherche: RechercheNAS(), dossiers: ["NEW"], identifications: IdentificationsTMDB.lues(defauts))
+        #expect(rapport.nonReconnues.isEmpty && rapport.filmsReconnus == 1)
+        fichier = try #require(try contexte.fetch(FetchDescriptor<FichierNAS>()).first)
+        #expect(fichier.tmdbID == 777)
+
+        // Oublié : l'analyse suivante revient à ce que Séance reconnaît seule.
+        try service.identifier(chemin: "NEW/Film.Inconnu.2025.mkv", titre: nil, defauts: defauts)
+        let apres = try await service.actualiser(explorateur: nas, recherche: RechercheNAS(), dossiers: ["NEW"], identifications: IdentificationsTMDB.lues(defauts))
+        #expect(apres.nonReconnues == ["NEW/Film.Inconnu.2025.mkv"])
+    }
 }

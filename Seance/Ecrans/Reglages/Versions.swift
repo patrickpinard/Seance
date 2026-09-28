@@ -56,6 +56,17 @@ struct NoteVersion: Identifiable {
 
     static let historique: [NoteVersion] = [
         NoteVersion(
+            numero: "8.4",
+            date: "28 septembre 2026",
+            resume: "Un film que Séance ne reconnaît pas seule dans TMDB s'identifie parmi ses propositions, sur l'iPhone, l'iPad, le Mac et l'Apple TV.",
+            fonctionnalites: [
+                Fonctionnalite(symbole: "questionmark.square.dashed", titre: "Identifier un titre",
+                               detail: "Deux films du même nom la même année, un nom de fichier illisible : touche la vidéo non reconnue du NAS, ou le film non reconnu du guide TV, et choisis le bon titre parmi ce que TMDB propose. Toute l'œuvre le reprend — épisodes, copies, rediffusions."),
+                Fonctionnalite(symbole: "arrow.triangle.2.circlepath", titre: "Retenu partout",
+                               detail: "Le choix voyage avec la synchronisation et survit aux analyses du NAS. Dans Réglages › NAS et Réglages › TV, « Identifiés à la main » permet de le changer ou de l'oublier."),
+            ]
+        ),
+        NoteVersion(
             numero: "8.3",
             date: "27 septembre 2026",
             resume: "Qui regarde avec toi ? Tes souvenirs sur l'accueil, l'épisode suivant des plateformes, l'image de tes vidéos, et les arrêts de Séance dans le journal.",

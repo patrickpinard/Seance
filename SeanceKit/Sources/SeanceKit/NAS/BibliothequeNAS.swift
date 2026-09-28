@@ -180,11 +180,14 @@ public struct EntreeRattachee: Sendable, Hashable {
 /// pour les dizaines d'épisodes d'une série.
 public actor RattachementNAS {
     private let recherche: any RechercheTMDB
+    /// Les titres choisis à la main (8.4) : ils l'emportent, sans recherche.
+    private let identifications: IdentificationsTMDB
     private var parOeuvre: [String: TitreResume?] = [:]
     public private(set) var recherchesEnEchec = 0
 
-    public init(recherche: any RechercheTMDB) {
+    public init(recherche: any RechercheTMDB, identifications: IdentificationsTMDB = IdentificationsTMDB()) {
         self.recherche = recherche
+        self.identifications = identifications
     }
 
     public func rattacher(_ entrees: [EntreeNAS]) async throws -> [EntreeRattachee] {
@@ -220,6 +223,7 @@ public actor RattachementNAS {
         let analyse = entree.analyse
         let cle = Self.cle(entree)
         if let connu = parOeuvre[cle] { return connu }
+        if let choisi = identifications.titre(IdentificationsTMDB.cleNAS(analyse)) { return choisi }
 
         let trouve: TitreResume?
         do {

@@ -13,6 +13,21 @@ public struct ServiceProgrammesTV {
         public var filmsRattaches = 0
         /// Films du guide introuvables dans TMDB, ou homonymes impossibles à départager.
         public var filmsNonRattaches: [String] = []
+        /// Les mêmes, avec leur année : de quoi les identifier à la main (8.4).
+        public var filmsNonReconnus: [FilmNonReconnu] = []
+    }
+
+    /// Un film du guide que TMDB n'a pas permis de reconnaître sans hésitation.
+    public struct FilmNonReconnu: Hashable, Sendable, Identifiable {
+        public var titre: String
+        public var annee: Int?
+
+        public init(titre: String, annee: Int?) {
+            self.titre = titre
+            self.annee = annee
+        }
+
+        public var id: String { "\(titre)|\(annee ?? 0)" }
     }
 
     /// XML TV Fr demande au plus une lecture par jour ; deux par jour gardent la soirée à jour
@@ -79,16 +94,21 @@ public struct ServiceProgrammesTV {
         anciennes.forEach(contexte.delete)
         var rapport = Rapport(programmesLus: aVenir.count, recherchesEnEchec: await rattachement.recherchesEnEchec)
         var nonRattaches = Set<String>()
+        var nonReconnus = Set<FilmNonReconnu>()
         for r in rattaches {
             if r.programme.nature == .film {
                 rapport.filmsLus += 1
-                if r.candidat == nil { nonRattaches.insert(r.programme.titre) } else { rapport.filmsRattaches += 1 }
+                if r.candidat == nil {
+                    nonRattaches.insert(r.programme.titre)
+                    nonReconnus.insert(FilmNonReconnu(titre: r.programme.titre, annee: r.programme.annee))
+                } else { rapport.filmsRattaches += 1 }
             }
             guard let candidat = r.candidat else { continue }
             contexte.insert(Diffusion(programme: r.programme, rattachement: candidat))
             rapport.diffusionsEnregistrees += 1
         }
         rapport.filmsNonRattaches = nonRattaches.sorted()
+        rapport.filmsNonReconnus = nonReconnus.sorted { ($0.titre, $0.annee ?? 0) < ($1.titre, $1.annee ?? 0) }
         try contexte.save()
         return rapport
     }

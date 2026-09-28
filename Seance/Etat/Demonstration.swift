@@ -206,6 +206,12 @@ enum Demonstration {
         fichier(films[4], dossier: "NEW", qualite: "1080p")
         for film in [films[0], films[2], films[5], films[8]] { fichier(film, dossier: "Films", qualite: "1080p") }
         for episode in 1...3 { fichier(nightAgent, dossier: "Séries", qualite: "1080p", episode: episode) }
+        // 8.4 : deux films « The Runner » sortis en 2026 chez TMDB — Séance ne choisit pas seule, on l'identifie à la main.
+        let inconnu = FichierNAS(chemin: "/Films/The.Runner.2026.mkv", type: .film, qualite: "1080p", tailleOctets: 2_307_378_610)
+        inconnu.dossier = "Films"
+        inconnu.titre = "The Runner"
+        inconnu.annee = 2026
+        contexte.insert(inconnu)
         // « Reprendre » (8.0) : un film entamé sur l'iPad, un épisode sur l'Apple TV.
         var positions = PositionsLecture()
         positions.noter("/Films/\(films[0].nom) (2014).mkv", secondes: 3_792, duree: 7_320, appareil: "iPad", le: .now.addingTimeInterval(-3_600))

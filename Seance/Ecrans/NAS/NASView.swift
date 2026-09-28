@@ -165,6 +165,8 @@ struct NASView: View {
     /// Dates d'ajout et genres, relevés par la dernière analyse (6.4).
     @State private var detailsNAS = DetailsNAS()
     @State private var fichierChoisi: FichierNAS?
+    /// 8.4 : la vidéo non reconnue dont on choisit le titre.
+    @State private var aIdentifier: DemandeIdentification?
     /// Les sections ouvertes ou fermées (8.2.8) : par genre, fermées au départ — une liste de genres à ouvrir.
     @State private var sections = SectionsRepliables()
 
@@ -208,6 +210,9 @@ struct NASView: View {
         .sheet(item: $fichierChoisi) { fichier in
             FeuilleFichierNAS(fichier: fichier)
                 .presentationDetents([.medium])
+        }
+        .sheet(item: $aIdentifier) { demande in
+            FeuilleIdentification(demande: demande)
         }
     }
 
@@ -379,27 +384,41 @@ struct NASView: View {
             if liste.isEmpty {
                 Text("Toutes les vidéos sont reconnues.").font(.footnote).foregroundStyle(.secondary)
             } else {
-                Text("Vidéos sans titre TMDB sûr : renomme-les « Titre (Année) » pour les faire reconnaître.")
+                Text("Vidéos sans titre TMDB sûr : touche-en une pour choisir le bon titre parmi ce que TMDB propose.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }
             ForEach(liste) { fichier in
-                Button { fichierChoisi = fichier } label: {
-                    HStack(spacing: 12) {
-                        Image(systemName: "film").foregroundStyle(.secondary).frame(width: 28)
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(fichier.nomFichier).font(.subheadline).lineLimit(2)
-                            Text("\(fichier.dossier) · \(ByteCountFormatter.string(fromByteCount: fichier.tailleOctets, countStyle: .file))")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
+                HStack(spacing: 12) {
+                    // 8.4 : la ligne ouvre « Identifier » ; le rond ▶︎ lit la vidéo telle quelle.
+                    Button { aIdentifier = .nas(chemin: fichier.chemin) } label: {
+                        HStack(spacing: 12) {
+                            Image(systemName: "questionmark.square.dashed").foregroundStyle(.secondary).frame(width: 28)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(fichier.nomFichier).font(.subheadline).lineLimit(2)
+                                Text("\(fichier.dossier) · \(ByteCountFormatter.string(fromByteCount: fichier.tailleOctets, countStyle: .file))")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                Text("Identifier").font(.caption.weight(.semibold)).foregroundStyle(Theme.accent)
+                            }
+                            Spacer(minLength: 0)
                         }
-                        Spacer()
-                        Image(systemName: "play.circle.fill").font(.title2).foregroundStyle(Theme.accent)
+                        .contentShape(Rectangle())
                     }
-                    .padding(12)
-                    .background(Theme.surface, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    .buttonStyle(.plain)
+                    .accessibilityHint("Choisir le bon titre parmi les propositions de TMDB")
+                    .contextMenu {
+                        Button { aIdentifier = .nas(chemin: fichier.chemin) } label: { Label("Identifier", systemImage: "magnifyingglass") }
+                        Button { fichierChoisi = fichier } label: { Label("Lire", systemImage: "play") }
+                    }
+                    Button { fichierChoisi = fichier } label: {
+                        Image(systemName: "play.circle").font(.title2).foregroundStyle(Theme.texte).zoneDeToucher()
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Lire \(fichier.nomFichier)")
                 }
-                .buttonStyle(.plain)
+                .padding(12)
+                .background(Theme.surface, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
             }
         }
     }

@@ -20,6 +20,7 @@ struct ReglagesNASView: View {
     @State private var resultatTest: String?
     @State private var doublonsVisibles = false
     @State private var nonReconnuesVisibles = false
+    @State private var aIdentifier: DemandeIdentification?
 
     var body: some View {
         Form {
@@ -142,12 +143,21 @@ struct ReglagesNASView: View {
                     }
                     if !rapport.nonReconnues.isEmpty {
                         DisclosureGroup("Non reconnues (\(rapport.nonReconnues.count))", isExpanded: $nonReconnuesVisibles) {
+                            // 8.4 : chacune s'identifie parmi ce que TMDB propose.
                             ForEach(rapport.nonReconnues, id: \.self) { chemin in
-                                Text(chemin).font(.footnote).foregroundStyle(.secondary)
+                                Button { aIdentifier = .nas(chemin: chemin) } label: {
+                                    LabeledContent {
+                                        Text("Identifier").foregroundStyle(Theme.accent)
+                                    } label: {
+                                        Text(chemin).font(.footnote).foregroundStyle(.secondary)
+                                    }
+                                }
+                                .disabled(etat.tmdb == nil)
                             }
                         }
                     }
                 }
+                IdentifiesALaMain(guide: false, demande: $aIdentifier)
                 if let erreur = etat.nas.erreur {
                     Label(erreur, systemImage: "exclamationmark.triangle")
                         .font(.footnote)
@@ -173,6 +183,9 @@ struct ReglagesNASView: View {
         }
         .scrollDismissesKeyboard(.immediately)
         .pageReglages("NAS")
+        .sheet(item: $aIdentifier) { demande in
+            FeuilleIdentification(demande: demande)
+        }
         .onAppear(perform: charger)
     }
 

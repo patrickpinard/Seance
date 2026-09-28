@@ -424,6 +424,7 @@ private struct PagePlateformesTV: View {
 private struct PageChainesTV: View {
     @Environment(EtatTV.self) private var etat
     @Environment(\.modelContext) private var contexte
+    @State private var aIdentifier: DemandeIdentification?
     @Query(sort: \Chaine.nom) private var chaines: [Chaine]
 
     var body: some View {
@@ -439,7 +440,19 @@ private struct PageChainesTV: View {
                 LigneTVReglage(titre: etat.teleEnCours ? "Lecture du guide…" : "Relire le programme maintenant", symbole: "arrow.clockwise",
                                desactive: etat.teleEnCours, action: { Task { await etat.actualiserTele(contexte: contexte, force: true) } })
             }
+            // 8.4 : les films du guide que TMDB n'a pas permis de reconnaître sans hésiter, à identifier.
+            if let films = etat.rapportTele?.filmsNonReconnus, !films.isEmpty {
+                SectionTV(titre: "Films non reconnus",
+                          explication: "Un film du guide ne paraît au programme que s'il est reconnu dans TMDB sans hésitation ; identifie ceux-ci parmi ses propositions.") {
+                    ForEach(films) { film in
+                        LigneTVReglage(titre: film.titre, detail: film.annee.map(String.init), symbole: "questionmark.square.dashed",
+                                       action: { aIdentifier = .guide(titre: film.titre, annee: film.annee) }) { BoutTV(forme: .valeur("Identifier")) }
+                    }
+                }
+            }
+            SectionIdentifiesTV(guide: true, demande: $aIdentifier)
         }
+        .fullScreenCover(item: $aIdentifier) { demande in IdentificationTV(demande: demande) }
         .task { _ = try? ServiceProgrammesTV.preparerChaines(contexte) }
     }
 }
@@ -454,6 +467,7 @@ private struct PageNASTV: View {
     @State private var motDePasse = ""
     @State private var message: String?
     @State private var test = false
+    @State private var aIdentifier: DemandeIdentification?
 
     var body: some View {
         PageTV(titre: "NAS", sousTitre: "Tes films et tes séries déjà téléchargés, lus directement sur le disque de la maison.") {
@@ -474,7 +488,10 @@ private struct PageNASTV: View {
                                    detail: "sur \(rapport.videosLues) vidéos lues", symbole: "film.stack")
                 }
             }
+            // 8.4 : les vidéos non reconnues s'identifient dans Regarder › NAS › Non reconnus ; les choix faits se revoient ici.
+            SectionIdentifiesTV(guide: false, demande: $aIdentifier)
         }
+        .fullScreenCover(item: $aIdentifier) { demande in IdentificationTV(demande: demande) }
         .onAppear {
             hote = etat.nas.hote; partage = etat.nas.partage
             dossiers = etat.nas.dossiers.joined(separator: ", "); utilisateur = etat.nas.utilisateur

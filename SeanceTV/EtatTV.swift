@@ -219,6 +219,8 @@ final class EtatTV {
                 if pourUnAutre { return [:] }
                 var deposees: [String: Sauvegarde.Preference] = [:]
                 if let brut = positions.encoder() { deposees[PositionsLecture.cle] = .donnees(brut) }
+                // Les titres identifiés à la main (8.4), ici ou reçus : ils voyagent comme les couvertures.
+                if let brut = UserDefaults.standard.data(forKey: IdentificationsTMDB.cle) { deposees[IdentificationsTMDB.cle] = .donnees(brut) }
                 if let brut = UserDefaults.standard.data(forKey: ReglagesAlertes.cle(profil: id)) { deposees[ReglagesAlertes.cle] = .donnees(brut) }
                 if let brut = UserDefaults.standard.data(forKey: ReglagesLettre.cle(profil: id)) { deposees[ReglagesLettre.cle] = .donnees(brut) }
                 return deposees
@@ -237,6 +239,7 @@ final class EtatTV {
                     // Les couvertures des souvenirs, choisies sur l'iPhone (6.2) : les plus récentes, entrée par entrée.
                     if case .donnees(let brut)? = reglages[CouverturesSouvenirs.cle] { videosPerso.recevoirCouvertures(brut) }
                     if case .donnees(let brut)? = reglages[PositionsLecture.cle] { recevoirPositions(brut) }
+                    if case .donnees(let brut)? = reglages[IdentificationsTMDB.cle] { recevoirIdentifications(brut, contexte: contexte) }
                 }
             })
             derniereSynchro = .now
@@ -380,11 +383,45 @@ final class EtatTV {
         guard force || ServiceProgrammesTV.doitActualiser(derniereLecture: derniereLectureTele, chainesLues: lues, chainesActives: actives) else { return }
         teleEnCours = true
         defer { teleEnCours = false }
-        let service = ServiceProgrammesTV(contexte: contexte, guide: GuideTVClient(), rattachement: RattachementGuide(recherche: tmdb))
-        guard (try? await service.actualiser()) != nil else { return }
+        let service = ServiceProgrammesTV(contexte: contexte, guide: GuideTVClient(), rattachement: RattachementGuide(recherche: tmdb, identifications: .lues()))
+        guard let lu = try? await service.actualiser() else { return }
+        rapportTele = lu
         derniereLectureTele = .now
         UserDefaults.standard.set(Date.now, forKey: Cle.derniereLectureTele)
         UserDefaults.standard.set(actives, forKey: Cle.chainesLues)
+    }
+
+    // MARK: Titres identifiés à la main (8.4)
+
+    /// Ce que la dernière lecture du guide n'a pas su reconnaître : Réglages › TV le propose à identifier.
+    private(set) var rapportTele: ServiceProgrammesTV.Rapport?
+
+    /// Le titre choisi parmi les propositions de TMDB (nil : oublier le choix). Une vidéo du NAS le prend tout de suite,
+    /// avec toute son œuvre ; un film du guide paraît au programme dès la relecture, lancée aussitôt.
+    func identifier(_ demande: DemandeIdentification, titre: TitreResume?, contexte: ModelContext) async {
+        switch demande.cible {
+        case .nas(let chemin):
+            _ = try? ServiceBibliotheque(contexte: contexte).identifier(chemin: chemin, titre: titre)
+            if titre != nil, var rapport {
+                rapport.nonReconnues.removeAll { IdentificationsTMDB.cleNAS(chemin: $0) == IdentificationsTMDB.cleNAS(chemin: chemin) }
+                self.rapport = rapport
+            }
+        case .guide(let programme, let annee):
+            var identifications = IdentificationsTMDB.lues()
+            let cle = IdentificationsTMDB.cleGuide(titre: programme, type: .film, annee: annee)
+            if let titre { identifications.choisir(titre, pour: cle, nom: programme) } else { identifications.oublier(cle) }
+            identifications.enregistrer()
+            await actualiserTele(contexte: contexte, force: true)
+        }
+        if let titre { dire("« \(titre.titre) » retenu") } else { dire("Choix oublié") }
+    }
+
+    /// Les choix faits sur l'iPhone ou l'iPad, les plus récents l'emportant, posés tout de suite sur la bibliothèque.
+    private func recevoirIdentifications(_ donnees: Data, contexte: ModelContext) {
+        var identifications = IdentificationsTMDB.lues()
+        guard identifications.fusionner(IdentificationsTMDB(donnees: donnees)) else { return }
+        identifications.enregistrer()
+        _ = try? ServiceBibliotheque(contexte: contexte).appliquer(identifications)
     }
 
     func dire(_ texte: String) {

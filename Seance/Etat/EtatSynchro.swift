@@ -196,7 +196,11 @@ final class EtatSynchro {
             if let derniere = derniereSynchro, Date.now.timeIntervalSince(derniere) < Self.intervalleMinimal { return }
         }
         enCours = true
-        defer { enCours = false }
+        defer {
+            enCours = false
+            // Les titres identifiés à la main sur un autre appareil (8.4) : posés sur la bibliothèque du NAS.
+            etat.nas.appliquerIdentificationsRecues(contexte: contexte)
+        }
 
         var recus: [String] = []
         var depose = false

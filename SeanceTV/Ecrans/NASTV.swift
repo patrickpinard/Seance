@@ -6,6 +6,8 @@ import SwiftUI
 /// Ce que Regarder › NAS montre (8.0) : un rayon à la fois, choisi sous les pastilles.
 enum RayonNASTV: String, CaseIterable, Hashable {
     case films = "Films", series = "Séries", documentaires = "Documentaires", videos = "Vidéos"
+    /// 8.4 : les vidéos sans titre TMDB sûr, à identifier — comme la puce « non reconnus » de l'iPhone.
+    case nonReconnus = "Non reconnus"
 }
 
 /// Regarder › NAS sur la TV (8.0) : Films · Séries · Documentaires · Vidéos, puis le rayon choisi — la bibliothèque en
@@ -22,12 +24,14 @@ struct SectionsNASTV: View {
     /// ferme à la télécommande (par genre, fermées au départ).
     @State private var rangement = "Ajouts"
     @State private var sections = SectionsRepliables()
+    @State private var aIdentifier: DemandeIdentification?
     private static let rangements = ["Ajouts", "Année", "Genre", "A→Z"]
 
     private var rayons: [RayonNASTV] {
         RayonNASTV.allCases.filter { rayon in
             switch rayon {
             case .videos: etat.videosPerso.actif
+            case .nonReconnus: !nonReconnus.isEmpty || rayon == .nonReconnus
             default: true
             }
         }
@@ -36,7 +40,7 @@ struct SectionsNASTV: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 40) {
                 SelecteurTV(selection: $rayon, cases: rayons.map { ($0, nom($0)) }, symbole: symbole)
-                if rayon != .videos {
+                if rayon != .videos, rayon != .nonReconnus {
                     HStack(spacing: 14) {
                         ForEach(Self.rangements, id: \.self) { mode in
                             Button(mode) {
@@ -51,17 +55,20 @@ struct SectionsNASTV: View {
                 }
                 if rayon == .videos {
                     VideosPersoTV(integree: true)
+                } else if rayon == .nonReconnus {
+                    listeNonReconnus
                 } else {
                     bibliotheque
                 }
         }
+        .fullScreenCover(item: $aIdentifier) { demande in IdentificationTV(demande: demande) }
         .onAppear {
             details = UserDefaults.standard.data(forKey: DetailsNAS.cle).flatMap(DetailsNAS.decoder) ?? DetailsNAS()
         }
     }
 
     private func nom(_ rayon: RayonNASTV) -> String {
-        let nombre = rayon == .videos ? etat.videosPerso.videos.count : oeuvres(rayon).count
+        let nombre = rayon == .videos ? etat.videosPerso.videos.count : rayon == .nonReconnus ? nonReconnus.count : oeuvres(rayon).count
         return nombre > 0 ? "\(rayon.rawValue) · \(nombre)" : rayon.rawValue
     }
 
@@ -71,6 +78,7 @@ struct SectionsNASTV: View {
         case .series: "tv"
         case .documentaires: "globe.europe.africa"
         case .videos: "video"
+        case .nonReconnus: "questionmark.square.dashed"
         }
     }
 
@@ -81,7 +89,29 @@ struct SectionsNASTV: View {
         case .films: return oeuvres.filter { $0.reference.type == .film && !documentaire($0) }
         case .series: return oeuvres.filter { $0.reference.type == .serie && !documentaire($0) }
         case .documentaires: return oeuvres.filter(documentaire)
-        case .videos: return []
+        case .videos, .nonReconnus: return []
+        }
+    }
+
+    /// Les vidéos sans titre TMDB sûr (8.4) : chacune s'identifie parmi ce que TMDB propose.
+    private var nonReconnus: [FichierNAS] {
+        fichiers.filter { $0.tmdbID == nil }.sorted { $0.nomFichier.localizedStandardCompare($1.nomFichier) == .orderedAscending }
+    }
+
+    @ViewBuilder
+    private var listeNonReconnus: some View {
+        if nonReconnus.isEmpty {
+            VideTV(symbole: "checkmark.seal", titre: "Toutes les vidéos sont reconnues", message: "Rien à identifier sur ton NAS.")
+        } else {
+            SectionTV(explication: "Séance ne rattache une vidéo à TMDB que sans aucun doute : même titre, même année. Choisis le bon titre parmi ses propositions ; il vaudra sur tous tes appareils.") {
+                ForEach(nonReconnus) { fichier in
+                    LigneTVReglage(titre: fichier.nomFichier,
+                                   detail: "\(fichier.dossier) · \(ByteCountFormatter.string(fromByteCount: fichier.tailleOctets, countStyle: .file))",
+                                   symbole: "questionmark.square.dashed", desactive: etat.tmdb == nil,
+                                   action: { aIdentifier = .nas(chemin: fichier.chemin) }) { BoutTV(forme: .valeur("Identifier")) }
+                }
+            }
+            .padding(.horizontal, MargesTV.bord)
         }
     }
 
