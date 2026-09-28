@@ -307,8 +307,10 @@ struct AccueilTV: View {
                 // proposition ; le bouton choisi reste le même.
                 .background {
                     GlissementTelecommande { pas in
-                        guard let bouton = boutonHero else { return }
+                        let bouton = boutonHero
                         defiler(de: pas)
+                        // Le glissement a aussi pu déplacer le focus d'un bouton à l'autre : il revient où il était.
+                        guard let bouton else { return }
                         Task {
                             try? await Task.sleep(for: .milliseconds(80))
                             boutonHero = bouton
