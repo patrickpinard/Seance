@@ -56,6 +56,23 @@ struct NoteVersion: Identifiable {
 
     static let historique: [NoteVersion] = [
         NoteVersion(
+            numero: "8.5",
+            date: "28 septembre 2026",
+            resume: "Une interface plus simple et la même partout : un seul sélecteur, un bouton principal qui dit où il mène, moins de commandes avant le contenu.",
+            fonctionnalites: [
+                Fonctionnalite(symbole: "capsule", titre: "Un seul sélecteur",
+                               detail: "Partout des pastilles, la choisie en blanc : Regarder, Mes listes, la recherche, le NAS. L'orange ne sert plus qu'au bouton principal."),
+                Fonctionnalite(symbole: "rectangle.stack", titre: "Moins de commandes",
+                               detail: "Dans Regarder, les jours ne s'affichent que pour Tout et TV, comme sur l'Apple TV."),
+                Fonctionnalite(symbole: "play.fill", titre: "Un bouton qui dit où",
+                               detail: "« Choisir où regarder » quand il y a plusieurs sources ; « Tu l'as regardé ? » garde « Terminé » et range le reste sous « Pas encore »."),
+                Fonctionnalite(symbole: "gearshape", titre: "Réglages jamais vides",
+                               detail: "Sur l'iPad, le Mac et l'Apple TV, la page de droite montre d'emblée le premier réglage à compléter. Sur l'Apple TV, « Toi » est dans les Préférences."),
+                Fonctionnalite(symbole: "wrench.and.screwdriver", titre: "Corrections",
+                               detail: "Le titre de la page précédente ne se coupe plus sous le bouton retour ; le NAS ne range plus tout sous « Date inconnue »."),
+            ]
+        ),
+        NoteVersion(
             numero: "8.4",
             date: "28 septembre 2026",
             resume: "Un film que Séance ne reconnaît pas seule dans TMDB s'identifie parmi ses propositions, sur l'iPhone, l'iPad, le Mac et l'Apple TV.",
