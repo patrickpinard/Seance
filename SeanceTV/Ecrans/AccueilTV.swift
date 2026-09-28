@@ -24,6 +24,8 @@ struct AccueilTV: View {
     @AppStorage(PasCeSoir.cle) private var pasCeSoir = ""
     /// « Autre chose » : le rang de la proposition montrée parmi celles de ce soir.
     @State private var rang = 0
+    /// Combien de propositions défilent (8.6) : le réglage des Préférences de l'iPhone, reçu par la synchronisation.
+    @AppStorage(NombrePropositions.cle) private var nombrePropositions = NombrePropositions.parDefaut
     /// Quand rien n'est à reprendre : des suggestions tirées de tes goûts (le classement local du panneau « Suggestions
     /// pour ce soir »), à la place de l'étagère.
     @State private var suggestions: [SuggestionClassee] = []
@@ -218,12 +220,28 @@ struct AccueilTV: View {
                             Label(proposition.bouton, systemImage: "play.fill")
                         }
                         .buttonStyle(BoutonTV(principal: true))
+                        // 8.6 : la fiche, comme un toucher sur l'image de l'iPhone — sur la TV, l'image n'a pas le focus.
+                        NavigationLink(value: proposition.reference) { Text("Fiche") }
+                            .buttonStyle(BoutonTV())
                         if propositions.count > 1 {
-                            Button("Autre chose") { rang += 1 }.buttonStyle(BoutonTV())
+                            Button("Autre chose") { withAnimation(.snappy) { rang += 1 } }.buttonStyle(BoutonTV())
                         }
                         Button("Pas ce soir") { PasCeSoir.ecarter(proposition.reference) }.buttonStyle(BoutonTV())
                     }
                     .padding(.top, 18)
+                    // Où l'on en est parmi les propositions, comme les points de l'iPhone.
+                    if propositions.count > 1 {
+                        let montre = rang % propositions.count
+                        HStack(spacing: 10) {
+                            ForEach(propositions.indices, id: \.self) { index in
+                                Capsule().fill(index == montre ? Color.white : Color.white.opacity(0.35))
+                                    .frame(width: index == montre ? 34 : 10, height: 10)
+                            }
+                        }
+                        .padding(.top, 14)
+                        .accessibilityElement()
+                        .accessibilityLabel("Proposition \(montre + 1) sur \(propositions.count)")
+                    }
                 }
                 .foregroundStyle(.white)
                 .frame(maxWidth: 1050, alignment: .leading)
@@ -317,12 +335,20 @@ struct AccueilTV: View {
                                 titre: suivi.titre, detail: [suivi.type == .film ? "Film" : "Série", "dans ta liste"].joined(separator: " · "),
                                 cheminImage: fichier?.cheminFond ?? suivi.cheminAffiche, large: fichier?.cheminFond != nil))
         }
+        // 8.6 : d'après tes goûts, avant le top de l'année, comme sur l'iPhone.
+        for idee in suggestions {
+            let titre = idee.candidat.titre
+            ajouter(Proposition(reference: titre.reference, surtitre: ligne("D'après tes goûts", titre.reference), titre: titre.titre,
+                                detail: [titre.reference.type == .film ? "Film" : "Série", titre.date.map { String($0.annee) }]
+                                    .compactMap { $0 }.joined(separator: " · "),
+                                cheminImage: titre.cheminFond ?? titre.cheminAffiche, large: titre.cheminFond != nil))
+        }
         for apercu in top {
             ajouter(Proposition(reference: apercu.reference, surtitre: ligne("Ce soir, pour toi", apercu.reference), titre: apercu.titre,
                                 detail: apercu.sousTitre, cheminImage: apercu.cheminFond ?? apercu.cheminAffiche,
                                 large: apercu.cheminFond != nil))
         }
-        return Array(liste.prefix(12))
+        return Array(liste.prefix(nombrePropositions))
     }
 
     /// La proposition montrée : « Autre chose » passe à la suivante, et revient à la première après la dernière.

@@ -47,7 +47,7 @@ enum NombreIdees {
 @MainActor
 enum PreferencesSauvegardees {
     private static let textes = [Prenom.cle, "listes.tri"]
-    private static let entiers = [NombreIdees.cle]
+    private static let entiers = [NombreIdees.cle, NombrePropositions.cle]
     private static let booleens = ["listes.grille", "explorer.liste", BlueTV.cle]
     private static let donnees = ["accueil.sources"]
     static let cleAlertes = "alertes.reglages"

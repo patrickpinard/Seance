@@ -56,6 +56,21 @@ struct NoteVersion: Identifiable {
 
     static let historique: [NoteVersion] = [
         NoteVersion(
+            numero: "8.6",
+            date: "28 septembre 2026",
+            resume: "En tête de l'accueil, les propositions du soir défilent : on les fait glisser, et un toucher ouvre la fiche.",
+            fonctionnalites: [
+                Fonctionnalite(symbole: "rectangle.stack", titre: "Les propositions en carrousel",
+                               detail: "Cinq propositions à faire glisser, ou « Autre chose » ; des points disent où tu en es. Sur le Mac, deux flèches au survol ; sur l'Apple TV, « Autre chose » et les points."),
+                Fonctionnalite(symbole: "hand.tap", titre: "Un toucher ouvre la fiche",
+                               detail: "Sur l'image ou le titre de la proposition ; sur l'Apple TV, le bouton « Fiche »."),
+                Fonctionnalite(symbole: "heart", titre: "D'après tes goûts",
+                               detail: "Après ta soirée, ce que tu as commencé et ta liste sur le NAS, des titres choisis d'après tes goûts, avant le top de l'année."),
+                Fonctionnalite(symbole: "slider.horizontal.3", titre: "Combien de propositions",
+                               detail: "1, 3, 5 ou 8, dans Préférences › Accueil ; le réglage suit sur tes autres appareils, Apple TV comprise."),
+            ]
+        ),
+        NoteVersion(
             numero: "8.5",
             date: "28 septembre 2026",
             resume: "Une interface plus simple et la même partout : un seul sélecteur, un bouton principal qui dit où il mène, moins de commandes avant le contenu.",

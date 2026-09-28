@@ -239,6 +239,10 @@ final class EtatTV {
                     // Les couvertures des souvenirs, choisies sur l'iPhone (6.2) : les plus récentes, entrée par entrée.
                     if case .donnees(let brut)? = reglages[CouverturesSouvenirs.cle] { videosPerso.recevoirCouvertures(brut) }
                     if case .donnees(let brut)? = reglages[PositionsLecture.cle] { recevoirPositions(brut) }
+                    // 8.6 : combien de propositions défilent sur l'accueil, réglé sur l'iPhone.
+                    if case .entier(let nombre)? = reglages[NombrePropositions.cle], NombrePropositions.choix.contains(nombre) {
+                        UserDefaults.standard.set(nombre, forKey: NombrePropositions.cle)
+                    }
                     if case .donnees(let brut)? = reglages[IdentificationsTMDB.cle] { recevoirIdentifications(brut, contexte: contexte) }
                 }
             })

@@ -70,3 +70,11 @@ enum LibellesProposition {
     }
 }
 
+
+/// Combien de propositions du soir défilent en tête de l'accueil (8.6) : 1, 3, 5 ou 8. Réglé dans Préférences › Accueil
+/// sur l'iPhone, l'iPad ou le Mac ; la valeur voyage dans les réglages synchronisés, jusqu'à l'Apple TV.
+enum NombrePropositions {
+    static let cle = "accueil.propositions"
+    static let parDefaut = 5
+    static let choix = [1, 3, 5, 8]
+}

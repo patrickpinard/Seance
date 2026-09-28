@@ -26,10 +26,13 @@ struct SourcesAccueil: Codable, Hashable {
     var nombreBandeau = 5
     /// « Ce soir à la TV » montre aussi les séries ; sinon, seulement les films.
     var seriesTele = true
+    /// Les propositions du soir en tête de l'accueil (8.5), qu'on fait défiler : 1, 3, 5 ou 8.
+    var nombrePropositions = 5
 
     static let choixTop = [3, 5, 10]
     static let choixDuMoment = [10, 20, 30]
     static let choixBandeau = [3, 5, 8]
+    static let choixPropositions = NombrePropositions.choix
 
     init() {}
 
@@ -44,6 +47,7 @@ struct SourcesAccueil: Codable, Hashable {
 
     enum CodingKeys: String, CodingKey {
         case plateformes, top10, tele, duMoment, nas, regardable, documentaires, nombreTop, nombreDuMoment, nombreBandeau, seriesTele
+        case nombrePropositions
     }
 
     /// Les réglages d'une version précédente restent valables : ce qui a été ajouté depuis prend sa valeur par défaut.
@@ -63,6 +67,8 @@ struct SourcesAccueil: Codable, Hashable {
         let bandeau = try c.decodeIfPresent(Int.self, forKey: .nombreBandeau) ?? 5
         nombreBandeau = Self.choixBandeau.contains(bandeau) ? bandeau : 5
         seriesTele = try c.decodeIfPresent(Bool.self, forKey: .seriesTele) ?? true
+        let propositions = try c.decodeIfPresent(Int.self, forKey: .nombrePropositions) ?? 5
+        nombrePropositions = Self.choixPropositions.contains(propositions) ? propositions : 5
     }
 }
 
@@ -340,12 +346,15 @@ struct AccueilView: View {
     private var contenu: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 28) {
+                let toutes = propositions
                 let proposition = proposition
                 if let proposition {
-                    EnTeteAccueil(proposition: proposition, plusieurs: propositions.count > 1,
+                    // 8.5 : les propositions en carrousel — on les fait glisser ; un toucher sur l'image ou le titre ouvre la fiche.
+                    EnTeteAccueil(propositions: toutes,
+                                  rang: Binding { toutes.isEmpty ? 0 : rang % toutes.count } set: { rang = $0 },
                                   nouveautes: panneauADroite && sources.duMoment ? Array(nouveautes(sauf: proposition.reference).prefix(3)) : [],
                                   ligneNouveaute: { modele.sousTitre($0) },
-                                  autreChose: { withAnimation { rang += 1 } },
+                                  voirFiche: { chemin.append($0) },
                                   toutesLesNouveautes: { chemin.append(DestinationAccueil.duMoment(plateformes: plateformes)) })
                 } else {
                     // La place du portrait et de la roue, que la proposition recouvre d'ordinaire.
@@ -478,13 +487,20 @@ struct AccueilView: View {
                                     titre: suivi.titre, detail: [suivi.type == .film ? "Film" : "Série", "dans ta liste"].joined(separator: " · "),
                                     cheminFond: fichier?.cheminFond, cheminAffiche: suivi.cheminAffiche))
         }
+        // 8.5 : d'après tes goûts, avant le top de l'année.
+        for titre in proposables(suggestions) {
+            ajouter(PropositionSoir(reference: titre.reference, surtitre: ligne("D'après tes goûts", titre.reference), titre: titre.titre,
+                                    detail: [titre.reference.type == .film ? "Film" : "Série", titre.date.map { String($0.annee) }]
+                                        .compactMap { $0 }.joined(separator: " · "),
+                                    cheminFond: titre.cheminFond, cheminAffiche: titre.cheminAffiche))
+        }
         for titre in proposables(Array(zip(modele.topFilms, modele.topSeries).flatMap { [$0, $1] })) {
             ajouter(PropositionSoir(reference: titre.reference, surtitre: ligne("Ce soir, pour toi", titre.reference), titre: titre.titre,
                                     detail: [titre.reference.type == .film ? "Film" : "Série", titre.date.map { String($0.annee) }]
                                         .compactMap { $0 }.joined(separator: " · "),
                                     cheminFond: titre.cheminFond, cheminAffiche: titre.cheminAffiche))
         }
-        return Array(liste.prefix(12))
+        return Array(liste.prefix(sources.nombrePropositions))
     }
 
     /// La proposition montrée : « Autre chose » passe à la suivante, et revient à la première après la dernière.
@@ -559,6 +575,11 @@ struct ReglageSourcesAccueil: View {
                 }
 
                 Section {
+                    choix("Propositions du soir", valeur: $sources.nombrePropositions, parmi: SourcesAccueil.choixPropositions)
+                        // 8.6 : le nombre voyage à part, jusqu'à l'Apple TV qui ne lit pas ces réglages-là.
+                        .onChange(of: sources.nombrePropositions) { _, nombre in
+                            UserDefaults.standard.set(nombre, forKey: NombrePropositions.cle)
+                        }
                     if sources.top10 {
                         choix("Top : films et séries, chacun", valeur: $sources.nombreTop, parmi: SourcesAccueil.choixTop)
                     }
