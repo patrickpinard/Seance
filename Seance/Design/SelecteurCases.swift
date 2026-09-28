@@ -20,36 +20,30 @@ struct SelecteurCases<Valeur: Hashable>: View {
     @Binding var selection: Valeur
     let cases: [Case]
 
+    /// 8.4 (bilan du 28.09.2026) : un seul sélecteur dans toute l'app — des pastilles (`PuceCharte`), la choisie en
+    /// blanc ; celles qui ne tiennent pas défilent. Les cases à icônes de Mes listes, d'Explorer et du NAS en étaient
+    /// une troisième forme.
     var body: some View {
-        let avecSymboles = cases.contains { $0.symbole != nil }
-        HStack(spacing: 8) {
-            ForEach(cases) { element in
-                let active = selection == element.valeur
-                Button {
-                    withAnimation(.snappy) { selection = element.valeur }
-                } label: {
-                    VStack(spacing: 3) {
-                        if let symbole = element.symbole { Image(systemName: symbole).font(.subheadline.weight(.semibold)) }
-                        Text(element.nom).font(.caption.weight(.bold)).lineLimit(1).minimumScaleFactor(0.7)
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(cases) { element in
+                    let active = selection == element.valeur
+                    Button {
+                        withAnimation(.snappy) { selection = element.valeur }
+                    } label: {
+                        PuceCharte(texte: element.nom, actif: active, symbole: element.symbole)
                     }
-                    .padding(.horizontal, 4)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: avecSymboles ? 50 : 40)
-                    .foregroundStyle(active ? Color.black : Theme.texte)
-                    .background(active ? AnyShapeStyle(Theme.texte) : AnyShapeStyle(Theme.surface),
-                                in: RoundedRectangle(cornerRadius: 13, style: .continuous))
-                    .contentShape(RoundedRectangle(cornerRadius: 13, style: .continuous))
-                    .texteContenu()
+                    .buttonStyle(.plain)
+                    .sensoryFeedback(.selection, trigger: active)
+                    .disabled(!element.disponible)
+                    .opacity(element.disponible ? 1 : 0.4)
+                    .help(element.disponible ? "" : (element.aide ?? ""))
+                    .accessibilityLabel(element.nom)
+                    .accessibilityHint(element.disponible ? "" : (element.aide ?? ""))
+                    .accessibilityAddTraits(active ? .isSelected : [])
                 }
-                .buttonStyle(.plain)
-                .sensoryFeedback(.selection, trigger: active)
-                .disabled(!element.disponible)
-                .opacity(element.disponible ? 1 : 0.4)
-                .help(element.disponible ? "" : (element.aide ?? ""))
-                .accessibilityLabel(element.nom)
-                .accessibilityHint(element.disponible ? "" : (element.aide ?? ""))
-                .accessibilityAddTraits(active ? .isSelected : [])
             }
         }
+        .scrollClipDisabled()
     }
 }

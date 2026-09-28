@@ -45,16 +45,7 @@ struct ReglagesTV: View {
                                         .focused($focus, equals: point.titre)
                                 }
                             }
-                            groupe("Toi") {
-                                ligne(.gouts, "Tes goûts", interets.isEmpty ? "À choisir" : "\(interets.count) genre\(interets.count > 1 ? "s" : "")", nil, symbole: "heart.fill")
-                                    .focused($focus, equals: "Tes goûts")
-                                Button { Task { await etat.demanderEssaiAlerte() } } label: {
-                                    LigneTVReglage.Contenu(titre: "Tester une alerte", detail: nil, symbole: "bell.badge.fill")
-                                }
-                                .buttonStyle(LigneTV())
-                                .disabled(!etat.nasPret)
-                                .focused($focus, equals: "Tester une alerte")
-                            }
+                            // 8.4 : « Toi » (tes goûts, tester une alerte) est dans les Préférences, comme sur l'iPhone.
                             groupe("La maison") {
                                 Button { Task { await etat.synchroniser(contexte: contexte, bavard: true) } } label: {
                                     LigneTVReglage.Contenu(titre: etat.synchroEnCours ? "Synchronisation…" : "Synchroniser maintenant",
@@ -93,6 +84,10 @@ struct ReglagesTV: View {
                     if let affiche {
                         PageReglageTV(reglage: affiche, integree: true)
                             .id(affiche)
+                    } else if let premier = points.first(where: { $0.enOrdre == false })?.reglage ?? points.first?.reglage {
+                        // 8.4 : jamais de colonne vide — le premier réglage à compléter, sinon le premier de la liste.
+                        PageReglageTV(reglage: premier, integree: true)
+                            .id(premier)
                     } else {
                         apercu
                             .frame(maxWidth: .infinity)

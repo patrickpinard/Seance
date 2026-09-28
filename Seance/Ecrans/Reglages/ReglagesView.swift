@@ -263,6 +263,12 @@ struct ReglagesView: View {
             // ce que Séance surveille. Les groupes suivent le menu : Où regarder, Toi, La maison, L'app.
             VStack(alignment: .leading, spacing: 22) {
                 heros(manques: points.filter { !$0.enOrdre })
+                    // 8.4 : en deux colonnes, la page de droite n'est jamais vide — le premier réglage à compléter,
+                    // sinon Plateformes.
+                    .onAppear {
+                        guard let choix = choixReglage, choix.wrappedValue == nil else { return }
+                        choix.wrappedValue = points.first { !$0.enOrdre }?.destination ?? .plateformes
+                    }
 
                 groupe("Où regarder") {
                     ligne(.plateformes, "Plateformes", "play.rectangle.on.rectangle.fill",
@@ -492,17 +498,13 @@ struct ReglagesView: View {
             Button {
                 Task { await etat.synchro.synchroniser(etat: etat, contexte: contexte) }
             } label: {
+                // 8.4 : un bouton secondaire — le seul orange de la carte est « Configurer le NAS », ou ce qui manque.
                 HStack(spacing: 8) {
-                    if etat.synchro.enCours { ProgressView().tint(.black) } else { Image(systemName: "arrow.triangle.2.circlepath") }
+                    if etat.synchro.enCours { ProgressView() } else { Image(systemName: "arrow.triangle.2.circlepath") }
                     Text(etat.synchro.enCours ? "Synchronisation…" : "Synchroniser").font(.subheadline.weight(.bold))
                 }
-                .foregroundStyle(.black)
-                .padding(.horizontal, 18)
-                .frame(minHeight: 46)
-                .background(Theme.degradeAccent, in: RoundedRectangle(cornerRadius: 13, style: .continuous))
-                .contentShape(RoundedRectangle(cornerRadius: 13, style: .continuous))
             }
-            .buttonStyle(.plain)
+            .buttonStyle(StyleBoutonSecondaire())
             .disabled(etat.synchro.enCours)
             .accessibilityLabel(etat.synchro.enCours ? "Synchronisation en cours" : "Synchroniser mes appareils maintenant")
             .accessibilityIdentifier("synchroniserMaintenant")
@@ -510,12 +512,8 @@ struct ReglagesView: View {
             NavigationLink(value: DestinationReglage.sauvegarde) {
                 Label("Synchroniser mes appareils", systemImage: "icloud")
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(Theme.accentClair)
-                    .padding(.horizontal, 18)
-                    .frame(minHeight: 46)
-                    .background(Theme.accent.opacity(0.15), in: RoundedRectangle(cornerRadius: 13, style: .continuous))
             }
-            .buttonStyle(.plain)
+            .buttonStyle(StyleBoutonSecondaire())
         }
     }
 

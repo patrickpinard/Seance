@@ -220,7 +220,7 @@ struct FicheTV: View {
                     .buttonStyle(BoutonTV(principal: true))
                     .focused($principalAuFocus)
             } else if sourcesTV.count > 1 {
-                Button { choixSource = true } label: { Label("Regarder", systemImage: "play.fill") }
+                Button { choixSource = true } label: { Label("Choisir où regarder", systemImage: "play.fill") }
                     .buttonStyle(BoutonTV(principal: true))
                     .focused($principalAuFocus)
                     // Une fenêtre de Séance, lisible sur la TV (6.3).

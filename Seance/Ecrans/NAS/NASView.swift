@@ -22,9 +22,10 @@ struct OeuvreNAS: Identifiable {
         fichiers.contains { $0.dossier == "NEW" }
     }
 
-    /// Le plus récent de ses fichiers, d'après ce que l'analyse a relevé sur le NAS.
+    /// Le plus récent de ses fichiers, d'après ce que l'analyse a relevé sur le NAS ; à défaut (8.4), le jour où
+    /// l'analyse l'a trouvé — comme sur l'Apple TV, plutôt qu'une seule section « Date inconnue ».
     func ajouteLe(_ details: DetailsNAS) -> Date? {
-        details.ajout(fichiers.map(\.chemin))
+        details.ajout(fichiers.map(\.chemin)) ?? fichiers.map(\.indexeLe).max()
     }
 
     /// Les genres du titre, relevés au rattachement TMDB.

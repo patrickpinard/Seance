@@ -406,7 +406,7 @@ struct ChoixLecture: View {
                 .contentShape(Circle())
         case .grand:
             EtiquetteGrandBouton(symbole: seule.map { if case .blueTV = $0 { "play.tv.fill" } else { "play.fill" } } ?? "play.fill",
-                                 texte: seule?.action ?? "Regarder…")
+                                 texte: seule?.action ?? "Choisir où regarder")
         case .compact:
             // Charte 8.0 : le bouton principal de la fiche, pleine largeur, qui dit ce qu'il fait.
             HStack(spacing: 8) {
@@ -422,9 +422,10 @@ struct ChoixLecture: View {
         }
     }
 
-    /// « Regarder sur Prime Video », « Lire sur le NAS », « Reprendre à 1:03:12 » ; « Regarder… » quand il faut choisir.
+    /// « Regarder sur Prime Video », « Lire sur le NAS », « Reprendre à 1:03:12 » ; « Choisir où regarder » quand il y a
+    /// plusieurs sources (8.4 : « Regarder… » ne disait pas où il menait).
     private func libellePrincipal(_ seule: SourceLecture?) -> String {
-        guard let seule else { return "Regarder…" }
+        guard let seule else { return "Choisir où regarder" }
         #if !targetEnvironment(macCatalyst)
         if case .nas(let fichier) = seule, etat.nas.dansSeance, let position = etat.nas.positions.aReprendre(fichier.chemin) {
             return "Reprendre à \(PositionsLecture.horodatage(position.secondes))"

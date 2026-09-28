@@ -407,25 +407,31 @@ struct PagePreferences: Hashable {}
 extension View {
     func destinationsTitres() -> some View {
         // Charte 8.0 : la roue des réglages en haut à droite de chaque page, y compris celles qu'on ouvre d'une autre.
+        // 8.4 : `sansTitreDeRetour()` — le rond du bouton retour rognait le nom de la page précédente (« egarder »).
         navigationDestination(for: ReferenceTitre.self) { reference in
-            FicheView(reference: reference).boutonBarreLaterale(preferences: false)
+            FicheView(reference: reference).boutonBarreLaterale(preferences: false).sansTitreDeRetour()
         }
         .navigationDestination(for: ReferencePersonne.self) { personne in
             // Pas de roue sur la page d'un acteur (8.2, demande de Patrick) : la cloche et la recherche suffisent.
-            PersonneView(personne: personne).boutonBarreLaterale(preferences: false, reglages: false)
+            PersonneView(personne: personne).boutonBarreLaterale(preferences: false, reglages: false).sansTitreDeRetour()
         }
         .navigationDestination(for: PagePreferences.self) { _ in
-            ProfilView(enPage: true)
+            ProfilView(enPage: true).sansTitreDeRetour()
         }
         .navigationDestination(for: PageReglagesMac.self) { _ in
-            PageReglagesDeuxColonnes()
+            PageReglagesDeuxColonnes().sansTitreDeRetour()
         }
         .navigationDestination(for: DestinationReglage.self) { destination in
-            PageReglage(destination: destination)
+            PageReglage(destination: destination).sansTitreDeRetour()
         }
         .navigationDestination(for: DossierVideosPerso.self) { dossier in
-            VideosPersoView(dossier: dossier).boutonBarreLaterale(preferences: false)
+            VideosPersoView(dossier: dossier).boutonBarreLaterale(preferences: false).sansTitreDeRetour()
         }
+    }
+
+    /// Le bouton retour en rond seul, sans le nom de la page d'où l'on vient (8.4).
+    func sansTitreDeRetour() -> some View {
+        toolbarRole(.editor)
     }
 }
 
@@ -451,11 +457,8 @@ private struct FeuilleReglages: View {
                         .navigationSplitViewColumnWidth(min: 380, ideal: 440, max: 500)
                 } detail: {
                     NavigationStack {
-                        EtatVide(symbole: "gearshape", titre: "Réglages", message: "Choisis un réglage dans la liste.")
-                            .frame(maxWidth: 440)
-                            .padding(24)
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                            .background(Theme.fond)
+                        // 8.4 : jamais de colonne vide — Plateformes, le premier réglage de la liste.
+                        PageReglage(destination: .plateformes)
                             .destinationsTitres()
                     }
                 }

@@ -250,7 +250,8 @@ struct FlecheDefilement: View {
 }
 
 
-/// Puce de choix unique (plateforme, saison, type) : même apparence que les critères d'Explorer.
+/// Puce de choix unique (plateforme, saison, tri) : 8.4, la même pastille que partout (`PuceCharte`) — choisie en
+/// blanc, et non plus en orange, réservé au bouton principal.
 struct PuceFiltre: View {
     let libelle: String
     var active = false
@@ -258,13 +259,7 @@ struct PuceFiltre: View {
 
     var body: some View {
         Button(action: action) {
-            Text(libelle)
-                .font(.subheadline.weight(.semibold))
-                .lineLimit(1)
-                .padding(.horizontal, 14)
-                .frame(height: 34)
-                .foregroundStyle(active ? Color.black : Color.primary)
-                .background(active ? AnyShapeStyle(Theme.degradeAccent) : AnyShapeStyle(Theme.surface), in: Capsule())
+            PuceCharte(texte: libelle, actif: active)
         }
         .buttonStyle(.plain)
         .accessibilityAddTraits(active ? .isSelected : [])

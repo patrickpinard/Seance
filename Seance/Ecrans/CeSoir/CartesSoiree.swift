@@ -247,22 +247,17 @@ struct CarteSoireePassee: View {
                         .contentShape(Capsule())
                 }
                 .buttonStyle(.plain)
-                Button(action: ceSoir) {
-                    Label("Ce soir", systemImage: "moon.stars.fill").fixedSize()
+                // 8.4 : un seul bouton en avant ; les autres réponses sous « Pas encore », dans les mêmes mots qu'avant.
+                Menu {
+                    Button(action: ceSoir) { Label("Le regarder ce soir", systemImage: "moon.stars") }
+                    Button(action: plusTard) { Label("Pas maintenant", systemImage: "clock") }
+                    Button(role: .destructive, action: retirer) { Label("Oublier", systemImage: "minus.circle") }
+                } label: {
+                    Label("Pas encore", systemImage: "ellipsis").fixedSize()
                 }
+                .menuStyle(.button)
                 .buttonStyle(.secondaire)
-                .accessibilityLabel("Pas encore : le regarder ce soir")
-                Button(action: plusTard) {
-                    Label("Pas maintenant", systemImage: "clock").fixedSize()
-                }
-                .buttonStyle(.secondaire)
-                .accessibilityHint("La question reviendra demain")
-                // Un nom plutôt qu'une croix seule (charte 8.0).
-                Button(action: retirer) {
-                    Label("Oublier", systemImage: "minus.circle.fill").fixedSize()
-                }
-                .buttonStyle(StyleBoutonSecondaire(destructif: true))
-                .help("Pas regardé : retirer ce titre de cette soirée passée. Il reste dans Mes listes.")
+                .accessibilityHint("Le regarder ce soir, plus tard, ou l'oublier")
             }
         }
         .padding(12)
