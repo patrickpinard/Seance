@@ -168,19 +168,29 @@ final class TelecommandeTests: XCTestCase {
         // Le bouton de la rangée d'actions, pas celui de blue TV plus bas, qui commence aussi par « Regarder ».
         // La fiche ne pose pas toujours le focus au même endroit (elle change avec les passages TV du jour) :
         // on remonte vers le haut et on essaie, jusqu'à ce que le choix des sources s'ouvre.
-        let regarder = app.buttons.matching(NSPredicate(format: "label == 'Regarder' OR label == 'Regarder…' OR label BEGINSWITH 'Regarder maintenant'")).firstMatch
-        XCTAssertTrue(regarder.waitForExistence(timeout: 30), "Pas de bouton « Regarder » sur la fiche")
+        // 8.6 : le premier bouton lance le NAS ; le second (« Ailleurs », ou le nom de l'autre source) ouvre le choix.
+        let ailleurs = app.buttons["choixSourceTV"].firstMatch
+        XCTAssertTrue(ailleurs.waitForExistence(timeout: 30), "Pas de bouton pour choisir une autre source sur la fiche")
         Thread.sleep(forTimeInterval: 2)
         // Trajet déterministe : on monte jusqu'au menu du haut, on redescend sur la rangée d'actions, puis on va à
         // gauche jusqu'au premier bouton — « Regarder… ». Le focus d'ouverture de la fiche n'est pas toujours le même.
         for _ in 0..<4 { telecommande.press(.up); Thread.sleep(forTimeInterval: 0.5) }
         telecommande.press(.down); Thread.sleep(forTimeInterval: 0.7)
         for _ in 0..<5 { telecommande.press(.left); Thread.sleep(forTimeInterval: 0.4) }
+        telecommande.press(.right); Thread.sleep(forTimeInterval: 0.5)
         let choix = app.staticTexts["Où veux-tu le lancer ?"]
         for _ in 0..<4 where !choix.exists {
             telecommande.press(.select)
             Thread.sleep(forTimeInterval: 1.2)
-            if !choix.exists { telecommande.press(.menu); Thread.sleep(forTimeInterval: 0.6); telecommande.press(.down); Thread.sleep(forTimeInterval: 0.5) }
+            if !choix.exists {
+                // Le premier bouton a pu lancer la lecture : Retour, puis on revient sur le second.
+                telecommande.press(.menu); Thread.sleep(forTimeInterval: 0.8)
+                if app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH 'Quitter'")).firstMatch.exists {
+                    telecommande.press(.down); telecommande.press(.select); Thread.sleep(forTimeInterval: 1.2)
+                }
+                for _ in 0..<5 { telecommande.press(.left); Thread.sleep(forTimeInterval: 0.3) }
+                telecommande.press(.right); Thread.sleep(forTimeInterval: 0.5)
+            }
         }
         capture("tv-fiche-regarder")
         XCTAssertTrue(app.staticTexts["Où veux-tu le lancer ?"].waitForExistence(timeout: 10), "Le choix de la source ne s'ouvre pas")

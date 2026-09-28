@@ -209,27 +209,26 @@ struct FicheTV: View {
     /// que sur l'iPhone. Le focus blanchit et soulève le bouton, comme partout sur tvOS.
     private var actions: some View {
         HStack(spacing: 28) {
-            // Un seul accès : le bouton le lance ; plusieurs (le NAS et Netflix…), « Regarder… » demande lequel.
-            // Entamé : « Reprendre à … » est l'action principale, même quand d'autres sources existent (maquette n° 13).
-            if let premiere = sourcesTV.first, premiere.bouton.hasPrefix("Reprendre") {
+            // 8.6 (demande de Patrick) : le bouton principal lance la meilleure source — le NAS s'il a le titre (« Lire »,
+            // « Reprendre à … »), sinon la plateforme — et, s'il y en a d'autres, « Ailleurs » (ou le nom de l'autre)
+            // propose le choix, comme sur l'iPhone.
+            if let premiere = sourcesTV.first {
                 Button { premiere.lancer() } label: { Label(premiere.bouton, systemImage: "play.fill") }
                     .buttonStyle(BoutonTV(principal: true))
                     .focused($principalAuFocus)
-            } else if sourcesTV.count == 1, let seule = sourcesTV.first {
-                Button { seule.lancer() } label: { Label(seule.bouton, systemImage: "play.fill") }
-                    .buttonStyle(BoutonTV(principal: true))
-                    .focused($principalAuFocus)
-            } else if sourcesTV.count > 1 {
-                Button { choixSource = true } label: { Label("Choisir où regarder", systemImage: "play.fill") }
-                    .buttonStyle(BoutonTV(principal: true))
-                    .focused($principalAuFocus)
+                if sourcesTV.count > 1 {
+                    let autres = Array(sourcesTV.dropFirst())
+                    Button { choixSource = true } label: {
+                        Label(autres.count == 1 ? autres[0].nom : "Ailleurs", systemImage: "chevron.down")
+                    }
+                    .buttonStyle(BoutonTV())
+                    .accessibilityIdentifier("choixSourceTV")
                     // Une fenêtre de Séance, lisible sur la TV (6.3).
                     .fullScreenCover(isPresented: $choixSource) {
-                        DialogueTV(titre: "Regarder « \(titre) »", message: "Où veux-tu le lancer ?",
-                                   choix: sourcesTV.map { source in
-                                       DialogueTV.Choix(libelle: source.nom, principal: source.nom.hasPrefix("Sur ton NAS")) { source.lancer() }
-                                   })
+                        DialogueTV(titre: "Regarder « \(titre) » ailleurs", message: "Où veux-tu le lancer ?",
+                                   choix: autres.map { source in DialogueTV.Choix(libelle: source.nom) { source.lancer() } })
                     }
+                }
             }
             if suivi == nil {
                 Button { garder() } label: { Label("Ma liste", systemImage: "plus") }

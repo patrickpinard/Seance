@@ -340,7 +340,7 @@ enum SourceLecture {
     /// Le texte du grand bouton quand c'est le seul accès.
     var action: String {
         switch self {
-        case .nas(let fichier): Self.episode(fichier).map { "Regarder \($0)" } ?? "Regarder maintenant"
+        case .nas(let fichier): Self.episode(fichier).map { "Regarder \($0) sur ton NAS" } ?? "Regarder sur ton NAS"
         case .plateforme(_, let nom): "Regarder sur \(nom)"
         case .blueTV(_, let chaine): "\(chaine) en direct · blue TV"
         }
@@ -372,6 +372,30 @@ struct ChoixLecture: View {
                 .buttonStyle(.plain)
                 .frame(maxWidth: style == .compact ? 720 : nil, alignment: .leading)
                 .accessibilityLabel(style == .rond ? "Regarder \(titre) : \(seule.nom)" : seule.action)
+        } else if style != .rond, let premiere = sources.first {
+            // 8.6 (demande de Patrick) : en tête de fiche, le bouton principal lance la meilleure source — le NAS s'il a le
+            // titre, sinon la plateforme — et « Ailleurs » propose les autres, au choix.
+            HStack(spacing: 8) {
+                Button { lancer(premiere) } label: { etiquette(premiere) }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(libellePrincipal(premiere))
+                Menu {
+                    Section("Ou regarder « \(titre) »") {
+                        ForEach(Array(sources.dropFirst().enumerated()), id: \.offset) { _, source in
+                            Button { lancer(source) } label: { Label(source.nom, systemImage: source.symbole) }
+                        }
+                    }
+                } label: {
+                    Label(sources.count == 2 ? sources[1].court : "Ailleurs", systemImage: "chevron.down")
+                        .lineLimit(1)
+                }
+                .menuStyle(.button)
+                .buttonStyle(StyleBoutonSecondaire())
+                .fixedSize()
+                .accessibilityLabel("Regarder ailleurs : \(sources.dropFirst().map(\.nom).joined(separator: ", "))")
+                .accessibilityIdentifier("choixLecture")
+            }
+            .frame(maxWidth: style == .compact ? 720 : nil, alignment: .leading)
         } else if !sources.isEmpty {
             Menu {
                 Section("Regarder « \(titre) »") {

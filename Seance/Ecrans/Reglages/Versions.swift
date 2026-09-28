@@ -66,6 +66,8 @@ struct NoteVersion: Identifiable {
                                detail: "Sur l'image ou le titre de la proposition ; sur l'Apple TV, le bouton « Fiche »."),
                 Fonctionnalite(symbole: "heart", titre: "D'après tes goûts",
                                detail: "Après ta soirée, ce que tu as commencé et ta liste sur le NAS, des titres choisis d'après tes goûts, avant le top de l'année."),
+                Fonctionnalite(symbole: "externaldrive", titre: "Le NAS d'abord, l'autre au choix",
+                               detail: "Sur la fiche, le bouton principal lance le titre sur ton NAS s'il y est, sinon sur ta plateforme ; à côté, « Ailleurs » (ou le nom de l'autre source) propose de le regarder ailleurs."),
                 Fonctionnalite(symbole: "calendar", titre: "Les jours pour toutes les sources",
                                detail: "Dans Regarder, la rangée de jours reste là aussi sur Streaming et le NAS, sur l'iPhone, l'iPad, le Mac et l'Apple TV : on y prévoit un titre pour un autre soir."),
                 Fonctionnalite(symbole: "slider.horizontal.3", titre: "Combien de propositions",
