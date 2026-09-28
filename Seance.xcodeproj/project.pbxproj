@@ -175,6 +175,7 @@
 		DC668FDED6FFAFA21E3CE266 /* EtagereDuHaut.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B91968F8C13F8CECB709FC5 /* EtagereDuHaut.swift */; };
 		DD832CF1C927F9D08CAC9673 /* StatistiquesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33C7D56023BA6C0CBD491C53 /* StatistiquesView.swift */; };
 		DE3160F0A370802B481404CB /* SeanceDonnees in Frameworks */ = {isa = PBXBuildFile; productRef = 7F16B557D6992166F42600EC /* SeanceDonnees */; };
+		DF8F04E7A23ADDB5AD6451C2 /* CarrouselTVTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FCC3B9AFA25A5D9D43ED7BA /* CarrouselTVTests.swift */; };
 		E06D9F7368B925304DF0C126 /* SeanceKit in Frameworks */ = {isa = PBXBuildFile; productRef = E520CB05B59E14412C053661 /* SeanceKit */; };
 		E1C2AF5A7719B290D1E79354 /* ReglagesToi.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1F075C951A233CFD58BDFF9 /* ReglagesToi.swift */; };
 		E1F5FF83B9C3C56EBBDFC25F /* RegarderMiseEnPageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA453DD73CF44C43590A2403 /* RegarderMiseEnPageTests.swift */; };
@@ -365,6 +366,7 @@
 		5D0200041452BB3D285609DE /* FeuilleFiltres.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeuilleFiltres.swift; sourceTree = "<group>"; };
 		5D9CD2AC426EAC55F2E18D92 /* ApercuWidgets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApercuWidgets.swift; sourceTree = "<group>"; };
 		5EFED69699E50F3169D6EA9C /* VersionsTV.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VersionsTV.swift; sourceTree = "<group>"; };
+		5FCC3B9AFA25A5D9D43ED7BA /* CarrouselTVTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CarrouselTVTests.swift; sourceTree = "<group>"; };
 		60978F177ABB702A3642036A /* SeanceWidget.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = SeanceWidget.entitlements; sourceTree = "<group>"; };
 		64DEAE0C43F30D5D4D6DC42F /* VLCKit.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = VLCKit.xcframework; path = .build/vlckit/VLCKit.xcframework; sourceTree = "<group>"; };
 		69DAAF3CA73CDA90FB2F2152 /* LectureTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LectureTests.swift; sourceTree = "<group>"; };
@@ -927,6 +929,7 @@
 			isa = PBXGroup;
 			children = (
 				94B50216176B335E92514544 /* BarreLectureTests.swift */,
+				5FCC3B9AFA25A5D9D43ED7BA /* CarrouselTVTests.swift */,
 				2C5E7E2C0119FEB5DDE97519 /* RegarderTests.swift */,
 				3EA69EFE83C26656E55AC5AB /* TelecommandeTests.swift */,
 			);
@@ -1151,6 +1154,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				CF2B64666ADA78FFDC8981D2 /* BarreLectureTests.swift in Sources */,
+				DF8F04E7A23ADDB5AD6451C2 /* CarrouselTVTests.swift in Sources */,
 				F9D6558D6A503AA7F40ECCF4 /* RegarderTests.swift in Sources */,
 				D68A718D324A69F539944A97 /* TelecommandeTests.swift in Sources */,
 			);

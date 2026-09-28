@@ -24,6 +24,11 @@ struct AccueilTV: View {
     @AppStorage(PasCeSoir.cle) private var pasCeSoir = ""
     /// « Autre chose » : le rang de la proposition montrée parmi celles de ce soir.
     @State private var rang = 0
+    /// Le bouton de la proposition qui a le focus (8.6) : gauche sur « Lecture », droite sur « Plus d'infos » font défiler.
+    @FocusState private var boutonHero: BoutonHero?
+    /// Le sens du dernier défilement, pour que l'image glisse du bon côté.
+    @State private var versLaDroite = true
+    private enum BoutonHero: Hashable { case lecture, infos }
     /// Combien de propositions défilent (8.6) : le réglage des Préférences de l'iPhone, reçu par la synchronisation.
     @AppStorage(NombrePropositions.cle) private var nombrePropositions = NombrePropositions.parDefaut
     /// Quand rien n'est à reprendre : des suggestions tirées de tes goûts (le classement local du panneau « Suggestions
@@ -207,6 +212,8 @@ struct AccueilTV: View {
                 .frame(height: 950)
                 .background(alignment: .top) {
                     ImageTV(url: ImageTMDB.url(proposition.cheminImage, proposition.large ? .fondGrand : .afficheGrande), symboleVide: "")
+                        .id(proposition.reference)
+                        .transition(.push(from: versLaDroite ? .trailing : .leading))
                         .frame(height: 1080)
                         .overlay {
                             // Deux dégradés : du bas vers les étagères, et de la gauche vers le texte.
@@ -241,6 +248,9 @@ struct AccueilTV: View {
                             Label(proposition.reprise != nil ? "Reprendre" : "Lecture", systemImage: "play.fill").lineLimit(1).fixedSize()
                         }
                         .buttonStyle(BoutonTV(principal: true))
+                        .focused($boutonHero, equals: .lecture)
+                        // Rien à gauche de « Lecture » : gauche y fait défiler vers la précédente.
+                        .onMoveCommand { if $0 == .left { defiler(de: -1) } }
                         .contextMenu {
                             Button { PasCeSoir.ecarter(proposition.reference) } label: { Label("Pas ce soir", systemImage: "moon.zzz") }
                         }
@@ -248,39 +258,34 @@ struct AccueilTV: View {
                             Label("Plus d'infos", systemImage: "info.circle").lineLimit(1).fixedSize()
                         }
                         .buttonStyle(BoutonTV())
+                        .focused($boutonHero, equals: .infos)
+                        // Rien à droite de « Plus d'infos » : droite y fait défiler vers la suivante.
+                        .onMoveCommand { if $0 == .right { defiler(de: 1) } }
                         .contextMenu {
                             Button { PasCeSoir.ecarter(proposition.reference) } label: { Label("Pas ce soir", systemImage: "moon.zzz") }
                         }
                     }
                     .padding(.top, 18)
-                    // Où l'on en est parmi les propositions, et deux flèches pour les faire défiler (8.6, demande de
-                    // Patrick : « Autre chose » n'était pas parlant).
+                    // Où l'on en est parmi les propositions : les points, comme sur l'iPhone.
                     if propositions.count > 1 {
                         let montre = rang % propositions.count
-                        HStack(spacing: 18) {
-                            Button { withAnimation(.snappy) { rang = (rang + propositions.count - 1) % propositions.count } } label: {
-                                Image(systemName: "chevron.left")
+                        HStack(spacing: 10) {
+                            ForEach(propositions.indices, id: \.self) { index in
+                                Capsule().fill(index == montre ? Color.white : Color.white.opacity(0.35))
+                                    .frame(width: index == montre ? 34 : 10, height: 10)
                             }
-                            .buttonStyle(BoutonRondTV())
-                            .accessibilityLabel("Proposition précédente")
-                            HStack(spacing: 10) {
-                                ForEach(propositions.indices, id: \.self) { index in
-                                    Capsule().fill(index == montre ? Color.white : Color.white.opacity(0.35))
-                                        .frame(width: index == montre ? 34 : 10, height: 10)
-                                }
-                            }
-                            .accessibilityElement()
-                            .accessibilityLabel("Proposition \(montre + 1) sur \(propositions.count)")
-                            Button { withAnimation(.snappy) { rang += 1 } } label: { Image(systemName: "chevron.right") }
-                                .buttonStyle(BoutonRondTV())
-                                .accessibilityLabel("Proposition suivante")
                         }
-                        .padding(.top, 14)
+                        .padding(.top, 18)
+                        .accessibilityElement()
+                        .accessibilityLabel("Proposition \(montre + 1) sur \(propositions.count)")
+                        .accessibilityHint("Gauche sur « Lecture » ou droite sur « Plus d'infos » pour changer")
                     }
                 }
                 .foregroundStyle(.white)
                 .frame(maxWidth: 1050, alignment: .leading)
                 .focusSection()
+                // En descendant du menu, le focus arrive sur « Lecture », pas sur le bouton le plus proche.
+                .defaultFocus($boutonHero, .lecture)
                 Spacer(minLength: 0)
                 // 8.6 (demande de Patrick) : plus de nouveautés à droite, qui cachaient l'image ; elles sont en étagère dessous.
             }
@@ -351,6 +356,13 @@ struct AccueilTV: View {
                                 large: apercu.cheminFond != nil))
         }
         return Array(liste.prefix(nombrePropositions))
+    }
+
+    /// Passe à la proposition précédente ou suivante, l'image glissant dans le sens du geste.
+    private func defiler(de pas: Int) {
+        guard propositions.count > 1 else { return }
+        versLaDroite = pas > 0
+        withAnimation(.easeInOut(duration: 0.45)) { rang = (rang + pas + propositions.count) % propositions.count }
     }
 
     /// La proposition montrée : « Autre chose » passe à la suivante, et revient à la première après la dernière.
