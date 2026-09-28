@@ -79,7 +79,7 @@ struct FicheTV: View {
                     }
                     if let erreur { Text(erreur).font(.system(size: 26)).foregroundStyle(Theme.attention) }
                     avis.id("avis")
-                    Spacer().frame(height: 120)
+                    // 8.6 : plus de marge fixe de 120 points avant « Où regarder » (demande de Patrick) — l'espacement de la page suffit.
                     ouRegarder.id("ouRegarder")
                     if let serie { episodes(serie).id("episodes") } else if reference.type == .serie, !episodesNAS.isEmpty { episodesDuNAS }
                     bandesAnnonces
