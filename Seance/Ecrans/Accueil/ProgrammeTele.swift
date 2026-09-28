@@ -369,10 +369,11 @@ struct ProgrammeTeleView: View {
         }
         .background(Theme.fond)
         .titrePage("Programme TV")
-        .navigationBarTitleDisplayMode(.inline)
+        .modeTitre(.inline)
         .task { await etat.alertes.actualiserRappelsTele() }
         .toolbar {
-            ToolbarItem(placement: .topBarTrailing) { menuChaines }
+            // Dans Regarder (8.6), le choix des chaînes descend dans la page : le haut est le même pour toutes les sources.
+            if jourImpose == nil { ToolbarItem(placement: .topBarTrailing) { menuChaines } }
         }
     }
 
@@ -383,6 +384,10 @@ struct ProgrammeTeleView: View {
         let marques = MarqueListe.marques(suivis)
         return ScrollView {
             VStack(alignment: .leading, spacing: 18) {
+                if jourImpose != nil {
+                    HStack { menuChaines.labelStyle(.titleAndIcon).font(.subheadline.weight(.semibold)); Spacer() }
+                        .padding(.horizontal, 20)
+                }
                 if jourImpose == nil {
                     SelecteurCases(selection: $typeChoisi, cases: [.init(valeur: TypeTitre?.some(.film), nom: "Films"),
                                                                    .init(valeur: TypeTitre?.some(.serie), nom: "Séries"), .init(valeur: TypeTitre?.none, nom: "Les deux")])

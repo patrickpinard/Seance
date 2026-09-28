@@ -69,7 +69,8 @@ struct SectionsStreamingTV: View {
     @ViewBuilder
     private func etagere(_ titre: String, _ sousTitre: String, _ tous: [ApercuTV]) -> some View {
         let ecartes = ecartes
-        let apercus = tous.filter { !ecartes.contains($0.reference) }
+        // Films, séries, ou les deux (8.6) : les pastilles de Regarder.
+        let apercus = tous.filter { !ecartes.contains($0.reference) && etat.typesRegarder.contains($0.reference.type) }
         if !apercus.isEmpty {
             EtagereTV(titre: titre, sousTitre: sousTitre) {
                 ForEach(apercus) { apercu in

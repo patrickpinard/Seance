@@ -291,10 +291,20 @@ struct EtagereTV<Contenu: View>: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
-            Text(titre).font(.system(size: 38, weight: .bold))
-                .accessibilityAddTraits(.isHeader)
-                .accessibilityHint(sousTitre ?? "")
-                .padding(.horizontal, MargesTV.bord)
+            // 8.6 (demande de Patrick) : « Tout voir » aussi à côté du titre, comme sur l'iPhone — la tuile de fin de
+            // rangée n'arrivait qu'après toutes les cartes.
+            HStack(alignment: .firstTextBaseline) {
+                Text(titre).font(.system(size: 38, weight: .bold))
+                    .accessibilityAddTraits(.isHeader)
+                    .accessibilityHint(sousTitre ?? "")
+                Spacer(minLength: 20)
+                if let toutVoir {
+                    Button(action: toutVoir) { Label("Tout voir", systemImage: "chevron.right").labelStyle(TitreEtIconeADroite()) }
+                        .buttonStyle(LienTV())
+                        .accessibilityLabel("Tout voir : \(titre)")
+                }
+            }
+            .padding(.horizontal, MargesTV.bord)
             ScrollView(.horizontal) {
                 LazyHStack(alignment: .top, spacing: 40) {
                     contenu
@@ -318,6 +328,13 @@ struct EtagereTV<Contenu: View>: View {
             .scrollClipDisabled()
         }
         .focusSection()
+    }
+}
+
+/// « Tout voir › » : le texte, puis le chevron.
+struct TitreEtIconeADroite: LabelStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        HStack(spacing: 10) { configuration.title; configuration.icon }
     }
 }
 

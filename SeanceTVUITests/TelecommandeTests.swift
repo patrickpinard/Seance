@@ -204,7 +204,7 @@ final class TelecommandeTests: XCTestCase {
     func testToutVoirOuvreRegarderSurLeNAS() throws {
         lancer(["SEANCE_TV_ONGLET": "accueil"])
         // L'étagère est sous l'image de tête, et la tuile n'existe qu'une fois la rangée parcourue : on y va à la télécommande.
-        XCTAssertTrue(app.buttons["Pas ce soir"].waitForExistence(timeout: 20), "L'accueil ne se charge pas")
+        XCTAssertTrue(app.buttons["Plus d'infos"].waitForExistence(timeout: 20), "L'accueil ne se charge pas")
         // Rangée par rangée : on descend, on va au bout à droite ; si ce n'est pas la tuile du NAS, on revient à gauche.
         // La première rangée qui a une tuile « Tout voir » est celle du NAS (« Reprendre » n'en a pas).
         let cible = ["Tout voir"]
@@ -215,12 +215,10 @@ final class TelecommandeTests: XCTestCase {
         }
         XCTAssertTrue(focusSur(cible), "La tuile « Tout voir » ne prend pas le focus en bout de rangée")
         capture("tout-voir-nas")
-        let versLeNAS = focusSur(["Nouveaux sur ton NAS"])
         telecommande.press(.select)
-        // Le NAS montre ses rayons ; la TV, sa rangée de jours et « En ce moment ».
-        let attendu = versLeNAS ? app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Documentaires")).firstMatch
-                                : app.staticTexts["En ce moment"].firstMatch
-        XCTAssertTrue(attendu.waitForExistence(timeout: 10), "« Tout voir » n'ouvre pas Regarder sur la bonne source")
+        // 8.6 : les Nouveautés (Streaming) et le NAS ont chacun leur « Tout voir » ; l'un comme l'autre ouvre Regarder, avec
+        // ses sources en tête.
+        XCTAssertTrue(app.buttons["Streaming"].firstMatch.waitForExistence(timeout: 10), "« Tout voir » n'ouvre pas Regarder")
         capture("regarder-nas")
     }
 }

@@ -56,11 +56,11 @@ struct RegarderTV: View {
             LazyVStack(alignment: .leading, spacing: 44) {
                 // Maquette 8.0 : les jours à gauche et les sources à droite, sur une ligne ; sans jour (Streaming, NAS),
                 // les sources à gauche.
-                // 8.6 (demande de Patrick) : les jours pour toutes les sources, comme sur l'iPhone.
-                HStack(alignment: .center, spacing: 20) {
+                // 8.6 (demande de Patrick) : comme sur l'iPhone — les jours pour toutes les sources, puis une ligne avec les
+                // sources, le filtre, Films et Séries.
+                VStack(alignment: .leading, spacing: 18) {
                     rangeeDeJours.focusSection()
-                    Spacer(minLength: 20)
-                    pastilles.fixedSize().focusSection()
+                    HStack { pastilles.fixedSize(); Spacer(minLength: 0) }.focusSection()
                 }
                 .padding(.horizontal, MargesTV.bord)
                 switch source {
@@ -68,7 +68,7 @@ struct RegarderTV: View {
                     SectionsSoireeTV(soiree: soiree)
                     SectionsTeleTV(jour: DateTMDB(jour.addingTimeInterval(12 * 3600)), moments: [.enCours, .soiree], prefixe: "à la TV")
                 case .tele:
-                    SectionsTeleTV(jour: DateTMDB(jour.addingTimeInterval(12 * 3600)))
+                    SectionsTeleTV(jour: DateTMDB(jour.addingTimeInterval(12 * 3600)), types: etat.typesRegarder)
                 case .streaming:
                     SectionsStreamingTV()
                 case .nas:
@@ -115,6 +115,17 @@ struct RegarderTV: View {
             .buttonStyle(BoutonTV(hauteur: 56))
             .accessibilityLabel("Filtres")
             .padding(.leading, 10)
+            // 8.6, comme sur l'iPhone : Films et Séries à côté du filtre, l'un, l'autre ou les deux.
+            if source == .streaming || source == .tele {
+                ForEach([TypeTitre.film, .serie], id: \.self) { type in
+                    let coche = etat.typesRegarder.contains(type)
+                    Button(type == .film ? "Films" : "Séries") {
+                        if coche { if etat.typesRegarder.count > 1 { etat.typesRegarder.remove(type) } } else { etat.typesRegarder.insert(type) }
+                    }
+                    .buttonStyle(BoutonTV(principal: coche, hauteur: 56))
+                    .accessibilityAddTraits(coche ? .isSelected : [])
+                }
+            }
         }
     }
 

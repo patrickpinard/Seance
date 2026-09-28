@@ -7,6 +7,7 @@ import SwiftUI
 /// « Tout voir » ouvre la page des vidéos personnelles pour choisir. Rien quand elles ne sont pas réglées.
 struct RangeeSouvenirsTV: View {
     @Environment(EtatTV.self) private var etat
+    @Environment(\.ouvrirTV) private var ouvrirTV
     @State private var aLire: VideoPerso?
 
     /// Les vidéos qui ont une vraie image (8.2, demande de Patrick) — « Lorraine 2002-2013 », « Loulou », « Bresse »… —,
@@ -35,7 +36,8 @@ struct RangeeSouvenirsTV: View {
         VStack(alignment: .leading, spacing: 0) {
             let dernieres = dernieres
             if etat.videosPerso.actif, !dernieres.isEmpty {
-                EtagereTV(titre: "Tes souvenirs", sousTitre: "Tes dernières vidéos personnelles : un clic et elle démarre") {
+                EtagereTV(titre: "Tes souvenirs", sousTitre: "Tes dernières vidéos personnelles : un clic et elle démarre",
+                          toutVoir: { ouvrirTV?(DossierVideosTV(chemin: "")) }) {
                     ForEach(dernieres, id: \.video.chemin) { element in
                         let choisie = etat.videosPerso.couvertures.couverture(element.video.chemin)
                         Button { lire(element.video) } label: {
@@ -48,11 +50,6 @@ struct RangeeSouvenirsTV: View {
                         }
                         .buttonStyle(.card)
                     }
-                    NavigationLink(value: DossierVideosTV(chemin: "")) {
-                        Label("Tout voir", systemImage: "photo.on.rectangle")
-                    }
-                    .buttonStyle(BoutonTV())
-                    .frame(height: CarteLargeTV.largeurGrille * 9 / 16)
                 }
             }
         }

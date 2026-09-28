@@ -129,6 +129,41 @@ extension View {
     func titrePage(_ titre: String) -> some View {
         modifier(TitrePage(titre: titre))
     }
+
+    /// Le mode du titre d'une page — sauf dans Regarder (8.6), dont le haut ne change pas d'une source à l'autre : un grand
+    /// titre y faisait monter et descendre le calendrier.
+    func modeTitre(_ mode: NavigationBarItem.TitleDisplayMode) -> some View {
+        modifier(ModeTitre(mode: mode))
+    }
+
+    /// La barre de recherche d'une page — sauf dans Regarder (8.6), où elle s'intercalait au-dessus du calendrier ; la
+    /// loupe du menu cherche partout.
+    func rechercheHorsRegarder(texte: Binding<String>, invite: String) -> some View {
+        modifier(RechercheHorsRegarder(texte: texte, invite: invite))
+    }
+}
+
+private struct ModeTitre: ViewModifier {
+    let mode: NavigationBarItem.TitleDisplayMode
+    @Environment(\.dansRegarder) private var dansRegarder
+
+    func body(content: Content) -> some View {
+        if dansRegarder { content } else { content.navigationBarTitleDisplayMode(mode) }
+    }
+}
+
+private struct RechercheHorsRegarder: ViewModifier {
+    @Binding var texte: String
+    let invite: String
+    @Environment(\.dansRegarder) private var dansRegarder
+
+    func body(content: Content) -> some View {
+        if dansRegarder {
+            content
+        } else {
+            content.searchable(text: $texte, placement: .navigationBarDrawer(displayMode: .automatic), prompt: invite)
+        }
+    }
 }
 
 private struct TitrePage: ViewModifier {

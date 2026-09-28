@@ -11,6 +11,8 @@ struct SectionsTeleTV: View {
     var moments: [MomentTele] = MomentTele.allCases
     /// Le titre de la première section, quand Regarder › Tout l'annonce autrement : « En ce moment à la TV ».
     var prefixe: String?
+    /// Films, séries, ou les deux (8.6) : les pastilles de Regarder › TV.
+    var types: Set<TypeTitre> = [.film, .serie]
 
     @Environment(EtatTV.self) private var etat
     @Environment(\.modelContext) private var contexte
@@ -23,7 +25,8 @@ struct SectionsTeleTV: View {
     var body: some View {
         TimelineView(.periodic(from: .now, by: 60)) { horloge in
             let maintenant = horloge.date
-            let blocs = GrilleTele.blocs(diffusions.filter { $0.fin > maintenant }).filter { GrilleTele.jourAffiche($0, maintenant: maintenant) == jour }
+            let blocs = GrilleTele.blocs(diffusions.filter { $0.fin > maintenant && types.contains(TypeTitre(rawValue: $0.typeBrut) ?? .film) })
+                .filter { GrilleTele.jourAffiche($0, maintenant: maintenant) == jour }
             VStack(alignment: .leading, spacing: 44) {
                 if blocs.isEmpty, prefixe == nil {
                     VideTV(symbole: "tv", titre: etat.teleEnCours ? "Lecture du programme…" : "Rien à venir ce jour-là",

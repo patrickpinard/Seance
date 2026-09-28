@@ -167,6 +167,7 @@ struct NASView: View {
     @State private var recherche = ""
     /// Cartes ou liste (8.6), le même choix que sur les autres pages de titres.
     @AppStorage(VueTitres.cle) private var enListe = false
+    @Environment(\.dansRegarder) private var dansRegarder
     /// Dates d'ajout et genres, relevés par la dernière analyse (6.4).
     @State private var detailsNAS = DetailsNAS()
     @State private var fichierChoisi: FichierNAS?
@@ -191,11 +192,12 @@ struct NASView: View {
         }
         .background(Theme.fond)
         .titrePage("Sur ton NAS")
-        .navigationBarTitleDisplayMode(.large)
+        .modeTitre(.large)
         .toolbar {
             // Charte 8.0 : une seule roue dentée par page, celle du haut (Réglages). Les gestes propres au NAS passent
             // par « ⋯ ».
-            ToolbarItemGroup(placement: .topBarTrailing) {
+            // Dans Regarder (8.6), le haut de page est celui de toutes les sources : ni « ⋯ » ni recherche en plus.
+            if !dansRegarder { ToolbarItemGroup(placement: .topBarTrailing) {
                 if etat.nas.enCours {
                     ProgressView()
                 } else {
@@ -210,7 +212,7 @@ struct NASView: View {
                         Label("Plus", systemImage: "ellipsis")
                     }
                 }
-            }
+            } }
         }
         .sheet(item: $fichierChoisi) { fichier in
             FeuilleFichierNAS(fichier: fichier)
@@ -342,7 +344,7 @@ struct NASView: View {
         }
         // Les images de fond des nouveautés, pour leurs grandes cartes.
         .task(id: referencesNouveautes) { await etat.decors.charger(referencesNouveautes, client: etat.tmdb) }
-        .searchable(text: $recherche, placement: .navigationBarDrawer(displayMode: .automatic), prompt: "Titre")
+        .rechercheHorsRegarder(texte: $recherche, invite: "Titre")
         .refreshable { await etat.nas.analyser(contexte: contexte, tmdb: etat.tmdb) }
         .task(id: etat.nas.derniereAnalyse) {
             detailsNAS = UserDefaults.standard.data(forKey: DetailsNAS.cle).flatMap(DetailsNAS.decoder) ?? DetailsNAS()

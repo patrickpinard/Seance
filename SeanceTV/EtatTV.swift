@@ -34,6 +34,8 @@ final class EtatTV {
     var message: String?
     /// « Tout voir » d'une étagère de l'accueil (8.0) : ouvre Regarder sur cette source, aujourd'hui.
     var demandeRegarder: SourceTV?
+    /// Regarder (8.6), comme sur l'iPhone : Films, Séries, ou les deux — à côté du filtre, pour Streaming et TV.
+    var typesRegarder: Set<TypeTitre> = [.film, .serie]
 
     /// L'app qui lit les vidéos du NAS : « Lire » n'ouvre que celle-là.
     private(set) var lecteur: LecteurVideo

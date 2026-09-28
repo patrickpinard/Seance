@@ -59,7 +59,7 @@ struct DuMomentView: View {
             await chargerSuite()
         }
         .titrePage(choixPlateformes ? "Streaming" : plateformes == nil ? "Nouveautés" : "Nouveautés sur tes plateformes")
-        .navigationBarTitleDisplayMode(choixPlateformes ? .large : .inline)
+        .modeTitre(choixPlateformes ? .large : .inline)
         .task(id: Cle(type: type, plateformes: plateformesRetenues)) {
             liste = ListePaginee()
             await chargerSuite()
