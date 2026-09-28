@@ -65,8 +65,9 @@ final class TelecommandeTests: XCTestCase {
     func testDeLaFicheAuCastingPuisALActeur() throws {
         lancer(["SEANCE_TV_FICHE": "film:324552"])
         XCTAssertTrue(boutonLecture.waitForExistence(timeout: 30), "La fiche du film du NAS ne s'ouvre pas")
-        // Les bandes-annonces citent aussi les acteurs dans leur titre : on descend jusqu'à un visage du casting.
-        let visage = NSPredicate(format: "hasFocus == true AND NOT (label CONTAINS 'Trailer') AND (label CONTAINS 'Edward Norton' OR label CONTAINS 'Brad Pitt' OR label CONTAINS 'Helena Bonham Carter' OR label CONTAINS 'Meat Loaf' OR label CONTAINS 'Jared Leto')")
+        // Les bandes-annonces citent aussi les acteurs dans leur titre : on descend jusqu'à un visage du casting — le
+        // réalisateur en tête depuis la 8.0, qui se suit comme un acteur.
+        let visage = NSPredicate(format: "hasFocus == true AND NOT (label CONTAINS 'Trailer') AND (label CONTAINS 'David Fincher' OR label CONTAINS 'Réalisation' OR label CONTAINS 'Edward Norton' OR label CONTAINS 'Brad Pitt' OR label CONTAINS 'Helena Bonham Carter' OR label CONTAINS 'Meat Loaf' OR label CONTAINS 'Jared Leto')")
         for _ in 0..<16 where !app.descendants(matching: .any).matching(visage).firstMatch.exists {
             telecommande.press(.down); Thread.sleep(forTimeInterval: 0.6)
         }
