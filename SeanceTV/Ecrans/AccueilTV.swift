@@ -84,6 +84,24 @@ struct AccueilTV: View {
                         }
                     }
                 }
+                // Nouveautés (8.6) : en étagère sous « Reprendre », comme Tes souvenirs et le NAS — l'image de la
+                // proposition garde toute la largeur.
+                let nouveautes = nouveautes(sauf: proposition?.reference)
+                if !nouveautes.isEmpty {
+                    EtagereTV(titre: "Nouveautés", sousTitre: "Sorties et nouveaux épisodes sur tes plateformes, les plus récents d'abord",
+                              toutVoir: { etat.demandeRegarder = .streaming }) {
+                        ForEach(nouveautes) { apercu in
+                            NavigationLink(value: apercu.reference) {
+                                CarteLargeTV(surtitre: origine(apercu.reference), titre: apercu.titre, detail: apercu.sousTitre,
+                                             cheminImage: apercu.cheminFond ?? apercu.cheminAffiche, marque: marque(apercu.reference),
+                                             largeur: CarteLargeTV.largeurGrille, reference: apercu.reference)
+                            }
+                            .buttonStyle(.card)
+                            .menuCarteTV(apercu.reference, titre: apercu.titre, cheminAffiche: apercu.cheminAffiche)
+                            .task(id: apercu.reference) { etat.ou.demander(apercu.reference, client: etat.tmdb) }
+                        }
+                    }
+                }
                 // Tes souvenirs (8.1) : les derniers albums de vidéos personnelles, à deux clics.
                 RangeeSouvenirsTV()
                 if !nouveautesNAS.isEmpty {
@@ -257,45 +275,12 @@ struct AccueilTV: View {
                 .frame(maxWidth: 1050, alignment: .leading)
                 .focusSection()
                 Spacer(minLength: 0)
-                let nouveautes = nouveautes(sauf: proposition.reference)
-                if !nouveautes.isEmpty {
-                    panneauNouveautes(nouveautes)
-                }
+                // 8.6 (demande de Patrick) : plus de nouveautés à droite, qui cachaient l'image ; elles sont en étagère dessous.
             }
             .padding(.horizontal, MargesTV.bord)
             .padding(.bottom, 40)
         }
         .task(id: proposition.reference) { etat.ou.demander(proposition.reference, client: etat.tmdb) }
-    }
-
-    /// Les trois nouveautés à droite de la proposition, et le lien vers toutes celles de tes plateformes.
-    private func panneauNouveautes(_ nouveautes: [ApercuTV]) -> some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Nouveautés").font(.system(size: 31, weight: .bold)).foregroundStyle(.white)
-                .accessibilityAddTraits(.isHeader)
-            ForEach(nouveautes) { apercu in
-                NavigationLink(value: apercu.reference) {
-                    HStack(spacing: 22) {
-                        ImageTV(url: ImageTMDB.url(apercu.cheminFond ?? apercu.cheminAffiche, .fondGrand), symboleVide: "")
-                            .frame(width: 160, height: 90)
-                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(apercu.titre).font(.system(size: 29, weight: .semibold)).lineLimit(1)
-                            Text([apercu.sousTitre, origine(apercu.reference)].compactMap { $0 }.joined(separator: " · "))
-                                .font(.system(size: 23)).opacity(0.7).lineLimit(1)
-                        }
-                        Spacer(minLength: 0)
-                    }
-                }
-                .buttonStyle(LigneNouveauteTV())
-                .menuCarteTV(apercu.reference, titre: apercu.titre, cheminAffiche: apercu.cheminAffiche)
-                .task(id: apercu.reference) { etat.ou.demander(apercu.reference, client: etat.tmdb) }
-            }
-            Button("Toutes les nouveautés") { etat.demandeRegarder = .streaming }
-                .buttonStyle(BoutonTV(hauteur: 60))
-        }
-        .frame(width: 640)
-        .focusSection()
     }
 
     /// Une proposition pour ce soir : un titre, d'où il vient et le bouton qui le lance.
@@ -368,9 +353,9 @@ struct AccueilTV: View {
     }
 
     /// Les trois nouveautés du panneau, les plus récentes d'abord, sans les titres écartés ni celui de la proposition.
-    private func nouveautes(sauf reference: ReferenceTitre) -> [ApercuTV] {
+    private func nouveautes(sauf reference: ReferenceTitre?) -> [ApercuTV] {
         let ecartes = ecartes
-        return Array(duMoment.recentsDAbord(\.date).filter { !ecartes.contains($0.reference) && $0.reference != reference }.prefix(3))
+        return Array(duMoment.recentsDAbord(\.date).filter { !ecartes.contains($0.reference) && $0.reference != reference }.prefix(20))
     }
 
     /// « Prévu ce soir · Sur ton NAS », « Ce soir, pour toi · Netflix ».
