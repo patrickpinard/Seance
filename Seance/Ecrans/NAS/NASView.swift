@@ -142,6 +142,8 @@ struct NASView: View {
     enum Rayon: String, CaseIterable, Identifiable {
         case films = "Films"
         case series = "Séries"
+        /// Les documentaires (genre 99 chez TMDB) à part, comme sur la TV (8.4) : ils quittent Films et Séries.
+        case documentaires = "Documentaires"
         case nouveautes = "NEW"
         /// Les vidéos personnelles, au même rang que Films et Séries (6.3, demande de Patrick) : on filtre ce que
         /// montre la page au lieu de descendre dans une tuile à part. Le rayon s'appelle « Vidéos » depuis la 6.5.
@@ -293,7 +295,7 @@ struct NASView: View {
                                 }
                                 .padding(.horizontal, -20)
                             }
-                            Text(rayon == .films ? "Tous les films" : "Toutes les séries")
+                            Text(rayon == .films ? "Tous les films" : rayon == .series ? "Toutes les séries" : "Tous les documentaires")
                                 .font(.title3.weight(.bold))
                                 .padding(.top, 6)
                         }
@@ -359,7 +361,7 @@ struct NASView: View {
     private var resume: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
-                if rayon == .films || rayon == .series {
+                if rayon == .films || rayon == .series || rayon == .documentaires {
                     ForEach(RangementNAS.allCases) { mode in
                         PuceFiltre(libelle: mode.rawValue, active: rangement == mode) { rangementBrut = mode.rawValue }
                             .accessibilityLabel("Ranger par \(mode.rawValue)")
@@ -451,9 +453,11 @@ struct NASView: View {
     private func oeuvres(du rayon: Rayon) -> [OeuvreNAS] {
         let retenus = fichiers.filter { fichier in
             guard fichier.tmdbID != nil, correspond(fichier.titre) else { return false }
+            let documentaire = fichier.tmdbID.flatMap { detailsNAS.genres[$0] }?.contains(99) == true
             switch rayon {
-            case .films: return fichier.type == .film
-            case .series: return fichier.type == .serie
+            case .films: return fichier.type == .film && !documentaire
+            case .series: return fichier.type == .serie && !documentaire
+            case .documentaires: return documentaire
             case .nouveautes: return fichier.dossier == "NEW"
             case .perso, .nonReconnus: return false
             }

@@ -5,7 +5,8 @@ import SwiftUI
 
 /// Ce que Regarder › NAS montre (8.0) : un rayon à la fois, choisi sous les pastilles.
 enum RayonNASTV: String, CaseIterable, Hashable {
-    case films = "Films", series = "Séries", documentaires = "Documentaires", videos = "Vidéos"
+    /// Les mêmes rayons que sur l'iPhone (8.4) : NEW, le dossier des nouveautés, y compris.
+    case films = "Films", series = "Séries", documentaires = "Documentaires", nouveautes = "NEW", videos = "Vidéos"
     /// 8.4 : les vidéos sans titre TMDB sûr, à identifier — comme la puce « non reconnus » de l'iPhone.
     case nonReconnus = "Non reconnus"
 }
@@ -77,6 +78,7 @@ struct SectionsNASTV: View {
         case .films: "film"
         case .series: "tv"
         case .documentaires: "globe.europe.africa"
+        case .nouveautes: "sparkles"
         case .videos: "video"
         case .nonReconnus: "questionmark.square.dashed"
         }
@@ -89,6 +91,7 @@ struct SectionsNASTV: View {
         case .films: return oeuvres.filter { $0.reference.type == .film && !documentaire($0) }
         case .series: return oeuvres.filter { $0.reference.type == .serie && !documentaire($0) }
         case .documentaires: return oeuvres.filter(documentaire)
+        case .nouveautes: return OeuvreTV.regrouper(fichiers.filter { $0.dossier == "NEW" })
         case .videos, .nonReconnus: return []
         }
     }

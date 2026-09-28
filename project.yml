@@ -19,7 +19,7 @@ settings:
     DEVELOPMENT_TEAM: GATK475J3P
     # Version affichée dans À propos › Versions ; à changer avec Seance/Ecrans/Reglages/Versions.swift.
     MARKETING_VERSION: "8.4"
-    CURRENT_PROJECT_VERSION: "85"
+    CURRENT_PROJECT_VERSION: "86"
 
 packages:
   SeanceKit:
