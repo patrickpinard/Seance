@@ -216,31 +216,41 @@ struct AccueilTV: View {
                         .accessibilityHidden(true)
                     }
                     HStack(spacing: 24) {
+                        // Sur une ligne (8.6) : à côté de « Fiche » et « Pas ce soir », le libellé passait à la ligne.
                         NavigationLink(value: LectureTVDemande(reference: proposition.reference)) {
-                            Label(proposition.bouton, systemImage: "play.fill")
+                            Label(proposition.bouton, systemImage: "play.fill").lineLimit(1).fixedSize()
                         }
                         .buttonStyle(BoutonTV(principal: true))
                         // 8.6 : la fiche, comme un toucher sur l'image de l'iPhone — sur la TV, l'image n'a pas le focus.
-                        NavigationLink(value: proposition.reference) { Text("Fiche") }
+                        NavigationLink(value: proposition.reference) { Text("Fiche").lineLimit(1).fixedSize() }
                             .buttonStyle(BoutonTV())
-                        if propositions.count > 1 {
-                            Button("Autre chose") { withAnimation(.snappy) { rang += 1 } }.buttonStyle(BoutonTV())
-                        }
-                        Button("Pas ce soir") { PasCeSoir.ecarter(proposition.reference) }.buttonStyle(BoutonTV())
+                        Button { PasCeSoir.ecarter(proposition.reference) } label: { Text("Pas ce soir").lineLimit(1).fixedSize() }
+                            .buttonStyle(BoutonTV())
                     }
                     .padding(.top, 18)
-                    // Où l'on en est parmi les propositions, comme les points de l'iPhone.
+                    // Où l'on en est parmi les propositions, et deux flèches pour les faire défiler (8.6, demande de
+                    // Patrick : « Autre chose » n'était pas parlant).
                     if propositions.count > 1 {
                         let montre = rang % propositions.count
-                        HStack(spacing: 10) {
-                            ForEach(propositions.indices, id: \.self) { index in
-                                Capsule().fill(index == montre ? Color.white : Color.white.opacity(0.35))
-                                    .frame(width: index == montre ? 34 : 10, height: 10)
+                        HStack(spacing: 18) {
+                            Button { withAnimation(.snappy) { rang = (rang + propositions.count - 1) % propositions.count } } label: {
+                                Image(systemName: "chevron.left")
                             }
+                            .buttonStyle(BoutonRondTV())
+                            .accessibilityLabel("Proposition précédente")
+                            HStack(spacing: 10) {
+                                ForEach(propositions.indices, id: \.self) { index in
+                                    Capsule().fill(index == montre ? Color.white : Color.white.opacity(0.35))
+                                        .frame(width: index == montre ? 34 : 10, height: 10)
+                                }
+                            }
+                            .accessibilityElement()
+                            .accessibilityLabel("Proposition \(montre + 1) sur \(propositions.count)")
+                            Button { withAnimation(.snappy) { rang += 1 } } label: { Image(systemName: "chevron.right") }
+                                .buttonStyle(BoutonRondTV())
+                                .accessibilityLabel("Proposition suivante")
                         }
                         .padding(.top, 14)
-                        .accessibilityElement()
-                        .accessibilityLabel("Proposition \(montre + 1) sur \(propositions.count)")
                     }
                 }
                 .foregroundStyle(.white)
