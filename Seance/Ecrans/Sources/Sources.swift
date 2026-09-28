@@ -93,13 +93,8 @@ struct RegarderView: View {
                         // pour leur contenu. La 8.5 l'avait caché hors de Tout et TV.
                         BandeSoirees(jour: Binding { jour } set: { etat.jourRegarder = $0 == aujourdhui ? nil : $0 },
                                      aujourdhui: aujourdhui, prevus: prevus)
-                        if !etat.sourceRegarder.suitLeJour, let choisi = etat.jourRegarder {
-                            Label("Pour \(LibelleSoiree.jour(choisi).lowercased()) : appui long sur un titre › « Prévoir pour ce soir-là »",
-                                  systemImage: "calendar.badge.plus")
-                                .font(.footnote)
-                                .foregroundStyle(Theme.texte2)
-                                .padding(.horizontal, 20)
-                        }
+                        // 8.6 : plus de ligne d'aide sous les jours sur Streaming et le NAS — elle poussait la page vers le bas
+                        // et faisait disparaître le titre. L'appui long dit déjà « Prévoir pour ce soir-là ».
                         SelecteurPuces(selection: $etat.sourceRegarder,
                                        choix: SourceRegarder.allCases.map { .init(valeur: $0, nom: $0.nom) })
                         barreFiltres
