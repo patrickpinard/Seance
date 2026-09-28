@@ -59,6 +59,10 @@ final class EtatApp {
     /// Regarder (8.0) : la source choisie (Tout · Streaming · TV · NAS) et le jour de la rangée ; `nil` pour aujourd'hui.
     var sourceRegarder: SourceRegarder = .tout
     var jourRegarder: Date?
+    /// Regarder (8.6) : Films, Séries, ou les deux — deux pastilles à cocher à côté de « Filtres ».
+    var typesRegarder: Set<TypeTitre> = [.film, .serie]
+    /// Le type demandé aux pages de Regarder : `nil` pour les deux.
+    var typeRegarder: TypeTitre? { typesRegarder.count == 1 ? typesRegarder.first : nil }
     /// Demandé par le widget « À venir » : Mes listes s'ouvre sur cet onglet.
     var listeDemandee: MesListesView.Onglet?
     let depot = DepotCles()

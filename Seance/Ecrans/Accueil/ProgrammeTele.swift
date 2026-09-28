@@ -344,7 +344,9 @@ struct ProgrammeTeleView: View {
     @Query private var diffusions: [Diffusion]
     @Query private var chaines: [Chaine]
     @Query private var suivis: [Suivi]
-    @State private var type: TypeTitre? = .film
+    @State private var typeChoisi: TypeTitre? = .film
+    /// Dans Regarder (8.6), Films et Séries sont les pastilles à côté de « Filtres » ; ailleurs, le sélecteur de la page.
+    private var type: TypeTitre? { jourImpose != nil ? etat.typeRegarder : typeChoisi }
     @State private var jourChoisi: DateTMDB?
     /// Les chaînes retenues ; vide : toutes.
     @State private var chainesChoisies: Set<String> = []
@@ -381,10 +383,12 @@ struct ProgrammeTeleView: View {
         let marques = MarqueListe.marques(suivis)
         return ScrollView {
             VStack(alignment: .leading, spacing: 18) {
-                SelecteurCases(selection: $type, cases: [.init(valeur: TypeTitre?.some(.film), nom: "Films"),
-                                                         .init(valeur: TypeTitre?.some(.serie), nom: "Séries"), .init(valeur: TypeTitre?.none, nom: "Les deux")])
-                    .frame(maxWidth: 560)
-                    .padding(.horizontal, 20)
+                if jourImpose == nil {
+                    SelecteurCases(selection: $typeChoisi, cases: [.init(valeur: TypeTitre?.some(.film), nom: "Films"),
+                                                                   .init(valeur: TypeTitre?.some(.serie), nom: "Séries"), .init(valeur: TypeTitre?.none, nom: "Les deux")])
+                        .frame(maxWidth: 560)
+                        .padding(.horizontal, 20)
+                }
 
                 if let jour {
                     if jourImpose == nil {

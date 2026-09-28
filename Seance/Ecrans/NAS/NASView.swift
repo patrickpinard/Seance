@@ -165,6 +165,8 @@ struct NASView: View {
     @AppStorage("nas.rangement.2") private var rangementBrut = RangementNAS.ajout.rawValue
     private var rangement: RangementNAS { RangementNAS(rawValue: rangementBrut) ?? .alphabetique }
     @State private var recherche = ""
+    /// Cartes ou liste (8.6), le même choix que sur les autres pages de titres.
+    @AppStorage(VueTitres.cle) private var enListe = false
     /// Dates d'ajout et genres, relevés par la dernière analyse (6.4).
     @State private var detailsNAS = DetailsNAS()
     @State private var fichierChoisi: FichierNAS?
@@ -271,12 +273,7 @@ struct NASView: View {
                     }
                     if rayon == .nouveautes {
                         // Le dossier NEW tout en grandes cartes : peu de titres, ceux qu'on vient chercher.
-                        LazyVGrid(columns: CarteLargeTitre.colonnes, spacing: 14) {
-                            ForEach(oeuvres) { oeuvre in
-                                CarteLargeNAS(oeuvre: oeuvre, decor: oeuvre.reference.flatMap(etat.decors.decor),
-                                                  marque: oeuvre.reference.flatMap { marques[$0] })
-                            }
-                        }
+                        grille(oeuvres, marques: marques)
                     } else {
                         let nouvelles = recherche.isEmpty ? oeuvres.filter(\.nouveaute) : []
                         if !nouvelles.isEmpty {
@@ -301,12 +298,11 @@ struct NASView: View {
                                 .padding(.top, 6)
                         }
                         if rangement == .alphabetique {
-                            LazyVGrid(columns: CarteLargeTitre.colonnes, spacing: 14) {
-                                ForEach(oeuvres) { oeuvre in
-                                    CarteLargeNAS(oeuvre: oeuvre, decor: oeuvre.reference.flatMap(etat.decors.decor),
-                                                  marque: oeuvre.reference.flatMap { marques[$0] })
-                                }
+                            HStack {
+                                Spacer()
+                                BasculeGrilleListe(enGrille: Binding { !enListe } set: { enListe = !$0 })
                             }
+                            grille(oeuvres, marques: marques)
                         } else {
                             // Rangé par ajout, par année ou par genre : une section par tranche, la plus récente d'abord.
                             // Chaque section s'ouvre et se ferme (8.2.8) ; « Tout ouvrir » / « Tout fermer » en tête.
@@ -321,19 +317,15 @@ struct NASView: View {
                                 .font(.subheadline.weight(.semibold))
                                 .foregroundStyle(Theme.accent)
                                 .frame(minHeight: 44)
+                                BasculeGrilleListe(enGrille: Binding { !enListe } set: { enListe = !$0 })
                             }
                             ForEach(tranches) { section in
                                 VStack(alignment: .leading, spacing: 10) {
                                     EnTeteRepliable(titre: section.titre, detail: Format.pluriel(section.oeuvres.count, "titre"),
                                                     ouverte: sections.ouverte(section.titre)) { sections.basculer(section.titre) }
                                     if sections.ouverte(section.titre) {
-                                        LazyVGrid(columns: CarteLargeTitre.colonnes, spacing: 14) {
-                                            ForEach(section.oeuvres) { oeuvre in
-                                                CarteLargeNAS(oeuvre: oeuvre, decor: oeuvre.reference.flatMap(etat.decors.decor),
-                                                              marque: oeuvre.reference.flatMap { marques[$0] })
-                                            }
-                                        }
-                                        .transition(.opacity)
+                                        grille(section.oeuvres, marques: marques)
+                                            .transition(.opacity)
                                     }
                                 }
                             }
@@ -537,6 +529,36 @@ struct CarteLargeNAS: View {
                                             cheminFond: oeuvre.fichiers.compactMap(\.cheminFond).first))
         } else {
             carte
+        }
+    }
+}
+
+extension NASView {
+    /// Les œuvres en grandes cartes, ou en liste (8.6).
+    @ViewBuilder
+    func grille(_ oeuvres: [OeuvreNAS], marques: [ReferenceTitre: MarqueListe]) -> some View {
+        if enListe {
+            LazyVStack(spacing: 10) {
+                ForEach(oeuvres) { oeuvre in
+                    let ligne = LigneTitreCompacte(cheminAffiche: oeuvre.cheminAffiche, surtitre: oeuvre.accroche, titre: oeuvre.titre,
+                                                   detail: oeuvre.faits.joined(separator: " · "))
+                    if let reference = oeuvre.reference {
+                        NavigationLink(value: reference) { ligne }
+                            .buttonStyle(.plain)
+                            .actionsRapides(TitreResume(reference: reference, titre: oeuvre.titre, cheminAffiche: oeuvre.cheminAffiche,
+                                                        cheminFond: oeuvre.fichiers.compactMap(\.cheminFond).first))
+                    } else {
+                        ligne
+                    }
+                }
+            }
+        } else {
+            LazyVGrid(columns: CarteLargeTitre.colonnes, spacing: 14) {
+                ForEach(oeuvres) { oeuvre in
+                    CarteLargeNAS(oeuvre: oeuvre, decor: oeuvre.reference.flatMap(etat.decors.decor),
+                                  marque: oeuvre.reference.flatMap { marques[$0] })
+                }
+            }
         }
     }
 }

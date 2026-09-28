@@ -148,6 +148,23 @@ struct RegarderView: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("boutonFiltres")
+                // 8.6 (demande de Patrick) : Films et Séries sur la ligne de « Filtres », à cocher l'un, l'autre ou les deux ;
+                // ils remplacent le sélecteur propre à Streaming et à TV.
+                if etat.sourceRegarder == .streaming || etat.sourceRegarder == .tele {
+                    ForEach([TypeTitre.film, .serie], id: \.self) { type in
+                        let coche = etat.typesRegarder.contains(type)
+                        PuceFiltre(libelle: type == .film ? "Films" : "Séries", active: coche) {
+                            withAnimation(.snappy) {
+                                if coche {
+                                    // Il en reste toujours au moins un : décocher le dernier ne ferait qu'une page vide.
+                                    if etat.typesRegarder.count > 1 { etat.typesRegarder.remove(type) }
+                                } else {
+                                    etat.typesRegarder.insert(type)
+                                }
+                            }
+                        }
+                    }
+                }
                 let genres = etat.genres[filtres.filtres.type] ?? []
                 ForEach(criteres, id: \.self) { critere in
                     let libelle = LibellesFiltres.libelle(critere, filtres.filtres, genres: genres)

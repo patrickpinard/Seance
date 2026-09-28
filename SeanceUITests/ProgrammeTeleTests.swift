@@ -43,10 +43,12 @@ final class ProgrammeTeleTests: XCTestCase {
         // Tout en haut d'abord : sous la barre de navigation translucide, « Tout » se dit touchable mais le toucher
         // atterrit sur la barre. Et on vérifie que le choix a pris, la suite en dépend.
         app.swipeDown(); app.swipeDown()
-        let tout = app.buttons["Les deux"].firstMatch
-        XCTAssertTrue(tout.waitForExistence(timeout: 5), "Le choix Films, Séries, Les deux a disparu")
-        tout.tap()
-        XCTAssertTrue(tout.isSelected, "« Les deux » n'est pas sélectionné")
+        // 8.6 : Films et Séries sont deux pastilles à côté de « Filtres », à cocher ensemble pour « les deux ».
+        let films = app.buttons["Films"].firstMatch, series = app.buttons["Séries"].firstMatch
+        XCTAssertTrue(series.waitForExistence(timeout: 5), "Les pastilles Films et Séries ont disparu")
+        if !films.isSelected { films.tap() }
+        if !series.isSelected { series.tap() }
+        XCTAssertTrue(films.isSelected && series.isSelected, "Films et Séries ne sont pas cochés ensemble")
         // Reacher passe ce soir : « en soirée », « en ce moment », ou déjà fini selon l'heure du test. Pour la capture.
         app.amener(app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Reacher'")).firstMatch, essais: 3)
         capture("tele-tout-bas")

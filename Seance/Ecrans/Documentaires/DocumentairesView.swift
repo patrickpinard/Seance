@@ -16,6 +16,8 @@ struct DocumentairesView: View {
         }
     }
 
+    @AppStorage(VueTitres.cle) private var enListe = false
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
@@ -32,16 +34,33 @@ struct DocumentairesView: View {
                              libelleAction: "Relire", symboleAction: "arrow.clockwise") { recharger() }
                         .padding(.horizontal, 20)
                 } else {
-                    LazyVGrid(columns: CarteLargeTitre.colonnes, spacing: 14) {
-                        ForEach(titres) { titre in
-                            NavigationLink(value: titre.reference) {
-                                CarteLargeTitre(titre)
-                            }
-                            .buttonStyle(.plain)
-                            .actionsRapides(titre)
-                        }
+                    // Cartes ou liste (8.6), le même choix que sur les autres pages de titres.
+                    HStack {
+                        Spacer()
+                        BasculeGrilleListe(enGrille: Binding { !enListe } set: { enListe = !$0 })
                     }
                     .padding(.horizontal, 20)
+                    if enListe {
+                        LazyVStack(spacing: 10) {
+                            ForEach(titres) { titre in
+                                NavigationLink(value: titre.reference) { LigneTitreListe(titre: titre) }
+                                    .buttonStyle(.plain)
+                                    .actionsRapides(titre)
+                            }
+                        }
+                        .padding(.horizontal, 20)
+                    } else {
+                        LazyVGrid(columns: CarteLargeTitre.colonnes, spacing: 14) {
+                            ForEach(titres) { titre in
+                                NavigationLink(value: titre.reference) {
+                                    CarteLargeTitre(titre)
+                                }
+                                .buttonStyle(.plain)
+                                .actionsRapides(titre)
+                            }
+                        }
+                        .padding(.horizontal, 20)
+                    }
                 }
             }
             .padding(.bottom, 40)

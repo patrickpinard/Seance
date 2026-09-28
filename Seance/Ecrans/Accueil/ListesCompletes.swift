@@ -10,7 +10,7 @@ import SwiftUI
 struct DuMomentView: View {
     var plateformes: [Int]?
     var choixPlateformes = false
-    @State private var type: TypeTitre?
+    @State private var typeChoisi: TypeTitre?
     @State private var plateformeChoisie: Int?
     @State private var liste = ListePaginee()
     @Query(filter: #Predicate<Abonnement> { $0.actif }, sort: \Abonnement.nom) private var abonnements: [Abonnement]
@@ -20,6 +20,9 @@ struct DuMomentView: View {
     @AppStorage(PasInteresse.cle) private var pasInteresse = ""
 
     @Environment(EtatApp.self) private var etat
+
+    /// Dans Regarder › Streaming (8.6), Films et Séries sont les pastilles à côté de « Filtres » ; ailleurs, le sélecteur.
+    private var type: TypeTitre? { choixPlateformes ? etat.typeRegarder : typeChoisi }
 
     /// Les plateformes interrogées : celle de la puce, sinon toutes celles cochées.
     private var plateformesRetenues: [Int]? {
@@ -48,8 +51,10 @@ struct DuMomentView: View {
                 }
                 .scrollClipDisabled()
             }
-            SelecteurCases(selection: $type, cases: [.init(valeur: TypeTitre?.none, nom: "Tout"), .init(valeur: TypeTitre?.some(.film), nom: "Films"),
-                                                     .init(valeur: TypeTitre?.some(.serie), nom: "Séries et épisodes")])
+            if !choixPlateformes {
+                SelecteurCases(selection: $typeChoisi, cases: [.init(valeur: TypeTitre?.none, nom: "Tout"), .init(valeur: TypeTitre?.some(.film), nom: "Films"),
+                                                               .init(valeur: TypeTitre?.some(.serie), nom: "Séries et épisodes")])
+            }
         } chargerSuite: {
             await chargerSuite()
         }
@@ -127,6 +132,8 @@ private struct GrillePaginee<Entete: View>: View {
     let chargerSuite: () async -> Void
 
     @Environment(\.horizontalSizeClass) private var largeurGrille
+    /// Cartes ou liste (8.6), le même choix sur toutes les pages de titres.
+    @AppStorage(VueTitres.cle) private var enListe = false
     /// Affiches plus grandes sur le Mac : 105 points y feraient des timbres-poste.
     private var colonnes: [GridItem] {
         CarteLargeTitre.colonnes
@@ -136,18 +143,31 @@ private struct GrillePaginee<Entete: View>: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 entete
-                LazyVGrid(columns: colonnes, spacing: 18) {
-                    ForEach(liste.titres.filter { !ecartes.contains($0.reference) }) { titre in
-                        NavigationLink(value: titre.reference) {
-                            CarteLargeTitre(titre, accroche: sousTitre(titre))
-                        }
-                        .buttonStyle(.plain)
-                        .actionsRapides(titre)
-                        .onAppear {
-                            // Le dernier titre montré, écartés compris : sinon la suite ne se chargeait plus.
-                            if titre.reference == liste.titres.last(where: { !ecartes.contains($0.reference) })?.reference {
-                                Task { await chargerSuite() }
+                HStack {
+                    Spacer()
+                    BasculeGrilleListe(enGrille: Binding { !enListe } set: { enListe = !$0 })
+                }
+                let titres = liste.titres.filter { !ecartes.contains($0.reference) }
+                if enListe {
+                    LazyVStack(spacing: 10) {
+                        ForEach(titres) { titre in
+                            NavigationLink(value: titre.reference) {
+                                LigneTitreListe(titre: titre, detail: sousTitre(titre))
                             }
+                            .buttonStyle(.plain)
+                            .actionsRapides(titre)
+                            .onAppear { suite(apres: titre, parmi: titres) }
+                        }
+                    }
+                } else {
+                    LazyVGrid(columns: colonnes, spacing: 18) {
+                        ForEach(titres) { titre in
+                            NavigationLink(value: titre.reference) {
+                                CarteLargeTitre(titre, accroche: sousTitre(titre))
+                            }
+                            .buttonStyle(.plain)
+                            .actionsRapides(titre)
+                            .onAppear { suite(apres: titre, parmi: titres) }
                         }
                     }
                 }
@@ -160,5 +180,10 @@ private struct GrillePaginee<Entete: View>: View {
             .padding(20)
         }
         .background(Theme.fond)
+    }
+
+    /// Le dernier titre montré, écartés compris : sinon la suite ne se chargeait plus.
+    private func suite(apres titre: TitreResume, parmi titres: [TitreResume]) {
+        if titre.reference == titres.last?.reference { Task { await chargerSuite() } }
     }
 }
