@@ -80,6 +80,7 @@
 		5201A683F4BAF8E078552DF1 /* JournalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF2549F1AAD117B2DFF94C9B /* JournalView.swift */; };
 		541D879467869F9C53C59BCB /* ConteneurApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B45A4AC641661F7B7945EAF9 /* ConteneurApp.swift */; };
 		54F323CA789B8DA3749B81CB /* FicheDefilementTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C27D46355FD45FE0B6BCD9F /* FicheDefilementTests.swift */; };
+		55F464C74F7940AA67AC3E5D /* GlissementTelecommande.swift in Sources */ = {isa = PBXBuildFile; fileRef = 767BD5C5F99D6287A874FD59 /* GlissementTelecommande.swift */; };
 		5822EFB706F1948FB9E5038C /* Plantages.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4DEA4FCF6726B8F96639320 /* Plantages.swift */; };
 		58E3413AD4CBC28D1ED802AB /* BandeAnnonceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37C7B9F1A78F1017567D37D0 /* BandeAnnonceTests.swift */; };
 		591CF02849D1BB825A3BD08B /* Filtres.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBCCC2C7EB557DC82B0A231D /* Filtres.swift */; };
@@ -378,6 +379,7 @@
 		6FE5FAE7056200B9B02ED4C7 /* VideosPersoTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideosPersoTests.swift; sourceTree = "<group>"; };
 		701BB30E177402C310C6B51C /* ProfilView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfilView.swift; sourceTree = "<group>"; };
 		70E5C0C6A6037BEC6D806F5F /* SeanceWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeanceWidget.swift; sourceTree = "<group>"; };
+		767BD5C5F99D6287A874FD59 /* GlissementTelecommande.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlissementTelecommande.swift; sourceTree = "<group>"; };
 		76E95955E82BF0843BEFC076 /* TeleTV.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TeleTV.swift; sourceTree = "<group>"; };
 		7788E5AF973E89FC76F574C6 /* SeanceUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = SeanceUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		7B0BBB17CE85F8FC16F4470B /* EnvoiAppleTV.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnvoiAppleTV.swift; sourceTree = "<group>"; };
@@ -757,6 +759,7 @@
 				0A301A4B4AB1816D72C3C693 /* CarteReglageTV.swift */,
 				540314EE6294B3465B1CB83B /* ComposantsTV.swift */,
 				7C7A078473F674DE5D855194 /* FondTV.swift */,
+				767BD5C5F99D6287A874FD59 /* GlissementTelecommande.swift */,
 				E8C7895F09DBDD48755EC03B /* ReglagesComposantsTV.swift */,
 			);
 			path = Design;
@@ -1190,6 +1193,7 @@
 				3ACD7AF63174915B43570296 /* FauxTMDB.swift in Sources */,
 				8F8CD3C44264D47470182C69 /* FicheTV.swift in Sources */,
 				CF9E1E93D06F26359CB61324 /* FondTV.swift in Sources */,
+				55F464C74F7940AA67AC3E5D /* GlissementTelecommande.swift in Sources */,
 				A20B5278C747684EFA588D6E /* IdentificationTV.swift in Sources */,
 				A8D872DFC40F62A8ED3416AB /* LecteurVLCTV.swift in Sources */,
 				5DDD07F40FFE3335AC49B8AF /* ListesTV.swift in Sources */,
@@ -1594,7 +1598,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 92;
+				CURRENT_PROJECT_VERSION = 93;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = GATK475J3P;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -1715,7 +1719,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 92;
+				CURRENT_PROJECT_VERSION = 93;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = GATK475J3P;
 				ENABLE_NS_ASSERTIONS = NO;

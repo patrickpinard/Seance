@@ -28,6 +28,7 @@ struct AccueilTV: View {
     @FocusState private var boutonHero: BoutonHero?
     /// Le sens du dernier défilement, pour que l'image glisse du bon côté.
     @State private var versLaDroite = true
+    @State private var dernierDefilement = Date.distantPast
     private enum BoutonHero: Hashable { case lecture, infos }
     /// Combien de propositions défilent (8.6) : le réglage des Préférences de l'iPhone, reçu par la synchronisation.
     @AppStorage(NombrePropositions.cle) private var nombrePropositions = NombrePropositions.parDefaut
@@ -93,17 +94,30 @@ struct AccueilTV: View {
                 // proposition garde toute la largeur.
                 let nouveautes = nouveautes(sauf: proposition?.reference)
                 if !nouveautes.isEmpty {
-                    EtagereTV(titre: "Nouveautés", sousTitre: "Sorties et nouveaux épisodes sur tes plateformes, les plus récents d'abord",
+                    EtagereTV(titre: "Nouveautés", sousTitre: "Sorties et nouveaux épisodes sur tes plateformes, les plus populaires d'abord",
                               toutVoir: { etat.demandeRegarder = .streaming }) {
-                        ForEach(nouveautes) { apercu in
-                            NavigationLink(value: apercu.reference) {
-                                CarteLargeTV(surtitre: origine(apercu.reference), titre: apercu.titre, detail: apercu.sousTitre,
-                                             cheminImage: apercu.cheminFond ?? apercu.cheminAffiche, marque: marque(apercu.reference),
-                                             largeur: CarteLargeTV.largeurGrille, reference: apercu.reference)
+                        ForEach(Array(nouveautes.enumerated()), id: \.element.id) { index, apercu in
+                            // Le classement par popularité, en grand chiffre à côté de la carte (8.6, comme Netflix) —
+                            // hors du bouton, pour que le cadre du focus n'entoure que la carte.
+                            HStack(alignment: .bottom, spacing: -18) {
+                                if index < 10 {
+                                    Text("\(index + 1)")
+                                        .font(Theme.chiffreClassementTV)
+                                        .foregroundStyle(Theme.fond)
+                                        .shadow(color: Theme.texte2, radius: 0, x: 3, y: 3)
+                                        .shadow(color: Theme.texte2, radius: 0, x: -3, y: -3)
+                                        .offset(y: 34)
+                                        .accessibilityHidden(true)
+                                }
+                                NavigationLink(value: apercu.reference) {
+                                    CarteLargeTV(surtitre: origine(apercu.reference), titre: apercu.titre, detail: apercu.sousTitre,
+                                                 cheminImage: apercu.cheminFond ?? apercu.cheminAffiche, marque: marque(apercu.reference),
+                                                 largeur: CarteLargeTV.largeurGrille, reference: apercu.reference)
+                                }
+                                .buttonStyle(.card)
+                                .menuCarteTV(apercu.reference, titre: apercu.titre, cheminAffiche: apercu.cheminAffiche)
+                                .task(id: apercu.reference) { etat.ou.demander(apercu.reference, client: etat.tmdb) }
                             }
-                            .buttonStyle(.card)
-                            .menuCarteTV(apercu.reference, titre: apercu.titre, cheminAffiche: apercu.cheminAffiche)
-                            .task(id: apercu.reference) { etat.ou.demander(apercu.reference, client: etat.tmdb) }
                         }
                     }
                 }
@@ -216,13 +230,16 @@ struct AccueilTV: View {
                         .transition(.push(from: versLaDroite ? .trailing : .leading))
                         .frame(height: 1080)
                         .overlay {
-                            // Deux dégradés : du bas vers les étagères, et de la gauche vers le texte.
+                            // De la gauche vers le texte, et un voile en bas pour la lisibilité.
                             ZStack {
-                                LinearGradient(stops: [.init(color: .clear, location: 0), .init(color: .black.opacity(0.35), location: 0.55),
-                                                       .init(color: Theme.fond.opacity(0.9), location: 1)], startPoint: .top, endPoint: .bottom)
+                                LinearGradient(stops: [.init(color: .clear, location: 0), .init(color: .black.opacity(0.35), location: 0.6),
+                                                       .init(color: .black.opacity(0.5), location: 1)], startPoint: .top, endPoint: .bottom)
                                 LinearGradient(colors: [.black.opacity(0.8), .clear], startPoint: .leading, endPoint: .center)
                             }
                         }
+                        // 8.6 : l'image se fond dans le fond de la page, sans ligne nette sous la proposition.
+                        .mask(LinearGradient(stops: [.init(color: .black, location: 0), .init(color: .black, location: 0.7),
+                                                     .init(color: .clear, location: 1)], startPoint: .top, endPoint: .bottom))
                         .ignoresSafeArea()
                 }
             HStack(alignment: .bottom, spacing: 60) {
@@ -286,6 +303,18 @@ struct AccueilTV: View {
                 .focusSection()
                 // En descendant du menu, le focus arrive sur « Lecture », pas sur le bouton le plus proche.
                 .defaultFocus($boutonHero, .lecture)
+                // Un glissement du doigt sur la télécommande fait défiler (8.6, comme Netflix), quand le focus est sur la
+                // proposition ; le bouton choisi reste le même.
+                .background {
+                    GlissementTelecommande { pas in
+                        guard let bouton = boutonHero else { return }
+                        defiler(de: pas)
+                        Task {
+                            try? await Task.sleep(for: .milliseconds(80))
+                            boutonHero = bouton
+                        }
+                    }
+                }
                 Spacer(minLength: 0)
                 // 8.6 (demande de Patrick) : plus de nouveautés à droite, qui cachaient l'image ; elles sont en étagère dessous.
             }
@@ -360,7 +389,9 @@ struct AccueilTV: View {
 
     /// Passe à la proposition précédente ou suivante, l'image glissant dans le sens du geste.
     private func defiler(de pas: Int) {
-        guard propositions.count > 1 else { return }
+        // Un glissement sur un bouton du bord arrive aussi comme appui : deux défilements rapprochés n'en font qu'un.
+        guard propositions.count > 1, Date.now.timeIntervalSince(dernierDefilement) > 0.4 else { return }
+        dernierDefilement = .now
         versLaDroite = pas > 0
         withAnimation(.easeInOut(duration: 0.45)) { rang = (rang + pas + propositions.count) % propositions.count }
     }
@@ -374,7 +405,8 @@ struct AccueilTV: View {
     /// Les trois nouveautés du panneau, les plus récentes d'abord, sans les titres écartés ni celui de la proposition.
     private func nouveautes(sauf reference: ReferenceTitre?) -> [ApercuTV] {
         let ecartes = ecartes
-        return Array(duMoment.recentsDAbord(\.date).filter { !ecartes.contains($0.reference) && $0.reference != reference }.prefix(20))
+        // 8.6 : par popularité, comme sur l'iPhone — les dix premières portent leur rang.
+        return Array(duMoment.sorted { $0.popularite > $1.popularite }.filter { !ecartes.contains($0.reference) && $0.reference != reference }.prefix(20))
     }
 
     /// « Prévu ce soir · Sur ton NAS », « Ce soir, pour toi · Netflix ».

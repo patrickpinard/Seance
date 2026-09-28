@@ -20,6 +20,10 @@ enum Theme {
     /// Texte : titres et contenu, puis faits et légendes, puis ce qui est désactivé.
     static let texte = Color.white
     static let texte2 = Color(red: 0.63, green: 0.63, blue: 0.67)
+    /// Le grand chiffre du classement des Nouveautés (8.6, comme Netflix), à gauche de la carte : décoratif, donc hors
+    /// des styles du système — VoiceOver lit le rang dans le nom de la carte.
+    static let chiffreClassement = Font.system(size: 104, weight: .black, design: .rounded)
+    static let chiffreClassementTV = Font.system(size: 200, weight: .black, design: .rounded)
     static let texte3 = Color(red: 0.42, green: 0.42, blue: 0.46)
     /// « Vu », « en ordre ».
     static let vert = Color(red: 0.204, green: 0.78, blue: 0.349)

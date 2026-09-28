@@ -55,5 +55,10 @@ final class CarrouselTVTests: XCTestCase {
         telecommande.press(.left); Thread.sleep(forTimeInterval: 1.2)
         XCTAssertEqual(position, depart, "Gauche sur « Lecture » ne revient pas à la proposition précédente")
         capture("carrousel-tv-3")
+        // Plus bas, les Nouveautés numérotées par popularité (8.6).
+        for _ in 0..<3 {
+            telecommande.press(.down); Thread.sleep(forTimeInterval: 0.9)
+        }
+        capture("nouveautes-tv")
     }
 }

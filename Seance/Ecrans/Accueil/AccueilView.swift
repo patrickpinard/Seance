@@ -377,7 +377,7 @@ struct AccueilView: View {
                             TitreSection(titre: "Nouveautés") {
                                 BoutonToutVoir { chemin.append(DestinationAccueil.duMoment(plateformes: plateformes)) }
                             }
-                            Carrousel(titres: titres) { modele.sousTitre($0) }
+                            Carrousel(titres: titres, numerote: true) { modele.sousTitre($0) }
                         }
                     }
                 }
@@ -510,8 +510,9 @@ struct AccueilView: View {
     }
 
     /// Les nouveautés, les plus récentes d'abord, sans les titres écartés ni celui de la proposition.
+    /// 8.6 (demande de Patrick) : par popularité, l'ordre de TMDB, et numérotées de 1 à 10 comme sur Netflix.
     private func nouveautes(sauf reference: ReferenceTitre?) -> [TitreResume] {
-        proposables(modele.duMoment).recentsDAbord(\.date).filter { $0.reference != reference }
+        proposables(modele.duMoment).filter { $0.reference != reference }
     }
 
     /// Le même classement que « Suggestions pour ce soir » : ton profil de goûts, sans Claude, douze titres.
@@ -743,17 +744,31 @@ private struct SectionRegardable: View {
 
 private struct Carrousel: View {
     let titres: [TitreResume]
+    /// Un grand chiffre à gauche des dix premières cartes (8.6, comme Netflix) : le classement par popularité.
+    var numerote = false
     /// Ligne sous le titre à la place de l'année, par exemple la date de sortie.
     var sousTitre: (TitreResume) -> String? = { _ in nil }
 
     var body: some View {
         DefilementHorizontal {
             LazyHStack(alignment: .top, spacing: 12) {
-                ForEach(titres) { titre in
+                ForEach(Array(titres.enumerated()), id: \.element.id) { index, titre in
                     NavigationLink(value: titre.reference) {
-                        CarteLargeTitre(titre, accroche: sousTitre(titre)).frame(width: CarteLargeTitre.largeur)
+                        HStack(alignment: .bottom, spacing: -12) {
+                            if numerote, index < 10 {
+                                Text("\(index + 1)")
+                                    .font(Theme.chiffreClassement)
+                                    .foregroundStyle(Theme.fond)
+                                    .shadow(color: Theme.texte2, radius: 0, x: 1.5, y: 1.5)
+                                    .shadow(color: Theme.texte2, radius: 0, x: -1.5, y: -1.5)
+                                    .offset(y: 14)
+                                    .accessibilityHidden(true)
+                            }
+                            CarteLargeTitre(titre, accroche: sousTitre(titre)).frame(width: CarteLargeTitre.largeur)
+                        }
                     }
                     .buttonStyle(.plain)
+                    .accessibilityLabel(numerote && index < 10 ? "Numéro \(index + 1) : \(titre.titre)" : titre.titre)
                     .actionsRapides(titre)
                 }
             }
