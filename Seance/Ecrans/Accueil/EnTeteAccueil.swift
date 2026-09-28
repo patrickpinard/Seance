@@ -35,7 +35,6 @@ struct EnTeteAccueil: View {
 
     @Environment(EtatApp.self) private var etat
     @Environment(\.horizontalSizeClass) private var classe
-    @State private var survol = false
 
     /// L'iPad et le Mac : le grand titre, et les boutons côte à côte.
     private var large: Bool { classe == .regular }
@@ -55,12 +54,8 @@ struct EnTeteAccueil: View {
             if !nouveautes.isEmpty {
                 panneau.frame(width: 380).padding(.trailing, 32).padding(.bottom, 8)
             }
-            #if targetEnvironment(macCatalyst)
-            if propositions.count > 1, survol { fleches }
-            #endif
         }
         .frame(height: hauteur)
-        .onHover { survol = $0 }
         .task(id: propositions.map(\.reference)) {
             for proposition in propositions { etat.ou.demander(proposition.reference, client: etat.tmdb) }
             await etat.decors.charger(propositions.map(\.reference), client: etat.tmdb)
@@ -135,8 +130,26 @@ struct EnTeteAccueil: View {
         .accessibilityElement(children: .contain)
     }
 
-    /// Où l'on en est : un point par proposition, la montrée allongée.
+    /// Où l'on en est : un point par proposition, la montrée allongée. Sur le Mac (8.6), une flèche de chaque côté —
+    /// posées sur l'image, elles perdaient le clic au profit de la fiche.
     private var points: some View {
+        HStack(spacing: 10) {
+            #if targetEnvironment(macCatalyst)
+            Button { aller(de: -1) } label: { Image(systemName: "chevron.left") }
+                .buttonStyle(StyleBoutonRond())
+                .accessibilityLabel("Proposition précédente")
+            #endif
+            pastilles
+            #if targetEnvironment(macCatalyst)
+            Button { aller(de: 1) } label: { Image(systemName: "chevron.right") }
+                .buttonStyle(StyleBoutonRond())
+                .accessibilityLabel("Proposition suivante")
+            #endif
+        }
+        .frame(maxWidth: large ? nil : .infinity, alignment: large ? .leading : .center)
+    }
+
+    private var pastilles: some View {
         HStack(spacing: 6) {
             ForEach(propositions.indices, id: \.self) { index in
                 Capsule()
@@ -147,7 +160,6 @@ struct EnTeteAccueil: View {
         // 44 points de haut : VoiceOver y fait défiler les propositions (balayage vers le haut ou le bas).
         .frame(minWidth: 44, minHeight: 44)
         .contentShape(Rectangle())
-        .frame(maxWidth: large ? nil : .infinity, alignment: large ? .leading : .center)
         .animation(.snappy, value: rang)
         .accessibilityElement()
         .accessibilityLabel("Proposition \(rang + 1) sur \(propositions.count)")
@@ -158,21 +170,6 @@ struct EnTeteAccueil: View {
             @unknown default: break
             }
         }
-    }
-
-    /// Sur le Mac, au survol : la précédente et la suivante.
-    private var fleches: some View {
-        HStack {
-            Button { aller(de: -1) } label: { Image(systemName: "chevron.left") }
-                .accessibilityLabel("Proposition précédente")
-            Spacer()
-            Button { aller(de: 1) } label: { Image(systemName: "chevron.right") }
-                .accessibilityLabel("Proposition suivante")
-        }
-        .buttonStyle(StyleBoutonRond())
-        .padding(.horizontal, 12)
-        .padding(.trailing, nouveautes.isEmpty ? 0 : 400)
-        .frame(maxHeight: .infinity)
     }
 
     private func aller(de pas: Int) {
