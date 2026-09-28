@@ -56,11 +56,11 @@ struct RegarderTV: View {
             LazyVStack(alignment: .leading, spacing: 44) {
                 // Maquette 8.0 : les jours à gauche et les sources à droite, sur une ligne ; sans jour (Streaming, NAS),
                 // les sources à gauche.
+                // 8.6 (demande de Patrick) : les jours pour toutes les sources, comme sur l'iPhone.
                 HStack(alignment: .center, spacing: 20) {
-                    if source.suitLeJour { rangeeDeJours.focusSection() }
-                    if source.suitLeJour { Spacer(minLength: 20) }
+                    rangeeDeJours.focusSection()
+                    Spacer(minLength: 20)
                     pastilles.fixedSize().focusSection()
-                    if !source.suitLeJour { Spacer(minLength: 0) }
                 }
                 .padding(.horizontal, MargesTV.bord)
                 switch source {

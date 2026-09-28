@@ -88,12 +88,11 @@ struct RegarderView: View {
                 .environment(\.dansRegarder, true)
                 .safeAreaInset(edge: .top, spacing: 0) {
                     VStack(alignment: .leading, spacing: 6) {
-                        // 8.4 (bilan du 28.09.2026) : les jours seulement pour Tout et TV, qui en dépendent — comme sur
-                        // l'Apple TV. Sur Streaming et le NAS, « Un autre soir… » du menu d'un titre prévoit un autre jour.
-                        if etat.sourceRegarder.suitLeJour {
-                            BandeSoirees(jour: Binding { jour } set: { etat.jourRegarder = $0 == aujourdhui ? nil : $0 },
-                                         aujourdhui: aujourdhui, prevus: prevus)
-                        }
+                        // Toujours là, pour toutes les sources (8.6, demande de Patrick) : sur Streaming et le NAS, le jour
+                        // choisi est celui où l'appui long (« Prévoir pour … ») range le titre ; Tout et TV le suivent aussi
+                        // pour leur contenu. La 8.5 l'avait caché hors de Tout et TV.
+                        BandeSoirees(jour: Binding { jour } set: { etat.jourRegarder = $0 == aujourdhui ? nil : $0 },
+                                     aujourdhui: aujourdhui, prevus: prevus)
                         if !etat.sourceRegarder.suitLeJour, let choisi = etat.jourRegarder {
                             Label("Pour \(LibelleSoiree.jour(choisi).lowercased()) : appui long sur un titre › « Prévoir pour ce soir-là »",
                                   systemImage: "calendar.badge.plus")
