@@ -129,7 +129,7 @@ struct EnTeteAccueil: View {
                     .accessibilityHidden(true)
             }
             boutons(proposition).padding(.top, 12)
-            if propositions.count > 1 { points.padding(.top, 6) }
+            if propositions.count > 1 { points }
         }
         .foregroundStyle(Theme.texte)
         .accessibilityElement(children: .contain)
@@ -144,6 +144,9 @@ struct EnTeteAccueil: View {
                     .frame(width: index == rang ? 18 : 6, height: 6)
             }
         }
+        // 44 points de haut : VoiceOver y fait défiler les propositions (balayage vers le haut ou le bas).
+        .frame(minWidth: 44, minHeight: 44)
+        .contentShape(Rectangle())
         .frame(maxWidth: large ? nil : .infinity, alignment: large ? .leading : .center)
         .animation(.snappy, value: rang)
         .accessibilityElement()
