@@ -379,7 +379,7 @@ struct FicheTV: View {
             Text("Où regarder").font(.system(size: 38, weight: .bold))
             if let fichier = siens.first {
                 Label(["Sur ton NAS", fichier.qualite].compactMap { $0 }.joined(separator: " · "), systemImage: "externaldrive.fill")
-                    .font(.system(size: 28, weight: .semibold)).foregroundStyle(Theme.accentClair)
+                    .font(.system(size: 28, weight: .semibold)).foregroundStyle(Theme.texte)
             }
             if !plateformesIncluses.isEmpty {
                 VStack(alignment: .leading, spacing: 10) {
@@ -485,18 +485,26 @@ struct FicheTV: View {
         // les vus sont éteints, avec « Vu ». Un clic lit l'épisode s'il est sur le NAS, sinon le coche ; l'appui long
         // propose les deux.
         return VStack(alignment: .leading, spacing: 20) {
-            HStack(alignment: .center, spacing: 18) {
-                Text("Épisodes").font(.system(size: 38, weight: .bold))
-                if liste.count > 1 {
-                    ForEach(liste, id: \.numero) { saison in
-                        Button("Saison \(saison.numero)") { saisonChoisie = saison.numero }
-                            .buttonStyle(BoutonTV(principal: (saisonAffichee ?? 1) == saison.numero, hauteur: 52))
-                    }
-                }
+            HStack(alignment: .firstTextBaseline, spacing: 18) {
+                Text("Épisodes").font(.system(size: 38, weight: .bold)).fixedSize()
                 Spacer()
                 Text("\(vus.count) \(vus.count > 1 ? "vus" : "vu") sur \(total)").font(.system(size: 24)).foregroundStyle(Theme.texte2)
             }
-            .focusSection()
+            // 8.7 : les saisons sur leur propre ligne, qui défile — huit saisons à côté du titre se tronquaient en « Sai… ».
+            if liste.count > 1 {
+                ScrollView(.horizontal) {
+                    HStack(spacing: 18) {
+                        ForEach(liste, id: \.numero) { saison in
+                            Button("Saison \(saison.numero)") { saisonChoisie = saison.numero }
+                                .buttonStyle(BoutonTV(principal: (saisonAffichee ?? 1) == saison.numero, hauteur: 52))
+                                .fixedSize()
+                        }
+                    }
+                    .padding(.vertical, 12)
+                }
+                .scrollClipDisabled()
+                .focusSection()
+            }
             if let numero = saisonAffichee, let saison = saisons[numero] {
                 ScrollView(.horizontal) {
                     LazyHStack(spacing: 30) {

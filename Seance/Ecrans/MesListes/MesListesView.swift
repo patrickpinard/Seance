@@ -197,31 +197,6 @@ struct MesListesView: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
-            } else if !titresAffiches(.termine).isEmpty {
-                // Action destructive rangée dans un menu : rouge seulement dans la confirmation.
-                Menu {
-                    Button(role: .destructive) { confirmerToutSupprimer = true } label: {
-                        Label("Tout supprimer", systemImage: "trash")
-                    }
-                } label: {
-                    Image(systemName: "ellipsis.circle")
-                        .font(.title3)
-                        .foregroundStyle(Theme.accentClair)
-                }
-                .help("Supprimer tous les titres terminés de la liste")
-                .confirmationDialog("Supprimer les \(titresAffiches(.termine).count) titres terminés ?",
-                                    isPresented: $confirmerToutSupprimer, titleVisibility: .visible) {
-                    Button("Tout supprimer", role: .destructive) {
-                        let supprimes = titresAffiches(.termine)
-                        try? ServiceSuivi(contexte: contexte).supprimerDesTermines(supprimes)
-                        etat.confirmer("\(Format.pluriel(supprimes.count, "titre supprimé", "titres supprimés")) des terminés", symbole: "trash") { [contexte] in
-                            supprimes.forEach { $0.masque = false }
-                            contexte.sauver()
-                        }
-                    }
-                } message: {
-                    Text("Ils quittent la liste. Ce que tu as vu, tes notes et tes statistiques restent, et ils ne te seront pas reproposés.")
-                }
             }
             if chargementInfos {
                 ProgressView().controlSize(.small)
@@ -235,6 +210,14 @@ struct MesListesView: View {
                         } else {
                             Text(choix.rawValue)
                         }
+                    }
+                }
+                // 8.7 : « Tout supprimer » des terminés, rangé ici plutôt que dans un « ⋯ » orange isolé à gauche ;
+                // rouge seulement dans la confirmation.
+                if statut == .termine, !titresAffiches(.termine).isEmpty {
+                    Divider()
+                    Button(role: .destructive) { confirmerToutSupprimer = true } label: {
+                        Label("Tout supprimer", systemImage: "trash")
                     }
                 }
             } label: {
@@ -253,6 +236,19 @@ struct MesListesView: View {
             .tint(Theme.accentClair)
             .accessibilityLabel("Trier : \(tri.rawValue)")
             BasculeGrilleListe(enGrille: $enGrille)
+        }
+        .confirmationDialog("Supprimer les \(titresAffiches(.termine).count) titres terminés ?",
+                            isPresented: $confirmerToutSupprimer, titleVisibility: .visible) {
+            Button("Tout supprimer", role: .destructive) {
+                let supprimes = titresAffiches(.termine)
+                try? ServiceSuivi(contexte: contexte).supprimerDesTermines(supprimes)
+                etat.confirmer("\(Format.pluriel(supprimes.count, "titre supprimé", "titres supprimés")) des terminés", symbole: "trash") { [contexte] in
+                    supprimes.forEach { $0.masque = false }
+                    contexte.sauver()
+                }
+            }
+        } message: {
+            Text("Ils quittent la liste. Ce que tu as vu, tes notes et tes statistiques restent, et ils ne te seront pas reproposés.")
         }
         .listRowBackground(Color.clear)
         .listRowSeparator(.hidden)

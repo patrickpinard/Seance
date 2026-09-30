@@ -5,38 +5,7 @@ import SwiftUI
 
 // « À venir » dans l'esprit du programme TV : une rangée de jours, et chaque rendez-vous en grande carte.
 
-/// « ÉPISODE », « SAISON », « SORTIE », « TÉLÉ » : ce qui arrive, lisible sur une image.
-private struct PastilleNature: View {
-    let nature: EcheancePrevue.Nature
-
-    private var texte: String {
-        switch nature {
-        case .episode: "ÉPISODE"
-        case .saison: "SAISON"
-        case .sortie: "SORTIE"
-        case .tele: "TV"
-        }
-    }
-
-    private var symbole: String {
-        switch nature {
-        case .episode: "play.tv"
-        case .saison: "sparkles.tv"
-        case .sortie: "film"
-        case .tele: "tv"
-        }
-    }
-
-    var body: some View {
-        Label(texte, systemImage: symbole)
-            .font(.caption2.weight(.black))
-            .padding(.horizontal, 7).padding(.vertical, 4)
-            .background(.black.opacity(0.65), in: Capsule())
-            .foregroundStyle(.white)
-    }
-}
-
-/// Un rendez-vous : l'image du titre, ce qui arrive, et sa date en grand comme l'heure d'un passage TV.
+/// Un rendez-vous : ce qui arrive, et quand.
 struct CarteEcheance: View {
     let echeance: Echeance
     let decor: EtatDecors.Decor?
@@ -61,62 +30,13 @@ struct CarteEcheance: View {
         return texte.prefix(1).uppercased() + texte.dropFirst()
     }
 
+    /// 8.7 : la carte commune de la charte (ligne d'origine, titre, ▶︎), comme sur l'Apple TV — plus de badge orange
+    /// « AUJOURD'HUI », de contour orange ni de pastilles ; la date et le compte à rebours sont dans la ligne d'origine.
     var body: some View {
         NavigationLink(value: echeance.reference) {
-            Color.clear
-                .aspectRatio(16 / 9, contentMode: .fit)
-                .overlay { ImageDistante(url: ImageTMDB.url(decor?.fond, .fond) ?? ImageTMDB.url(echeance.cheminAffiche, .fond), coins: 0) }
-                .overlay {
-                    LinearGradient(stops: [.init(color: .black.opacity(0.45), location: 0), .init(color: .clear, location: 0.35),
-                                           .init(color: .black.opacity(0.92), location: 1)],
-                                   startPoint: .top, endPoint: .bottom)
-                }
-                .overlay(alignment: .topLeading) {
-                    HStack(spacing: 6) {
-                        PastilleNature(nature: echeance.nature)
-                        Spacer(minLength: 4)
-                        Text(compteARebours.uppercased())
-                            .font(.caption2.weight(.black))
-                            .padding(.horizontal, 8).padding(.vertical, 4)
-                            .foregroundStyle(jours < 1 ? Color.black : Color.white)
-                            .background(jours < 1 ? AnyShapeStyle(Theme.degradeAccent) : AnyShapeStyle(.black.opacity(0.65)), in: Capsule())
-                    }
-                    .padding(12)
-                }
-                .overlay(alignment: .bottomLeading) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(date)
-                            .font(.system(.title2, design: .rounded).weight(.heavy))
-                            .foregroundStyle(Theme.texte)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.8)
-                        Text(echeance.titre)
-                            .font(.headline)
-                            .lineLimit(2)
-                            .multilineTextAlignment(.leading)
-                        HStack(spacing: 7) {
-                            PastilleType(film: echeance.reference.type == .film)
-                            Text(echeance.libelle)
-                                .font(.caption)
-                                .foregroundStyle(.white.opacity(0.78))
-                                .lineLimit(1)
-                        }
-                    }
-                    .padding(12)
-                }
-                .foregroundStyle(.white)
-                .surImage()
-                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-                .overlay {
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .strokeBorder(jours < 1 ? AnyShapeStyle(Theme.degradeAccent) : AnyShapeStyle(.white.opacity(0.1)), lineWidth: jours < 1 ? 2 : 1)
-                }
-                .contentShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+            CarteLargeTitre(echeance: echeance, quand: "\(date) · \(compteARebours.lowercased())")
         }
         .buttonStyle(.plain)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(echeance.titre), \(echeance.libelle), \(date), \(compteARebours.lowercased())")
-        .accessibilityAddTraits(.isButton)
     }
 }
 

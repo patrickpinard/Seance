@@ -290,10 +290,10 @@ private struct CarteHeures: View {
                 let part = bilan.minutesTotales == 0 ? 0 : CGFloat(bilan.minutesFilms) / CGFloat(bilan.minutesTotales)
                 HStack(spacing: 3) {
                     if bilan.minutesFilms > 0 {
-                        Capsule().fill(Theme.accent).frame(width: max(8, (geo.size.width - 3) * part))
+                        Capsule().fill(Theme.texte).frame(width: max(8, (geo.size.width - 3) * part))
                     }
                     if bilan.minutesSeries > 0 {
-                        Capsule().fill(Color.teal)
+                        Capsule().fill(Theme.texte3)
                     }
                 }
             }
@@ -301,9 +301,9 @@ private struct CarteHeures: View {
             .accessibilityHidden(true)
 
             HStack(alignment: .top) {
-                repartition("Films", couleur: Theme.accent, minutes: bilan.minutesFilms, detail: Format.pluriel(bilan.nombreFilms, "film"))
+                repartition("Films", couleur: Theme.texte, minutes: bilan.minutesFilms, detail: Format.pluriel(bilan.nombreFilms, "film"))
                 Spacer()
-                repartition("Séries", couleur: .teal, minutes: bilan.minutesSeries, detail: Format.pluriel(bilan.nombreEpisodes, "épisode"))
+                repartition("Séries", couleur: Theme.texte3, minutes: bilan.minutesSeries, detail: Format.pluriel(bilan.nombreEpisodes, "épisode"))
             }
         }
         .padding(18)
@@ -398,7 +398,7 @@ private struct ClassementActeurs: View {
                 let contenu = HStack(spacing: 12) {
                     Text("\(rang + 1)")
                         .font(.headline.monospacedDigit())
-                        .foregroundStyle(rang == 0 ? Theme.accent : .secondary)
+                        .foregroundStyle(rang == 0 ? Theme.texte : .secondary)
                         .frame(width: 30, alignment: .trailing)
                         .lineLimit(1)
                     Text(acteur.cle.nom).font(.body.weight(rang == 0 ? .semibold : .regular)).lineLimit(1)
@@ -439,7 +439,8 @@ private struct ClassementGenres: View {
                     GeometryReader { geo in
                         Capsule().fill(Theme.surface)
                             .overlay(alignment: .leading) {
-                                Capsule().fill(Theme.degradeAccent)
+                                // Charte 8.0 : les barres de statistiques en blanc, l'orange est pour ce qui se touche.
+                                Capsule().fill(Theme.texte)
                                     .frame(width: geo.size.width * CGFloat(genre.nombreTitres) / CGFloat(maximum))
                             }
                     }
