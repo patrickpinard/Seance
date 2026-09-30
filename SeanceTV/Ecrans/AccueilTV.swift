@@ -36,6 +36,11 @@ struct AccueilTV: View {
     /// pour ce soir »), à la place de l'étagère.
     @State private var suggestions: [SuggestionClassee] = []
     private var ecartes: Set<ReferenceTitre> { Set(suivisEcartes.map(\.reference)).union(PasInteresse.references(pasInteresse)) }
+    /// « Pas ce genre » (8.7), comme sur l'iPhone : ces genres quittent tout l'accueil.
+    @Query(filter: #Predicate<Interet> { $0.poids < 0 }) private var interetsNegatifs: [Interet]
+    private var genresEcartes: Set<Int> { Set(interetsNegatifs.compactMap(\.genreID)) }
+    /// Tes goûts, pour ranger le top de l'année dans la proposition (8.7).
+    @State private var profil: ProfilGouts?
     @State private var top: [ApercuTV] = []
     @State private var configuration = false
     /// Images de fond des titres de la soirée, lues sur TMDB quand le NAS ne les connaît pas.
@@ -195,12 +200,19 @@ struct AccueilTV: View {
             guard aReprendre.count <= 1, suggestions.isEmpty else { return }
             await chargerSuggestions()
         }
+        // Un genre écarté ou repris (8.7) : tes goûts changent, les suggestions aussi.
+        .task(id: genresEcartes) {
+            profil = try? ServiceGouts(contexte: contexte).profil()
+            guard !suggestions.isEmpty else { return }
+            await chargerSuggestions()
+        }
     }
 
     @ViewBuilder
     private func etagere(_ titre: String, _ sousTitre: String, _ tous: [ApercuTV]) -> some View {
         let ecartes = ecartes
-        let apercus = tous.filter { !ecartes.contains($0.reference) }
+        let genres = genresEcartes
+        let apercus = tous.filter { !ecartes.contains($0.reference) && genres.isDisjoint(with: $0.genres) }
         if !apercus.isEmpty {
             EtagereTV(titre: titre, sousTitre: sousTitre) {
                 ForEach(apercus) { apercu in
@@ -268,9 +280,7 @@ struct AccueilTV: View {
                         .focused($boutonHero, equals: .lecture)
                         // Rien à gauche de « Lecture » : gauche y fait défiler vers la précédente.
                         .onMoveCommand { if $0 == .left { defiler(de: -1) } }
-                        .contextMenu {
-                            Button { PasCeSoir.ecarter(proposition.reference) } label: { Label("Pas ce soir", systemImage: "moon.zzz") }
-                        }
+                        .contextMenu { menu(proposition) }
                         NavigationLink(value: proposition.reference) {
                             Label("Plus d'infos", systemImage: "info.circle").lineLimit(1).fixedSize()
                         }
@@ -278,9 +288,7 @@ struct AccueilTV: View {
                         .focused($boutonHero, equals: .infos)
                         // Rien à droite de « Plus d'infos » : droite y fait défiler vers la suivante.
                         .onMoveCommand { if $0 == .right { defiler(de: 1) } }
-                        .contextMenu {
-                            Button { PasCeSoir.ecarter(proposition.reference) } label: { Label("Pas ce soir", systemImage: "moon.zzz") }
-                        }
+                        .contextMenu { menu(proposition) }
                     }
                     .padding(.top, 18)
                     // Où l'on en est parmi les propositions : les points, comme sur l'iPhone.
@@ -326,6 +334,37 @@ struct AccueilTV: View {
         .task(id: proposition.reference) { etat.ou.demander(proposition.reference, client: etat.tmdb) }
     }
 
+    /// L'appui long sur la proposition : les mêmes actions que le « ⋯ » de l'iPhone (8.7) — « Pas ce soir », « Pas ce
+    /// genre », « Je n'aime pas ».
+    @ViewBuilder
+    private func menu(_ proposition: Proposition) -> some View {
+        Button { PasCeSoir.ecarter(proposition.reference) } label: { Label("Pas ce soir", systemImage: "moon.zzz") }
+        let genres = proposition.genres.compactMap { id in GenresParDefaut.noms[id].map { (id: id, nom: $0) } }
+        if !genres.isEmpty {
+            Menu {
+                ForEach(genres, id: \.id) { genre in
+                    Button(genre.nom) { try? ServiceGouts(contexte: contexte).ecarterGenre(genre.id, nom: genre.nom) }
+                }
+            } label: { Label("Pas ce genre", systemImage: "hand.thumbsdown") }
+        }
+        Button {
+            try? ServiceGouts(contexte: contexte).jamais(proposition.reference, titre: proposition.titre, genres: proposition.genres)
+        } label: { Label("Je n'aime pas", systemImage: "hand.thumbsdown") }
+    }
+
+    /// 8.7 : le top de l'année dans l'ordre de tes goûts, comme sur l'iPhone — la popularité départage.
+    private func selonTesGouts(_ apercus: [ApercuTV]) -> [ApercuTV] {
+        guard let profil, !profil.estVide else { return apercus }
+        func score(_ apercu: ApercuTV, rang: Int) -> Double {
+            let affinite = apercu.genres.isEmpty ? 0 : apercu.genres.map(profil.affinite(genre:)).reduce(0, +) / Double(apercu.genres.count)
+            return affinite - Double(rang) * 0.02
+        }
+        return apercus.enumerated()
+            .map { (apercu: $0.element, score: score($0.element, rang: $0.offset)) }
+            .sorted { $0.score > $1.score }
+            .map(\.apercu)
+    }
+
     /// Une proposition pour ce soir : un titre, d'où il vient et le bouton qui le lance.
     private struct Proposition {
         let reference: ReferenceTitre
@@ -335,6 +374,8 @@ struct AccueilTV: View {
         let cheminImage: String?
         let large: Bool
         var reprise: PositionLecture?
+        /// Pour « Pas ce genre » (8.7).
+        var genres: [Int] = []
 
         var progression: Double? { reprise?.fraction }
         /// « Reprendre à 1:03:12 » pour une vidéo entamée, sinon « Regarder » (la fiche choisit la source).
@@ -345,17 +386,23 @@ struct AccueilTV: View {
     /// puis le top de l'année. Les titres écartés, déjà vus ou « pas ce soir » n'y sont pas.
     private var propositions: [Proposition] {
         let ecartes = ecartes.union(PasCeSoir.references(pasCeSoir))
+        let genresEcartes = genresEcartes
+        let genresConnus = Dictionary(suivis.map { ($0.reference, $0.genres) }, uniquingKeysWith: { premier, _ in premier })
         var vues = Set<ReferenceTitre>()
         var liste: [Proposition] = []
-        func ajouter(_ proposition: Proposition) {
-            guard !ecartes.contains(proposition.reference), vues.insert(proposition.reference).inserted else { return }
+        /// Ce que tu as prévu ou commencé reste proposé ; le reste suit tes « Pas ce genre » (8.7).
+        func ajouter(_ proposition: Proposition, choisi: Bool = false) {
+            var proposition = proposition
+            if proposition.genres.isEmpty { proposition.genres = genresConnus[proposition.reference] ?? [] }
+            guard !ecartes.contains(proposition.reference), choisi || genresEcartes.isDisjoint(with: proposition.genres),
+                  vues.insert(proposition.reference).inserted else { return }
             liste.append(proposition)
         }
         for prevu in ceSoir {
             let fond = fichiers.first { $0.reference == prevu.reference }?.cheminFond ?? fonds[prevu.reference]
             ajouter(Proposition(reference: prevu.reference, surtitre: ligne("Prévu ce soir", prevu.reference), titre: prevu.titre,
                                 detail: prevu.reference.type == .film ? "Film" : "Série", cheminImage: fond ?? prevu.cheminAffiche,
-                                large: fond != nil, reprise: repriseDe(prevu.reference)))
+                                large: fond != nil, reprise: repriseDe(prevu.reference)), choisi: true)
         }
         for reprise in aReprendre {
             let fichier = reprise.fichier
@@ -364,7 +411,7 @@ struct AccueilTV: View {
             ajouter(Proposition(reference: reprise.reference,
                                 surtitre: ["Ce soir, pour toi", "Sur ton NAS", fichier.qualite].compactMap { $0 }.joined(separator: " · "),
                                 titre: fichier.titre, detail: detail, cheminImage: fichier.cheminFond ?? fichier.cheminAffiche,
-                                large: fichier.cheminFond != nil, reprise: reprise.position))
+                                large: fichier.cheminFond != nil, reprise: reprise.position), choisi: true)
         }
         for suivi in aVoir where surLeNAS(suivi.reference) {
             let fichier = fichiers.first { $0.reference == suivi.reference }
@@ -379,12 +426,12 @@ struct AccueilTV: View {
             ajouter(Proposition(reference: titre.reference, surtitre: ligne("D'après tes goûts", titre.reference), titre: titre.titre,
                                 detail: [titre.reference.type == .film ? "Film" : "Série", titre.date.map { String($0.annee) }]
                                     .compactMap { $0 }.joined(separator: " · "),
-                                cheminImage: titre.cheminFond ?? titre.cheminAffiche, large: titre.cheminFond != nil))
+                                cheminImage: titre.cheminFond ?? titre.cheminAffiche, large: titre.cheminFond != nil, genres: titre.genres))
         }
-        for apercu in top {
+        for apercu in selonTesGouts(top) {
             ajouter(Proposition(reference: apercu.reference, surtitre: ligne("Ce soir, pour toi", apercu.reference), titre: apercu.titre,
                                 detail: apercu.sousTitre, cheminImage: apercu.cheminFond ?? apercu.cheminAffiche,
-                                large: apercu.cheminFond != nil))
+                                large: apercu.cheminFond != nil, genres: apercu.genres))
         }
         return Array(liste.prefix(nombrePropositions))
     }
@@ -408,7 +455,9 @@ struct AccueilTV: View {
     private func nouveautes(sauf reference: ReferenceTitre?) -> [ApercuTV] {
         let ecartes = ecartes
         // 8.6 : par popularité, comme sur l'iPhone — les dix premières portent leur rang.
-        return Array(duMoment.sorted { $0.popularite > $1.popularite }.filter { !ecartes.contains($0.reference) && $0.reference != reference }.prefix(20))
+        let genres = genresEcartes
+        return Array(duMoment.sorted { $0.popularite > $1.popularite }
+            .filter { !ecartes.contains($0.reference) && genres.isDisjoint(with: $0.genres) && $0.reference != reference }.prefix(20))
     }
 
     /// « Prévu ce soir · Sur ton NAS », « Ce soir, pour toi · Netflix ».

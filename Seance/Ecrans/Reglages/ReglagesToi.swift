@@ -14,6 +14,8 @@ struct ReglagesPrenomView: View {
     /// « Je n'aime pas », « Jamais », « Ni VF ni sous-titres » : ce que Séance ne te propose plus.
     @Query(filter: #Predicate<Suivi> { $0.statutBrut == "exclu" || $0.exclusionLangue }, sort: \Suivi.titre) private var ecartes: [Suivi]
     @State private var confirmationToutReproposer = false
+    /// « Pas ce genre » (8.7), depuis la proposition de l'accueil.
+    @Query(filter: #Predicate<Interet> { $0.poids < 0 }, sort: \Interet.libelle) private var genresEcartes: [Interet]
     /// 👍 Ce que tu as dit aimer, le plus récent d'abord.
     @Query(sort: \TitreAime.aimeLe, order: .reverse) private var aimes: [TitreAime]
 
@@ -92,6 +94,26 @@ struct ReglagesPrenomView: View {
                 Text("Titres que tu aimes")
             } footer: {
                 Text("Le pouce levé d'une fiche, d'une suggestion ou d'une affiche : pas besoin d'avoir vu le titre. Séance s'en sert pour tes goûts, donc pour les suggestions du soir ; il n'ajoute rien à tes listes. La note de 1 à 10, elle, se donne après avoir regardé.")
+            }
+
+            if !genresEcartes.isEmpty {
+                Section {
+                    ForEach(genresEcartes) { interet in
+                        HStack {
+                            Text(interet.libelle)
+                            Spacer()
+                            Button("Reproposer") {
+                                if let genre = interet.genreID { try? ServiceGouts(contexte: contexte).reprendreGenre(genre) }
+                            }
+                            .buttonStyle(.borderless)
+                            .accessibilityLabel("Reproposer le genre \(interet.libelle)")
+                        }
+                    }
+                } header: {
+                    Text("Genres que tu as écartés")
+                } footer: {
+                    Text("« Pas ce genre », dans le menu ⋯ de la proposition de l'accueil : ces genres ne te sont plus proposés, ni sur l'accueil, ni dans les suggestions du soir.")
+                }
             }
 
             Section {

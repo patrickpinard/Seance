@@ -597,6 +597,27 @@ struct PremierLancementTests {
         let suivi = try #require(try ServiceSuivi(contexte: contexte).suivi(wick.reference))
         #expect(suivi.statut == .termine && suivi.note == 9 && !suivi.alertesActives)
     }
+
+    /// « Pas ce genre » (8.7), depuis la proposition de l'accueil : le genre sort des suggestions, survit à une nouvelle
+    /// sélection de la grille qui ne le coche pas, et revient quand on le reprend.
+    @Test func pasCeGenre() throws {
+        let conteneur = try EntrepotSeance.conteneur(.memoire)
+        let gouts = ServiceGouts(contexte: conteneur.mainContext)
+        try gouts.declarer([.init(libelle: "Horreur", genres: [27]), .init(libelle: "Thriller", genres: [53])])
+
+        try gouts.ecarterGenre(27, nom: "Horreur")
+        #expect(try gouts.genresEcartes().map(\.id) == [27])
+        #expect(try gouts.interetsDeclares() == ["Thriller"])
+        #expect(try gouts.profil().genresEvites.contains(27))
+        #expect(try gouts.contexteCandidats().genresEcartes == [27])
+
+        try gouts.declarer([.init(libelle: "Comédie", genres: [35])])
+        #expect(try gouts.genresEcartes().map(\.id) == [27])
+
+        try gouts.reprendreGenre(27)
+        #expect(try gouts.genresEcartes().isEmpty)
+        #expect(try gouts.contexteCandidats().genresEcartes.isEmpty)
+    }
 }
 
 @Suite("Titres écartés")

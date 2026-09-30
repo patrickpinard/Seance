@@ -124,7 +124,13 @@ public struct Sauvegarde: Codable, Sendable, Equatable {
             self.poids = poids
         }
 
-        var cle: String { "\(genreID.map(String.init) ?? "-")|\(motCleID.map(String.init) ?? "-")" }
+        /// Un genre écarté (8.7, poids négatif) a sa propre clé : passer d'« aimé » à « pas ce genre » supprime l'un et
+        /// ajoute l'autre, ce que la synchronisation sait propager sans changer le format.
+        var cle: String { Self.cle(genreID: genreID, motCleID: motCleID, poids: poids) }
+
+        public static func cle(genreID: Int?, motCleID: Int?, poids: Double) -> String {
+            "\(genreID.map(String.init) ?? "-")|\(motCleID.map(String.init) ?? "-")" + (poids < 0 ? "|non" : "")
+        }
     }
 
     public struct Abonnement: Codable, Sendable, Equatable {

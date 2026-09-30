@@ -11,15 +11,18 @@ public struct CollecteurCandidats: Sendable {
         public var exclus: Set<ReferenceTitre>
         /// « Pas ce soir » : écarté jusqu'à demain.
         public var reportes: Set<ReferenceTitre>
+        /// « Pas ce genre » (8.7) : ces genres ne sont plus proposés, sauf quand la demande les nomme.
+        public var genresEcartes: Set<Int>
 
         public init(
             abonnements: [Int] = [], dejaVus: Set<ReferenceTitre> = [],
-            exclus: Set<ReferenceTitre> = [], reportes: Set<ReferenceTitre> = []
+            exclus: Set<ReferenceTitre> = [], reportes: Set<ReferenceTitre> = [], genresEcartes: Set<Int> = []
         ) {
             self.abonnements = abonnements
             self.dejaVus = dejaVus
             self.exclus = exclus
             self.reportes = reportes
+            self.genresEcartes = genresEcartes
         }
     }
 
@@ -91,6 +94,7 @@ public struct CollecteurCandidats: Sendable {
                 guard !contexte.dejaVus.contains(resume.reference),
                       !contexte.exclus.contains(resume.reference),
                       !contexte.reportes.contains(resume.reference) else { return false }
+                guard envie.aDesGenres || contexte.genresEcartes.isDisjoint(with: resume.genres) else { return false }
                 return RegleLangue.accepte(langueOriginale: resume.langueOriginale, exclu: false)
             }
             .prefix(maximum)
@@ -103,7 +107,8 @@ public struct CollecteurCandidats: Sendable {
         criteres.votesMin = votesMin
         criteres.tri = .popularite
         var exclus = demande.interpretation.genresExclus(pour: type)
-        for genre in profil.genresEvites.prefix(4) where !exclus.contains(genre) {
+        let ecartes = demande.interpretation.aDesGenres ? [] : contexte.genresEcartes.sorted()
+        for genre in ecartes + profil.genresEvites.prefix(4) where !exclus.contains(genre) {
             exclus.append(genre)
         }
         criteres.genresExclus = exclus

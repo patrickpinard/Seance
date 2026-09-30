@@ -109,7 +109,7 @@ public struct ServiceSynchro {
             contexte.delete(filtre); nombre += 1
         }
         for interet in try contexte.fetch(FetchDescriptor<Interet>()) {
-            let cle = "interet:\(interet.genreID.map(String.init) ?? "-")|\(interet.motCleID.map(String.init) ?? "-")"
+            let cle = "interet:" + Sauvegarde.Interet.cle(genreID: interet.genreID, motCleID: interet.motCleID, poids: interet.poids)
             if voulues.contains(cle) { contexte.delete(interet); nombre += 1 }
         }
         for liste in try contexte.fetch(FetchDescriptor<ListePerso>()) {

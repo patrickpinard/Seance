@@ -123,7 +123,8 @@ public struct ServiceGouts {
             dejaVus: Set(visionnages.map { ReferenceTitre(type: $0.type, tmdbID: $0.tmdbID) })
                 .union(suivis.filter { $0.statut == .termine }.map(\.reference)),
             exclus: Set(suivis.filter { $0.statut == .exclu || $0.exclusionLangue }.map(\.reference)),
-            reportes: Set(reports.filter { $0.jusquA > maintenant }.map(\.reference))
+            reportes: Set(reports.filter { $0.jusquA > maintenant }.map(\.reference)),
+            genresEcartes: Set(try genresEcartes().map(\.id))
         )
     }
 
@@ -148,13 +149,16 @@ public struct ServiceGouts {
     }
 
     public func interetsDeclares() throws -> Set<String> {
-        Set(try contexte.fetch(FetchDescriptor<Interet>()).map(\.libelle))
+        Set(try contexte.fetch(FetchDescriptor<Interet>()).filter { $0.poids >= 0 }.map(\.libelle))
     }
 
-    /// Remplace les intérêts déclarés par la nouvelle sélection de la grille.
+    /// Remplace les intérêts déclarés par la nouvelle sélection de la grille. Les genres écartés restent écartés, sauf
+    /// ceux que la nouvelle sélection coche.
     public func declarer(_ interets: [InteretDeclare]) throws {
+        let coches = Set(interets.flatMap(\.genres))
         // Fiche par fiche (8.2.16) : la page des Préférences affiche ces goûts pendant qu'on coche.
-        for ancien in try contexte.fetch(FetchDescriptor<Interet>()) {
+        for ancien in try contexte.fetch(FetchDescriptor<Interet>())
+        where ancien.poids >= 0 || ancien.genreID.map(coches.contains) == true {
             contexte.delete(ancien)
         }
         for interet in interets {
@@ -164,6 +168,36 @@ public struct ServiceGouts {
             for motCle in interet.motsCles {
                 contexte.insert(Interet(libelle: interet.libelle, motCleID: motCle))
             }
+        }
+        try contexte.save()
+    }
+
+    // MARK: - « Pas ce genre » (8.7)
+
+    /// Le poids d'un genre écarté : un rejet net, que quelques films vus du même genre n'effacent pas.
+    public static let poidsGenreEcarte: Double = -3
+
+    /// Les genres écartés, avec leur nom, dans l'ordre alphabétique.
+    public func genresEcartes() throws -> [(id: Int, nom: String)] {
+        try contexte.fetch(FetchDescriptor<Interet>())
+            .compactMap { interet in interet.poids < 0 ? interet.genreID.map { (id: $0, nom: interet.libelle) } : nil }
+            .sorted { $0.nom.localizedStandardCompare($1.nom) == .orderedAscending }
+    }
+
+    /// « Pas ce genre » : le genre ne t'est plus proposé sur l'accueil ni dans les suggestions, et le profil de goûts
+    /// le rejette. S'il était coché comme aimé, il ne l'est plus.
+    public func ecarterGenre(_ genre: Int, nom: String) throws {
+        for interet in try contexte.fetch(FetchDescriptor<Interet>()) where interet.genreID == genre {
+            contexte.delete(interet)
+        }
+        contexte.insert(Interet(libelle: nom, genreID: genre, poids: Self.poidsGenreEcarte))
+        try contexte.save()
+    }
+
+    /// Le genre peut de nouveau être proposé.
+    public func reprendreGenre(_ genre: Int) throws {
+        for interet in try contexte.fetch(FetchDescriptor<Interet>()) where interet.genreID == genre && interet.poids < 0 {
+            contexte.delete(interet)
         }
         try contexte.save()
     }

@@ -176,6 +176,24 @@ struct ClassementLocalTests {
         #expect(phrase.hasSuffix("."))
     }
 
+    /// « Pas ce genre » (8.7) : un intérêt au poids négatif rejette le genre, même après deux films vus du même genre.
+    @Test func unGenreEcarteEstEvite() {
+        let profil = ProfilGouts.calculer([
+            ObservationGout(origine: .interetDeclare, genres: [27], poids: -3),
+            ObservationGout(origine: .visionnage, genres: [27], date: Goûts.maintenant),
+            ObservationGout(origine: .visionnage, genres: [27], date: Goûts.maintenant),
+        ], maintenant: Goûts.maintenant)
+        #expect(profil.genresEvites.contains(27))
+    }
+
+    /// Un genre écarté n'a pas la clé de synchronisation du même genre aimé : l'un se supprime, l'autre s'ajoute.
+    @Test func unGenreEcarteALaSienneCleDeSynchro() {
+        let aime = Sauvegarde.Interet(libelle: "Horreur", genreID: 27, motCleID: nil, poids: 1)
+        let ecarte = Sauvegarde.Interet(libelle: "Horreur", genreID: 27, motCleID: nil, poids: -3)
+        #expect(aime.cle == "27|-")
+        #expect(ecarte.cle == "27|-|non")
+    }
+
     @Test func sansGoutConnuLaPhraseLeDit() {
         let phrase = ClassementLocal.classer([Goûts.candidat(1, votes: 0)],
                                              profil: ProfilGouts(), nomsGenres: Goûts.noms)[0].phrase

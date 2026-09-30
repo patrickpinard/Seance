@@ -207,10 +207,31 @@ struct AccueilView: View {
 
     /// « Pas intéressé pour l'instant » (8.2.11).
     @AppStorage(PasInteresse.cle) private var pasInteresse = ""
+    /// « Pas ce genre » (8.7) : les genres écartés depuis la proposition, qui quittent tout l'accueil.
+    @Query(filter: #Predicate<Interet> { $0.poids < 0 }) private var interetsNegatifs: [Interet]
+    private var genresEcartes: Set<Int> { Set(interetsNegatifs.compactMap(\.genreID)) }
+    /// Tes goûts, pour ranger le top de l'année dans la proposition (8.7).
+    @State private var profil: ProfilGouts?
 
     private func proposables(_ titres: [TitreResume]) -> [TitreResume] {
         let ecartes = ecartes
-        return ecartes.isEmpty ? titres : titres.filter { !ecartes.contains($0.reference) }
+        let genres = genresEcartes
+        guard !ecartes.isEmpty || !genres.isEmpty else { return titres }
+        return titres.filter { !ecartes.contains($0.reference) && genres.isDisjoint(with: $0.genres) }
+    }
+
+    /// 8.7 (demande de Patrick) : le top de l'année dans l'ordre de tes goûts — un genre que tu aimes remonte, un genre
+    /// que tu évites descend ; la popularité départage.
+    private func selonTesGouts(_ titres: [TitreResume]) -> [TitreResume] {
+        guard let profil, !profil.estVide else { return titres }
+        func score(_ titre: TitreResume, rang: Int) -> Double {
+            let affinite = titre.genres.isEmpty ? 0 : titre.genres.map(profil.affinite(genre:)).reduce(0, +) / Double(titre.genres.count)
+            return affinite - Double(rang) * 0.02
+        }
+        return titres.enumerated()
+            .map { (titre: $0.element, score: score($0.element, rang: $0.offset)) }
+            .sorted { $0.score > $1.score }
+            .map(\.titre)
     }
 
     /// Ce que tu veux voir ou es en train de regarder : on demande pour chacun où il se regarde (réponse gardée 12 h).
@@ -313,6 +334,12 @@ struct AccueilView: View {
             .boutonBarreLaterale()
             .task(id: reprisesAccueil.isEmpty) {
                 guard reprisesAccueil.isEmpty, suggestions.isEmpty else { return }
+                await chargerSuggestions()
+            }
+            // Un genre écarté ou repris (8.7) : tes goûts changent, les suggestions aussi.
+            .task(id: genresEcartes) {
+                profil = try? ServiceGouts(contexte: contexte).profil()
+                guard !suggestions.isEmpty else { return }
                 await chargerSuggestions()
             }
             .task(id: candidatsRegardables.map(\.reference)) {
@@ -451,12 +478,18 @@ struct AccueilView: View {
     /// NAS, puis le top de l'année — comme sur l'Apple TV. Les titres écartés, vus ou « pas ce soir » n'y sont pas.
     private var propositions: [PropositionSoir] {
         let ecartes = ecartes.union(PasCeSoir.references(pasCeSoir))
+        let genresEcartes = genresEcartes
         let surLeNAS = Set(fichiersNAS.compactMap(\.reference))
         let reprises = reprisesAccueil
+        let genresConnus = Dictionary(regardables.map { ($0.reference, $0.genres) }, uniquingKeysWith: { premier, _ in premier })
         var vues = Set<ReferenceTitre>()
         var liste: [PropositionSoir] = []
-        func ajouter(_ proposition: PropositionSoir) {
-            guard !ecartes.contains(proposition.reference), vues.insert(proposition.reference).inserted else { return }
+        /// Ce que tu as prévu ou commencé reste proposé ; le reste suit tes « Pas ce genre » (8.7).
+        func ajouter(_ proposition: PropositionSoir, choisi: Bool = false) {
+            var proposition = proposition
+            if proposition.genres.isEmpty { proposition.genres = genresConnus[proposition.reference] ?? [] }
+            guard !ecartes.contains(proposition.reference), choisi || genresEcartes.isDisjoint(with: proposition.genres),
+                  vues.insert(proposition.reference).inserted else { return }
             liste.append(proposition)
         }
         func ligne(_ debut: String, _ reference: ReferenceTitre) -> String {
@@ -469,7 +502,8 @@ struct AccueilView: View {
             ajouter(PropositionSoir(reference: prevu.reference, surtitre: ligne("Prévu ce soir", prevu.reference), titre: prevu.titre,
                                     detail: prevu.reference.type == .film ? "Film" : "Série",
                                     cheminFond: fichiersNAS.first { $0.reference == prevu.reference }?.cheminFond,
-                                    cheminAffiche: prevu.cheminAffiche, reprise: reprises.first { $0.fichier.reference == prevu.reference }))
+                                    cheminAffiche: prevu.cheminAffiche, reprise: reprises.first { $0.fichier.reference == prevu.reference }),
+                    choisi: true)
         }
         for reprise in reprises {
             guard let reference = reprise.fichier.reference else { continue }
@@ -478,27 +512,28 @@ struct AccueilView: View {
                                     titre: reprise.fichier.titre,
                                     detail: LibellesProposition.reprise(film: reprise.fichier.type == .film, saison: reprise.fichier.saison,
                                                                         episode: reprise.fichier.episode, position: reprise.position),
-                                    cheminFond: reprise.fichier.cheminFond, cheminAffiche: reprise.fichier.cheminAffiche, reprise: reprise))
+                                    cheminFond: reprise.fichier.cheminFond, cheminAffiche: reprise.fichier.cheminAffiche, reprise: reprise),
+                    choisi: true)
         }
         for suivi in regardables where surLeNAS.contains(suivi.reference) {
             let fichier = fichiersNAS.first { $0.reference == suivi.reference }
             ajouter(PropositionSoir(reference: suivi.reference,
                                     surtitre: ["Ce soir, pour toi", "Sur ton NAS", fichier?.qualite].compactMap { $0 }.joined(separator: " · "),
                                     titre: suivi.titre, detail: [suivi.type == .film ? "Film" : "Série", "dans ta liste"].joined(separator: " · "),
-                                    cheminFond: fichier?.cheminFond, cheminAffiche: suivi.cheminAffiche))
+                                    cheminFond: fichier?.cheminFond, cheminAffiche: suivi.cheminAffiche, genres: suivi.genres))
         }
         // 8.5 : d'après tes goûts, avant le top de l'année.
         for titre in proposables(suggestions) {
             ajouter(PropositionSoir(reference: titre.reference, surtitre: ligne("D'après tes goûts", titre.reference), titre: titre.titre,
                                     detail: [titre.reference.type == .film ? "Film" : "Série", titre.date.map { String($0.annee) }]
                                         .compactMap { $0 }.joined(separator: " · "),
-                                    cheminFond: titre.cheminFond, cheminAffiche: titre.cheminAffiche))
+                                    cheminFond: titre.cheminFond, cheminAffiche: titre.cheminAffiche, genres: titre.genres))
         }
-        for titre in proposables(Array(zip(modele.topFilms, modele.topSeries).flatMap { [$0, $1] })) {
+        for titre in selonTesGouts(proposables(Array(zip(modele.topFilms, modele.topSeries).flatMap { [$0, $1] }))) {
             ajouter(PropositionSoir(reference: titre.reference, surtitre: ligne("Ce soir, pour toi", titre.reference), titre: titre.titre,
                                     detail: [titre.reference.type == .film ? "Film" : "Série", titre.date.map { String($0.annee) }]
                                         .compactMap { $0 }.joined(separator: " · "),
-                                    cheminFond: titre.cheminFond, cheminAffiche: titre.cheminAffiche))
+                                    cheminFond: titre.cheminFond, cheminAffiche: titre.cheminAffiche, genres: titre.genres))
         }
         return Array(liste.prefix(sources.nombrePropositions))
     }

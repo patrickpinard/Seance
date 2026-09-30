@@ -574,8 +574,20 @@ struct PageGoutsTV: View {
                     LigneTVReglage(titre: etat.tmdb == nil ? "Il faut d'abord la clé TMDB" : "Lecture des genres…", symbole: "hourglass")
                 }
                 ForEach(genres) { genre in
-                    let coche = interets.contains { $0.genreID == genre.id }
+                    let coche = interets.contains { $0.genreID == genre.id && $0.poids >= 0 }
                     LigneTVReglage(titre: genre.nom, action: { basculer(genre, coche: !coche) }) { BoutTV(forme: .coche(coche)) }
+                }
+            }
+            // « Pas ce genre » (8.7), comme dans Préférences › Toi sur l'iPhone.
+            let ecartes = interets.filter { $0.poids < 0 }.sorted { $0.libelle < $1.libelle }
+            if !ecartes.isEmpty {
+                SectionTV(titre: "Genres que tu as écartés",
+                          explication: "« Pas ce genre », dans l'appui long de la proposition de l'accueil : ces genres ne te sont plus proposés.") {
+                    ForEach(ecartes) { interet in
+                        LigneTVReglage(titre: interet.libelle, symbole: "hand.thumbsdown", action: {
+                            if let genre = interet.genreID { try? ServiceGouts(contexte: contexte).reprendreGenre(genre) }
+                        }) { BoutTV(forme: .valeur("Reproposer")) }
+                    }
                 }
             }
         }
@@ -586,10 +598,10 @@ struct PageGoutsTV: View {
     }
 
     private func basculer(_ genre: Genre, coche: Bool) {
+        // Cocher un genre écarté le rend aimé : l'un remplace l'autre.
+        interets.filter { $0.genreID == genre.id }.forEach(contexte.delete)
         if coche {
             contexte.insert(Interet(libelle: genre.nom, genreID: genre.id))
-        } else {
-            interets.filter { $0.genreID == genre.id }.forEach(contexte.delete)
         }
         contexte.sauver()
     }

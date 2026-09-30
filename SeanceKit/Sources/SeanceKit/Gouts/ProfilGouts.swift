@@ -4,7 +4,8 @@ import Foundation
 /// (EF-61, EF-66) ou un titre regardé (EF-14, EF-15).
 public struct ObservationGout: Sendable, Hashable {
     public enum Origine: Sendable, Hashable {
-        /// Coché sur la grille illustrée : une préférence déclarée, sans date.
+        /// Coché sur la grille illustrée : une préférence déclarée, sans date. Un poids négatif dit « pas ce genre »
+        /// (8.7, depuis la proposition de l'accueil) : le genre est rejeté, aussi nettement qu'il serait aimé.
         case interetDeclare
         /// De 1 à 10. Le signal le plus sûr, et le seul qui puisse être négatif.
         case note(Int)
@@ -44,7 +45,7 @@ public struct ObservationGout: Sendable, Hashable {
     /// De -1 (rejeté) à 1 (adoré). Une note de 6 sur 10 est neutre.
     var valeur: Double {
         switch origine {
-        case .interetDeclare: 1
+        case .interetDeclare: poids < 0 ? -1 : 1
         case .note(let note): min(1, max(-1, (Double(note) - 6) / 4))
         case .visionnage: 0.4
         case .rejet: -0.8
@@ -54,7 +55,7 @@ public struct ObservationGout: Sendable, Hashable {
     /// Ce que le signal pèse avant la décote du temps.
     var force: Double {
         switch origine {
-        case .interetDeclare: max(0, poids)
+        case .interetDeclare: abs(poids)
         case .note: max(0, poids)
         case .visionnage: 0.6 * max(0, poids)
         case .rejet: 0.8 * max(0, poids)

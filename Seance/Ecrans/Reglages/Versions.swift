@@ -56,6 +56,23 @@ struct NoteVersion: Identifiable {
 
     static let historique: [NoteVersion] = [
         NoteVersion(
+            numero: "8.7",
+            date: "30 septembre 2026",
+            resume: "« Pas ce genre » depuis la proposition de l'accueil, et des propositions rangées selon tes goûts ; les cartes se glissent comme les lignes d'une liste.",
+            fonctionnalites: [
+                Fonctionnalite(symbole: "hand.thumbsdown", titre: "Pas ce genre",
+                               detail: "Le bouton ⋯ de la proposition (l'appui long sur l'Apple TV) : « Pas ce soir », « Pas ce genre », « Je n'aime pas ». Un genre écarté quitte l'accueil et les suggestions ; Préférences › Toi le repropose."),
+                Fonctionnalite(symbole: "heart", titre: "Selon tes goûts",
+                               detail: "Le top de l'année, dans la proposition, passe dans l'ordre de tes goûts : un genre que tu aimes remonte, un genre que tu évites descend."),
+                Fonctionnalite(symbole: "play.rectangle", titre: "Comme Netflix",
+                               detail: "La proposition occupe la page, avec « Lecture » et « Plus d'infos » ; les Nouveautés portent leur rang de popularité."),
+                Fonctionnalite(symbole: "hand.draw", titre: "Glisser les cartes",
+                               detail: "Sur toutes les pages en grille : « Ce soir », « Terminé », « Alertes » ou « Retirer », comme sur les lignes d'une liste."),
+                Fonctionnalite(symbole: "square.grid.2x2", titre: "Cartes ou liste, Films et Séries",
+                               detail: "Cartes ou liste sur Mes listes, Streaming, Nouveautés, Documentaires et le NAS ; Films et Séries à côté de « Filtres » dans Regarder."),
+            ]
+        ),
+        NoteVersion(
             numero: "8.6",
             date: "28 septembre 2026",
             resume: "En tête de l'accueil, les propositions du soir défilent : on les fait glisser, et un toucher ouvre la fiche.",

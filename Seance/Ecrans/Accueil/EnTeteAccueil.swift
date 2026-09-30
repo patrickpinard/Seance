@@ -12,6 +12,8 @@ struct PropositionSoir: Identifiable {
     var cheminAffiche: String?
     /// Une vidéo du NAS entamée : le bouton dit « Reprendre à … » et la relance là où tu t'es arrêté.
     var reprise: (fichier: FichierNAS, position: PositionLecture)?
+    /// Ses genres TMDB : « Pas ce genre » (8.7) les propose dans le menu « ⋯ ».
+    var genres: [Int] = []
 
     var id: ReferenceTitre { reference }
 }
@@ -34,6 +36,7 @@ struct EnTeteAccueil: View {
     let toutesLesNouveautes: () -> Void
 
     @Environment(EtatApp.self) private var etat
+    @Environment(\.modelContext) private var contexte
     @Environment(\.horizontalSizeClass) private var classe
 
     /// L'iPad et le Mac : le grand titre, et les boutons côte à côte.
@@ -181,8 +184,8 @@ struct EnTeteAccueil: View {
     }
 
     /// 8.6, « comme Netflix » (demande de Patrick) : deux boutons côte à côte — « ▶︎ Lecture » et « Plus d'infos ».
-    /// « Pas ce soir » est dans l'appui long (clic droit sur le Mac) ; « Autre chose » laisse la place au glissement,
-    /// aux points et aux flèches.
+    /// « Autre chose » laisse la place au glissement, aux points et aux flèches. 8.7 : « ⋯ » à côté — « Pas ce soir »,
+    /// « Pas ce genre », « Je n'aime pas » —, les mêmes actions que l'appui long (clic droit sur le Mac).
     private func boutons(_ proposition: PropositionSoir) -> some View {
         HStack(spacing: 10) {
             principal(proposition)
@@ -191,6 +194,11 @@ struct EnTeteAccueil: View {
             }
             .buttonStyle(StyleBoutonSecondaire())
             .accessibilityIdentifier("plusDInfos")
+            Menu { menu(proposition) } label: { Image(systemName: "ellipsis") }
+                .buttonStyle(StyleBoutonRond())
+                .menuStyle(.button)
+                .accessibilityLabel("Autres actions")
+                .accessibilityIdentifier("autresActionsProposition")
         }
         .fixedSize(horizontal: true, vertical: false)
     }
@@ -206,13 +214,37 @@ struct EnTeteAccueil: View {
         }
     }
 
-    /// L'appui long sur la proposition (clic droit sur le Mac).
+    /// Le menu « ⋯ » et l'appui long sur la proposition (clic droit sur le Mac).
     @ViewBuilder
     private func menu(_ proposition: PropositionSoir) -> some View {
         Button { voirFiche(proposition.reference) } label: { Label("Plus d'infos", systemImage: "info.circle") }
         Button {
             withAnimation { PasCeSoir.ecarter(proposition.reference) }
         } label: { Label("Pas ce soir", systemImage: "moon.zzz") }
+        // 8.7 (demande de Patrick) : « ce genre de film ne m'intéresse pas » — le genre sort de l'accueil et des
+        // suggestions, et tes goûts l'apprennent. Préférences › Toi le rend.
+        let genres = proposition.genres.compactMap { id in etat.nomsGenres[id].map { (id: id, nom: $0) } }
+        if !genres.isEmpty {
+            Menu {
+                ForEach(genres, id: \.id) { genre in
+                    Button(genre.nom) { ecarter(genre: genre.id, nom: genre.nom) }
+                }
+            } label: { Label("Pas ce genre", systemImage: "hand.thumbsdown") }
+        }
+        Button {
+            try? ServiceGouts(contexte: contexte).jamais(proposition.reference, titre: proposition.titre, genres: proposition.genres,
+                                                         cheminAffiche: proposition.cheminAffiche)
+            etat.confirmer("« \(proposition.titre) » ne te sera plus proposé", symbole: "hand.thumbsdown") {
+                try? ServiceGouts(contexte: contexte).reproposer(proposition.reference)
+            }
+        } label: { Label("Je n'aime pas", systemImage: "hand.thumbsdown") }
+    }
+
+    private func ecarter(genre: Int, nom: String) {
+        try? ServiceGouts(contexte: contexte).ecarterGenre(genre, nom: nom)
+        etat.confirmer("Plus de « \(nom) » dans tes propositions", symbole: "hand.thumbsdown") {
+            try? ServiceGouts(contexte: contexte).reprendreGenre(genre)
+        }
     }
 
     /// Les trois dernières nouveautés, à droite de la proposition (iPad et Mac).
