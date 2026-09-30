@@ -12,6 +12,11 @@ actor SessionSMB {
     private var passageEnCours = false
     /// Le dernier contenu lu du dossier, pour ne pas le redemander à chaque lecture ou écriture.
     private var nomsConnus: [String]?
+    /// Les opérations en cours sur chaque connexion : le lecteur du Mac lit plusieurs tranches à la fois (8.7).
+    private var enCours: [ObjectIdentifier: Int] = [:]
+    /// Les connexions à fermer dès que leur dernière opération sera finie. Gardées ici jusque-là : libérée pendant
+    /// qu'une lecture l'attendait encore, une connexion faisait planter AMSMB2 (plantages du Mac, 28 et 30.09.2026).
+    private var aFermer: [ObjectIdentifier: SMB2Manager] = [:]
 
     init(explorateur: ExplorateurSMB) {
         self.explorateur = explorateur
@@ -25,12 +30,13 @@ actor SessionSMB {
     func fermer() async {
         passageEnCours = false
         nomsConnus = nil
-        if let client { try? await client.disconnectShare() }
-        client = nil
+        retirer()
+        await fermerCeQuiEstLibre()
     }
 
     /// Exécute le travail sur le partage : sur la connexion gardée pendant un passage, sur une connexion
-    /// jetable sinon. Une erreur ferme la connexion gardée : la suivante repartira d'une connexion saine.
+    /// jetable sinon. Une erreur écarte la connexion gardée : la suivante repartira d'une connexion saine, et
+    /// l'ancienne sera fermée quand ses autres opérations auront fini.
     func avec<Resultat: Sendable>(_ travail: sending (SMB2Manager) async throws -> Resultat) async throws -> Resultat {
         guard passageEnCours else { return try await explorateur.avecPartage(travail) }
         let ouvert: SMB2Manager
@@ -40,10 +46,15 @@ actor SessionSMB {
             ouvert = try await explorateur.connecter()
             client = ouvert
         }
+        let cle = ObjectIdentifier(ouvert)
+        enCours[cle, default: 0] += 1
         do {
-            return try await travail(ouvert)
+            let resultat = try await travail(ouvert)
+            await terminer(cle)
+            return resultat
         } catch {
-            await fermerConnexion()
+            if client === ouvert { retirer() }
+            await terminer(cle)
             throw error
         }
     }
@@ -63,10 +74,26 @@ actor SessionSMB {
         nomsConnus = nil
     }
 
-    private func fermerConnexion() async {
-        if let client { try? await client.disconnectShare() }
+    /// La connexion gardée ne sert plus aux nouvelles opérations ; elle attend la fin des siennes pour se fermer.
+    private func retirer() {
+        if let client { aFermer[ObjectIdentifier(client)] = client }
         client = nil
         nomsConnus = nil
+    }
+
+    private func terminer(_ cle: ObjectIdentifier) async {
+        let reste = (enCours[cle] ?? 1) - 1
+        enCours[cle] = reste > 0 ? reste : nil
+        await fermerCeQuiEstLibre()
+    }
+
+    /// Ferme les connexions écartées qui n'ont plus d'opération en cours — jamais une qui lit encore.
+    private func fermerCeQuiEstLibre() async {
+        let libres = aFermer.filter { enCours[$0.key] == nil }
+        for (cle, connexion) in libres {
+            aFermer[cle] = nil
+            try? await connexion.disconnectShare()
+        }
     }
 }
 
