@@ -545,10 +545,12 @@ extension NASView {
                     let ligne = LigneTitreCompacte(cheminAffiche: oeuvre.cheminAffiche, surtitre: oeuvre.accroche, titre: oeuvre.titre,
                                                    detail: oeuvre.faits.joined(separator: " · "))
                     if let reference = oeuvre.reference {
+                        let resume = TitreResume(reference: reference, titre: oeuvre.titre, cheminAffiche: oeuvre.cheminAffiche,
+                                                 cheminFond: oeuvre.fichiers.compactMap(\.cheminFond).first)
                         NavigationLink(value: reference) { ligne }
                             .buttonStyle(.plain)
-                            .actionsRapides(TitreResume(reference: reference, titre: oeuvre.titre, cheminAffiche: oeuvre.cheminAffiche,
-                                                        cheminFond: oeuvre.fichiers.compactMap(\.cheminFond).first))
+                            .actionsRapides(resume)
+                            .glissementsTitre(resume)
                     } else {
                         ligne
                     }
@@ -557,8 +559,15 @@ extension NASView {
         } else {
             LazyVGrid(columns: CarteLargeTitre.colonnes, spacing: 14) {
                 ForEach(oeuvres) { oeuvre in
-                    CarteLargeNAS(oeuvre: oeuvre, decor: oeuvre.reference.flatMap(etat.decors.decor),
-                                  marque: oeuvre.reference.flatMap { marques[$0] })
+                    let carte = CarteLargeNAS(oeuvre: oeuvre, decor: oeuvre.reference.flatMap(etat.decors.decor),
+                                              marque: oeuvre.reference.flatMap { marques[$0] })
+                    if let reference = oeuvre.reference {
+                        // 8.6 : les glissements communs aux cartes de titres.
+                        carte.glissementsTitre(TitreResume(reference: reference, titre: oeuvre.titre, cheminAffiche: oeuvre.cheminAffiche,
+                                                           cheminFond: oeuvre.fichiers.compactMap(\.cheminFond).first))
+                    } else {
+                        carte
+                    }
                 }
             }
         }

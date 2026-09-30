@@ -46,6 +46,7 @@ struct DocumentairesView: View {
                                 NavigationLink(value: titre.reference) { LigneTitreListe(titre: titre) }
                                     .buttonStyle(.plain)
                                     .actionsRapides(titre)
+                                    .glissementsTitre(titre)
                             }
                         }
                         .padding(.horizontal, 20)
@@ -57,6 +58,7 @@ struct DocumentairesView: View {
                                 }
                                 .buttonStyle(.plain)
                                 .actionsRapides(titre)
+                                .glissementsTitre(titre)
                             }
                         }
                         .padding(.horizontal, 20)

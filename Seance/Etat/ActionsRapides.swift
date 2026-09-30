@@ -285,6 +285,42 @@ extension View {
     func actionsRapides(_ titre: TitreResume) -> some View {
         contextMenu { MenuActionsTitre(titre: titre) }
     }
+
+    /// Les glissements d'une carte ou d'une ligne de titre (8.6), sur les pages en grille : vers la droite « Ce soir »
+    /// et « Ma liste », vers la gauche « Pas intéressé » — le titre quitte la page pour deux mois, avec « Annuler ».
+    /// Pas sur les rangées qui défilent de côté : le geste y fait défiler.
+    func glissementsTitre(_ titre: TitreResume) -> some View {
+        modifier(GlissementsTitre(titre: titre))
+    }
+}
+
+private struct GlissementsTitre: ViewModifier {
+    let titre: TitreResume
+    @Environment(EtatApp.self) private var etat
+    @Environment(\.modelContext) private var contexte
+
+    func body(content: Content) -> some View {
+        let actions = ActionsRapides(etat: etat, contexte: contexte)
+        let titre = titre
+        content.glissementsCarte(
+            debut: [
+                ActionGlissee(libelle: "Ce soir", symbole: "moon.stars.fill", couleur: Theme.accent) {
+                    Task { await actions.executer(.soiree, sur: titre) }
+                },
+                ActionGlissee(libelle: "Ma liste", symbole: "plus", couleur: Theme.eleve) {
+                    Task { await actions.executer(.aVoir, sur: titre) }
+                },
+            ],
+            fin: [
+                ActionGlissee(libelle: "Pas intéressé", symbole: "hand.raised", couleur: Theme.rouge, destructive: true) {
+                    let reference = titre.reference
+                    PasInteresse.ecarter(reference)
+                    etat.confirmer("« \(titre.titre) » ne sera plus proposé pendant deux mois", symbole: "hand.raised") {
+                        PasInteresse.reproposer(reference)
+                    }
+                },
+            ])
+    }
 }
 
 /// Le message bref d'une action, en bas de l'écran, avec « Annuler » quand l'action se regrette.

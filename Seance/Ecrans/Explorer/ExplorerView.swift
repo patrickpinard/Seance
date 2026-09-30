@@ -660,6 +660,7 @@ struct ExplorerView: View {
                             NavigationLink(value: titre.reference) { ligne(titre) }
                                 .buttonStyle(.plain)
                                 .actionsRapides(titre)
+                                .glissementsTitre(titre)
                                 .onAppear { suite(apres: titre) }
                         }
                     }
@@ -672,6 +673,7 @@ struct ExplorerView: View {
                             }
                             .buttonStyle(.plain)
                             .actionsRapides(titre)
+                            .glissementsTitre(titre)
                             .onAppear { suite(apres: titre) }
                         }
                     }

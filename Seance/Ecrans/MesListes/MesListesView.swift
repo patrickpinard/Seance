@@ -374,6 +374,25 @@ struct MesListesView: View {
                             .frame(width: 360)
                             .environment(etat)
                     }
+                    // 8.6 : les mêmes glissements que les lignes de la vue en liste — vers la droite « Ce soir » et « Terminé »
+                    // (ou « À revoir »), vers la gauche les alertes et « Retirer » (« Supprimer » dans les terminés).
+                    .glissementsCarte(
+                        debut: [
+                            ActionGlissee(libelle: "Ce soir", symbole: "moon.stars.fill", couleur: Theme.accent) {
+                                try? ServiceSoiree(contexte: contexte).retenir(suivi.reference, titre: suivi.titre, cheminAffiche: suivi.cheminAffiche)
+                            },
+                            statut == .termine
+                                ? ActionGlissee(libelle: "À revoir", symbole: "arrow.uturn.backward", couleur: Theme.eleve) { changer(suivi, en: .aVoir) }
+                                : ActionGlissee(libelle: "Terminé", symbole: "checkmark", couleur: Theme.vert) { changer(suivi, en: .termine) },
+                        ],
+                        fin: [
+                            ActionGlissee(libelle: suivi.alertesActives ? "Sans alertes" : "Alertes",
+                                          symbole: suivi.alertesActives ? "bell.slash" : "bell", couleur: Theme.eleve) { basculerAlertes(suivi) },
+                            ActionGlissee(libelle: statut == .termine ? "Supprimer" : "Retirer", symbole: "trash", couleur: Theme.rouge,
+                                          destructive: true) {
+                                if statut == .termine { supprimerDesTermines(suivi) } else { retirer(suivi) }
+                            },
+                        ])
                 }
             }
             .padding(.horizontal, 16)

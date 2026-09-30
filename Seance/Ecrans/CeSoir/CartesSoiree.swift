@@ -42,7 +42,7 @@ struct CarteSoiree: View {
     /// et à l'appui long — plus d'icônes seules sous la carte.
     var body: some View {
         let faits = [titre.reference.type == .film ? "Film" : "Série", duree, peutMarquerVu || ramener != nil ? nil : note].compactMap { $0 }
-        GlisserPourAgir(actions: actionsGlissees) {
+        Group {
             NavigationLink(value: titre.reference) {
                 Color.clear
                     .aspectRatio(16 / 9, contentMode: .fit)
@@ -90,15 +90,17 @@ struct CarteSoiree: View {
                     .padding(10)
             }
         }
+        // 8.6 : le glissement commun à toutes les cartes de l'app (`GlissementsCarte`).
+        .glissementsCarte(fin: actionsGlissees)
         .contextMenu { menu }
         .accessibilityActions { menu }
     }
 
     /// Glisser vers la gauche : les deux gestes du soir, nommés, avec leur icône (charte 8.0).
     private var actionsGlissees: [ActionGlissee] {
-        [ramener.map { ActionGlissee(nom: "Ce soir", symbole: "moon.stars.fill", destructive: false, faire: $0) }
-            ?? ActionGlissee(nom: "Un autre soir", symbole: "calendar.badge.clock", destructive: false, faire: dater),
-         ActionGlissee(nom: "Retirer", symbole: "minus.circle.fill", destructive: true, faire: retirer)]
+        [ramener.map { ActionGlissee(libelle: "Ce soir", symbole: "moon.stars.fill", couleur: Theme.eleve, action: $0) }
+            ?? ActionGlissee(libelle: "Un autre soir", symbole: "calendar.badge.clock", couleur: Theme.eleve, action: dater),
+         ActionGlissee(libelle: "Retirer", symbole: "minus.circle.fill", couleur: Theme.rouge, destructive: true, action: retirer)]
     }
 
     /// Appui long : les mêmes gestes, dans les mêmes mots, et « Terminé ».
@@ -112,77 +114,6 @@ struct CarteSoiree: View {
         }
         Button(action: dater) { Label("Un autre soir…", systemImage: "calendar.badge.clock") }
         Button(role: .destructive, action: retirer) { Label("Retirer de la soirée", systemImage: "minus.circle.fill") }
-    }
-}
-
-/// Glisser une carte vers la gauche découvre ses actions, comme dans une liste d'iOS — mais sur une carte, dans une
-/// grille (charte 8.0). Un toucher sur une action la fait et referme ; toucher ailleurs ou glisser vers la droite referme.
-struct ActionGlissee {
-    let nom: String
-    let symbole: String
-    let destructive: Bool
-    let faire: () -> Void
-}
-
-struct GlisserPourAgir<Contenu: View>: View {
-    let actions: [ActionGlissee]
-    @ViewBuilder let contenu: Contenu
-
-    @State private var decalage: CGFloat = 0
-    @State private var ouvert = false
-    private static var largeurAction: CGFloat { 84 }
-    private var largeur: CGFloat { Self.largeurAction * CGFloat(actions.count) }
-
-    var body: some View {
-        ZStack(alignment: .trailing) {
-            HStack(spacing: 0) {
-                ForEach(Array(actions.enumerated()), id: \.offset) { _, action in
-                    Button {
-                        refermer()
-                        action.faire()
-                    } label: {
-                        VStack(spacing: 6) {
-                            Image(systemName: action.symbole).font(.title3.weight(.semibold))
-                            Text(action.nom).font(.caption.weight(.semibold)).multilineTextAlignment(.center)
-                        }
-                        .foregroundStyle(.white)
-                        .frame(width: Self.largeurAction)
-                        .frame(maxHeight: .infinity)
-                        .background(action.destructive ? Theme.rouge : Theme.texte3)
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-            .opacity(decalage < 0 ? 1 : 0)
-            .accessibilityHidden(true)
-            contenu
-                .offset(x: decalage)
-                .simultaneousGesture(
-                    DragGesture(minimumDistance: 24)
-                        .onChanged { geste in
-                            // Seulement un glissement surtout horizontal : le défilement vertical reste à la page.
-                            guard abs(geste.translation.width) > abs(geste.translation.height) * 1.5 else { return }
-                            decalage = min(0, max(-largeur - 30, (ouvert ? -largeur : 0) + geste.translation.width))
-                        }
-                        .onEnded { geste in
-                            guard abs(geste.translation.width) > abs(geste.translation.height) * 1.5 else { return }
-                            withAnimation(.snappy) {
-                                ouvert = decalage < -largeur / 2
-                                decalage = ouvert ? -largeur : 0
-                            }
-                        }
-                )
-                .onTapGesture { if ouvert { refermer() } }
-        }
-        .sensoryFeedback(.impact(weight: .light), trigger: ouvert)
-    }
-
-    private func refermer() {
-        withAnimation(.snappy) {
-            ouvert = false
-            decalage = 0
-        }
     }
 }
 

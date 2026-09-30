@@ -156,6 +156,7 @@ private struct GrillePaginee<Entete: View>: View {
                             }
                             .buttonStyle(.plain)
                             .actionsRapides(titre)
+                            .glissementsTitre(titre)
                             .onAppear { suite(apres: titre, parmi: titres) }
                         }
                     }
@@ -167,6 +168,7 @@ private struct GrillePaginee<Entete: View>: View {
                             }
                             .buttonStyle(.plain)
                             .actionsRapides(titre)
+                            .glissementsTitre(titre)
                             .onAppear { suite(apres: titre, parmi: titres) }
                         }
                     }
