@@ -75,7 +75,8 @@ struct MesListesView: View {
     /// `List`, pour leurs gestes de glissement. Une grille de liens posée dans une ligne de `List` ouvrait plusieurs
     /// fiches d'un coup, et le retour ne ramenait plus à Mes listes.
     private var enDefilementLibre: Bool {
-        onglet == .aVenir || (onglet.statut != nil && enGrille)
+        // Favoris aussi (8.7) : dans une ligne de liste, la carte rétrécissait et portait un chevron.
+        onglet == .aVenir || onglet == .favoris || (onglet.statut != nil && enGrille)
     }
 
     /// Les mêmes cases que le sélecteur de source d'Explorer (charte graphique).

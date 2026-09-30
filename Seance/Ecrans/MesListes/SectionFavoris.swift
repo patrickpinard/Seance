@@ -42,6 +42,8 @@ struct SectionFavoris: View {
                             CarteLargeTitre(favori: favori)
                         }
                         .buttonStyle(.plain)
+                        // Glisser, comme les cartes des autres listes (8.7) ; l'appui long dit la même chose.
+                        .glisserPourRetirer("Retirer") { retirer(favori) }
                         .contextMenu {
                             Button(role: .destructive) { retirer(favori) } label: {
                                 Label("Retirer de mes favoris", systemImage: "star.slash")
