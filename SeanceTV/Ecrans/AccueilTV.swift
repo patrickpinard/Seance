@@ -237,7 +237,9 @@ struct AccueilTV: View {
                 // Pleine page (8.6, comme Netflix) : la proposition occupe l'écran, « Reprendre » dépasse en bas.
                 .frame(height: 950)
                 .background(alignment: .top) {
-                    ImageTV(url: ImageTMDB.url(proposition.cheminImage, proposition.large ? .fondGrand : .afficheGrande), symboleVide: "")
+                    // 8.7 : un fond sans texte choisi parmi les images du titre, comme sur l'iPad ; sinon celui d'avant.
+                    ImageTV(url: ImageTMDB.url(etat.visuels.visuel(proposition.reference)?.fond, .fondGrand)
+                                ?? ImageTMDB.url(proposition.cheminImage, proposition.large ? .fondGrand : .afficheGrande), symboleVide: "")
                         .id(proposition.reference)
                         .transition(.push(from: versLaDroite ? .trailing : .leading))
                         .frame(height: 1080)
@@ -257,7 +259,20 @@ struct AccueilTV: View {
             HStack(alignment: .bottom, spacing: 60) {
                 VStack(alignment: .leading, spacing: 12) {
                     Text(proposition.surtitre).font(.system(size: 26, weight: .bold)).foregroundStyle(.white.opacity(0.78))
-                    Text(proposition.titre).font(.system(size: 76, weight: .heavy)).lineLimit(2)
+                    // Le logo du titre, quand TMDB en a un (8.7), comme sur l'iPhone ; sinon son nom.
+                    if let logo = ImageTMDB.url(etat.visuels.visuel(proposition.reference)?.logo, .afficheGrande) {
+                        AsyncImage(url: logo) { phase in
+                            if let image = phase.image {
+                                image.resizable().scaledToFit().frame(maxWidth: 620, maxHeight: 180, alignment: .leading)
+                            } else {
+                                Text(proposition.titre).font(.system(size: 76, weight: .heavy)).lineLimit(2)
+                            }
+                        }
+                        .accessibilityElement()
+                        .accessibilityLabel(proposition.titre)
+                    } else {
+                        Text(proposition.titre).font(.system(size: 76, weight: .heavy)).lineLimit(2)
+                    }
                     if let detail = proposition.detail {
                         Text(detail).font(.system(size: 26)).foregroundStyle(.white.opacity(0.75))
                     }
@@ -332,6 +347,7 @@ struct AccueilTV: View {
             .padding(.bottom, 40)
         }
         .task(id: proposition.reference) { etat.ou.demander(proposition.reference, client: etat.tmdb) }
+        .task(id: propositions.map(\.reference)) { await etat.visuels.charger(propositions.map(\.reference), client: etat.tmdb) }
     }
 
     /// L'appui long sur la proposition : les mêmes actions que le « ⋯ » de l'iPhone (8.7) — « Pas ce soir », « Pas ce

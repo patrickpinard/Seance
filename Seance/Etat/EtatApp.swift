@@ -85,6 +85,8 @@ final class EtatApp {
     }()
     /// Images de fond et durées des titres, pour les grandes cartes.
     let decors = EtatDecors()
+    /// Les images de la tête de l'accueil (8.7).
+    let visuels = VisuelsTitres()
     /// Les documentaires : thèmes cochés et titres du moment (EF-151 à EF-156).
     let documentaires = EtatDocumentaires()
     /// Synchronisation entre appareils par un dossier d'iCloud Drive.

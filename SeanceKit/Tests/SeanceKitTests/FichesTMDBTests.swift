@@ -57,6 +57,27 @@ struct FichesTMDBTests {
     }
 }
 
+/// La tête de l'accueil (8.7) choisit ses images parmi celles du titre : sans texte, assez grandes, le logo en PNG.
+@Suite("Images d'un titre")
+struct ImagesTitreTests {
+    @Test func choisitLesImagesSansTexteEtLeLogo() async throws {
+        let transport = TransportSimule([.init(code: 200, corps: try Fixture.donnees("movie_images"))])
+        let client = TMDBClient(identifiants: .jetonLecture("t"), transport: transport)
+        let images = try await client.images(.film, id: 640146)
+
+        // Le mieux noté sans texte, parmi ceux assez grands pour l'écran entier.
+        #expect(images.fondSansTexte == "/fondPropre.jpg")
+        #expect(images.afficheSansTexte == "/afficheSansTexte.jpg")
+        // Le français d'abord, en PNG seulement.
+        #expect(images.logo == "/logoFrancais.png")
+
+        let requete = try #require(await transport.requetes.first)
+        #expect(requete.url?.path == "/3/movie/640146/images")
+        #expect(URLComponents(url: requete.url!, resolvingAgainstBaseURL: false)?.queryItems?
+            .first { $0.name == "include_image_language" }?.value == "fr,en,null")
+    }
+}
+
 @Suite("Tendances et recherche globale")
 struct TitresMixtesTests {
     @Test func tendancesMelangentFilmsEtSeries() async throws {

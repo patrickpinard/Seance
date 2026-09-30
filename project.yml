@@ -19,7 +19,7 @@ settings:
     DEVELOPMENT_TEAM: GATK475J3P
     # Version affichée dans À propos › Versions ; à changer avec Seance/Ecrans/Reglages/Versions.swift.
     MARKETING_VERSION: "8.7"
-    CURRENT_PROJECT_VERSION: "98"
+    CURRENT_PROJECT_VERSION: "99"
 
 packages:
   SeanceKit:
@@ -159,6 +159,8 @@ targets:
       # « Pas intéressé pour l'instant » (8.2.15) : la même mise à l'écart que sur l'iPhone.
       - path: Seance/Etat/PasInteresse.swift
       - path: Seance/Etat/PropositionSoir.swift
+      # Les images de la tête de l'accueil (8.7) : fond et logo, comme sur l'iPhone.
+      - path: Seance/Etat/VisuelsTitres.swift
       # Les arrêts brusques (8.2), notés au lancement suivant, comme sur l'iPhone.
       - path: Seance/Etat/Plantages.swift
       # Les sections qu'on ouvre et qu'on ferme (8.2.15), comme sur l'iPhone.

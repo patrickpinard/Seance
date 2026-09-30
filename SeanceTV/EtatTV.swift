@@ -25,6 +25,8 @@ final class EtatTV {
     let videosPerso: EtatVideosPerso
     /// Où regarder chaque titre (6.3) : les petits logos sur les cartes, comme sur l'iPhone.
     let ou = EtatOu()
+    /// Les images de la tête de l'accueil (8.7), comme sur l'iPhone.
+    let visuels = VisuelsTitres()
     private(set) var nas: ReglagesNAS
     private(set) var motDePasseNAS = false
     private(set) var analyseEnCours = false

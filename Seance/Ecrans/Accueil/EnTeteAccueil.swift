@@ -63,13 +63,18 @@ struct EnTeteAccueil: View {
         .task(id: propositions.map(\.reference)) {
             for proposition in propositions { etat.ou.demander(proposition.reference, client: etat.tmdb) }
             await etat.decors.charger(propositions.map(\.reference), client: etat.tmdb)
+            await etat.visuels.charger(propositions.map(\.reference), client: etat.tmdb)
         }
     }
 
     /// Une proposition : son image bord à bord (un toucher ouvre la fiche), son texte et ses boutons.
     private func page(_ proposition: PropositionSoir) -> some View {
         let decor = etat.decors.decor(proposition.reference)
-        let image = ImageTMDB.url(proposition.cheminFond ?? decor?.fond, .fondGrand) ?? ImageTMDB.url(proposition.cheminAffiche, .fondGrand)
+        // 8.7 (Patrick : « des images plus représentatives du film ») : parmi les images du titre, l'affiche sans texte
+        // remplit la page de l'iPhone, un fond sans texte les écrans larges ; sinon, le fond d'avant.
+        let visuel = etat.visuels.visuel(proposition.reference)
+        let choisie = large ? visuel?.fond.map { ImageTMDB.url($0, .fondGrand) } : visuel?.affiche.map { ImageTMDB.url($0, .fondGrand) }
+        let image = choisie ?? ImageTMDB.url(proposition.cheminFond ?? decor?.fond, .fondGrand) ?? ImageTMDB.url(proposition.cheminAffiche, .fondGrand)
         return ZStack(alignment: .bottomLeading) {
             ImageDistante(url: image, coins: 0, symboleVide: "")
                 .frame(height: hauteur)
@@ -105,12 +110,17 @@ struct EnTeteAccueil: View {
                     Text(proposition.surtitre)
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(Theme.texte.opacity(0.8))
-                    HStack(alignment: .firstTextBaseline, spacing: 6) {
-                        Text(proposition.titre)
-                            .font((large ? Font.largeTitle : Font.title).weight(.heavy))
-                            .lineLimit(2)
-                            .minimumScaleFactor(0.8)
-                        Image(systemName: "chevron.right").font(.headline.weight(.semibold)).foregroundStyle(Theme.texte.opacity(0.6))
+                    // Le logo du titre, quand TMDB en a un (8.7) ; sinon son nom, en grand.
+                    if let logo = ImageTMDB.url(etat.visuels.visuel(proposition.reference)?.logo, .afficheGrande) {
+                        LogoTitre(url: logo, titre: proposition.titre, hauteur: large ? 130 : 96)
+                    } else {
+                        HStack(alignment: .firstTextBaseline, spacing: 6) {
+                            Text(proposition.titre)
+                                .font((large ? Font.largeTitle : Font.title).weight(.heavy))
+                                .lineLimit(2)
+                                .minimumScaleFactor(0.8)
+                            Image(systemName: "chevron.right").font(.headline.weight(.semibold)).foregroundStyle(Theme.texte.opacity(0.6))
+                        }
                     }
                     if let detail = proposition.detail {
                         Text(detail).font(.subheadline).foregroundStyle(Theme.texte.opacity(0.8))
@@ -299,5 +309,28 @@ private extension View {
         #else
         self
         #endif
+    }
+}
+
+/// Le logo d'un titre (8.7), à la place de son nom : à gauche, dans une hauteur et une largeur bornées ; son nom reste
+/// pour VoiceOver. Tant qu'il n'est pas arrivé, le nom s'affiche.
+struct LogoTitre: View {
+    let url: URL
+    let titre: String
+    let hauteur: CGFloat
+
+    var body: some View {
+        AsyncImage(url: url) { phase in
+            if let image = phase.image {
+                image.resizable().scaledToFit()
+                    .frame(maxWidth: 320, maxHeight: hauteur, alignment: .leading)
+                    .shadow(color: Theme.fond.opacity(0.6), radius: 12)
+            } else {
+                Text(titre).font(.title.weight(.heavy)).lineLimit(2)
+            }
+        }
+        .frame(maxWidth: 320, alignment: .leading)
+        .accessibilityElement()
+        .accessibilityLabel(titre)
     }
 }
