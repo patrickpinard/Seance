@@ -25,6 +25,9 @@ struct GlissementsCarte: ViewModifier {
     @State private var decalage: CGFloat = 0
     /// La position de repos : 0, ou les boutons découverts d'un côté.
     @State private var repos: CGFloat = 0
+    /// Un glissement est en cours, ou vient de finir : le toucher qui l'a fait ne doit pas ouvrir la fiche (8.7, Patrick :
+    /// « elle s'ouvre tout de suite sur la page du film »). Seul un toucher franc sur la carte l'ouvre.
+    @State private var glisse = false
     private let largeurBouton: CGFloat = 84
 
     private var ouvertureFin: CGFloat { -CGFloat(fin.count) * (largeurBouton + 6) }
@@ -40,16 +43,29 @@ struct GlissementsCarte: ViewModifier {
             .opacity(abs(decalage) > 8 ? 1 : 0)
             .accessibilityHidden(true)
             content
+                // Pendant le glissement, et tant que les boutons sont découverts, la carte n'ouvre rien.
+                .disabled(glisse || repos != 0)
+                .overlay {
+                    // Boutons découverts : un toucher sur la carte la referme, sans ouvrir la fiche.
+                    if repos != 0 {
+                        Color.clear
+                            .contentShape(Rectangle())
+                            .onTapGesture { fermer() }
+                            .accessibilityHidden(true)
+                    }
+                }
                 .offset(x: decalage)
                 .simultaneousGesture(
                     DragGesture(minimumDistance: 18)
                         .onChanged { valeur in
                             // Seulement un geste horizontal : le défilement vertical de la page reste libre.
                             guard horizontal(valeur) else { return }
+                            glisse = true
                             let voulu = repos + valeur.translation.width
                             decalage = min(debut.isEmpty ? 0 : ouvertureDebut + 40, max(fin.isEmpty ? 0 : -600, voulu))
                         }
                         .onEnded { valeur in
+                            relacher()
                             guard horizontal(valeur) else {
                                 withAnimation(.snappy) { decalage = repos }
                                 return
@@ -72,6 +88,19 @@ struct GlissementsCarte: ViewModifier {
                 Button(action.libelle) { action.action() }
             }
         }
+    }
+
+    /// Le toucher qui termine le glissement arrive aussi à la carte : elle reste sourde un court instant.
+    private func relacher() {
+        Task {
+            try? await Task.sleep(for: .milliseconds(350))
+            glisse = false
+        }
+    }
+
+    private func fermer() {
+        repos = 0
+        withAnimation(.snappy) { decalage = 0 }
     }
 
     private func horizontal(_ valeur: DragGesture.Value) -> Bool {

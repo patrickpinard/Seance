@@ -87,10 +87,10 @@ struct EnTeteAccueil: View {
                 }
                 .contentShape(Rectangle())
                 .onTapGesture { voirFiche(proposition.reference) }
-                .contextMenu { menu(proposition) }
+                .menuClicDroit { menu(proposition) }
                 .accessibilityHidden(true)
             texte(proposition)
-                .contextMenu { menu(proposition) }
+                .menuClicDroit { menu(proposition) }
                 .frame(maxWidth: large ? (nouveautes.isEmpty ? 700 : 600) : .infinity, alignment: .leading)
                 .padding(.horizontal, large ? 32 : 20)
                 .padding(.bottom, 8)
@@ -286,5 +286,18 @@ struct EnTeteAccueil: View {
         let ou = etat.ou.badges(titre.reference).first { if case .tele = $0 { false } else { true } }.map(BadgeOu.libelle)
         let morceaux = [ligneNouveaute(titre), ou].compactMap { $0 }
         return morceaux.isEmpty ? nil : morceaux.joined(separator: " · ")
+    }
+}
+
+private extension View {
+    /// 8.7 (Patrick) : sur l'iPhone et l'iPad, l'appui long soulevait toute la grande image avec le menu. Le menu de la
+    /// proposition passe par « ⋯ », seul, par-dessus la page ; le Mac garde le clic droit, qui n'ouvre que le menu.
+    @ViewBuilder
+    func menuClicDroit<Menu: View>(@ViewBuilder _ menu: () -> Menu) -> some View {
+        #if targetEnvironment(macCatalyst)
+        contextMenu { menu() }
+        #else
+        self
+        #endif
     }
 }
