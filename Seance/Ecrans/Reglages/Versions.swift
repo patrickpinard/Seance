@@ -56,6 +56,23 @@ struct NoteVersion: Identifiable {
 
     static let historique: [NoteVersion] = [
         NoteVersion(
+            numero: "8.8",
+            date: "30 septembre 2026",
+            resume: "L'iPhone, l'iPad et l'Apple TV mis d'accord, page par page ; la fiche s'ouvre sur une grande image, comme sur la TV.",
+            fonctionnalites: [
+                Fonctionnalite(symbole: "photo", titre: "La fiche, bord à bord",
+                               detail: "Sur l'iPhone et l'iPad, la fiche s'ouvre sur une grande image sans texte, avec le logo du titre, comme sur l'Apple TV."),
+                Fonctionnalite(symbole: "rectangle.expand.vertical", titre: "L'accueil plein écran",
+                               detail: "Sur l'iPad en portrait et sur l'Apple TV aussi ; l'iPad debout prend l'affiche du titre. Les Nouveautés à droite portent leur rang."),
+                Fonctionnalite(symbole: "appletv", titre: "L'Apple TV complétée",
+                               detail: "« Autre date » dans Regarder ; dans Mes listes, le tri, « Regardable ce soir », cartes ou liste ; le nombre de propositions dans les Préférences ; les réglages à compléter."),
+                Fonctionnalite(symbole: "externaldrive", titre: "Le NAS pareil partout",
+                               detail: "Les mêmes rayons sur l'iPhone et la TV, les vides cachés ; « non reconnus » au bout des rangements."),
+                Fonctionnalite(symbole: "paintpalette", titre: "La charte partout",
+                               detail: "À venir en cartes communes, statistiques en blanc, plus d'orange sur ce qui ne se touche pas ; les saisons de la fiche TV sur leur ligne."),
+            ]
+        ),
+        NoteVersion(
             numero: "8.7",
             date: "30 septembre 2026",
             resume: "« Pas ce genre » depuis la proposition de l'accueil, et des propositions rangées selon tes goûts ; les cartes se glissent comme les lignes d'une liste.",

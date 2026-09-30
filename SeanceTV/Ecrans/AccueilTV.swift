@@ -235,7 +235,8 @@ struct AccueilTV: View {
             Color.clear
                 .frame(maxWidth: .infinity)
                 // Pleine page (8.6, comme Netflix) : la proposition occupe l'écran, « Reprendre » dépasse en bas.
-                .frame(height: 950)
+                // 8.7 : toute la hauteur de l'écran, comme sur l'iPad — « Reprendre » n'apparaît qu'en descendant.
+                .frame(height: 1080)
                 .background(alignment: .top) {
                     // 8.7 : un fond sans texte choisi parmi les images du titre, comme sur l'iPad ; sinon celui d'avant.
                     ImageTV(url: ImageTMDB.url(etat.visuels.visuel(proposition.reference)?.fond, .fondGrand)

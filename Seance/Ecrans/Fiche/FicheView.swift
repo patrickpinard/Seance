@@ -280,38 +280,46 @@ private struct ContenuFiche: View {
             .padding(.horizontal, 20)
     }
 
-    /// UX-06 : image de fond, affiche, titre, année, genres, durée et anneau de note.
+    /// UX-06 : image de fond, titre, année, genres, durée et anneau de note. 8.7 : comme sur l'Apple TV et la tête de
+    /// l'accueil — l'image bord à bord, plus grande, un fond sans texte choisi parmi les images du titre, et le logo à
+    /// la place du nom quand TMDB en a un ; plus de petite affiche à côté du titre.
     private var enTete: some View {
-        ZStack(alignment: .bottomLeading) {
-            ImageDistante(url: ImageTMDB.url(fiche.cheminFond, .fondGrand), coins: 0)
-                .frame(height: largeur == .regular ? 420 : 300)
+        let visuel = etat.visuels.visuel(fiche.reference)
+        let hauteur: CGFloat = largeur == .regular ? 540 : 420
+        return ZStack(alignment: .bottomLeading) {
+            ImageDistante(url: ImageTMDB.url(visuel?.fond ?? fiche.cheminFond, .fondGrand) ?? ImageTMDB.url(fiche.cheminAffiche, .fondGrand),
+                          coins: 0)
+                .frame(height: hauteur)
+                .frame(maxWidth: .infinity)
                 .clipped()
-            LinearGradient(colors: [.clear, Theme.fond.opacity(0.7), Theme.fond], startPoint: .top, endPoint: .bottom)
-                .frame(height: largeur == .regular ? 420 : 300)
-            HStack(alignment: .bottom, spacing: 16) {
-                ImageDistante(url: ImageTMDB.url(fiche.cheminAffiche, .affiche))
-                    .frame(width: 110, height: 165)
-                    .shadow(radius: 12)
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(fiche.titre).font(.title2.weight(.heavy)).lineLimit(3)
-                    Text([fiche.annee.map(String.init), fiche.duree].compactMap { $0 }.joined(separator: " · "))
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                    Text(fiche.genres.joined(separator: ", "))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(2)
-                    // EF-67 : ta note à côté de celle de TMDB.
-                    HStack(spacing: 10) {
-                        AnneauNote(pourcentage: fiche.pourcentage, diametre: 44)
-                        BadgeTaNote(reference: fiche.reference)
-                    }
+            LinearGradient(stops: [.init(color: Theme.fond.opacity(0.3), location: 0), .init(color: .clear, location: 0.25),
+                                   .init(color: Theme.fond.opacity(0.75), location: 0.7), .init(color: Theme.fond, location: 1)],
+                           startPoint: .top, endPoint: .bottom)
+                .frame(height: hauteur)
+            VStack(alignment: .leading, spacing: 8) {
+                if let logo = ImageTMDB.url(visuel?.logo, .afficheGrande) {
+                    LogoTitre(url: logo, titre: fiche.titre, hauteur: largeur == .regular ? 120 : 84)
+                } else {
+                    Text(fiche.titre).font((largeur == .regular ? Font.largeTitle : Font.title).weight(.heavy)).lineLimit(3)
+                }
+                Text([fiche.annee.map(String.init), fiche.duree].compactMap { $0 }.joined(separator: " · "))
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                Text(fiche.genres.joined(separator: ", "))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+                // EF-67 : ta note à côté de celle de TMDB.
+                HStack(spacing: 10) {
+                    AnneauNote(pourcentage: fiche.pourcentage, diametre: 44)
+                    BadgeTaNote(reference: fiche.reference)
                 }
             }
+            .frame(maxWidth: 700, alignment: .leading)
             .padding(.horizontal, 20)
-            .offset(y: 60)
+            .padding(.bottom, 4)
         }
-        .padding(.bottom, 60)
+        .task(id: fiche.reference) { await etat.visuels.charger([fiche.reference], client: etat.tmdb) }
     }
 
     /// Cloche allumée mais notifications coupées : aucune alerte ne partirait.

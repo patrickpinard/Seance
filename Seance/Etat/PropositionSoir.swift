@@ -75,6 +75,8 @@ enum LibellesProposition {
 /// sur l'iPhone, l'iPad ou le Mac ; la valeur voyage dans les réglages synchronisés, jusqu'à l'Apple TV.
 enum NombrePropositions {
     static let cle = "accueil.propositions"
+    /// Sur l'Apple TV (8.7) : le nombre a été choisi sur la TV même, la synchronisation ne le remplace plus.
+    static let cleChoisiIci = "accueil.propositions.choisiIci"
     static let parDefaut = 5
     static let choix = [1, 3, 5, 8]
 }

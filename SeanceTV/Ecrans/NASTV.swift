@@ -28,27 +28,41 @@ struct SectionsNASTV: View {
     @State private var aIdentifier: DemandeIdentification?
     private static let rangements = ["Ajouts", "Année", "Genre", "A→Z"]
 
+    /// 8.7, comme sur l'iPhone : les rayons qui ont quelque chose, plus celui qu'on regarde ; « Non reconnus » est un
+    /// bouton au bout de la ligne des rangements, pas un rayon.
     private var rayons: [RayonNASTV] {
-        RayonNASTV.allCases.filter { rayon in
-            switch rayon {
+        let pleins = RayonNASTV.allCases.filter { choix in
+            switch choix {
             case .videos: etat.videosPerso.actif
-            case .nonReconnus: !nonReconnus.isEmpty || rayon == .nonReconnus
-            default: true
+            case .nonReconnus: false
+            default: !oeuvres(choix).isEmpty || choix == rayon
             }
         }
+        return pleins.isEmpty ? [.films] : pleins
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 40) {
                 SelecteurTV(selection: $rayon, cases: rayons.map { ($0, nom($0)) }, symbole: symbole)
-                if rayon != .videos, rayon != .nonReconnus {
+                if rayon != .videos {
                     HStack(spacing: 14) {
-                        ForEach(Self.rangements, id: \.self) { mode in
-                            Button(mode) {
-                                rangement = mode
-                                sections = SectionsRepliables(ouvertesParDefaut: mode != "Genre")
+                        if rayon != .nonReconnus {
+                            ForEach(Self.rangements, id: \.self) { mode in
+                                Button(mode) {
+                                    rangement = mode
+                                    sections = SectionsRepliables(ouvertesParDefaut: mode != "Genre")
+                                }
+                                .buttonStyle(BoutonTV(principal: rangement == mode, hauteur: 60))
                             }
-                            .buttonStyle(BoutonTV(principal: rangement == mode, hauteur: 60))
+                        }
+                        // Comme la puce de l'iPhone : « 1 non reconnu », ou « Revenir aux titres ».
+                        if !nonReconnus.isEmpty || rayon == .nonReconnus {
+                            Button(rayon == .nonReconnus ? "Revenir aux titres"
+                                   : nonReconnus.count > 1 ? "\(nonReconnus.count) non reconnus" : "1 non reconnu") {
+                                rayon = rayon == .nonReconnus ? .films : .nonReconnus
+                            }
+                            .buttonStyle(BoutonTV(principal: rayon == .nonReconnus, hauteur: 60))
+                            .padding(.leading, 20)
                         }
                     }
                     .padding(.horizontal, MargesTV.bord)
@@ -69,7 +83,8 @@ struct SectionsNASTV: View {
     }
 
     private func nom(_ rayon: RayonNASTV) -> String {
-        let nombre = rayon == .videos ? etat.videosPerso.videos.count : rayon == .nonReconnus ? nonReconnus.count : oeuvres(rayon).count
+        // « Vidéos » compte les albums de souvenirs, comme sur l'iPhone.
+        let nombre = rayon == .videos ? etat.videosPerso.albums.count : rayon == .nonReconnus ? nonReconnus.count : oeuvres(rayon).count
         return nombre > 0 ? "\(rayon.rawValue) · \(nombre)" : rayon.rawValue
     }
 

@@ -61,7 +61,8 @@ final class EtatsVidesTests: XCTestCase {
         XCTAssertTrue(app.navigationBars["TV"].waitForExistence(timeout: 8), "« Choisir mes chaînes » n'ouvre pas les réglages de télévision")
         capture("12b-tele-reglages", attente: 1)
         app.navigationBars.buttons.firstMatch.tap()
-        if app.navigationBars["Regarder"].waitForExistence(timeout: 5) { app.navigationBars.buttons.firstMatch.tap() }
+        // De retour sur Regarder : son premier bouton est le portrait (les Préférences), pas un retour — on n'y touche pas.
+        _ = app.navigationBars["Regarder"].waitForExistence(timeout: 5)
 
         // La page NAS, depuis l'accueil — si son bouton existe quand aucun NAS n'est configuré.
         app.tabBars.buttons["Accueil"].firstMatch.tap()

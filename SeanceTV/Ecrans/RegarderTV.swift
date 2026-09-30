@@ -39,6 +39,8 @@ struct RegarderTV: View {
 
     @State private var source = DepartTV.source
     @State private var jour = RegarderTV.aujourdhui
+    /// « Autre date » (8.7, comme sur l'iPhone) : les soixante prochains jours en grille — tvOS n'a pas de calendrier.
+    @State private var autreDate = false
 
     /// Le jour de la soirée en cours, à minuit : une soirée va de 6 h à 6 h.
     static var aujourdhui: Date {
@@ -46,7 +48,9 @@ struct RegarderTV: View {
     }
 
     private var jours: [Date] {
-        (0..<7).compactMap { Calendar.current.date(byAdding: .day, value: $0, to: Self.aujourdhui) }
+        let semaine = (0..<7).compactMap { Calendar.current.date(byAdding: .day, value: $0, to: Self.aujourdhui) }
+        // Une autre date choisie plus loin : elle rejoint la rangée, au bout.
+        return semaine.contains(jour) ? semaine : semaine + [jour]
     }
 
     private var soiree: String { ServiceSoiree.soiree(jour: jour.addingTimeInterval(12 * 3600)) }
@@ -98,8 +102,20 @@ struct RegarderTV: View {
                     .buttonStyle(BoutonTV(principal: date == jour, hauteur: nil))
                     .accessibilityLabel(date == Self.aujourdhui ? "Aujourd'hui" : date.formatted(.dateTime.weekday(.wide).day().month(.wide).locale(Locale(identifier: "fr_CH"))))
                 }
+                Button { autreDate = true } label: {
+                    VStack(spacing: 6) {
+                        Image(systemName: "calendar").font(.system(size: 34, weight: .semibold))
+                        Text("Autre date").font(.system(size: 20, weight: .semibold))
+                    }
+                    .frame(width: 130, height: 110)
+                }
+                .buttonStyle(BoutonTV(hauteur: nil))
+                .accessibilityLabel("Choisir une autre date")
             }
             .padding(.vertical, 20)
+            .fullScreenCover(isPresented: $autreDate) {
+                ChoixDateTV(depuis: Self.aujourdhui, choisi: jour) { jour = $0; autreDate = false }
+            }
     }
 
     private var pastilles: some View {
@@ -110,7 +126,8 @@ struct RegarderTV: View {
             }
             // Les filtres d'Explorer, en deux parties, sur la source choisie (8.0).
             NavigationLink(value: FiltresTVDemande(source: source.pourLesFiltres)) {
-                Image(systemName: "line.3.horizontal.decrease")
+                // 8.7 : le mot, comme sur l'iPhone.
+                Label("Filtres", systemImage: "line.3.horizontal.decrease")
             }
             .buttonStyle(BoutonTV(hauteur: 56))
             .accessibilityLabel("Filtres")
@@ -132,5 +149,47 @@ struct RegarderTV: View {
     private func nomCourt(_ date: Date) -> String {
         if date == Self.aujourdhui { return "Auj." }
         return date.formatted(.dateTime.weekday(.abbreviated).locale(Locale(identifier: "fr_CH"))).capitalized
+    }
+}
+
+/// « Autre date » sur la TV (8.7) : les soixante prochains jours, en grille, pour prévoir un titre un autre soir.
+private struct ChoixDateTV: View {
+    let depuis: Date
+    let choisi: Date
+    let choisir: (Date) -> Void
+
+    private static let locale = Locale(identifier: "fr_CH")
+
+    private var jours: [Date] {
+        (0..<60).compactMap { Calendar.current.date(byAdding: .day, value: $0, to: depuis) }
+    }
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 30) {
+                Text("Autre date").font(.system(size: 52, weight: .bold))
+                LazyVGrid(columns: Array(repeating: GridItem(.fixed(150), spacing: 24), count: 9), alignment: .leading, spacing: 24) {
+                    ForEach(jours, id: \.self) { date in
+                        Button { choisir(date) } label: {
+                            TuileJourTV(nom: nom(date), numero: Calendar.current.component(.day, from: date),
+                                        detail: date.formatted(.dateTime.weekday(.wide).day().month(.wide).locale(Self.locale)))
+                        }
+                        .buttonStyle(BoutonTV(principal: date == choisi, hauteur: nil))
+                    }
+                }
+            }
+            .padding(.horizontal, MargesTV.bord)
+            .padding(.vertical, 60)
+        }
+        .background(Theme.fond.ignoresSafeArea())
+    }
+
+    /// « Auj. », puis le jour et, au premier de chaque mois, le mois : « 1 nov. ».
+    private func nom(_ date: Date) -> String {
+        if date == depuis { return "Auj." }
+        if Calendar.current.component(.day, from: date) == 1 {
+            return date.formatted(.dateTime.month(.abbreviated).locale(Self.locale))
+        }
+        return date.formatted(.dateTime.weekday(.abbreviated).locale(Self.locale)).capitalized
     }
 }

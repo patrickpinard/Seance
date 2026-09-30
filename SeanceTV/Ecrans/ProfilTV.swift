@@ -131,6 +131,9 @@ struct ProfilTV: View {
 
     /// « Toi » (8.2.17) : les mêmes lignes que les Préférences de l'iPhone et de l'iPad — qui regarde, langue et
     /// sous-titres, alertes, e-mail de la semaine —, réglées pour la personne en cours.
+    /// Combien de propositions défilent en tête de l'accueil (8.7) ; la même clé que sur l'iPhone, synchronisée.
+    @AppStorage(NombrePropositions.cle) private var nombrePropositions = NombrePropositions.parDefaut
+
     private var reglagesDeToi: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("TOI").font(.system(size: 22, weight: .bold)).foregroundStyle(Theme.texte2).padding(.leading, 8)
@@ -154,6 +157,18 @@ struct ProfilTV: View {
                 .buttonStyle(LigneTV())
                 NavigationLink(value: PreferenceTV.alertesAVenir) {
                     LigneTVReglage.Contenu(titre: "Tes alertes à venir", symbole: "bell.badge.waveform")
+                }
+                .buttonStyle(LigneTV())
+                // 8.7, comme la ligne « Accueil » de l'iPhone : combien de propositions défilent en tête de l'accueil ; un
+                // clic passe au choix suivant (1, 3, 5, 8).
+                Button {
+                    let choix = NombrePropositions.choix
+                    nombrePropositions = choix[((choix.firstIndex(of: nombrePropositions) ?? 2) + 1) % choix.count]
+                    UserDefaults.standard.set(true, forKey: NombrePropositions.cleChoisiIci)
+                } label: {
+                    LigneTVReglage.Contenu(titre: "Accueil",
+                                           detail: nombrePropositions > 1 ? "\(nombrePropositions) propositions" : "1 proposition",
+                                           symbole: "house.fill")
                 }
                 .buttonStyle(LigneTV())
             }

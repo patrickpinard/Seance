@@ -86,4 +86,24 @@ final class IPadTests: XCTestCase {
             }
         }
     }
+
+    /// 8.7 : plein écran aussi en portrait.
+    func testPropositionPleinEcranEnPortrait() throws {
+        try lancer(.portrait)
+        for _ in 0..<2 where app.windows.firstMatch.frame.width > app.windows.firstMatch.frame.height {
+            XCUIDevice.shared.orientation = .portrait
+            Thread.sleep(forTimeInterval: 2)
+        }
+        let points = app.descendants(matching: .any).matching(NSPredicate(format: "label BEGINSWITH 'Proposition 1 sur'")).firstMatch
+        XCTAssertTrue(points.waitForExistence(timeout: 30), "Pas de proposition en tête de l'accueil")
+        XCTAssertLessThan(app.windows.firstMatch.frame.width, app.windows.firstMatch.frame.height, "L'iPad n'est pas en portrait")
+        capture("ipad-portrait-accueil")
+        let bas = app.windows.firstMatch.frame.maxY
+        for titre in ["Nouveautés", "Reprendre", "Suggestions"] {
+            let element = app.staticTexts[titre].firstMatch
+            if element.exists {
+                XCTAssertGreaterThanOrEqual(element.frame.minY, bas, "« \(titre) » se voit en bas de l'accueil en portrait")
+            }
+        }
+    }
 }

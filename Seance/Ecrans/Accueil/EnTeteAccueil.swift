@@ -46,11 +46,15 @@ struct EnTeteAccueil: View {
     /// Pleine page (8.6, comme Netflix) : la proposition occupe l'écran, la rangée suivante dépasse en bas.
     /// 8.7 (Patrick) : sur l'iPad en paysage, 760 points laissaient voir le titre « Reprendre » tout en bas ; la
     /// proposition y prend tout l'écran, et « Reprendre » n'apparaît qu'en faisant défiler.
+    /// 8.7 (bilan des trois apps) : plein écran aussi sur l'iPad en portrait et sur l'Apple TV. L'iPhone garde l'aperçu de
+    /// la rangée suivante : plein écran, son affiche serait trop rognée.
     private var hauteur: CGFloat {
         guard large else { return 620 }
         return pleinEcran ? max(760, taillePage.height) : 760
     }
-    private var pleinEcran: Bool { large && taillePage.width > taillePage.height && taillePage.height > 0 }
+    private var pleinEcran: Bool { large && taillePage.height > 0 }
+    /// Un écran en hauteur (l'iPhone, l'iPad en portrait) prend l'affiche sans texte ; un écran couché, le fond.
+    private var enHauteur: Bool { !large || taillePage.height > taillePage.width }
     /// Plein écran, rien ne suit dessous : les points et les nouveautés gardent de l'air au-dessus du bord.
     private var margeBas: CGFloat { pleinEcran ? 32 : 8 }
     private var courante: PropositionSoir { propositions[min(max(rang, 0), propositions.count - 1)] }
@@ -83,7 +87,7 @@ struct EnTeteAccueil: View {
         // 8.7 (Patrick : « des images plus représentatives du film ») : parmi les images du titre, l'affiche sans texte
         // remplit la page de l'iPhone, un fond sans texte les écrans larges ; sinon, le fond d'avant.
         let visuel = etat.visuels.visuel(proposition.reference)
-        let choisie = large ? visuel?.fond.map { ImageTMDB.url($0, .fondGrand) } : visuel?.affiche.map { ImageTMDB.url($0, .fondGrand) }
+        let choisie = enHauteur ? visuel?.affiche.map { ImageTMDB.url($0, .fondGrand) } : visuel?.fond.map { ImageTMDB.url($0, .fondGrand) }
         let image = choisie ?? ImageTMDB.url(proposition.cheminFond ?? decor?.fond, .fondGrand) ?? ImageTMDB.url(proposition.cheminAffiche, .fondGrand)
         return ZStack(alignment: .bottomLeading) {
             ImageDistante(url: image, coins: 0, symboleVide: "")
@@ -275,9 +279,15 @@ struct EnTeteAccueil: View {
                 Spacer(minLength: 4)
                 BoutonToutVoir(action: toutesLesNouveautes)
             }
-            ForEach(nouveautes) { titre in
+            ForEach(Array(nouveautes.enumerated()), id: \.element.id) { rang, titre in
                 NavigationLink(value: titre.reference) {
                     HStack(spacing: 12) {
+                        // Le rang de popularité, comme dans le carrousel des Nouveautés (8.7).
+                        Text("\(rang + 1)")
+                            .font(.title.weight(.black))
+                            .foregroundStyle(Theme.texte2)
+                            .frame(minWidth: 24)
+                            .accessibilityHidden(true)
                         ImageDistante(url: ImageTMDB.url(titre.cheminFond ?? titre.cheminAffiche, .fond), coins: 8)
                             .frame(width: 104, height: 58)
                             .accessibilityHidden(true)

@@ -39,6 +39,8 @@ struct ReglagesTV: View {
             HStack(alignment: .top, spacing: 50) {
                 ScrollView {
                         VStack(alignment: .leading, spacing: 34) {
+                            // 8.7, comme sur l'iPhone : en tête, ce qui manque, nommé ; la page de droite montre le premier.
+                            etatDesReglages
                             groupe("Où regarder") {
                                 ForEach(points.filter { $0.reglage != .cle }, id: \.reglage) { point in
                                     ligne(point.reglage, point.titre, point.valeur, point.enOrdre, symbole: point.symbole)
@@ -111,6 +113,22 @@ struct ReglagesTV: View {
                 ConteneurTV.changerDeProfil(vers: profil)
             }
         }
+    }
+
+    /// « 2 réglages à compléter — NAS et Vidéos personnelles. Le reste est branché. », ou « Séance est prête ».
+    private var etatDesReglages: some View {
+        let manques = points.filter { $0.enOrdre == false }.map(\.titre)
+        return VStack(alignment: .leading, spacing: 6) {
+            Text(manques.isEmpty ? "Séance est prête" : manques.count > 1 ? "\(manques.count) réglages à compléter" : "1 réglage à compléter")
+                .font(.system(size: 34, weight: .heavy))
+            Text(manques.isEmpty ? "Tout est branché." : manques.formatted(.list(type: .and).locale(Locale(identifier: "fr_CH"))) + ". Le reste est branché.")
+                .font(.system(size: 24))
+                .foregroundStyle(Theme.texte2)
+        }
+        .padding(28)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Theme.surface, in: RoundedRectangle(cornerRadius: 26, style: .continuous))
+        .accessibilityElement(children: .combine)
     }
 
     // MARK: Piste B : héros et grandes cartes

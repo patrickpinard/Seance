@@ -131,7 +131,8 @@ final class TelecommandeTests: XCTestCase {
         lancer(["SEANCE_TV_ONGLET": "nas"])
         let rayon = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Vidéos'")).firstMatch
         XCTAssertTrue(rayon.waitForExistence(timeout: 30), "Pas de rayon « Vidéos » dans Regarder › NAS")
-        XCTAssertTrue(descendreJusqua(["Films", "Séries", "Documentaires", "Vidéos"], essais: 4), "La télécommande n'atteint pas les rayons")
+        // 8.8 : sous « Autre date », la télécommande arrive par la droite des rayons, parfois sur « NEW ».
+        XCTAssertTrue(descendreJusqua(["Films", "Séries", "Documentaires", "NEW", "Vidéos"], essais: 4), "La télécommande n'atteint pas les rayons")
         for _ in 0..<5 where !focusSur(["Vidéos"]) { telecommande.press(.right); Thread.sleep(forTimeInterval: 0.6) }
         XCTAssertTrue(focusSur(["Vidéos"]), "La télécommande n'atteint pas « Vidéos »")
         telecommande.press(.select)
