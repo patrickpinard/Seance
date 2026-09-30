@@ -170,6 +170,8 @@ struct AccueilView: View {
     /// La largeur de la page : le panneau des nouveautés ne tient à droite de la proposition qu'à partir de 1000 points
     /// (l'iPad en paysage, le Mac) ; en dessous, elles passent en carrousel, comme sur l'iPhone.
     @State private var largeurPage: CGFloat = 0
+    /// La hauteur de l'écran, barre d'onglets comprise : sur l'iPad en paysage, la proposition la prend toute (8.7).
+    @State private var hauteurPage: CGFloat = 0
     private var panneauADroite: Bool { classe == .regular && largeurPage >= 1000 }
     @State private var modele = AccueilModele()
     @State private var reglageSources = false
@@ -379,6 +381,7 @@ struct AccueilView: View {
                     // 8.5 : les propositions en carrousel — on les fait glisser ; un toucher sur l'image ou le titre ouvre la fiche.
                     EnTeteAccueil(propositions: toutes,
                                   rang: Binding { toutes.isEmpty ? 0 : rang % toutes.count } set: { rang = $0 },
+                                  taillePage: CGSize(width: largeurPage, height: hauteurPage),
                                   nouveautes: panneauADroite && sources.duMoment ? Array(nouveautes(sauf: proposition.reference).prefix(3)) : [],
                                   ligneNouveaute: { modele.sousTitre($0) },
                                   voirFiche: { chemin.append($0) },
@@ -456,6 +459,7 @@ struct AccueilView: View {
         }
         .ignoresSafeArea(edges: .top)
         .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { largeurPage = $0 }
+        .onGeometryChange(for: CGFloat.self) { $0.size.height + $0.safeAreaInsets.top + $0.safeAreaInsets.bottom } action: { hauteurPage = $0 }
         .overlay {
             if !modele.charge { ProgressView() }
         }

@@ -29,6 +29,8 @@ struct EnTeteAccueil: View {
     let propositions: [PropositionSoir]
     /// La proposition montrée.
     @Binding var rang: Int
+    /// La taille de la page : sur un grand écran couché, la proposition en prend toute la hauteur.
+    var taillePage: CGSize = .zero
     /// Les trois nouveautés du panneau de droite ; vide quand la page est trop étroite pour lui.
     let nouveautes: [TitreResume]
     let ligneNouveaute: (TitreResume) -> String?
@@ -42,7 +44,15 @@ struct EnTeteAccueil: View {
     /// L'iPad et le Mac : le grand titre, et les boutons côte à côte.
     private var large: Bool { classe == .regular }
     /// Pleine page (8.6, comme Netflix) : la proposition occupe l'écran, la rangée suivante dépasse en bas.
-    private var hauteur: CGFloat { large ? 760 : 620 }
+    /// 8.7 (Patrick) : sur l'iPad en paysage, 760 points laissaient voir le titre « Reprendre » tout en bas ; la
+    /// proposition y prend tout l'écran, et « Reprendre » n'apparaît qu'en faisant défiler.
+    private var hauteur: CGFloat {
+        guard large else { return 620 }
+        return pleinEcran ? max(760, taillePage.height) : 760
+    }
+    private var pleinEcran: Bool { large && taillePage.width > taillePage.height && taillePage.height > 0 }
+    /// Plein écran, rien ne suit dessous : les points et les nouveautés gardent de l'air au-dessus du bord.
+    private var margeBas: CGFloat { pleinEcran ? 32 : 8 }
     private var courante: PropositionSoir { propositions[min(max(rang, 0), propositions.count - 1)] }
 
     var body: some View {
@@ -56,7 +66,7 @@ struct EnTeteAccueil: View {
             .frame(height: hauteur)
             .sensoryFeedback(.selection, trigger: rang)
             if !nouveautes.isEmpty {
-                panneau.frame(width: 380).padding(.trailing, 32).padding(.bottom, 8)
+                panneau.frame(width: 380).padding(.trailing, 32).padding(.bottom, margeBas)
             }
         }
         .frame(height: hauteur)
@@ -98,7 +108,7 @@ struct EnTeteAccueil: View {
                 .menuClicDroit { menu(proposition) }
                 .frame(maxWidth: large ? (nouveautes.isEmpty ? 700 : 600) : .infinity, alignment: .leading)
                 .padding(.horizontal, large ? 32 : 20)
-                .padding(.bottom, 8)
+                .padding(.bottom, margeBas)
         }
     }
 

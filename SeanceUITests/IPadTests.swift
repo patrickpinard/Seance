@@ -64,4 +64,26 @@ final class IPadTests: XCTestCase {
     override func tearDown() async throws {
         await MainActor.run { XCUIDevice.shared.orientation = .portrait }
     }
+
+    /// 8.7 (Patrick) : en paysage, la proposition de l'accueil prend tout l'écran ; le titre de la rangée suivante
+    /// (« Reprendre », « Suggestions »…) n'apparaît qu'en faisant défiler.
+    func testPropositionPleinEcranEnPaysage() throws {
+        try lancer(.landscapeLeft)
+        // Le simulateur reste parfois en portrait au lancement : on le couche de nouveau.
+        for sens in [UIDeviceOrientation.portrait, .landscapeRight, .landscapeLeft] where app.windows.firstMatch.frame.width < app.windows.firstMatch.frame.height {
+            XCUIDevice.shared.orientation = sens
+            Thread.sleep(forTimeInterval: 2)
+        }
+        let points = app.descendants(matching: .any).matching(NSPredicate(format: "label BEGINSWITH 'Proposition 1 sur'")).firstMatch
+        XCTAssertTrue(points.waitForExistence(timeout: 30), "Pas de proposition en tête de l'accueil")
+        capture("ipad-paysage-accueil")
+        XCTAssertGreaterThan(app.windows.firstMatch.frame.width, app.windows.firstMatch.frame.height, "L'iPad n'est pas en paysage")
+        let bas = app.windows.firstMatch.frame.maxY
+        for titre in ["Reprendre", "Suggestions", "Tes souvenirs", "Aujourd'hui"] {
+            let element = app.staticTexts[titre].firstMatch
+            if element.exists {
+                XCTAssertGreaterThanOrEqual(element.frame.minY, bas, "« \(titre) » se voit en bas de l'accueil en paysage")
+            }
+        }
+    }
 }
