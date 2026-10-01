@@ -12,11 +12,10 @@ actor SessionSMB {
     private var passageEnCours = false
     /// Le dernier contenu lu du dossier, pour ne pas le redemander à chaque lecture ou écriture.
     private var nomsConnus: [String]?
-    /// Les opérations en cours sur chaque connexion : le lecteur du Mac lit plusieurs tranches à la fois (8.7).
-    private var enCours: [ObjectIdentifier: Int] = [:]
-    /// Les connexions à fermer dès que leur dernière opération sera finie. Gardées ici jusque-là : libérée pendant
-    /// qu'une lecture l'attendait encore, une connexion faisait planter AMSMB2 (plantages du Mac, 28 et 30.09.2026).
-    private var aFermer: [ObjectIdentifier: SMB2Manager] = [:]
+    /// Une opération à la fois sur la connexion gardée (8.8) : AMSMB2 les fait de toute façon l'une après l'autre, et
+    /// une connexion en erreur est mise en quarantaine avant que la suivante ne la touche (`QuarantaineSMB`).
+    private var occupe = false
+    private var enAttente: [CheckedContinuation<Void, Never>] = []
 
     init(explorateur: ExplorateurSMB) {
         self.explorateur = explorateur
@@ -27,18 +26,23 @@ actor SessionSMB {
         nomsConnus = nil
     }
 
+    /// Ferme la connexion gardée, après la fin de l'opération en cours s'il y en a une.
     func fermer() async {
         passageEnCours = false
         nomsConnus = nil
-        retirer()
-        await fermerCeQuiEstLibre()
+        await prendre()
+        let connexion = client
+        client = nil
+        if let connexion { try? await connexion.disconnectShare() }
+        rendre()
     }
 
     /// Exécute le travail sur le partage : sur la connexion gardée pendant un passage, sur une connexion
-    /// jetable sinon. Une erreur écarte la connexion gardée : la suivante repartira d'une connexion saine, et
-    /// l'ancienne sera fermée quand ses autres opérations auront fini.
+    /// jetable sinon. Une erreur met la connexion gardée en quarantaine : la suivante repartira d'une connexion neuve.
     func avec<Resultat: Sendable>(_ travail: sending (SMB2Manager) async throws -> Resultat) async throws -> Resultat {
         guard passageEnCours else { return try await explorateur.avecPartage(travail) }
+        await prendre()
+        defer { rendre() }
         let ouvert: SMB2Manager
         if let client {
             ouvert = client
@@ -46,15 +50,14 @@ actor SessionSMB {
             ouvert = try await explorateur.connecter()
             client = ouvert
         }
-        let cle = ObjectIdentifier(ouvert)
-        enCours[cle, default: 0] += 1
         do {
-            let resultat = try await travail(ouvert)
-            await terminer(cle)
-            return resultat
+            return try await travail(ouvert)
         } catch {
-            if client === ouvert { retirer() }
-            await terminer(cle)
+            // Une commande peut être restée en suspens dans libsmb2 : cette connexion n'est plus jamais touchée — ni
+            // réutilisée, ni fermée, ni libérée.
+            QuarantaineSMB.garder(ouvert)
+            if client === ouvert { client = nil }
+            nomsConnus = nil
             throw error
         }
     }
@@ -74,25 +77,20 @@ actor SessionSMB {
         nomsConnus = nil
     }
 
-    /// La connexion gardée ne sert plus aux nouvelles opérations ; elle attend la fin des siennes pour se fermer.
-    private func retirer() {
-        if let client { aFermer[ObjectIdentifier(client)] = client }
-        client = nil
-        nomsConnus = nil
+    private func prendre() async {
+        guard occupe else {
+            occupe = true
+            return
+        }
+        await withCheckedContinuation { enAttente.append($0) }
     }
 
-    private func terminer(_ cle: ObjectIdentifier) async {
-        let reste = (enCours[cle] ?? 1) - 1
-        enCours[cle] = reste > 0 ? reste : nil
-        await fermerCeQuiEstLibre()
-    }
-
-    /// Ferme les connexions écartées qui n'ont plus d'opération en cours — jamais une qui lit encore.
-    private func fermerCeQuiEstLibre() async {
-        let libres = aFermer.filter { enCours[$0.key] == nil }
-        for (cle, connexion) in libres {
-            aFermer[cle] = nil
-            try? await connexion.disconnectShare()
+    /// Passe la main à l'opération suivante, qui garde `occupe` à vrai.
+    private func rendre() {
+        if enAttente.isEmpty {
+            occupe = false
+        } else {
+            enAttente.removeFirst().resume()
         }
     }
 }

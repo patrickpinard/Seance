@@ -296,19 +296,33 @@ final class DelegueNotifications: NSObject, UNUserNotificationCenterDelegate {
         self.ouvrir = ouvrir
     }
 
-    func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification) async -> UNNotificationPresentationOptions {
-        [.banner, .list, .sound]
+    func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification,
+                                withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
+        completionHandler([.banner, .list, .sound])
     }
 
-    func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse) async {
+    /// 8.8 (plantages du 28.09 et du 01.10.2026) : la version `async` de cette méthode rendait la main à iOS depuis un fil
+    /// d'arrière-plan ; UIKit, qui met alors à jour l'aperçu de l'app, l'exige sur le fil principal et arrêtait Séance
+    /// (`_performBlockAfterCATransactionCommitSynchronizes`). Le travail et la réponse à iOS passent sur le fil principal.
+    func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse,
+                                withCompletionHandler completionHandler: @escaping () -> Void) {
         let infos = response.notification.request.content.userInfo
-        guard let texte = infos["lien"] as? String, let url = URL(string: texte) else { return }
-        if response.actionIdentifier == EtatAlertes.actionSoiree {
-            // Depuis l'alerte ou la montre, sans ouvrir l'app : le titre rejoint la soirée de ce soir.
-            await Self.ajouterASoiree(url, titreDeSecours: infos["titre"] as? String)
-            return
+        let lien = (infos["lien"] as? String).flatMap(URL.init(string:))
+        let titre = infos["titre"] as? String
+        let soiree = response.actionIdentifier == EtatAlertes.actionSoiree
+        nonisolated(unsafe) let terminer = completionHandler
+        let ouvrir = ouvrir
+        Task { @MainActor in
+            if let lien {
+                if soiree {
+                    // Depuis l'alerte ou la montre, sans ouvrir l'app : le titre rejoint la soirée de ce soir.
+                    Self.ajouterASoiree(lien, titreDeSecours: titre)
+                } else {
+                    ouvrir(lien)
+                }
+            }
+            terminer()
         }
-        await ouvrir(url)
     }
 
     @MainActor

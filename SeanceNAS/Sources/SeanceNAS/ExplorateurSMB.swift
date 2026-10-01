@@ -205,7 +205,13 @@ public struct ExplorateurSMB: ExplorateurFichiers {
         case .injoignable(let detail): throw ErreurNAS.injoignable(detail)
         }
 
-        try await client.connectShare(name: reglages.partage)
+        do {
+            try await client.connectShare(name: reglages.partage)
+        } catch {
+            // Une connexion à moitié ouverte peut garder une commande en suspens : pas de libération (`QuarantaineSMB`).
+            QuarantaineSMB.garder(client)
+            throw error
+        }
         return client
     }
 
@@ -216,7 +222,8 @@ public struct ExplorateurSMB: ExplorateurFichiers {
             try? await client.disconnectShare()
             return resultat
         } catch {
-            try? await client.disconnectShare()
+            // Une commande peut être restée en suspens : la connexion n'est plus touchée (`QuarantaineSMB`).
+            QuarantaineSMB.garder(client)
             throw error
         }
     }
