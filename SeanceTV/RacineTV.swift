@@ -37,7 +37,7 @@ struct RacineTV: View {
             // 8.0, charte commune, la même barre que sur l'iPhone, l'iPad et le Mac : le portrait des Préférences, puis
             // Accueil, Regarder, Mes listes, la loupe de la recherche et la roue dentée des Réglages. Des noms seuls pour
             // les pages, des icônes pour le reste.
-            Tab(value: OngletTV.profil) { pile { ProfilTV() } } label: {
+            Tab(value: OngletTV.profil) { pile(calme: true) { ProfilTV() } } label: {
                 Image(systemName: "person.crop.circle").accessibilityLabel("Préférences")
             }
             Tab(value: OngletTV.accueil) {
@@ -53,7 +53,7 @@ struct RacineTV: View {
             }
             // Les réglages : une roue dentée tout à droite, plutôt qu'un mot de plus dans le menu. Elle reste dans la barre :
             // un bouton posé par-dessus flotterait quand la barre se replie, et la télécommande s'y perdrait.
-            Tab(value: OngletTV.reglages) { pile { ReglagesTV() } } label: {
+            Tab(value: OngletTV.reglages) { pile(calme: true) { ReglagesTV() } } label: {
                 Image(systemName: "gearshape.fill").accessibilityLabel("Réglages")
             }
         }
@@ -198,8 +198,8 @@ struct RacineTV: View {
     }
 
     /// Chaque onglet a sa pile : toute affiche ouvre la fiche du titre, par valeur.
-    private func pile(@ViewBuilder _ contenu: () -> some View) -> some View {
-        PileTV { contenu() }
+    private func pile(calme: Bool = false, @ViewBuilder _ contenu: () -> some View) -> some View {
+        PileTV(calme: calme) { contenu() }
     }
 }
 
@@ -288,6 +288,8 @@ extension View {
 /// Une pile d'onglet (8.0) : elle garde son chemin, pour que l'appui long sur une carte puisse ouvrir une fiche
 /// (« Voir la fiche », « Regarder ») par `\.ouvrirTV`.
 struct PileTV<Contenu: View>: View {
+    /// Les Réglages et les Préférences : un fond sans image (8.8).
+    var calme = false
     @ViewBuilder let contenu: Contenu
     @State private var chemin = NavigationPath()
 
@@ -295,7 +297,7 @@ struct PileTV<Contenu: View>: View {
         NavigationStack(path: $chemin) {
             contenu
                 .sousLaPastille()
-                .background { FondTV() }
+                .background { FondTV(calme: calme) }
                 .destinationsTV()
         }
         .environment(\.ouvrirTV, OuvrirTV { chemin.append($0) })

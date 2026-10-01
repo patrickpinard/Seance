@@ -80,3 +80,20 @@ enum NombrePropositions {
     static let parDefaut = 5
     static let choix = [1, 3, 5, 8]
 }
+
+/// Le message du lecteur pendant que le NAS ouvre la vidéo (8.8, Patrick : « sois un peu plus explicite ») — le même
+/// sur l'iPhone, l'iPad et l'Apple TV.
+enum ChargementNAS {
+    /// Au-delà, le message dit que le NAS se réveille.
+    static let attenteLongue: Duration = .seconds(8)
+
+    /// « Chargement du film depuis le NAS », de l'épisode, ou de la vidéo pour un souvenir.
+    static func titre(film: Bool?, episode: Bool) -> String {
+        guard let film else { return "Chargement de la vidéo depuis le NAS" }
+        return film ? "Chargement du film depuis le NAS" : episode ? "Chargement de l'épisode depuis le NAS" : "Chargement depuis le NAS"
+    }
+
+    static func detail(longue: Bool) -> String {
+        longue ? "Le NAS se réveille, encore un instant…" : "Patiente quelques secondes…"
+    }
+}

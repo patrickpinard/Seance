@@ -38,6 +38,8 @@ struct LecteurVLC: View {
     @State private var relais: RelaisVideo?
     @State private var source: SourceVideoSMB?
     @State private var message: String?
+    /// Le chargement dure : le message dit que le NAS se réveille (8.8).
+    @State private var attenteLongue = false
     @State private var commandesVisibles = true
     /// Change à chaque toucher : relance le compte à rebours qui masque les commandes.
     @State private var dernierGeste = 0
@@ -77,11 +79,22 @@ struct LecteurVLC: View {
                     // Le sablier (7.0) : le temps que VLC ouvre le fichier sur le NAS et remplisse sa mémoire tampon.
                     VStack(spacing: 14) {
                         ProgressView().tint(.white).controlSize(.large)
-                        Text("Chargement de « \(video.nom) »…")
+                        // 8.8 : explicite — ce qui se charge, d'où, et qu'il faut patienter.
+                        Text(ChargementNAS.titre(film: lecture.fichier.map { $0.typeBrut == TypeTitre.film.rawValue },
+                                                 episode: lecture.fichier?.episode != nil))
+                            .font(.headline)
+                            .foregroundStyle(.white)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 40)
+                        Text(lecture.fichier?.titre ?? video.nom)
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(.white.opacity(0.85))
                             .multilineTextAlignment(.center)
+                            .lineLimit(2)
                             .padding(.horizontal, 40)
+                        Text(ChargementNAS.detail(longue: attenteLongue))
+                            .font(.subheadline)
+                            .foregroundStyle(.white.opacity(0.7))
                         if etat.reseau.horsMaison {
                             Label(lecture.acces.hoteDistant == nil ? "Réseau mobile : le NAS de la maison risque de ne pas répondre"
                                                                    : "Réseau mobile : par l'adresse hors de la maison",
@@ -173,6 +186,12 @@ struct LecteurVLC: View {
                 .padding(.bottom, commandesVisibles ? 190 : 40)
                 .transition(.opacity)
             }
+        }
+        .task(id: moteur.enChargement) {
+            attenteLongue = false
+            guard moteur.enChargement else { return }
+            try? await Task.sleep(for: ChargementNAS.attenteLongue)
+            if !Task.isCancelled { attenteLongue = moteur.enChargement }
         }
         .task(id: moteur.enChargement) {
             // « Depuis le début » reste proposé six secondes une fois la lecture partie.

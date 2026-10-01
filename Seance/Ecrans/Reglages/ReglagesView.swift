@@ -244,8 +244,6 @@ struct ReglagesView: View {
     @Query(filter: #Predicate<Chaine> { $0.active }) private var chaines: [Chaine]
     /// Sur le Mac, en deux colonnes : la ligne choisie (8.2.13).
     @Environment(\.choixReglage) private var choixReglage
-    /// Leurs affiches habillent les cartes des réglages.
-    @Query private var suivis: [Suivi]
     @AppStorage(Prenom.cle) private var prenom = ""
     @AppStorage(NombreIdees.cle) private var nombreIdees = NombreIdees.parDefaut
     @AppStorage("accueil.sources") private var sourcesBrutes = Data()
@@ -434,14 +432,6 @@ struct ReglagesView: View {
         return liste
     }
 
-    /// Les affiches de tes titres, pour habiller les cartes : chaque carte garde la sienne d'un jour à l'autre.
-    private var affiches: [String] {
-        Array(Set(suivis.compactMap(\.cheminAffiche))).sorted()
-    }
-
-    private func affiche(_ rang: Int) -> String? {
-        affiches.isEmpty ? nil : affiches[(rang * 7 + 3) % affiches.count]
-    }
 
     /// La carte d'état, en tête : ce qui manque, nommé, et les deux gestes du moment.
     private func heros(manques: [PointEtat]) -> some View {
@@ -480,8 +470,8 @@ struct ReglagesView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background {
             ZStack {
-                ImageDistante(url: ImageTMDB.url(affiche(0), .fond), coins: 0).blur(radius: 14).opacity(affiches.isEmpty ? 0 : 1).accessibilityHidden(true)
-                LinearGradient(colors: [.black.opacity(0.88), .black.opacity(0.62), Theme.accent.opacity(0.28)], startPoint: .leading, endPoint: .trailing)
+                // 8.8 (Patrick) : plus d'affiche floutée teintée d'orange derrière l'état des réglages — un fond calme.
+                Theme.eleve
             }
         }
         .surImage()

@@ -24,10 +24,16 @@ struct FondTV: View {
         return duJour(affiches).flatMap { ImageTMDB.url($0, .afficheGrande) }
     }
 
+    /// Sans image (8.8, Patrick) : les Réglages et les Préférences ont un fond sombre et calme — l'image floutée du
+    /// jour, une affiche rouge vif qu'on ne reconnaissait pas, gênait la lecture des réglages.
+    var calme = false
+
     var body: some View {
         ZStack {
             Theme.fond
-            if let image {
+            if calme {
+                RadialGradient(colors: [Theme.texte.opacity(0.07), .clear], center: .topLeading, startRadius: 0, endRadius: 1600)
+            } else if let image {
                 ImageTV(url: image, symboleVide: "")
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .clipped()
