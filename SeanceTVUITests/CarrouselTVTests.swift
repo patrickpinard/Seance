@@ -61,4 +61,25 @@ final class CarrouselTVTests: XCTestCase {
         }
         capture("nouveautes-tv")
     }
+
+    /// 8.8 (Patrick) : de « Lecture », haut ramène au menu du haut, même après avoir fait défiler les propositions.
+    func testHautDepuisLaPropositionRameneAuMenu() throws {
+        app.launchEnvironment["SEANCE_DEMO"] = "1"
+        app.launchEnvironment["SEANCE_FAUX_TMDB"] = reponsesTMDB
+        app.launch()
+        let points = app.descendants(matching: .any).matching(NSPredicate(format: "label BEGINSWITH 'Proposition 1 sur'")).firstMatch
+        XCTAssertTrue(points.waitForExistence(timeout: 30), "Pas de carrousel sur l'accueil")
+        Thread.sleep(forTimeInterval: 2)
+        for _ in 0..<3 where !(focusSur("Lecture") || focusSur("Reprendre") || focusSur("Plus d'infos")) {
+            telecommande.press(.down); Thread.sleep(forTimeInterval: 0.7)
+        }
+        XCTAssertTrue(focusSur("Lecture") || focusSur("Reprendre") || focusSur("Plus d'infos"), "Le focus n'arrive pas sur la proposition")
+        // Défiler : gauche sur « Lecture » ou droite sur « Plus d'infos ».
+        telecommande.press(focusSur("Plus d'infos") ? .right : .left); Thread.sleep(forTimeInterval: 1.2)
+        capture("tv-proposition-avant-haut")
+        telecommande.press(.up); Thread.sleep(forTimeInterval: 1.2)
+        capture("tv-apres-haut")
+        let menu = app.tabBars.buttons.matching(NSPredicate(format: "hasFocus == true")).firstMatch
+        XCTAssertTrue(menu.exists, "Haut depuis la proposition ne ramène pas au menu du haut")
+    }
 }

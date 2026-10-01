@@ -235,8 +235,9 @@ struct AccueilTV: View {
             Color.clear
                 .frame(maxWidth: .infinity)
                 // Pleine page (8.6, comme Netflix) : la proposition occupe l'écran, « Reprendre » dépasse en bas.
-                // 8.7 : toute la hauteur de l'écran, comme sur l'iPad — « Reprendre » n'apparaît qu'en descendant.
-                .frame(height: 1080)
+                // 950 points, pas tout l'écran (8.8, Patrick) : plein écran, la page défilait dès « Lecture », le menu du haut
+                // se repliait et haut ne le retrouvait plus. `testHautDepuisLaPropositionRameneAuMenu` le vérifie.
+                .frame(height: 950)
                 .background(alignment: .top) {
                     // 8.7 : un fond sans texte choisi parmi les images du titre, comme sur l'iPad ; sinon celui d'avant.
                     ImageTV(url: ImageTMDB.url(etat.visuels.visuel(proposition.reference)?.fond, .fondGrand)

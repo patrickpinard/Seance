@@ -48,7 +48,7 @@ struct RacineTV: View {
             } label: { Text("Accueil") }
             Tab(value: OngletTV.regarder) { pile { RegarderTV() } } label: { Text("Regarder") }
             Tab(value: OngletTV.listes) { pile { ListesTV() } } label: { Text("Mes listes") }
-            Tab(value: OngletTV.explorer) { pile { RechercheTV() } } label: {
+            Tab(value: OngletTV.explorer) { pile { ExplorerTV() } } label: {
                 Image(systemName: "magnifyingglass").accessibilityLabel("Recherche")
             }
             // Les réglages : une roue dentée tout à droite, plutôt qu'un mot de plus dans le menu. Elle reste dans la barre :

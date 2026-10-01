@@ -89,6 +89,9 @@ struct ExplorerTV: View {
             colonneResultats
         }
         .padding(.leading, MargesTV.bord)
+        // 8.8 : la loupe ouvre cette page, comme la Recherche de l'iPhone — le clavier de tvOS en haut (dictée, clavier
+        // de l'iPhone), puis les filtres et les résultats. Depuis Regarder, la source est choisie et le clavier n'y est pas.
+        .modifier(ClavierRecherche(actif: sourceImposee == nil, texte: $recherche))
         .task(id: Cle(categorie: categorie, source: source, genres: genresChoisis, exclus: genresExclus, periode: periode,
                       duree: duree, note: note, tri: tri, acteurs: acteurs, dejaVus: dejaVus, recherche: recherche, pret: etat.tmdb != nil)) {
             // Laisse finir la frappe avant d'interroger TMDB.
@@ -123,10 +126,6 @@ struct ExplorerTV: View {
     private var colonneFiltres: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
-                if sourceImposee == nil {
-                    Text("Recherche").font(.system(size: 44, weight: .heavy))
-                    TextField("Un titre : dicte-le, ou tape-le sur l'iPhone", text: $recherche)
-                }
                 VStack(alignment: .leading, spacing: 14) {
                     HStack {
                         Text("Filtres").font(.system(size: 34, weight: .bold))
@@ -494,69 +493,16 @@ struct FluxTV: Layout {
     }
 }
 
-/// La loupe (maquette 8.0, n° 16) : le clavier de tvOS, Tout · Films · Séries · Documentaires, les résultats en
-/// affiches. Les filtres d'Explorer sont dans Regarder, sur la source choisie.
-struct RechercheTV: View {
-    enum Categorie: String, CaseIterable { case tout = "Tout", films = "Films", series = "Séries", documentaires = "Documentaires" }
+/// Le clavier de tvOS au-dessus de la page, seulement pour la loupe.
+private struct ClavierRecherche: ViewModifier {
+    let actif: Bool
+    @Binding var texte: String
 
-    @Environment(EtatTV.self) private var etat
-    @State private var texte = ""
-    @State private var categorie = Categorie.tout
-    @State private var resultats: [ApercuTV] = []
-    @State private var enCours = false
-
-    var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 30) {
-                HStack(spacing: 14) {
-                    ForEach(Categorie.allCases, id: \.self) { choix in
-                        Button(choix.rawValue) { categorie = choix }
-                            .buttonStyle(BoutonTV(principal: categorie == choix, hauteur: 56))
-                    }
-                }
-                .focusSection()
-                if resultats.isEmpty {
-                    Text(texte.isEmpty ? "Un titre, dicté ou tapé : les résultats s'affichent au fil des lettres."
-                                       : enCours ? "Recherche…" : "Aucun titre ne correspond.")
-                        .font(.system(size: 26)).foregroundStyle(Theme.texte2)
-                }
-                LazyVGrid(columns: Array(repeating: GridItem(.fixed(AfficheTV.largeur), spacing: 40, alignment: .top), count: 6), spacing: 44) {
-                    ForEach(resultats) { apercu in
-                        NavigationLink(value: apercu.reference) {
-                            AfficheTV(titre: apercu.titre, sousTitre: apercu.sousTitre, cheminAffiche: apercu.cheminAffiche)
-                        }
-                        .buttonStyle(.card)
-                        .menuCarteTV(apercu.reference, titre: apercu.titre, cheminAffiche: apercu.cheminAffiche)
-                    }
-                }
-                .focusSection()
-            }
-            .padding(.horizontal, MargesTV.bord)
-            .padding(.vertical, 30)
+    func body(content: Content) -> some View {
+        if actif {
+            content.searchable(text: $texte, prompt: "Films, séries, acteurs")
+        } else {
+            content
         }
-        .searchable(text: $texte, prompt: "Films, séries, acteurs")
-        .task(id: Cle(texte: texte, categorie: categorie)) {
-            try? await Task.sleep(for: .milliseconds(400))
-            guard !Task.isCancelled else { return }
-            await chercher()
-        }
-    }
-
-    private struct Cle: Hashable { let texte: String; let categorie: Categorie }
-
-    private func chercher() async {
-        let requete = texte.trimmingCharacters(in: .whitespaces)
-        guard let client = etat.tmdb, !requete.isEmpty else { resultats = []; return }
-        enCours = true
-        defer { enCours = false }
-        async let films = categorie == .series ? nil : try? client.rechercherFilms(requete)
-        async let series = categorie == .films ? nil : try? client.rechercherSeries(requete)
-        var listeFilms = (await films)?.resultats ?? []
-        var listeSeries = (await series)?.resultats ?? []
-        if categorie == .documentaires {
-            listeFilms = listeFilms.filter { $0.genres.contains(99) }
-            listeSeries = listeSeries.filter { $0.genres.contains(99) }
-        }
-        resultats = ApercuTV.meler(listeFilms, listeSeries, garderLOrdre: true)
     }
 }
