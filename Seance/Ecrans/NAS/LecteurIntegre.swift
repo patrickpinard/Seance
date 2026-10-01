@@ -19,6 +19,8 @@ struct LecteurIntegre: View {
 
     @Environment(\.dismiss) private var fermer
     @State private var lecteur: AVPlayer?
+    /// Le chargement dure : le message dit que le NAS se réveille (8.8).
+    @State private var attenteLongue = false
     @State private var relais: RelaisVideo?
     @State private var source: SourceVideoSMB?
     @State private var message: String?
@@ -53,7 +55,26 @@ struct LecteurIntegre: View {
                         .tint(Theme.accent)
                 }
             } else {
-                ProgressView().tint(.white)
+                // 8.8 : le même message que le lecteur de VLC — ce qui se charge, d'où, et qu'il faut patienter.
+                VStack(spacing: 14) {
+                    ProgressView().tint(.white).controlSize(.large)
+                    Text(ChargementNAS.titre(film: nil, episode: false))
+                        .font(.headline)
+                        .foregroundStyle(.white)
+                    Text(video.nom)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.white.opacity(0.85))
+                        .lineLimit(2)
+                    Text(ChargementNAS.detail(longue: attenteLongue))
+                        .font(.subheadline)
+                        .foregroundStyle(.white.opacity(0.7))
+                }
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 40)
+                .task {
+                    try? await Task.sleep(for: ChargementNAS.attenteLongue)
+                    if !Task.isCancelled { attenteLongue = true }
+                }
             }
         }
         .overlay(alignment: .bottom) {
