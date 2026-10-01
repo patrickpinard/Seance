@@ -22,6 +22,8 @@ struct LecteurVLCTV: View {
     var surPosition: (Double, Double) -> Void = { _, _ in }
     /// Le film ou l'épisode du NAS (8.1) : vu vers la fin, puis l'épisode suivant. `nil` pour un souvenir.
     var fichier: FichierNAS?
+    /// Le chargement dure : le message dit que le NAS se réveille (8.8).
+    @State private var attenteLongue = false
     /// Lancer l'épisode d'après : l'écran d'appel remplace la vidéo.
     var surSuivant: (FichierNAS) -> Void = { _ in }
 
@@ -53,6 +55,9 @@ struct LecteurVLCTV: View {
     /// Des appuis rapprochés sur la barre vont de plus en plus vite.
     @State private var dernierPas = Date.distantPast
     @State private var elan = 1.0
+    /// « Qui est-ce ? » (8.9) : les visages du film ou de l'épisode, montrés à la pause, et celui qu'on a choisi.
+    @State private var visages: [PersonneCasting] = []
+    @State private var personne: PersonneCasting?
 
     enum Commande: Hashable { case ecran, barre, reculer, lecture, avancer, son, pistes, quitter, sonPlus }
 
@@ -93,18 +98,28 @@ struct LecteurVLCTV: View {
                 if moteur.enChargement {
                     VStack(spacing: 18) {
                         ProgressView().tint(.white).controlSize(.large)
-                        Text(video.nom).font(.system(size: 26)).foregroundStyle(.white.opacity(0.8))
+                        // 8.8, comme sur l'iPhone : ce qui se charge, d'où, et qu'il faut patienter.
+                        Text(ChargementNAS.titre(film: fichier.map { $0.typeBrut == TypeTitre.film.rawValue }, episode: fichier?.episode != nil))
+                            .font(.system(size: 34, weight: .bold)).foregroundStyle(.white)
+                        Text(fichier?.titre ?? video.nom).font(.system(size: 28, weight: .semibold)).foregroundStyle(.white.opacity(0.85))
+                        Text(ChargementNAS.detail(longue: attenteLongue)).font(.system(size: 24)).foregroundStyle(.white.opacity(0.7))
+                    }
+                    .multilineTextAlignment(.center)
+                    .task {
+                        attenteLongue = false
+                        try? await Task.sleep(for: ChargementNAS.attenteLongue)
+                        if !Task.isCancelled { attenteLongue = true }
                     }
                 }
             }
         }
         .overlay(alignment: .bottom) {
-            if commandes, !pistes, message == nil {
+            if commandes, !pistes, personne == nil, message == nil {
                 barreCommandes.transition(.opacity)
             }
         }
         .overlay(alignment: .bottomLeading) {
-            if son, commandes, !pistes, message == nil {
+            if son, commandes, !pistes, personne == nil, message == nil {
                 VStack(alignment: .leading, spacing: 18) {
                     Text(moteur.muet ? "Son coupé" : "Volume \(moteur.volume) %")
                         .font(.system(size: 26, weight: .semibold).monospacedDigit())
@@ -157,11 +172,18 @@ struct LecteurVLCTV: View {
         .overlay(alignment: .trailing) {
             if pistes { PanneauPistesTV(moteur: moteur) { fermerPistes() }.transition(.move(edge: .trailing)) }
         }
+        .overlay(alignment: .trailing) {
+            if let personne {
+                PanneauPersonneTV(personne: personne, actuel: fichier?.reference) { fermerPersonne(reprendre: true) }
+                    .transition(.move(edge: .trailing))
+            }
+        }
+        .animation(.easeOut(duration: 0.25), value: personne)
         .animation(.easeOut(duration: 0.25), value: commandes)
         .animation(.easeOut(duration: 0.25), value: pistes)
         // Retour : referme d'abord le panneau, puis les commandes ; commandes cachées, quitte la lecture.
         .onExitCommand {
-            if cible != nil { cible = nil } else if son { son = false; focus = .son } else if pistes { fermerPistes() } else if commandes, moteur.enLecture { cacher() } else if message != nil { fermer() } else { demanderAQuitter() }
+            if personne != nil { fermerPersonne(reprendre: false) } else if cible != nil { cible = nil } else if son { son = false; focus = .son } else if pistes { fermerPistes() } else if commandes, moteur.enLecture { cacher() } else if message != nil { fermer() } else { demanderAQuitter() }
         }
         // 8.3 (demande de Patrick) : Retour pendant la lecture demande avant de quitter ; la vidéo s'arrête le temps de répondre.
         .fullScreenCover(isPresented: $quitterDemande) {
@@ -180,7 +202,11 @@ struct LecteurVLCTV: View {
                            },
                        ])
         }
-        .onPlayPauseCommand { moteur.basculerLecture(); montrer() }
+        .onPlayPauseCommand {
+            if personne != nil { return fermerPersonne(reprendre: true) }
+            moteur.basculerLecture()
+            montrer()
+        }
         .overlay(alignment: .bottomTrailing) { carteSuivant }
         .onChange(of: Int(moteur.secondes)) { _, _ in marquerVuSiFini() }
         .onChange(of: moteur.termine) { _, termine in
@@ -202,6 +228,18 @@ struct LecteurVLCTV: View {
             }
             await ouvrir()
         }
+        .task(id: fichier?.chemin) {
+            guard let tmdb = etat.tmdb else { return }
+            #if DEBUG
+            // SEANCE_LIRE_TITRE=film:11 : les visages de ce titre sur la vidéo d'essai (`SEANCE_LIRE_FICHIER`), pour les tests.
+            let morceaux = (ProcessInfo.processInfo.environment["SEANCE_LIRE_TITRE"] ?? "").split(separator: ":")
+            if fichier == nil, morceaux.count == 2, let type = TypeTitre(rawValue: String(morceaux[0])), let id = Int(morceaux[1]) {
+                visages = await VisagesLectureTV.charger(reference: ReferenceTitre(type: type, tmdbID: id), saison: nil, episode: nil, tmdb: tmdb)
+            }
+            #endif
+            guard let fichier else { return }
+            visages = await VisagesLectureTV.charger(reference: fichier.reference, saison: fichier.saison, episode: fichier.episode, tmdb: tmdb)
+        }
         .task {
             while !Task.isCancelled {
                 try? await Task.sleep(for: .seconds(10))
@@ -212,7 +250,7 @@ struct LecteurVLCTV: View {
         .task {
             while !Task.isCancelled {
                 try? await Task.sleep(for: .seconds(1))
-                if commandes, !pistes, !son, cible == nil, moteur.enLecture, Date.now.timeIntervalSince(dernierGeste) > 6 { cacher() }
+                if commandes, !pistes, !son, personne == nil, cible == nil, moteur.enLecture, Date.now.timeIntervalSince(dernierGeste) > 6 { cacher() }
             }
         }
         .onAppear {
@@ -290,6 +328,14 @@ struct LecteurVLCTV: View {
     /// La barre du bas : le titre, la progression avec le temps écoulé et restant, puis les boutons.
     private var barreCommandes: some View {
         VStack(alignment: .leading, spacing: 22) {
+            // « Qui est-ce ? » (8.9) : à la pause seulement — en lecture, la barre reste aussi basse qu'avant.
+            if avecVisages {
+                RangeeVisagesTV(titre: fichier?.saison != nil ? "Dans cet épisode" : "Dans ce film", visages: visages) { choisi in
+                    personne = choisi
+                    dernierGeste = .now
+                }
+                .transition(.opacity)
+            }
             Text(video.nom).font(.system(size: 34, weight: .bold)).foregroundStyle(.white).lineLimit(1)
             barreProgression
             HStack(spacing: 30) {
@@ -329,8 +375,20 @@ struct LecteurVLCTV: View {
         .padding(.top, 60)
         .padding(.bottom, 50)
         .frame(maxWidth: .infinity)
-        .background(LinearGradient(colors: [.clear, .black.opacity(0.85)], startPoint: .top, endPoint: .bottom).ignoresSafeArea())
+        // Avec les visages, le fond s'assombrit plus haut : noms et rôles restent lisibles sur n'importe quelle image.
+        .background {
+            if avecVisages {
+                LinearGradient(stops: [.init(color: .clear, location: 0), .init(color: .black.opacity(0.8), location: 0.18),
+                                       .init(color: .black.opacity(0.9), location: 1)], startPoint: .top, endPoint: .bottom).ignoresSafeArea()
+            } else {
+                LinearGradient(colors: [.clear, .black.opacity(0.85)], startPoint: .top, endPoint: .bottom).ignoresSafeArea()
+            }
+        }
+        .animation(.easeOut(duration: 0.25), value: moteur.enLecture)
     }
+
+    /// « Qui est-ce ? » : à la pause seulement, une fois la vidéo partie.
+    private var avecVisages: Bool { !moteur.enLecture && !moteur.enChargement && !visages.isEmpty }
 
     /// La bande de progression (8.0) : on y monte depuis les boutons ; gauche et droite déplacent un repère — de plus en
     /// plus vite si l'on insiste —, un clic y saute, Retour ou un autre bouton l'abandonne.
@@ -431,6 +489,14 @@ struct LecteurVLCTV: View {
     private func cacher() {
         commandes = false
         focus = .ecran
+    }
+
+    /// Referme le panneau de la personne ; `reprendre` relance l'image, si elle était en pause.
+    private func fermerPersonne(reprendre: Bool) {
+        personne = nil
+        dernierGeste = .now
+        if reprendre, !moteur.enLecture { moteur.basculerLecture() }
+        focus = .lecture
     }
 
     private func fermerPistes() {

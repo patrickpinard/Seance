@@ -279,6 +279,8 @@ public struct EpisodeTMDB: Decodable, Sendable, Hashable, Identifiable {
     public let cheminImage: String?
     public let noteMoyenne: Double?
     let dateDiffusionBrute: String?
+    /// Les invités de l'épisode (8.9), que la fiche d'une saison donne avec ses épisodes : « Qui est-ce ? » à la pause.
+    public internal(set) var invites: [PersonneCasting]? = nil
 
     public var dateDiffusion: DateTMDB? { DateTMDB(texte: dateDiffusionBrute) }
 
@@ -292,6 +294,7 @@ public struct EpisodeTMDB: Decodable, Sendable, Hashable, Identifiable {
         case cheminImage = "still_path"
         case noteMoyenne = "vote_average"
         case dateDiffusionBrute = "air_date"
+        case invites = "guest_stars"
     }
 }
 

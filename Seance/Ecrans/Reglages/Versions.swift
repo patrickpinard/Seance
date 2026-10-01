@@ -56,6 +56,15 @@ struct NoteVersion: Identifiable {
 
     static let historique: [NoteVersion] = [
         NoteVersion(
+            numero: "8.9",
+            date: "1er octobre 2026",
+            resume: "Qui est-ce ? Sur l'Apple TV, une pause montre les visages du film ou de l'épisode, et où tu les as déjà vus.",
+            fonctionnalites: [
+                Fonctionnalite(symbole: "person.crop.circle", titre: "Qui est-ce ?",
+                               detail: "Pendant un film ou un épisode du NAS sur l'Apple TV, mets en pause : les visages paraissent au-dessus de la barre, invités de l'épisode compris. Choisis-en un pour savoir dans quels films et séries vus tu l'as déjà croisé, et ce qui l'a fait connaître ; « Reprendre la lecture » ou Retour te ramène au film."),
+            ]
+        ),
+        NoteVersion(
             numero: "8.8",
             date: "30 septembre 2026",
             resume: "L'iPhone, l'iPad et l'Apple TV mis d'accord, page par page ; la fiche s'ouvre sur une grande image, comme sur la TV.",

@@ -91,6 +91,7 @@
 		5A5CCACF177BB9999D6A1FA1 /* EpisodesSerie.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0FF991D92C556A3C1303E019 /* EpisodesSerie.swift */; };
 		5DDD07F40FFE3335AC49B8AF /* ListesTV.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F2F9E228CF6FD8AD2ABB788 /* ListesTV.swift */; };
 		5E6E02EBE0407E1455AFCF8F /* AvecQuiTV.swift in Sources */ = {isa = PBXBuildFile; fileRef = 483C11E4B6916508D5574F2D /* AvecQuiTV.swift */; };
+		5FC954C28B9D43D810DBD0E1 /* QuiEstCeTV.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5876AF5B2D9CAABD0004B6B4 /* QuiEstCeTV.swift */; };
 		616A93EDB3DFF0D208EA4B0D /* EtatOu.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA553B0B30B7023CD901CBEC /* EtatOu.swift */; };
 		64488D26CE15E4ABE42FE99F /* PropositionSoir.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2040539CD1EDF2055CE97201 /* PropositionSoir.swift */; };
 		649CB5DBA840F88FAA89C7D5 /* SeanceTVEtagere.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 1F58DEFF9DE77F1E7284865B /* SeanceTVEtagere.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -105,6 +106,7 @@
 		741ED2130987865C1EAB5649 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 316415587B7F86140C8C565A /* Assets.xcassets */; };
 		77F7CB86B46304EEA307B9CC /* VideosPersoTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FE5FAE7056200B9B02ED4C7 /* VideosPersoTests.swift */; };
 		7A016605A2B0A846DD8142B6 /* SynchroTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A06907A2B6102E83064C962B /* SynchroTests.swift */; };
+		7BD153C3F1EA6320C6A7967C /* QuiEstCeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A4674D28A9C48AC6FFF4DC9 /* QuiEstCeTests.swift */; };
 		7C4DB19315E00E769A3D690A /* EtatNAS.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD94F6BCC152B1B30DE2DF48 /* EtatNAS.swift */; };
 		7FE9E5D984637A420CA60AA8 /* RacineTV.swift in Sources */ = {isa = PBXBuildFile; fileRef = 396BAF5FB28525626D656F7A /* RacineTV.swift */; };
 		82B7699785ED31DA68C754A9 /* ReglagesTV.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54B4F4189EFFF7CA18A4B017 /* ReglagesTV.swift */; };
@@ -365,6 +367,7 @@
 		54B4F4189EFFF7CA18A4B017 /* ReglagesTV.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReglagesTV.swift; sourceTree = "<group>"; };
 		54DE4D2D57498C009505C74B /* IdentificationTV.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IdentificationTV.swift; sourceTree = "<group>"; };
 		562FA0BC92C87B80E5980C1F /* LectureNAS.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LectureNAS.swift; sourceTree = "<group>"; };
+		5876AF5B2D9CAABD0004B6B4 /* QuiEstCeTV.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuiEstCeTV.swift; sourceTree = "<group>"; };
 		58EBC481C41A43E2C270B750 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		59D423F4DD1DA03825519F89 /* Demonstration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Demonstration.swift; sourceTree = "<group>"; };
 		59DD74EA045499352F7FE820 /* SeanceTV.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = SeanceTV.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -378,6 +381,7 @@
 		60978F177ABB702A3642036A /* SeanceWidget.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = SeanceWidget.entitlements; sourceTree = "<group>"; };
 		64DEAE0C43F30D5D4D6DC42F /* VLCKit.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = VLCKit.xcframework; path = .build/vlckit/VLCKit.xcframework; sourceTree = "<group>"; };
 		69DAAF3CA73CDA90FB2F2152 /* LectureTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LectureTests.swift; sourceTree = "<group>"; };
+		6A4674D28A9C48AC6FFF4DC9 /* QuiEstCeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuiEstCeTests.swift; sourceTree = "<group>"; };
 		6AD887A9AD6D4723A7D0854A /* NoteTitre.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteTitre.swift; sourceTree = "<group>"; };
 		6BF050FFB31533A9C659BB48 /* ClavierTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClavierTests.swift; sourceTree = "<group>"; };
 		6E0396199B1E4C5178B12F07 /* RacineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RacineView.swift; sourceTree = "<group>"; };
@@ -873,6 +877,7 @@
 				051C2BE31C08E94AC2FB3AC6 /* PersonneTV.swift */,
 				A2803F5B9929883BB74D6C2E /* PreferencesTV.swift */,
 				8D777738E8169D1D6CBA2E0A /* ProfilTV.swift */,
+				5876AF5B2D9CAABD0004B6B4 /* QuiEstCeTV.swift */,
 				1D582373B008FEB4A9657483 /* RegarderTV.swift */,
 				54B4F4189EFFF7CA18A4B017 /* ReglagesTV.swift */,
 				2D1A03722CD285F7C65CFF81 /* SouvenirsAccueilTV.swift */,
@@ -946,6 +951,7 @@
 			children = (
 				94B50216176B335E92514544 /* BarreLectureTests.swift */,
 				5FCC3B9AFA25A5D9D43ED7BA /* CarrouselTVTests.swift */,
+				6A4674D28A9C48AC6FFF4DC9 /* QuiEstCeTests.swift */,
 				2C5E7E2C0119FEB5DDE97519 /* RegarderTests.swift */,
 				3EA69EFE83C26656E55AC5AB /* TelecommandeTests.swift */,
 			);
@@ -1171,6 +1177,7 @@
 			files = (
 				CF2B64666ADA78FFDC8981D2 /* BarreLectureTests.swift in Sources */,
 				DF8F04E7A23ADDB5AD6451C2 /* CarrouselTVTests.swift in Sources */,
+				7BD153C3F1EA6320C6A7967C /* QuiEstCeTests.swift in Sources */,
 				F9D6558D6A503AA7F40ECCF4 /* RegarderTests.swift in Sources */,
 				D68A718D324A69F539944A97 /* TelecommandeTests.swift in Sources */,
 			);
@@ -1220,6 +1227,7 @@
 				2E78913583D012AC8AAC1D1B /* ProfilTV.swift in Sources */,
 				64488D26CE15E4ABE42FE99F /* PropositionSoir.swift in Sources */,
 				D3D291714E7E7727508D57A7 /* PublicationEtagere.swift in Sources */,
+				5FC954C28B9D43D810DBD0E1 /* QuiEstCeTV.swift in Sources */,
 				7FE9E5D984637A420CA60AA8 /* RacineTV.swift in Sources */,
 				D858C41BE78A019A1105C8E0 /* RegarderTV.swift in Sources */,
 				E3C2E603DD238FA97AD800D6 /* ReglagesComposantsTV.swift in Sources */,
@@ -1616,7 +1624,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 104;
+				CURRENT_PROJECT_VERSION = 106;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = GATK475J3P;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -1636,7 +1644,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 8.8;
+				MARKETING_VERSION = 8.9;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -1737,7 +1745,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 104;
+				CURRENT_PROJECT_VERSION = 106;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = GATK475J3P;
 				ENABLE_NS_ASSERTIONS = NO;
@@ -1751,7 +1759,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 8.8;
+				MARKETING_VERSION = 8.9;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
