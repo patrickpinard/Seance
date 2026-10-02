@@ -314,7 +314,9 @@ struct LigneTV: ButtonStyle {
                 // Le focus pose un fond blanc : le texte passe au noir, sinon il disparaît (blanc sur blanc).
                 .foregroundStyle(aLeFocus ? Color.black : Color.white)
                 .background(aLeFocus ? AnyShapeStyle(.white) : AnyShapeStyle(.clear), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
-                .scaleEffect(aLeFocus ? 1.02 : 1)
+                // 8.9 : un curseur plus visible — la ligne au focus se soulève.
+                .shadow(color: .black.opacity(aLeFocus ? 0.5 : 0), radius: 16, y: 8)
+                .scaleEffect(aLeFocus ? 1.04 : 1)
                 .animation(.easeOut(duration: 0.15), value: aLeFocus)
         }
     }

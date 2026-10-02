@@ -383,27 +383,25 @@ struct BoutonTV: ButtonStyle {
 
         var body: some View {
             configuration.label
-                .font(.system(size: 28, weight: .semibold))
-                .foregroundStyle(aLeFocus || principal ? .black : .white)
+                .font(.system(size: 28, weight: principal ? .bold : .semibold))
+                .foregroundStyle(aLeFocus ? .black : .white)
                 .padding(.horizontal, hauteur == nil ? 0 : 34)
                 .frame(height: hauteur)
                 .background {
                     let forme = RoundedRectangle(cornerRadius: 20, style: .continuous)
-                    // Maquette 8.0 de la TV : ce qui est choisi, et le bouton principal, sont blancs ; le focus les
-                    // soulève et les borde. L'orange reste aux liens.
-                    if aLeFocus || principal {
+                    // 8.9 (Patrick : « le curseur doit être plus visible ») : seul le focus est blanc plein, soulevé et
+                    // grandi. Ce qui est choisi (« Auj. », « Tout », « À voir », le bouton principal) garde un fond
+                    // translucide bordé de blanc : il ne se confond plus avec le curseur.
+                    if aLeFocus {
                         forme.fill(.white)
+                    } else if principal {
+                        forme.fill(Color.white.opacity(0.26)).overlay(forme.strokeBorder(Color.white, lineWidth: 3))
                     } else {
-                        forme.fill(Color.white.opacity(0.14)).overlay(forme.strokeBorder(Color.white.opacity(0.22), lineWidth: 2))
+                        forme.fill(Color.white.opacity(0.12)).overlay(forme.strokeBorder(Color.white.opacity(0.18), lineWidth: 2))
                     }
                 }
-                .overlay {
-                    if aLeFocus, principal {
-                        RoundedRectangle(cornerRadius: 20, style: .continuous).strokeBorder(Theme.accentClair, lineWidth: 3)
-                    }
-                }
-                .shadow(color: .black.opacity(aLeFocus ? 0.45 : 0), radius: 18, y: 10)
-                .scaleEffect(aLeFocus ? 1.08 : (configuration.isPressed ? 0.97 : 1))
+                .shadow(color: .black.opacity(aLeFocus ? 0.6 : 0), radius: 24, y: 14)
+                .scaleEffect(aLeFocus ? 1.12 : (configuration.isPressed ? 0.97 : 1))
                 .opacity(actif ? 1 : 0.4)
                 .animation(.easeOut(duration: 0.15), value: aLeFocus)
         }
@@ -427,18 +425,20 @@ struct BoutonRondTV: ButtonStyle {
         var body: some View {
             configuration.label
                 .font(.system(size: 30, weight: .semibold))
-                .foregroundStyle(aLeFocus || choisi ? Color.black : Color.white)
+                .foregroundStyle(aLeFocus ? Color.black : Color.white)
                 .frame(width: 76, height: 76)
                 .background {
-                    if aLeFocus || choisi {
+                    // 8.9 : comme `BoutonTV` — blanc plein pour le seul focus ; choisi, un contour blanc épais.
+                    if aLeFocus {
                         Circle().fill(.white)
+                    } else if choisi {
+                        Circle().fill(Color.white.opacity(0.26)).overlay(Circle().strokeBorder(Color.white, lineWidth: 3))
                     } else {
-                        Circle().fill(Color.white.opacity(0.14)).overlay(Circle().strokeBorder(Color.white.opacity(0.22), lineWidth: 2))
+                        Circle().fill(Color.white.opacity(0.12)).overlay(Circle().strokeBorder(Color.white.opacity(0.18), lineWidth: 2))
                     }
                 }
-                .overlay { if aLeFocus, choisi { Circle().strokeBorder(Theme.accentClair, lineWidth: 3) } }
-                .shadow(color: .black.opacity(aLeFocus ? 0.45 : 0), radius: 14, y: 8)
-                .scaleEffect(aLeFocus ? 1.1 : (configuration.isPressed ? 0.95 : 1))
+                .shadow(color: .black.opacity(aLeFocus ? 0.6 : 0), radius: 18, y: 10)
+                .scaleEffect(aLeFocus ? 1.14 : (configuration.isPressed ? 0.95 : 1))
                 .animation(.easeOut(duration: 0.15), value: aLeFocus)
         }
     }
