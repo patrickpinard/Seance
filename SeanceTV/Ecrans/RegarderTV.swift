@@ -41,6 +41,8 @@ struct RegarderTV: View {
     @State private var jour = RegarderTV.aujourdhui
     /// « Autre date » (8.7, comme sur l'iPhone) : les soixante prochains jours en grille — tvOS n'a pas de calendrier.
     @State private var autreDate = false
+    /// Le jour qui a le focus : en arrivant sur la rangée, il est ramené sur le jour choisi (8.9).
+    @FocusState private var jourAuFocus: Date?
 
     /// Le jour de la soirée en cours, à minuit : une soirée va de 6 h à 6 h.
     static var aujourdhui: Date {
@@ -100,6 +102,7 @@ struct RegarderTV: View {
                                         : date.formatted(.dateTime.month(.abbreviated).locale(Locale(identifier: "fr_CH"))))
                     }
                     .buttonStyle(BoutonTV(principal: date == jour, hauteur: nil))
+                    .focused($jourAuFocus, equals: date)
                     .accessibilityLabel(date == Self.aujourdhui ? "Aujourd'hui" : date.formatted(.dateTime.weekday(.wide).day().month(.wide).locale(Locale(identifier: "fr_CH"))))
                 }
                 Button { autreDate = true } label: {
@@ -113,6 +116,12 @@ struct RegarderTV: View {
                 .accessibilityLabel("Choisir une autre date")
             }
             .padding(.vertical, 20)
+            // 8.9 (bilan de l'Apple TV) : en descendant du menu, le focus tombait sur le jour placé sous « Regarder »
+            // (souvent le dernier de la semaine) ; il arrive désormais sur le jour choisi, « Auj. » d'office.
+            .onChange(of: jourAuFocus) { avant, apres in
+                guard avant == nil, let apres, apres != jour else { return }
+                jourAuFocus = jour
+            }
             .fullScreenCover(isPresented: $autreDate) {
                 ChoixDateTV(depuis: Self.aujourdhui, choisi: jour) { jour = $0; autreDate = false }
             }

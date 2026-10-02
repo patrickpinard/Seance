@@ -69,4 +69,26 @@ enum OptionsVLC {
         return abs(Double(video.sourceAspectRatio) / Double(video.sourceAspectRatioDenominator) - 1) > 0.03
     }
 }
+
+/// Démarrer plus vite (8.9, bilan de l'Apple TV), les mêmes règles sur l'iPhone, l'iPad et la TV.
+extension OptionsVLC {
+    /// Les MKV déjà reconnus à pixels non carrés, le temps de la session : ils s'ouvrent d'emblée avec FFmpeg au lieu
+    /// de démarrer, puis de repartir.
+    @MainActor static var anamorphiques: Set<String> = []
+
+    /// Le SMB direct a échoué une fois : les vidéos suivantes passent tout de suite par le relais, sans attendre 12 s.
+    @MainActor static var smbDirectEchoue = false
+
+    /// Reprendre : VLC démarre à la position retenue, au lieu de démarrer au début puis de sauter.
+    static func depart(_ secondes: Double?) -> [String] {
+        guard let secondes, secondes > 1 else { return [] }
+        return [":start-time=\(Int(secondes))"]
+    }
+
+    /// Les options d'un MKV déjà reconnu à pixels non carrés.
+    @MainActor static func connues(_ adresse: URL, options: [String], mkv: Bool) -> [String] {
+        guard mkv, anamorphiques.contains(adresse.path), !options.contains(ffmpeg) else { return options }
+        return options + [ffmpeg]
+    }
+}
 #endif

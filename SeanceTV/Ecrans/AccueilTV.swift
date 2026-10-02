@@ -59,8 +59,10 @@ struct AccueilTV: View {
                     }
                     .frame(maxWidth: .infinity)
                 }
-                let proposition = proposition
-                if let proposition { enTete(proposition) } else { Color.clear.frame(height: 40) }
+                // 8.9 : les propositions calculées une fois par rendu, et non à chaque usage (bilan de l'Apple TV).
+                let toutes = propositions
+                let proposition = toutes.isEmpty ? nil : toutes[rang % toutes.count]
+                if let proposition { enTete(proposition, toutes: toutes) } else { Color.clear.frame(height: 40) }
                 // « Reprendre » sous la proposition — les vidéos du NAS entamées ici ou sur un autre appareil, sauf celle
                 // que la proposition montre déjà.
                 let reprises = aReprendre.filter { $0.reference != proposition?.reference }
@@ -230,7 +232,7 @@ struct AccueilTV: View {
 
     /// La tête de l'accueil : l'image de la proposition bord à bord, à gauche son titre et ses trois boutons (Reprendre
     /// ou Regarder, Autre chose, Pas ce soir), à droite les nouveautés.
-    private func enTete(_ proposition: Proposition) -> some View {
+    private func enTete(_ proposition: Proposition, toutes propositions: [Proposition]) -> some View {
         ZStack(alignment: .bottom) {
             Color.clear
                 .frame(maxWidth: .infinity)
@@ -647,8 +649,31 @@ struct OeuvreTV: Hashable {
     /// Du plus récemment arrivé au plus ancien ; les fichiers non reconnus par TMDB n'ont pas de fiche et sont laissés.
     /// 8.2.17 : « arrivé » veut dire la date du fichier sur le NAS (`DetailsNAS`), et non celle de l'analyse, refaite
     /// pour tous les fichiers à chaque passage.
+    ///
+    /// 8.9 (bilan de l'Apple TV) : la page NAS et l'accueil l'appelaient plus de dix fois par affichage, en relisant
+    /// chaque fois les détails du NAS. Les derniers résultats sont gardés, par contenu : la même liste de fichiers et
+    /// les mêmes détails rendent aussitôt le même regroupement.
+    @MainActor
     static func regrouper(_ fichiers: [FichierNAS]) -> [OeuvreTV] {
-        let details = UserDefaults.standard.data(forKey: DetailsNAS.cle).flatMap(DetailsNAS.decoder) ?? DetailsNAS()
+        let brut = UserDefaults.standard.data(forKey: DetailsNAS.cle)
+        var empreinte = Hasher()
+        empreinte.combine(brut)
+        for fichier in fichiers {
+            empreinte.combine(fichier.chemin)
+            empreinte.combine(fichier.tmdbID)
+            empreinte.combine(fichier.cheminAffiche)
+        }
+        let cle = empreinte.finalize()
+        if let connues = memoire[cle] { return connues }
+        let oeuvres = regrouper(fichiers, details: brut.flatMap(DetailsNAS.decoder) ?? DetailsNAS())
+        if memoire.count >= 12 { memoire.removeAll() }
+        memoire[cle] = oeuvres
+        return oeuvres
+    }
+
+    @MainActor private static var memoire: [Int: [OeuvreTV]] = [:]
+
+    private static func regrouper(_ fichiers: [FichierNAS], details: DetailsNAS) -> [OeuvreTV] {
         func arrivee(_ fichier: FichierNAS) -> Date { details.ajouts[fichier.chemin] ?? fichier.indexeLe }
         var parTitre: [ReferenceTitre: [FichierNAS]] = [:]
         for fichier in fichiers {

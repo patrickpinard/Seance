@@ -145,9 +145,9 @@ struct ListesTV: View {
                           : onglet == .enCours ? "Coche un épisode sur la fiche d'une série : elle se range ici."
                           : "Un film vu, une série finie : ils se rangent ici, avec ta note.")
         } else {
+            // 8.9 (bilan de l'Apple TV) : les commandes à gauche, sous les onglets — à droite, la télécommande arrivait sur
+            // « Grille » et le filtre restait à rattraper —, le nombre de titres au bout.
             HStack(spacing: 20) {
-                Text(titres.count > 1 ? "\(titres.count) titres" : "\(titres.count) titre").font(.system(size: 34, weight: .bold))
-                Spacer()
                 if statut != .termine {
                     Button("Regardable ce soir") { ceSoirSeulement.toggle() }
                         .buttonStyle(BoutonTV(principal: ceSoirSeulement, hauteur: 56))
@@ -167,6 +167,8 @@ struct ListesTV: View {
                 Button { enListe = true } label: { Image(systemName: "list.bullet") }
                     .buttonStyle(BoutonRondTV(choisi: enListe))
                     .accessibilityLabel("Liste")
+                Spacer()
+                Text(titres.count > 1 ? "\(titres.count) titres" : "\(titres.count) titre").font(.system(size: 34, weight: .bold))
             }
             .padding(.horizontal, MargesTV.bord)
             .focusSection()

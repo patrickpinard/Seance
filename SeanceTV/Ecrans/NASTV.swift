@@ -6,7 +6,7 @@ import SwiftUI
 /// Ce que Regarder › NAS montre (8.0) : un rayon à la fois, choisi sous les pastilles.
 enum RayonNASTV: String, CaseIterable, Hashable {
     /// Les mêmes rayons que sur l'iPhone (8.4) : NEW, le dossier des nouveautés, y compris.
-    case films = "Films", series = "Séries", documentaires = "Documentaires", nouveautes = "NEW", videos = "Vidéos"
+    case films = "Films", series = "Séries", documentaires = "Documentaires", nouveautes = "Nouveaux", videos = "Vidéos"
     /// 8.4 : les vidéos sans titre TMDB sûr, à identifier — comme la puce « non reconnus » de l'iPhone.
     case nonReconnus = "Non reconnus"
 }
@@ -233,20 +233,29 @@ struct SectionsNASTV: View {
     }
 
     /// Par mois d'arrivée sur le NAS (la date du fichier, lue à l'analyse), du plus récent au plus ancien.
+    private static let moisSeul = formateur("LLLL")
+    private static let moisEtAnnee = formateur("LLLL yyyy")
+
+    private static func formateur(_ format: String) -> DateFormatter {
+        let formateur = DateFormatter()
+        formateur.locale = Locale(identifier: "fr_CH")
+        formateur.dateFormat = format
+        return formateur
+    }
+
     private func parMois(_ liste: [OeuvreTV]) -> [(titre: String, oeuvres: [OeuvreTV])] {
         let calendrier = Calendar.current
         let anneeCourante = calendrier.component(.year, from: .now)
+        // 8.9 : les chemins de chaque titre en un seul passage (un filtre par œuvre coûtait au carré du nombre de
+        // fichiers), et deux formats de date gardés au lieu d'un par œuvre.
+        let cheminsParTitre = Dictionary(grouping: fichiers.filter { $0.reference != nil }) { $0.reference! }.mapValues { $0.map(\.chemin) }
         let datees = liste.map { oeuvre -> (OeuvreTV, Date) in
-            let chemins = fichiers.filter { $0.reference == oeuvre.reference }.map(\.chemin)
-            return (oeuvre, details.ajout(chemins) ?? oeuvre.indexeLe)
+            (oeuvre, details.ajout(cheminsParTitre[oeuvre.reference] ?? []) ?? oeuvre.indexeLe)
         }
         .sorted { $0.1 > $1.1 }
         var groupes: [(titre: String, oeuvres: [OeuvreTV])] = []
         for (oeuvre, date) in datees {
-            let format = calendrier.component(.year, from: date) == anneeCourante ? "LLLL" : "LLLL yyyy"
-            let formateur = DateFormatter()
-            formateur.locale = Locale(identifier: "fr_CH")
-            formateur.dateFormat = format
+            let formateur = calendrier.component(.year, from: date) == anneeCourante ? Self.moisSeul : Self.moisEtAnnee
             let titre = formateur.string(from: date).capitalized(with: Locale(identifier: "fr_CH"))
             if groupes.last?.titre == titre { groupes[groupes.count - 1].oeuvres.append(oeuvre) } else { groupes.append((titre, [oeuvre])) }
         }

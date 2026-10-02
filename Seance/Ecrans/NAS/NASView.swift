@@ -145,7 +145,7 @@ struct NASView: View {
         case series = "Séries"
         /// Les documentaires (genre 99 chez TMDB) à part, comme sur la TV (8.4) : ils quittent Films et Séries.
         case documentaires = "Documentaires"
-        case nouveautes = "NEW"
+        case nouveautes = "Nouveaux"
         /// Les vidéos personnelles, au même rang que Films et Séries (6.3, demande de Patrick) : on filtre ce que
         /// montre la page au lieu de descendre dans une tuile à part. Le rayon s'appelle « Vidéos » depuis la 6.5.
         case perso = "Vidéos"
@@ -478,7 +478,7 @@ struct NASView: View {
 extension OeuvreNAS {
     /// La ligne orange de la carte : ce que le NAS en dit — « Sur ton NAS · 4K ».
     var accroche: String {
-        ["Sur ton NAS", nouveaute ? "NEW" : nil, qualite].compactMap { $0 }.joined(separator: " · ")
+        ["Sur ton NAS", nouveaute ? "Nouveau" : nil, qualite].compactMap { $0 }.joined(separator: " · ")
     }
 
     /// Sous le titre : le type, l'année, la note, le nombre d'épisodes.

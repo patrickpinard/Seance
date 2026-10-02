@@ -18,8 +18,8 @@ settings:
     # Équipe personnelle de Patrick (compte Apple gratuit).
     DEVELOPMENT_TEAM: GATK475J3P
     # Version affichée dans À propos › Versions ; à changer avec Seance/Ecrans/Reglages/Versions.swift.
-    MARKETING_VERSION: "8.9"
-    CURRENT_PROJECT_VERSION: "107"
+    MARKETING_VERSION: "8.10"
+    CURRENT_PROJECT_VERSION: "108"
 
 packages:
   SeanceKit:
@@ -154,6 +154,8 @@ targets:
       - path: Seance/Etat/VignettesSouvenirs.swift
       # La langue et les sous-titres retenus (8.1), posés sur VLC : les mêmes que sur l'iPhone.
       - path: Seance/Etat/PistesVLC.swift
+      # Ce qui passe, dans le Centre de contrôle et la télécommande de l'iPhone (8.9), comme sur l'iPhone.
+      - path: Seance/Etat/InfosLecture.swift
       # La mémoire des images (8.1) : limite en octets, une requête par image, la même que sur l'iPhone.
       - path: Seance/Design/MemoireImages.swift
       # « Pas intéressé pour l'instant » (8.2.15) : la même mise à l'écart que sur l'iPhone.

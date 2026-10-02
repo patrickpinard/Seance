@@ -22,6 +22,15 @@ struct FicheTV: View {
     /// En sortant du lecteur (8.3), le focus revient sur « Regarder » — et non sur le menu du haut, d'où un second
     /// Retour faisait quitter l'app.
     @FocusState private var principalAuFocus: Bool
+    /// Un épisode qui n'est pas sur le NAS, touché : la question « vu, ou le regarder ailleurs ? » (8.9).
+    @State private var episodeAbsent: EpisodeAbsent?
+
+    private struct EpisodeAbsent: Identifiable {
+        let episode: EpisodeTMDB
+        let serie: SerieDetail
+        let vu: Bool
+        var id: Int { episode.numero * 1000 + episode.numeroEpisode.saison }
+    }
     /// « Qui regarde avec toi ? » avant la lecture (8.2).
     @State private var compagnonsAChoisir: LectureAvant?
     @Environment(EtatTV.self) private var etat
@@ -168,6 +177,15 @@ struct FicheTV: View {
                        ], progression: position?.fraction)
         }
         .task(id: saisonAffichee) { await chargerSaison() }
+        .fullScreenCover(item: $episodeAbsent) { absent in
+            let ailleurs = sourcesTV.first { !$0.nom.contains("NAS") }
+            DialogueTV(titre: "É\(absent.episode.numero) · \(absent.episode.nom)",
+                       message: "Cet épisode n'est pas sur ton NAS.",
+                       choix: (ailleurs.map { source in [DialogueTV.Choix(libelle: source.bouton, principal: true) { source.lancer() }] } ?? [])
+                           + [DialogueTV.Choix(libelle: absent.vu ? "Pas encore vu" : "Épisode regardé", principal: ailleurs == nil) {
+                               cocher(absent.episode, serie: absent.serie, vu: absent.vu)
+                           }])
+        }
         .fullScreenCover(isPresented: $choixDuSoir) { ChoixSoireeTV(titre: titre) { jour in prevoir(jour) } }
     }
 
@@ -252,6 +270,9 @@ struct FicheTV: View {
         }
         .buttonStyle(BoutonTV())
         .focusSection()
+        // 8.9 (bilan de l'Apple TV) : la fiche s'ouvre le focus sur l'action principale — il était sur « En cours », et un
+        // clic machinal terminait la série au lieu de la lancer.
+        .defaultFocus($principalAuFocus, true)
     }
 
     private var estTermine: Bool {
@@ -528,7 +549,9 @@ struct FicheTV: View {
         let fichier = fichierNAS(numero)
         let date = episode.dateDiffusion.map { $0.instant(heure: 12).formatted(.dateTime.day().month(.abbreviated).locale(Locale(identifier: "fr_CH"))) }
         return Button {
-            if let fichier { lire(fichier) } else { cocher(episode, serie: serie, vu: estVu) }
+            // 8.9 (bilan de l'Apple TV) : un épisode absent du NAS ne se coche plus en silence — partout ailleurs, un clic
+            // lance ; ici, Séance demande.
+            if let fichier { lire(fichier) } else { episodeAbsent = EpisodeAbsent(episode: episode, serie: serie, vu: estVu) }
         } label: {
             CarteLargeTV(surtitre: ["É\(episode.numero)", date].compactMap { $0 }.joined(separator: " · "), titre: episode.nom,
                          detail: estVu ? "Vu" : nil, cheminImage: episode.cheminImage ?? serie.cheminFond,

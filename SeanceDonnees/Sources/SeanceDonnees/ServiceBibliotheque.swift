@@ -56,39 +56,52 @@ public struct ServiceBibliotheque {
         // 8.2.11 : après les attentes réseau, un changement de personne a pu remplacer ce magasin — on n'y écrit plus.
         // Écrire dans l'ancien faisait planter SwiftData (rapport de l'iPhone du 27.09.2026).
         try Task.checkCancellation()
-        // Fiche par fiche (8.2.16) : en bloc, les listes affichées gardaient des fiches disparues et SwiftData s'arrêtait.
-        for ancien in try contexte.fetch(FetchDescriptor<FichierNAS>()) {
-            contexte.delete(ancien)
+        // 8.9 (bilan de l'Apple TV) : la bibliothèque se met à jour au lieu d'être effacée puis recréée — chaque passage
+        // faisait relire et recalculer toutes les pages qui montrent le NAS. Une vidéo connue garde sa fiche (et sa date
+        // d'arrivée), une nouvelle s'ajoute, une disparue s'en va ; rien n'est écrit si rien n'a changé.
+        var connus: [String: FichierNAS] = [:]
+        for fichier in try contexte.fetch(FetchDescriptor<FichierNAS>()) {
+            if connus[fichier.chemin] == nil { connus[fichier.chemin] = fichier } else { contexte.delete(fichier) }
+        }
+        func fiche(_ chemin: String, type: TypeTitre, tmdbID: Int?, qualite: String?, taille: Int64) -> FichierNAS {
+            if let connu = connus.removeValue(forKey: chemin) {
+                connu.poser(\.typeBrut, type.rawValue)
+                connu.poser(\.tmdbID, tmdbID)
+                connu.poser(\.qualite, qualite)
+                connu.poser(\.tailleOctets, taille)
+                return connu
+            }
+            let nouveau = FichierNAS(chemin: chemin, type: type, tmdbID: tmdbID, qualite: qualite, tailleOctets: taille)
+            nouveau.indexeLe = maintenant
+            contexte.insert(nouveau)
+            return nouveau
         }
 
         for r in rattachees {
             let analyse = r.entree.analyse
             // Le type du titre choisi à la main l'emporte (8.4) : un nom lu comme un film peut être une série.
-            let fichier = FichierNAS(
-                chemin: r.entree.fichier.chemin, type: r.titre?.reference.type ?? analyse.type, tmdbID: r.titre?.reference.tmdbID,
-                qualite: analyse.qualite?.description, tailleOctets: r.entree.fichier.taille
-            )
-            fichier.indexeLe = maintenant
+            let fichier = fiche(r.entree.fichier.chemin, type: r.titre?.reference.type ?? analyse.type, tmdbID: r.titre?.reference.tmdbID,
+                                qualite: analyse.qualite?.description, taille: r.entree.fichier.taille)
             if let date = r.entree.fichier.modifieLe { details.ajouts[r.entree.fichier.chemin] = date }
-            fichier.saison = analyse.episode?.saison
-            fichier.episode = analyse.episode?.episode
+            fichier.poser(\.saison, analyse.episode?.saison)
+            fichier.poser(\.episode, analyse.episode?.episode)
             if let titre = r.titre {
                 if !titre.genres.isEmpty { details.genres[titre.reference.tmdbID] = titre.genres }
                 fichier.recopier(titre, anneeLue: analyse.annee)
                 rapport.reconnues += 1
             } else {
-                fichier.titre = analyse.titre
-                fichier.annee = analyse.annee
+                fichier.poser(\.titre, analyse.titre)
+                fichier.poser(\.annee, analyse.annee)
+                fichier.poser(\.cheminAffiche, nil)
+                fichier.poser(\.cheminFond, nil)
                 rapport.nonReconnues.append(r.entree.fichier.chemin)
             }
-            contexte.insert(fichier)
         }
         for illisible in index.illisibles {
             // Un nom illisible reconnu à la main (8.4) se retient par son chemin.
             let choisi = identifications.titreNAS(chemin: illisible.chemin)
-            let fichier = FichierNAS(chemin: illisible.chemin, type: choisi?.reference.type ?? .film, tmdbID: choisi?.reference.tmdbID,
-                                     tailleOctets: illisible.taille)
-            fichier.indexeLe = maintenant
+            let fichier = fiche(illisible.chemin, type: choisi?.reference.type ?? .film, tmdbID: choisi?.reference.tmdbID,
+                                qualite: nil, taille: illisible.taille)
             if let date = illisible.modifieLe { details.ajouts[illisible.chemin] = date }
             if let choisi {
                 if !choisi.genres.isEmpty { details.genres[choisi.reference.tmdbID] = choisi.genres }
@@ -97,10 +110,12 @@ public struct ServiceBibliotheque {
             } else {
                 rapport.nonReconnues.append(illisible.chemin)
             }
-            contexte.insert(fichier)
         }
+        // Ce qui n'est plus sur le NAS, fiche par fiche (8.2.16) : en bloc, les listes affichées gardaient des fiches
+        // disparues et SwiftData s'arrêtait.
+        for disparu in connus.values { contexte.delete(disparu) }
         rapport.nonReconnues.sort()
-        try contexte.save()
+        if contexte.hasChanges { try contexte.save() }
         if let donnees = try? details.encoder() {
             UserDefaults.standard.set(donnees, forKey: DetailsNAS.cle)
         }
@@ -170,11 +185,16 @@ public struct ServiceBibliotheque {
 extension FichierNAS {
     /// Ce que la bibliothèque garde du titre TMDB d'une vidéo.
     func recopier(_ titre: TitreResume, anneeLue: Int?) {
-        self.titre = titre.titre
-        annee = titre.date?.annee ?? anneeLue
-        cheminAffiche = titre.cheminAffiche
-        cheminFond = titre.cheminFond
-        noteMoyenne = titre.noteMoyenne
-        nombreVotes = titre.nombreVotes
+        poser(\.titre, titre.titre)
+        poser(\.annee, titre.date?.annee ?? anneeLue)
+        poser(\.cheminAffiche, titre.cheminAffiche)
+        poser(\.cheminFond, titre.cheminFond)
+        poser(\.noteMoyenne, titre.noteMoyenne)
+        poser(\.nombreVotes, titre.nombreVotes)
+    }
+
+    /// Change une valeur seulement si elle diffère : une fiche inchangée ne se marque pas modifiée (8.9).
+    func poser<Valeur: Equatable>(_ chemin: ReferenceWritableKeyPath<FichierNAS, Valeur>, _ valeur: Valeur) {
+        if self[keyPath: chemin] != valeur { self[keyPath: chemin] = valeur }
     }
 }

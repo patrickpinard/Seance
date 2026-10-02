@@ -56,6 +56,25 @@ struct NoteVersion: Identifiable {
 
     static let historique: [NoteVersion] = [
         NoteVersion(
+            numero: "8.10",
+            date: "2 octobre 2026",
+            resume: "L'Apple TV plus claire et plus rapide : un curseur qu'on voit, une recherche qui trouve tout, et « Reprendre » pour chacun.",
+            fonctionnalites: [
+                Fonctionnalite(symbole: "hand.point.up.left", titre: "Un curseur qu'on voit",
+                               detail: "Sur l'Apple TV, seul le curseur est blanc plein ; ce qui est choisi garde un contour blanc. Le focus arrive au bon endroit : sur « Auj. », sur le bouton principal de la fiche, sur les commandes de Mes listes."),
+                Fonctionnalite(symbole: "magnifyingglass", titre: "La recherche trouve tout",
+                               detail: "Films, séries et personnes ensemble, ce qui est sur le NAS en tête, quelle que soit la catégorie choisie."),
+                Fonctionnalite(symbole: "person.2", titre: "« Reprendre » pour chacun",
+                               detail: "Les films entamés sont propres à chaque personne de la famille, sur tous les appareils."),
+                Fonctionnalite(symbole: "gauge.with.dots.needle.67percent", titre: "Plus rapide",
+                               detail: "Images à la bonne taille et gardées sur la TV, bibliothèque du NAS mise à jour au lieu d'être refaite, lecture qui démarre à la bonne position."),
+                Fonctionnalite(symbole: "playpause", titre: "Dans le Centre de contrôle",
+                               detail: "Le titre, l'affiche et la position s'affichent sur l'iPhone et dans sa télécommande pour l'Apple TV ; lecture, pause et sauts de 10 secondes y répondent."),
+                Fonctionnalite(symbole: "checkmark.circle", titre: "Plus d'épisode coché par erreur",
+                               detail: "Un épisode absent du NAS demande : le regarder ailleurs, ou le marquer vu. « NEW » devient « Nouveaux »."),
+            ]
+        ),
+        NoteVersion(
             numero: "8.9",
             date: "1er octobre 2026",
             resume: "Qui est-ce ? Sur l'Apple TV, une pause montre les visages du film ou de l'épisode, et où tu les as déjà vus.",

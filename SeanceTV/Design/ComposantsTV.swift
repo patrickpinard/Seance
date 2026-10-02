@@ -11,10 +11,26 @@ struct ImageTV: View {
 
     @State private var image: UIImage?
 
+    /// 8.9 : une carte dont l'image est déjà en mémoire l'affiche d'emblée, sans passer par le gris (bilan de l'Apple TV :
+    /// les cartes « clignotaient » en revenant sur une étagère).
+    init(url: URL?, symboleVide: String = "film") {
+        self.url = url
+        self.symboleVide = symboleVide
+        _image = State(initialValue: url.flatMap { Self.memoire.enMemoire($0) })
+    }
+
     /// 8.1 : la même mémoire que l'iPhone — 150 Mo au plus, une requête par image —, à la taille d'un écran 4K.
     static let memoire = MemoireImages(coteMax: 2200) { url in
-        try? await URLSession.shared.data(from: url).0
+        try? await session.data(from: url).0
     }
+
+    /// 8.9 : un cache disque de 300 Mo pour les images de TMDB — elles ne se retéléchargent plus à chaque lancement.
+    private static let session: URLSession = {
+        let configuration = URLSessionConfiguration.default
+        configuration.urlCache = URLCache(memoryCapacity: 20 * 1024 * 1024, diskCapacity: 300 * 1024 * 1024, directory: nil)
+        configuration.requestCachePolicy = .returnCacheDataElseLoad
+        return URLSession(configuration: configuration)
+    }()
 
     var body: some View {
         Rectangle().fill(Theme.surface)
@@ -155,7 +171,9 @@ struct CarteLargeTV: View {
                 } else if let icone {
                     FondSouvenirTV(symbole: icone)
                 } else {
-                    ImageTV(url: ImageTMDB.url(cheminImage, .fondGrand))
+                    // 8.9 : à la taille de la carte — une petite carte (≤ 400 points, 800 pixels en 4K) n'a pas besoin
+                    // de l'image de 1280 pixels, qui remplissait la mémoire et forçait des retéléchargements.
+                    ImageTV(url: ImageTMDB.url(cheminImage, largeur <= 400 ? .fond : .fondGrand))
                 }
             }
             .overlay {

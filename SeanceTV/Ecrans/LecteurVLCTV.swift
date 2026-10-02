@@ -257,12 +257,29 @@ struct LecteurVLCTV: View {
             focus = .lecture
             etat.lecteurOuvert = true
             Plantages.page("Lecteur")
+            InfosLecture.ouvrir(
+                titre: fichier?.titre ?? video.nom,
+                sousTitre: fichier.flatMap { f in f.saison.map { "Saison \($0) · épisode \(f.episode ?? 0)" } },
+                cheminAffiche: fichier?.cheminAffiche,
+                commandes: InfosLecture.Commandes(
+                    jouerPause: { moteur.basculerLecture() },
+                    avancer: { moteur.avancer() },
+                    reculer: { moteur.reculer() },
+                    aller: { secondes in if moteur.duree > 0 { moteur.allerA(secondes / moteur.duree) } }))
         }
         // 8.3 : VLC ne compte pas pour tvOS comme une vidéo en cours — sans geste, l'économiseur puis la veille
         // arrivaient au bout de quelques minutes et Séance sortait (Mayday, 27.09.2026). Pendant la lecture, pas de veille.
         .onChange(of: moteur.enLecture, initial: true) { _, lit in UIApplication.shared.isIdleTimerDisabled = lit }
+        // 8.9 : ce qui passe, dans le Centre de contrôle et la télécommande de l'iPhone (`InfosLecture`).
+        .onChange(of: Int(moteur.secondes)) { _, _ in
+            InfosLecture.mettreAJour(secondes: moteur.secondes, duree: moteur.duree, enLecture: moteur.enLecture)
+        }
+        .onChange(of: moteur.enLecture) { _, lit in
+            InfosLecture.mettreAJour(secondes: moteur.secondes, duree: moteur.duree, enLecture: lit)
+        }
         .onDisappear {
             UIApplication.shared.isIdleTimerDisabled = false
+            InfosLecture.fermer()
             etat.lecteurOuvert = false
             if moteur.duree > 0 { surPosition(moteur.secondes, moteur.duree) }
             Task { await ranger() }
@@ -515,11 +532,12 @@ struct LecteurVLCTV: View {
             return moteur.lire(URL(fileURLWithPath: video.chemin), depart: depart, options: OptionsVLC.pour(video.chemin), mkv: OptionsVLC.estMKV(video.chemin))
         }
         #endif
-        if let adresse = acces.url(chemin: video.chemin) {
+        if !OptionsVLC.smbDirectEchoue, let adresse = acces.url(chemin: video.chemin) {
             moteur.lire(adresse, depart: depart, options: [":smb-user=\(acces.utilisateur)", ":smb-pwd=\(motDePasse)", ":network-caching=3000"]
                         + OptionsVLC.pour(video.chemin), mkv: OptionsVLC.estMKV(video.chemin))
             if await moteur.demarre(dans: .seconds(12)) { return }
             moteur.arreter()
+            OptionsVLC.smbDirectEchoue = true
         }
         await ouvrirParLeRelais()
     }
@@ -721,9 +739,11 @@ final class MoteurVLCTV {
         self.depart = depart
         adresseLue = adresse
         optionsLues = options
+        let options = OptionsVLC.connues(adresse, options: options, mkv: mkv)
+        optionsLues = options
         mkvAVerifier = mkv && !options.contains(OptionsVLC.ffmpeg)
         let media = VLCMedia(url: adresse)
-        for option in options { media?.addOption(option) }
+        for option in options + OptionsVLC.depart(depart) { media?.addOption(option) }
         lecteur.media = media
         lecteur.play()
         enLecture = true
@@ -742,6 +762,7 @@ final class MoteurVLCTV {
                 if self.mkvAVerifier, self.lecteur.isPlaying, let anamorphique = OptionsVLC.anamorphique(self.lecteur) {
                     self.mkvAVerifier = false
                     if anamorphique, let adresse = self.adresseLue {
+                        OptionsVLC.anamorphiques.insert(adresse.path)
                         let reprise = self.secondes > 1 ? self.secondes : self.depart
                         return self.lire(adresse, depart: reprise, options: self.optionsLues + [OptionsVLC.ffmpeg])
                     }
@@ -754,7 +775,9 @@ final class MoteurVLCTV {
                 self.secondes = Double(self.lecteur.time.intValue) / 1000
                 self.duree = Double(self.lecteur.media?.length.intValue ?? 0) / 1000
                 // Reprendre : dès que VLC connaît la durée, on saute à la position retenue.
-                if let depart = self.depart, self.duree > 0, self.lecteur.isPlaying {
+                // 8.9 : VLC part déjà de la position (`:start-time`) ; on ne saute que s'il ne l'a pas fait.
+                if let depart = self.depart, self.duree > 0, self.lecteur.isPlaying,
+                   abs(Double(self.lecteur.time.intValue) / 1000 - depart) > 5 {
                     self.lecteur.time = VLCTime(int: Int32(depart * 1000))
                     self.depart = nil
                 }
