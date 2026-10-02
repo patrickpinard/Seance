@@ -20,6 +20,12 @@ final class BarreLectureTests: XCTestCase {
         try XCTSkipUnless(FileManager.default.fileExists(atPath: video), "Pas de vidéo d'essai (.build/essai-tv/mire.mp4)")
         app.launchEnvironment["SEANCE_DEMO"] = "1"
         app.launchEnvironment["SEANCE_LIRE_FICHIER"] = video
+        // 8.10.1 : une affiche, que le Centre de contrôle demande au système — elle faisait planter le lecteur.
+        let affiche = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
+            .appendingPathComponent("Seance/Assets.xcassets/AppIcon.appiconset").path
+        if let image = (try? FileManager.default.contentsOfDirectory(atPath: affiche))?.first(where: { $0.hasSuffix(".png") }) {
+            app.launchEnvironment["SEANCE_LIRE_AFFICHE"] = affiche + "/" + image
+        }
         app.launch()
         let barre = app.descendants(matching: .any).matching(NSPredicate(format: "label BEGINSWITH 'Progression'")).firstMatch
         XCTAssertTrue(barre.waitForExistence(timeout: 30), "Pas de barre d'avancement")
@@ -38,6 +44,7 @@ final class BarreLectureTests: XCTestCase {
         let auClic = barre.frame
         capture("3-clic")
         print("BARRE avant \(avant) focus \(auFocus) clic \(auClic)")
+        XCTAssertEqual(app.state, .runningForeground, "Le lecteur s'est arrêté (Centre de contrôle, affiche)")
         XCTAssertEqual(avant.width, auFocus.width, accuracy: 2, "La barre s'élargit au focus")
         XCTAssertEqual(avant.width, auClic.width, accuracy: 2, "La barre s'élargit au clic")
         XCTAssertEqual(avant.height, auClic.height, accuracy: 2, "La barre grandit au clic")

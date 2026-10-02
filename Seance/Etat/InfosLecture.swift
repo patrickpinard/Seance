@@ -7,11 +7,11 @@ import UIKit
 @MainActor
 enum InfosLecture {
     struct Commandes {
-        let jouerPause: () -> Void
-        let avancer: () -> Void
-        let reculer: () -> Void
+        let jouerPause: @MainActor @Sendable () -> Void
+        let avancer: @MainActor @Sendable () -> Void
+        let reculer: @MainActor @Sendable () -> Void
         /// Aller à une position, en secondes.
-        let aller: (Double) -> Void
+        let aller: @MainActor @Sendable (Double) -> Void
     }
 
     private static var infos: [String: Any] = [:]
@@ -24,13 +24,9 @@ enum InfosLecture {
         MPNowPlayingInfoCenter.default().nowPlayingInfo = infos
 
         let centre = MPRemoteCommandCenter.shared()
-        func brancher(_ commande: MPRemoteCommand, _ action: @escaping () -> Void) {
+        func brancher(_ commande: MPRemoteCommand, _ action: @escaping @MainActor @Sendable () -> Void) {
             commande.isEnabled = true
-            let cible = commande.addTarget { _ in
-                MainActor.assumeIsolated { action() }
-                return .success
-            }
-            cibles.append((commande, cible))
+            cibles.append((commande, Self.cible(commande, action)))
         }
         brancher(centre.togglePlayPauseCommand, commandes.jouerPause)
         brancher(centre.playCommand, commandes.jouerPause)
@@ -40,21 +36,49 @@ enum InfosLecture {
         brancher(centre.skipForwardCommand, commandes.avancer)
         brancher(centre.skipBackwardCommand, commandes.reculer)
         centre.changePlaybackPositionCommand.isEnabled = true
-        let cible = centre.changePlaybackPositionCommand.addTarget { evenement in
-            guard let evenement = evenement as? MPChangePlaybackPositionCommandEvent else { return .commandFailed }
-            let secondes = evenement.positionTime
-            MainActor.assumeIsolated { commandes.aller(secondes) }
-            return .success
-        }
-        cibles.append((centre.changePlaybackPositionCommand, cible))
+        cibles.append((centre.changePlaybackPositionCommand, Self.cibleDePosition(centre.changePlaybackPositionCommand, commandes.aller)))
 
+        #if DEBUG
+        // SEANCE_LIRE_AFFICHE=<image du Mac> : une affiche locale, pour que les tests du lecteur fassent demander l'image
+        // par le système, comme sur l'appareil (plantage de la 8.10).
+        if let chemin = ProcessInfo.processInfo.environment["SEANCE_LIRE_AFFICHE"], let image = UIImage(contentsOfFile: chemin) {
+            infos[MPMediaItemPropertyArtwork] = Self.oeuvre(image)
+            MPNowPlayingInfoCenter.default().nowPlayingInfo = infos
+            return
+        }
+        #endif
         // L'affiche arrive après : le titre s'affiche tout de suite.
         guard let url = ImageTMDB.url(cheminAffiche, .affiche) else { return }
         Task {
             guard let (donnees, _) = try? await URLSession.shared.data(from: url), let image = UIImage(data: donnees),
                   !infos.isEmpty else { return }
-            infos[MPMediaItemPropertyArtwork] = MPMediaItemArtwork(boundsSize: image.size) { _ in image }
+            infos[MPMediaItemPropertyArtwork] = Self.oeuvre(image)
             MPNowPlayingInfoCenter.default().nowPlayingInfo = infos
+        }
+    }
+
+    // 8.10.1 (plantages de l'Apple TV du 02.10.2026) : MediaPlayer appelle ces blocs depuis sa propre file. Écrits dans
+    // une fonction réservée au fil principal, Swift les y réservait aussi, et arrêtait l'app (`dispatch_assert_queue`).
+    // Ils sont donc fabriqués hors de toute isolation, et ramènent eux-mêmes l'action sur le fil principal.
+
+    /// L'affiche, que le système demande depuis sa file : le bloc ne touche à rien d'autre que l'image.
+    nonisolated private static func oeuvre(_ image: UIImage) -> MPMediaItemArtwork {
+        MPMediaItemArtwork(boundsSize: image.size) { _ in image }
+    }
+
+    nonisolated private static func cible(_ commande: MPRemoteCommand, _ action: @escaping @MainActor @Sendable () -> Void) -> Any {
+        commande.addTarget { _ in
+            Task { @MainActor in action() }
+            return .success
+        }
+    }
+
+    nonisolated private static func cibleDePosition(_ commande: MPRemoteCommand, _ aller: @escaping @MainActor @Sendable (Double) -> Void) -> Any {
+        commande.addTarget { evenement in
+            guard let evenement = evenement as? MPChangePlaybackPositionCommandEvent else { return .commandFailed }
+            let secondes = evenement.positionTime
+            Task { @MainActor in aller(secondes) }
+            return .success
         }
     }
 
