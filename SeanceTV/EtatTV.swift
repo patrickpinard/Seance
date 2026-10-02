@@ -51,28 +51,28 @@ final class EtatTV {
     /// Le lecteur est ouvert : il pose la question lui-même, par-dessus l'image.
     var lecteurOuvert = false
     /// Où l'on s'est arrêté dans chaque vidéo du NAS (8.0) : voyage avec l'iPhone et l'iPad par la synchronisation.
-    private(set) var positions = PositionsLecture(donnees: UserDefaults.standard.data(forKey: PositionsLecture.cle))
+    private(set) var positions = PositionsLecture(donnees: UserDefaults.standard.data(forKey: PositionsLecture.cle(profil: ConteneurTV.famille.actif.id)))
 
     /// Retient la position d'une vidéo ; appelé par le lecteur toutes les dix secondes et en le fermant.
     func noterPosition(_ chemin: String, secondes: Double, duree: Double) {
         positions.noter(chemin, secondes: secondes, duree: duree, appareil: "Apple TV")
-        UserDefaults.standard.set(positions.encoder(), forKey: PositionsLecture.cle)
+        UserDefaults.standard.set(positions.encoder(), forKey: PositionsLecture.cle(profil: ConteneurTV.famille.actif.id))
     }
 
     /// « Depuis le début » : la position s'efface, pour tous les appareils.
     func oublierPosition(_ chemin: String) {
         positions.oublier(chemin)
-        UserDefaults.standard.set(positions.encoder(), forKey: PositionsLecture.cle)
+        UserDefaults.standard.set(positions.encoder(), forKey: PositionsLecture.cle(profil: ConteneurTV.famille.actif.id))
     }
 
     /// Relit les positions : au lancement, après la démonstration qui les pose.
     func relirePositions() {
-        positions = PositionsLecture(donnees: UserDefaults.standard.data(forKey: PositionsLecture.cle))
+        positions = PositionsLecture(donnees: UserDefaults.standard.data(forKey: PositionsLecture.cle(profil: ConteneurTV.famille.actif.id)))
     }
 
     private func recevoirPositions(_ donnees: Data) {
         guard positions.fusionner(PositionsLecture(donnees: donnees)) else { return }
-        UserDefaults.standard.set(positions.encoder(), forKey: PositionsLecture.cle)
+        UserDefaults.standard.set(positions.encoder(), forKey: PositionsLecture.cle(profil: ConteneurTV.famille.actif.id))
     }
     private var lectureLancee: LectureExterne?
     private(set) var teleEnCours = false

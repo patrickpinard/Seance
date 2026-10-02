@@ -60,6 +60,7 @@ enum PreferencesSauvegardees {
         case cleAlertes: EtatAlertes.cleReglages(profil: profil)
         case EtatLettre.cle: EtatLettre.cle(profil: profil)
         case EtatLettre.cleDernier: EtatLettre.cleDernier(profil: profil)
+        case PositionsLecture.cle: PositionsLecture.cle(profil: profil)
         default: cle
         }
     }

@@ -4,6 +4,12 @@ import Testing
 
 @Suite("Positions de lecture (reprendre où tu en étais)")
 struct PositionsLectureTests {
+    /// 8.9 : une clé par personne ; le profil principal garde celle d'avant, rien ne se perd.
+    @Test func uneCleParProfil() {
+        #expect(PositionsLecture.cle(profil: "") == "lecture.positions")
+        #expect(PositionsLecture.cle(profil: "jonathan") == "lecture.positions.jonathan")
+    }
+
     let t0 = Date(timeIntervalSince1970: 1_800_000_000)
 
     @Test("Une vidéo entamée se reprend, pas une vidéo à peine commencée ni finie")

@@ -59,7 +59,7 @@ final class EtatNAS {
     /// La vidéo vient d'être confiée à l'app de lecture.
     /// Où l'on s'est arrêté dans chaque vidéo du NAS, films et souvenirs (8.0) : voyage avec les autres appareils,
     /// Apple TV comprise, par les réglages synchronisés.
-    private(set) var positions = PositionsLecture(donnees: UserDefaults.standard.data(forKey: PositionsLecture.cle))
+    private(set) var positions = PositionsLecture(donnees: UserDefaults.standard.data(forKey: PositionsLecture.cle(profil: ProfilsFamille().actif.id)))
 
     /// Le nom de cet appareil, tel que « Tu t'es arrêté à 1:03:12, sur l'iPad » le dira ailleurs.
     static var nomAppareil: String {
@@ -127,13 +127,13 @@ final class EtatNAS {
     /// Dans les réglages de l'app et dans ceux du groupe d'apps : le widget « Reprendre » (8.1) les lit là.
     private func enregistrerPositions() {
         let donnees = positions.encoder()
-        UserDefaults.standard.set(donnees, forKey: PositionsLecture.cle)
+        UserDefaults.standard.set(donnees, forKey: PositionsLecture.cle(profil: ProfilsFamille().actif.id))
         UserDefaults(suiteName: EntrepotSeance.groupeApp)?.set(donnees, forKey: PositionsLecture.cle)
         PublicationWidgets.recharger()
     }
 
     func relirePositions() {
-        positions = PositionsLecture(donnees: UserDefaults.standard.data(forKey: PositionsLecture.cle))
+        positions = PositionsLecture(donnees: UserDefaults.standard.data(forKey: PositionsLecture.cle(profil: ProfilsFamille().actif.id)))
         // Le widget « Reprendre » les reçoit aussi dès le lancement, sans attendre la prochaine lecture (8.2.7).
         UserDefaults(suiteName: EntrepotSeance.groupeApp)?.set(positions.encoder(), forKey: PositionsLecture.cle)
     }

@@ -33,6 +33,10 @@ public struct PositionLecture: Codable, Sendable, Hashable {
 /// additif.
 public struct PositionsLecture: Codable, Sendable, Hashable {
     public static let cle = "lecture.positions"
+
+    /// 8.9 (bilan de l'Apple TV) : « Reprendre » est propre à chaque personne de la famille, comme sur Netflix. Le
+    /// profil principal garde la clé d'avant ; les autres ont la leur.
+    public static func cle(profil: String) -> String { profil.isEmpty ? cle : "\(cle).\(profil)" }
     /// En deçà, rien à reprendre : on vient à peine de commencer.
     public static let minimum: Double = 60
     /// Au-delà de 95 % ou à moins de trois minutes de la fin (le générique), la vidéo est vue : on repartira du début.
