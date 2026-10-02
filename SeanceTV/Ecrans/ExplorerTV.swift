@@ -54,6 +54,8 @@ struct ExplorerTV: View {
     @FocusState private var choixAuFocus: Int?
     @State private var recherche = ""
     @State private var resultats: [ApercuTV] = []
+    /// Les acteurs et réalisateurs trouvés par le texte tapé (8.9) : une rangée au-dessus des titres.
+    @State private var personnes: [PersonneResume] = []
     /// Le rangement des résultats et ses sections (8.2.15).
     @State private var rangement = "Pertinence"
     @State private var sections = SectionsRepliables()
@@ -290,6 +292,29 @@ struct ExplorerTV: View {
                     Spacer()
                     Text("se mettent à jour à chaque choix").font(.system(size: 22)).foregroundStyle(Theme.texte2)
                 }
+                // Les personnes trouvées par le texte (8.9), en portraits : un clic ouvre leur fiche.
+                if !personnes.isEmpty, !recherche.isEmpty {
+                    Text("Personnes").font(.system(size: 28, weight: .bold))
+                    ScrollView(.horizontal) {
+                        LazyHStack(spacing: 30) {
+                            ForEach(personnes.prefix(12)) { personne in
+                                NavigationLink(value: PersonneTVRef(id: personne.id, nom: personne.nom)) {
+                                    VStack(spacing: 10) {
+                                        ImageTV(url: ImageTMDB.url(personne.cheminPortrait, .portrait), symboleVide: "person.fill")
+                                            .frame(width: 150, height: 150)
+                                            .clipShape(Circle())
+                                        Text(personne.nom).font(.system(size: 22, weight: .semibold)).lineLimit(2)
+                                            .multilineTextAlignment(.center).frame(width: 170)
+                                    }
+                                }
+                                .buttonStyle(.borderless)
+                            }
+                        }
+                        .padding(.vertical, 20)
+                    }
+                    .scrollClipDisabled()
+                    .focusSection()
+                }
                 if !enCours, resultats.isEmpty {
                     Text(source == .nas ? "Aucun titre de cette catégorie sur ton NAS." : source == .tele ? "Rien de cette catégorie sur tes chaînes cette semaine."
                                         : "Élargis les filtres.")
@@ -395,12 +420,25 @@ struct ExplorerTV: View {
         case .toutes, .streaming:
             guard let client = etat.tmdb else { resultats = []; return }
             if !texte.isEmpty {
-                switch type {
-                case .film: resultats = ApercuTV.meler((try? await client.rechercherFilms(texte))?.resultats ?? [], [], garderLOrdre: true)
-                case .serie: resultats = ApercuTV.meler([], (try? await client.rechercherSeries(texte))?.resultats ?? [], garderLOrdre: true)
+                // 8.9 (bilan de l'Apple TV) : un texte tapé cherche partout — films, séries et personnes ensemble, comme
+                // Netflix — et non plus dans la seule catégorie choisie (« Reacher » restait introuvable sous « Films »).
+                // Ce qui est sur le NAS vient en tête. Les documentaires gardent leur filtre.
+                let elements = (try? await client.rechercherTout(texte)) ?? []
+                var titres = elements.compactMap { element -> TitreResume? in if case .titre(let titre) = element { titre } else { nil } }
+                if categorie == .documentaires { titres = titres.filter { $0.genres.contains(Self.documentaire) } }
+                personnes = elements.compactMap { element -> PersonneResume? in if case .personne(let personne) = element { personne } else { nil } }
+                let surLeNAS = OeuvreTV.regrouper(fichiers.filter { $0.titre.localizedCaseInsensitiveContains(texte) })
+                    .map { ApercuTV(reference: $0.reference, titre: $0.titre, sousTitre: $0.detail, cheminAffiche: $0.cheminAffiche, popularite: 0) }
+                let dejaLa = Set(surLeNAS.map(\.reference))
+                resultats = surLeNAS + titres.filter { !dejaLa.contains($0.reference) && $0.cheminAffiche != nil }.map { titre in
+                    ApercuTV(reference: titre.reference, titre: titre.titre,
+                             sousTitre: [titre.reference.type == .film ? "Film" : "Série", titre.date.map { String($0.annee) }].compactMap { $0 }.joined(separator: " · "),
+                             cheminAffiche: titre.cheminAffiche, cheminFond: titre.cheminFond, popularite: 0,
+                             genres: titre.genres, annee: titre.date?.annee, date: titre.date)
                 }
                 return
             }
+            personnes = []
             var criteres = CriteresDecouverte()
             if categorie == .documentaires {
                 criteres.genresInclus = [Self.documentaire] + Array(genresChoisis)
