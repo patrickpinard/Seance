@@ -200,6 +200,7 @@
 		EDBBE1D377840342A321B6B8 /* TourCompletTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED072241FDDEE5DC57D56512 /* TourCompletTests.swift */; };
 		EF245A1FC235E086A1388CB2 /* PasInteresse.swift in Sources */ = {isa = PBXBuildFile; fileRef = B120DA3347972626B83182EB /* PasInteresse.swift */; };
 		F0BC104982496F4B989F98CB /* LecteurIntegre.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5AEDB40E8F08A0608A8ED1BF /* LecteurIntegre.swift */; };
+		F18849EBCA7D464906D627E0 /* ParcoursCompletTVTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7140C2AD36D828F4AD1078EB /* ParcoursCompletTVTests.swift */; };
 		F339B5F2EDD3CEBDAE165E66 /* VideosPerso.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F9972116AF32F224AFE3545 /* VideosPerso.swift */; };
 		F3631B58722536201E41B063 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6507C62249A2769DB1E60E0 /* Theme.swift */; };
 		F5B34AC8F424664BD6AFB00E /* BandeSoirees.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1716806C1D6DA6DE569DF0C9 /* BandeSoirees.swift */; };
@@ -391,6 +392,7 @@
 		6FE5FAE7056200B9B02ED4C7 /* VideosPersoTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideosPersoTests.swift; sourceTree = "<group>"; };
 		701BB30E177402C310C6B51C /* ProfilView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfilView.swift; sourceTree = "<group>"; };
 		70E5C0C6A6037BEC6D806F5F /* SeanceWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeanceWidget.swift; sourceTree = "<group>"; };
+		7140C2AD36D828F4AD1078EB /* ParcoursCompletTVTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParcoursCompletTVTests.swift; sourceTree = "<group>"; };
 		767BD5C5F99D6287A874FD59 /* GlissementTelecommande.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlissementTelecommande.swift; sourceTree = "<group>"; };
 		76E95955E82BF0843BEFC076 /* TeleTV.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TeleTV.swift; sourceTree = "<group>"; };
 		7788E5AF973E89FC76F574C6 /* SeanceUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = SeanceUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -951,6 +953,7 @@
 			children = (
 				94B50216176B335E92514544 /* BarreLectureTests.swift */,
 				5FCC3B9AFA25A5D9D43ED7BA /* CarrouselTVTests.swift */,
+				7140C2AD36D828F4AD1078EB /* ParcoursCompletTVTests.swift */,
 				6A4674D28A9C48AC6FFF4DC9 /* QuiEstCeTests.swift */,
 				2C5E7E2C0119FEB5DDE97519 /* RegarderTests.swift */,
 				3EA69EFE83C26656E55AC5AB /* TelecommandeTests.swift */,
@@ -1177,6 +1180,7 @@
 			files = (
 				CF2B64666ADA78FFDC8981D2 /* BarreLectureTests.swift in Sources */,
 				DF8F04E7A23ADDB5AD6451C2 /* CarrouselTVTests.swift in Sources */,
+				F18849EBCA7D464906D627E0 /* ParcoursCompletTVTests.swift in Sources */,
 				7BD153C3F1EA6320C6A7967C /* QuiEstCeTests.swift in Sources */,
 				F9D6558D6A503AA7F40ECCF4 /* RegarderTests.swift in Sources */,
 				D68A718D324A69F539944A97 /* TelecommandeTests.swift in Sources */,
