@@ -204,14 +204,24 @@ struct ProfilTV: View {
         let films = Array(Set(visionnages.filter { $0.type == .film }.map(\.tmdbID)))
         let manquants = Array(reserve.manquants(films).prefix(30))
         guard !manquants.isEmpty else { return }
+        // 8.10 : six fiches à la fois, et non trente l'une après l'autre.
         var lus: [Int: [ReserveRealisateurs.Realisateur]] = [:]
-        for id in manquants {
+        for lot in stride(from: 0, to: manquants.count, by: 6).map({ Array(manquants[$0..<min($0 + 6, manquants.count)]) }) {
             guard !Task.isCancelled else { return }
-            if let fiche = try? await tmdb.film(id, complements: [.casting]) {
-                lus[id] = (fiche.casting?.realisateurs ?? []).map {
-                    ReserveRealisateurs.Realisateur(id: $0.id, nom: $0.nom, cheminPortrait: $0.cheminPortrait)
+            let lotLu = await withTaskGroup(of: (Int, [ReserveRealisateurs.Realisateur]?).self) { groupe in
+                for id in lot {
+                    groupe.addTask {
+                        let fiche = try? await tmdb.film(id, complements: [.casting])
+                        return (id, fiche.map { ($0.casting?.realisateurs ?? []).map {
+                            ReserveRealisateurs.Realisateur(id: $0.id, nom: $0.nom, cheminPortrait: $0.cheminPortrait)
+                        } })
+                    }
                 }
+                var resultat: [Int: [ReserveRealisateurs.Realisateur]] = [:]
+                for await (id, realisateurs) in groupe { if let realisateurs { resultat[id] = realisateurs } }
+                return resultat
             }
+            lus.merge(lotLu) { _, neuf in neuf }
         }
         var nouvelle = reserve
         nouvelle.parFilm.merge(lus) { _, neuf in neuf }

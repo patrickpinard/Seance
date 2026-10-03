@@ -55,6 +55,10 @@ final class EtatOu {
     @ObservationIgnored private var demandes: Set<ReferenceTitre> = []
     @ObservationIgnored private var attente: [ReferenceTitre] = []
     @ObservationIgnored private var actifs = 0
+    /// Les réponses de TMDB pas encore publiées (8.10, bilan de l'Apple TV) : chaque réponse publiée seule redessinait
+    /// toutes les cartes affichées — 60 à 100 fois à l'ouverture de l'accueil. Elles partent par lots, toutes les 0,4 s.
+    @ObservationIgnored private var tampon: [String: Entree] = [:]
+    @ObservationIgnored private var publicationPrevue = false
     private static let validite: TimeInterval = 12 * 3600
     private static let fichier = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0].appending(path: "ou-regarder.json")
 
@@ -175,15 +179,38 @@ final class EtatOu {
                 if let reponse = try? await client.fournisseurs(reference.type, id: reference.tmdbID) {
                     let offres = reponse.offres()
                     let inclus = (offres?.abonnement ?? []) + (offres?.gratuit ?? []) + (offres?.avecPublicite ?? [])
-                    entrees[Self.cle(reference)] = Entree(lueLe: .now, plateformes: inclus.map {
+                    tampon[Self.cle(reference)] = Entree(lueLe: .now, plateformes: inclus.map {
                         Plateforme(id: $0.id, nom: $0.nom, logo: $0.cheminLogo, priorite: $0.priorite)
                     })
                 }
                 actifs -= 1
                 demandes.remove(reference)
-                if attente.isEmpty, actifs == 0 { enregistrer() } else { pomper(client) }
+                if attente.isEmpty, actifs == 0 {
+                    publier()
+                    enregistrer()
+                } else {
+                    prevoirPublication()
+                    pomper(client)
+                }
             }
         }
+    }
+
+    private func prevoirPublication() {
+        guard !publicationPrevue else { return }
+        publicationPrevue = true
+        Task {
+            try? await Task.sleep(for: .milliseconds(400))
+            publier()
+        }
+    }
+
+    /// Un seul changement observé pour tout le lot.
+    private func publier() {
+        publicationPrevue = false
+        guard !tampon.isEmpty else { return }
+        entrees.merge(tampon) { _, nouvelle in nouvelle }
+        tampon = [:]
     }
 
     private func enregistrer() {

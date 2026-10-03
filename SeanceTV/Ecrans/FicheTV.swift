@@ -70,6 +70,11 @@ struct FicheTV: View {
         _visionnages = Query(filter: #Predicate<Visionnage> { $0.tmdbID == id && $0.typeBrut == type })
         _passages = Query(filter: #Predicate<Diffusion> { $0.tmdbID == idFacultatif && $0.typeBrut == type && $0.fin > maintenant }, sort: \Diffusion.debut)
         _aimes = Query(filter: #Predicate<TitreAime> { $0.tmdbID == id && $0.typeBrut == type })
+        // 8.10 (bilan de l'Apple TV) : seulement ce titre — la fiche relisait toute la bibliothèque et toutes les listes,
+        // une vingtaine de fois par rendu.
+        _fichiers = Query(filter: #Predicate<FichierNAS> { $0.tmdbID == idFacultatif && $0.typeBrut == type })
+        _suivis = Query(filter: #Predicate<Suivi> { $0.tmdbID == id && $0.typeBrut == type })
+        _soirees = Query(filter: #Predicate<SelectionSoir> { $0.tmdbID == id && $0.typeBrut == type })
     }
 
     var body: some View {

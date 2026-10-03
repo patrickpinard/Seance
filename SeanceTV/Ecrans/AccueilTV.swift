@@ -12,8 +12,11 @@ struct AccueilTV: View {
     @Query(sort: \SelectionSoir.ajouteLe) private var soirees: [SelectionSoir]
     @Query(sort: \FichierNAS.indexeLe, order: .reverse) private var fichiers: [FichierNAS]
     @Query private var suivis: [Suivi]
-    @Query(sort: \Diffusion.debut) private var diffusions: [Diffusion]
+    /// Seulement ce qui n'est pas encore fini (8.10) : la requête relisait tout le guide à chaque rendu.
+    @Query private var diffusions: [Diffusion]
     @Query private var chaines: [Chaine]
+    /// Le dernier chargement de TMDB : l'accueil ne le refait pas à chaque retour sur la page (8.10).
+    @State private var chargeLe: Date?
 
     @State private var duMoment: [ApercuTV] = []
     /// Déjà vus, refusés ou « pas intéressé pour l'instant » (8.2.15) : comme sur l'iPhone, plus proposés ici.
@@ -45,6 +48,11 @@ struct AccueilTV: View {
     @State private var configuration = false
     /// Images de fond des titres de la soirée, lues sur TMDB quand le NAS ne les connaît pas.
     @State private var fonds: [ReferenceTitre: String] = [:]
+
+    init() {
+        let maintenant = Date.now
+        _diffusions = Query(filter: #Predicate<Diffusion> { $0.fin > maintenant }, sort: \Diffusion.debut)
+    }
 
     var body: some View {
         ScrollView {
@@ -81,9 +89,9 @@ struct AccueilTV: View {
                                          reprise: reprise.fichier.chemin)
                         }
                     }
-                } else if !suggestionsAMontrer(sauf: proposition?.reference).isEmpty {
+                } else if case let idees = suggestionsAMontrer(sauf: proposition?.reference), !idees.isEmpty {
                     EtagereTV(titre: "Suggestions", sousTitre: "D'après tes goûts, pour ce soir") {
-                        ForEach(suggestionsAMontrer(sauf: proposition?.reference)) { idee in
+                        ForEach(idees) { idee in
                             let titre = idee.candidat.titre
                             NavigationLink(value: titre.reference) {
                                 CarteLargeTV(surtitre: nil, titre: titre.titre,
@@ -130,6 +138,8 @@ struct AccueilTV: View {
                 }
                 // Tes souvenirs (8.1) : les derniers albums de vidéos personnelles, à deux clics.
                 RangeeSouvenirsTV()
+                // 8.10 : chaque étagère calculée une fois par rendu (elles l'étaient deux fois).
+                let nouveautesNAS = nouveautesNAS
                 if !nouveautesNAS.isEmpty {
                     EtagereTV(titre: "Nouveaux sur ton NAS", sousTitre: "Prêts à regarder, du plus récent au plus ancien",
                               toutVoir: { etat.demandeRegarder = .nas }) {
@@ -145,6 +155,7 @@ struct AccueilTV: View {
                     }
                 }
                 // En ce moment (6.6) : ce qui passe maintenant sur tes chaînes, et le clic lance blue TV sur la chaîne.
+                let enDirect = enDirect
                 if !enDirect.isEmpty {
                     EtagereTV(titre: "En ce moment sur tes chaînes", sousTitre: "Un clic et blue TV s'ouvre sur la chaîne, en direct",
                               toutVoir: { etat.demandeRegarder = .tele }, largeurCartes: CarteLargeTV.largeur) {
@@ -161,6 +172,7 @@ struct AccueilTV: View {
                         }
                     }
                 }
+                let teleCeSoir = teleCeSoir
                 if !teleCeSoir.isEmpty {
                     EtagereTV(titre: "Ce soir à la TV", sousTitre: "Films et séries de tes chaînes, à venir",
                               toutVoir: { etat.demandeRegarder = .tele }, largeurCartes: CarteLargeTV.largeur) {
@@ -177,6 +189,7 @@ struct AccueilTV: View {
                         }
                     }
                 }
+                let aVoir = aVoir
                 if !aVoir.isEmpty {
                     EtagereTV(titre: "Dans ta liste", sousTitre: "À voir, du plus récent au plus ancien") {
                         ForEach(aVoir) { suivi in
@@ -197,7 +210,12 @@ struct AccueilTV: View {
         }
         .ignoresSafeArea(edges: .top)
         .fullScreenCover(isPresented: $configuration) { ConfigurationTV() }
-        .task(id: etat.tmdb == nil) { await charger() }
+        .task(id: etat.tmdb == nil) {
+            // 8.10 : pas de rechargement à chaque retour sur l'accueil — seulement après une demi-heure.
+            if let chargeLe, Date.now.timeIntervalSince(chargeLe) < 30 * 60, !duMoment.isEmpty { return }
+            await charger()
+            if !duMoment.isEmpty { chargeLe = .now }
+        }
         .task(id: aReprendre.count <= 1) {
             guard aReprendre.count <= 1, suggestions.isEmpty else { return }
             await chargerSuggestions()

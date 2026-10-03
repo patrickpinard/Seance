@@ -158,9 +158,12 @@ struct RacineTV: View {
             // Les listes d'abord (quelques secondes), la bibliothèque ensuite (plus longue).
             etat.relirePositions()
             etat.ou.actualiserLocal(contexte: contexte)
+            await etat.preparerFond(contexte: contexte)
             await etat.synchroniser(contexte: contexte)
             etat.ou.actualiserLocal(contexte: contexte)
             if etat.nasPret, !etat.enDemonstration { await etat.analyserNAS(contexte: contexte) }
+            // Le magasin a pu changer (synchronisation, analyse) : le fond du jour se rechoisit.
+            await etat.preparerFond(contexte: contexte)
             etat.ou.actualiserLocal(contexte: contexte)
             PublicationEtagere.publier(contexte: contexte)
         }

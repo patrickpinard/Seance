@@ -284,7 +284,9 @@ struct ExplorerTV: View {
     // MARK: Les résultats
 
     private var colonneResultats: some View {
-        ScrollView {
+        // 8.10 : ce qui est sur le NAS, calculé une fois pour toute la grille (chaque carte parcourait la bibliothèque).
+        let surLeNAS = Set(fichiers.compactMap(\.reference))
+        return ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 HStack(alignment: .firstTextBaseline) {
                     Text(enCours && resultats.isEmpty ? "Recherche…" : resultats.count == 1 ? "1 titre" : "\(resultats.count) titres")
@@ -352,7 +354,7 @@ struct ExplorerTV: View {
                         LazyVGrid(columns: Array(repeating: GridItem(.fixed(360), spacing: 34, alignment: .top), count: 3), spacing: 40) {
                             ForEach(tranche.titres) { apercu in
                                 NavigationLink(value: apercu.reference) {
-                                    CarteLargeTV(surtitre: origine(apercu.reference), titre: apercu.titre, detail: apercu.sousTitre,
+                                    CarteLargeTV(surtitre: surLeNAS.contains(apercu.reference) ? "Sur ton NAS" : nil, titre: apercu.titre, detail: apercu.sousTitre,
                                                  cheminImage: apercu.cheminFond ?? apercu.cheminAffiche, largeur: 360, reference: apercu.reference)
                                 }
                                 .buttonStyle(.card)
@@ -378,11 +380,6 @@ struct ExplorerTV: View {
     private struct Cle: Hashable {
         let categorie: Categorie, source: Source, genres: Set<Int>, exclus: Set<Int>, periode: Periode, duree: Duree, note: Note
         let tri: CriteresDecouverte.Tri, acteurs: Set<Int>, dejaVus: DejaVus, recherche: String, pret: Bool
-    }
-
-    /// La ligne d'origine de la carte (charte 8.0) : sur ton NAS, sinon rien — la fiche dit où regarder.
-    private func origine(_ reference: ReferenceTitre) -> String? {
-        fichiers.contains(where: { $0.reference == reference }) ? "Sur ton NAS" : nil
     }
 
     /// Déjà vus : un film avec un visionnage, une série terminée.

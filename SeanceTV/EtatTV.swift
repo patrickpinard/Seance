@@ -4,6 +4,7 @@ import SeanceDonnees
 import SeanceKit
 import SeanceNAS
 import SwiftData
+import UIKit
 
 /// L'état de l'app TV : les clés du trousseau, le client TMDB, les réglages du NAS et son analyse.
 /// Volontairement petit : ce qui se règle finement se règle sur l'iPhone, l'iPad ou le Mac (EF-142).
@@ -66,6 +67,14 @@ final class EtatTV {
     }
 
     /// Relit les positions : au lancement, après la démonstration qui les pose.
+    /// Le fond des pages, flouté une fois au lancement (8.10, `FondDuJour`).
+    private(set) var fond: UIImage?
+
+    func preparerFond(contexte: ModelContext) async {
+        guard let url = FondDuJour.choisir(contexte: contexte) else { return }
+        if let image = await FondDuJour.preparer(url) { fond = image }
+    }
+
     func relirePositions() {
         positions = PositionsLecture(donnees: UserDefaults.standard.data(forKey: PositionsLecture.cle(profil: ConteneurTV.famille.actif.id)))
     }

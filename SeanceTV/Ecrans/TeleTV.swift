@@ -16,11 +16,21 @@ struct SectionsTeleTV: View {
 
     @Environment(EtatTV.self) private var etat
     @Environment(\.modelContext) private var contexte
-    @Query(sort: \Diffusion.debut) private var diffusions: [Diffusion]
+    /// Seulement ce qui n'est pas encore fini (8.10) : la page relisait tout le guide chaque minute.
+    @Query private var diffusions: [Diffusion]
     @Query private var chaines: [Chaine]
     @Query private var suivis: [Suivi]
     /// « Programme complet » : la journée et la nuit s'ajoutent à « En ce moment » et « Ce soir ».
     @State private var complet = false
+
+    init(jour: DateTMDB, moments: [MomentTele] = MomentTele.allCases, prefixe: String? = nil, types: Set<TypeTitre> = [.film, .serie]) {
+        self.jour = jour
+        self.moments = moments
+        self.prefixe = prefixe
+        self.types = types
+        let maintenant = Date.now
+        _diffusions = Query(filter: #Predicate<Diffusion> { $0.fin > maintenant }, sort: \Diffusion.debut)
+    }
 
     var body: some View {
         TimelineView(.periodic(from: .now, by: 60)) { horloge in

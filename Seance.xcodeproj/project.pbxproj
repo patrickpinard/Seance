@@ -54,6 +54,7 @@
 		2A5AA594AC154FF6E7492533 /* EnvoiAppleTVTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0EDD37B39A84ADA0B97BEB0F /* EnvoiAppleTVTests.swift */; };
 		2B6B5544B2567CCCB47141FD /* EnTeteAccueil.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2D544A2F476D4FABAD52710 /* EnTeteAccueil.swift */; };
 		2DAD173EFD044493ED7A869C /* CarrouselAccueilTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4B942120AAC225B98E31C48 /* CarrouselAccueilTests.swift */; };
+		2E05A73FDBA3770F6E3AEE94 /* FondDuJour.swift in Sources */ = {isa = PBXBuildFile; fileRef = 600C541383A50756CA73BCBA /* FondDuJour.swift */; };
 		2E587916C6B35CD2BC4F22C3 /* VLCKit.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 64DEAE0C43F30D5D4D6DC42F /* VLCKit.xcframework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		2E78913583D012AC8AAC1D1B /* ProfilTV.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D777738E8169D1D6CBA2E0A /* ProfilTV.swift */; };
 		31EF6B7567FA50350F574204 /* LectureNAS.swift in Sources */ = {isa = PBXBuildFile; fileRef = 562FA0BC92C87B80E5980C1F /* LectureNAS.swift */; };
@@ -381,6 +382,7 @@
 		5D9CD2AC426EAC55F2E18D92 /* ApercuWidgets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApercuWidgets.swift; sourceTree = "<group>"; };
 		5EFED69699E50F3169D6EA9C /* VersionsTV.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VersionsTV.swift; sourceTree = "<group>"; };
 		5FCC3B9AFA25A5D9D43ED7BA /* CarrouselTVTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CarrouselTVTests.swift; sourceTree = "<group>"; };
+		600C541383A50756CA73BCBA /* FondDuJour.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FondDuJour.swift; sourceTree = "<group>"; };
 		60978F177ABB702A3642036A /* SeanceWidget.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = SeanceWidget.entitlements; sourceTree = "<group>"; };
 		64DEAE0C43F30D5D4D6DC42F /* VLCKit.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = VLCKit.xcframework; path = .build/vlckit/VLCKit.xcframework; sourceTree = "<group>"; };
 		69DAAF3CA73CDA90FB2F2152 /* LectureTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LectureTests.swift; sourceTree = "<group>"; };
@@ -780,6 +782,7 @@
 			children = (
 				0A301A4B4AB1816D72C3C693 /* CarteReglageTV.swift */,
 				540314EE6294B3465B1CB83B /* ComposantsTV.swift */,
+				600C541383A50756CA73BCBA /* FondDuJour.swift */,
 				7C7A078473F674DE5D855194 /* FondTV.swift */,
 				767BD5C5F99D6287A874FD59 /* GlissementTelecommande.swift */,
 				E8C7895F09DBDD48755EC03B /* ReglagesComposantsTV.swift */,
@@ -1220,6 +1223,7 @@
 				05A997AAEE2609418347B2EC /* FamilleTV.swift in Sources */,
 				3ACD7AF63174915B43570296 /* FauxTMDB.swift in Sources */,
 				8F8CD3C44264D47470182C69 /* FicheTV.swift in Sources */,
+				2E05A73FDBA3770F6E3AEE94 /* FondDuJour.swift in Sources */,
 				CF9E1E93D06F26359CB61324 /* FondTV.swift in Sources */,
 				55F464C74F7940AA67AC3E5D /* GlissementTelecommande.swift in Sources */,
 				A20B5278C747684EFA588D6E /* IdentificationTV.swift in Sources */,
@@ -1634,7 +1638,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 109;
+				CURRENT_PROJECT_VERSION = 110;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = GATK475J3P;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -1755,7 +1759,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 109;
+				CURRENT_PROJECT_VERSION = 110;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = GATK475J3P;
 				ENABLE_NS_ASSERTIONS = NO;

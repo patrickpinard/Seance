@@ -99,22 +99,25 @@ public struct MoteurSynchro {
         var aDeposer = resultat.aDeposer
         let reglages = preferences()
         aDeposer.preferences = reglages.isEmpty ? nil : reglages
-        let empreinte = try Self.empreinte(aDeposer)
+        // 8.10 (bilan de l'Apple TV) : l'encodage se fait hors du fil principal, et une seule fois quand rien n'a changé
+        // (trois fois auparavant, à chaque retour au premier plan) ; le fichier déposé sert aussi de point de comparaison.
+        let aEncoder = aDeposer
+        let empreinte = try await Task.detached(priority: .utility) { try Self.empreinte(aEncoder) }.value
         var deposees: Data?
-        if empreinte != defauts.string(forKey: cleEmpreinte) {
-            let donnees = try aDeposer.encoder()
+        if empreinte != defauts.string(forKey: cleEmpreinte) || !FileManager.default.fileExists(atPath: fichierEtat.path) {
+            let donnees = try await Task.detached(priority: .utility) { try aEncoder.encoder() }.value
             try await transport.ecrire(donnees, nom: propre)
             defauts.set(empreinte, forKey: cleEmpreinte)
             deposees = donnees
+            // Le point de comparaison de la prochaine synchronisation ; inchangé, celui d'avant vaut toujours.
+            try? FileManager.default.createDirectory(at: fichierEtat.deletingLastPathComponent(), withIntermediateDirectories: true)
+            try? donnees.write(to: fichierEtat, options: .atomic)
         }
-        // Le point de comparaison de la prochaine synchronisation.
-        try? FileManager.default.createDirectory(at: fichierEtat.deletingLastPathComponent(), withIntermediateDirectories: true)
-        try? aDeposer.encoder().write(to: fichierEtat, options: .atomic)
         return Bilan(recus: resultat.recus.filter { !$0.estVide }, deposees: deposees, presents: presents)
     }
 
     /// L'empreinte du contenu, hors date de création : deux exports des mêmes données ont la même.
-    private static func empreinte(_ sauvegarde: Sauvegarde) throws -> String {
+    nonisolated private static func empreinte(_ sauvegarde: Sauvegarde) throws -> String {
         var stable = sauvegarde
         stable.creeeLe = Date(timeIntervalSince1970: 0)
         return SHA256.hash(data: try stable.encoder()).map { String(format: "%02x", $0) }.joined()

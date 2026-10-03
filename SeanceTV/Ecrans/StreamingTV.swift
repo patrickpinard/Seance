@@ -112,11 +112,20 @@ struct SectionsStreamingTV: View {
         async let films = try? client.decouvrirFilms(Self.criteres(.film, ids))
         async let series = try? client.decouvrirSeries(Self.criteres(.serie, ids))
         toutes = ApercuTV.meler((await films)?.resultats ?? [], (await series)?.resultats ?? [])
-        for id in ids {
-            async let films = try? client.decouvrirFilms(Self.criteres(.film, [id]))
-            async let series = try? client.decouvrirSeries(Self.criteres(.serie, [id]))
-            parPlateforme[id] = ApercuTV.meler((await films)?.resultats ?? [], (await series)?.resultats ?? [])
+        // 8.10 : toutes les plateformes en même temps, et non l'une après l'autre.
+        let lues = await withTaskGroup(of: (Int, [ApercuTV]).self) { groupe in
+            for id in ids {
+                groupe.addTask {
+                    async let films = try? client.decouvrirFilms(Self.criteres(.film, [id]))
+                    async let series = try? client.decouvrirSeries(Self.criteres(.serie, [id]))
+                    return (id, ApercuTV.meler((await films)?.resultats ?? [], (await series)?.resultats ?? []))
+                }
+            }
+            var resultat: [Int: [ApercuTV]] = [:]
+            for await (id, apercus) in groupe { resultat[id] = apercus }
+            return resultat
         }
+        parPlateforme.merge(lues) { _, neuf in neuf }
         // Rien de gardé si TMDB n'a rien rendu : la prochaine visite réessaiera.
         if !toutes.isEmpty { Memoire.lues = (ids, toutes, parPlateforme, .now) }
     }

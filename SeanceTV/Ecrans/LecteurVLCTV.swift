@@ -755,8 +755,10 @@ final class MoteurVLCTV {
             while !Task.isCancelled {
                 try? await Task.sleep(for: .milliseconds(500))
                 guard let self else { return }
-                self.position = self.lecteur.position
-                self.enLecture = self.lecteur.isPlaying
+                // 8.10 : une valeur observée ne change que si elle a changé — le lecteur redessinait tout deux fois par seconde.
+                let position = self.lecteur.position
+                if self.position != position { self.position = position }
+                if self.enLecture != self.lecteur.isPlaying { self.enLecture = self.lecteur.isPlaying }
                 if self.lecteur.state == .stopped, self.derniereFraction > 0.97 { self.termine = true }
                 if self.lecteur.isPlaying { self.derniereFraction = Double(self.lecteur.position) }
                 if self.mkvAVerifier, self.lecteur.isPlaying, let anamorphique = OptionsVLC.anamorphique(self.lecteur) {
@@ -770,15 +772,22 @@ final class MoteurVLCTV {
                 if !self.pistesPosees, let preferences = self.preferences, self.lecteur.isPlaying {
                     self.pistesPosees = self.lecteur.appliquer(preferences)
                 }
-                self.enChargement = !self.termine && !self.lecteur.isPlaying && self.lecteur.position == 0
-                self.tempsAffiche = self.lecteur.time.stringValue
-                self.secondes = Double(self.lecteur.time.intValue) / 1000
-                self.duree = Double(self.lecteur.media?.length.intValue ?? 0) / 1000
+                let enChargement = !self.termine && !self.lecteur.isPlaying && self.lecteur.position == 0
+                if self.enChargement != enChargement { self.enChargement = enChargement }
+                let temps = self.lecteur.time.stringValue
+                if self.tempsAffiche != temps { self.tempsAffiche = temps }
+                let secondes = Double(self.lecteur.time.intValue) / 1000
+                if self.secondes != secondes { self.secondes = secondes }
+                let duree = Double(self.lecteur.media?.length.intValue ?? 0) / 1000
+                if self.duree != duree { self.duree = duree }
                 // Reprendre : dès que VLC connaît la durée, on saute à la position retenue.
                 // 8.9 : VLC part déjà de la position (`:start-time`) ; on ne saute que s'il ne l'a pas fait.
-                if let depart = self.depart, self.duree > 0, self.lecteur.isPlaying,
-                   abs(Double(self.lecteur.time.intValue) / 1000 - depart) > 5 {
-                    self.lecteur.time = VLCTime(int: Int32(depart * 1000))
+                if let depart = self.depart, self.duree > 0, self.lecteur.isPlaying {
+                    if abs(Double(self.lecteur.time.intValue) / 1000 - depart) > 5 {
+                        self.lecteur.time = VLCTime(int: Int32(depart * 1000))
+                    }
+                    // 8.10.2 : la reprise faite, on l'oublie — gardée, elle ramenait à elle toute avance ou recul de plus
+                    // de 5 secondes.
                     self.depart = nil
                 }
             }
