@@ -1,8 +1,8 @@
 #!/bin/zsh
-# Réinstallation automatique (8.11) : lancé toutes les deux heures par le Mac mini (outils/programmer-reinstallation.sh),
+# Réinstallation automatique (8.12) : lancé une fois par jour par le Mac mini (outils/programmer-reinstallation.sh),
 # il réinstalle Séance sur chaque type d'appareil dont la dernière installation réussie date de plus de 4 jours — avant
-# les 7 jours au bout desquels l'app gratuite cesse de s'ouvrir. Un appareil endormi ou verrouillé sera repris au passage
-# suivant.
+# les 7 jours au bout desquels l'app gratuite cesse de s'ouvrir. Un appareil endormi ou verrouillé sera repris le
+# lendemain : à 4 jours, il reste trois essais avant l'expiration.
 #
 # Par prudence, rien n'est installé si le projet n'est pas sur `main`, ou s'il a des modifications pas encore
 # enregistrées : on n'envoie jamais un travail en cours sur les appareils de la famille. Ni pendant une autre
@@ -37,6 +37,11 @@ branche=$(git rev-parse --abbrev-ref HEAD 2> /dev/null)
 if [[ $branche != main ]]; then noter "Passage sauté : le projet est sur la branche « $branche », pas sur main."; exit 0; fi
 if [[ -n $(git status --porcelain 2> /dev/null) ]]; then noter "Passage sauté : des modifications ne sont pas enregistrées."; exit 0; fi
 if pgrep -x xcodebuild > /dev/null; then noter "Passage sauté : une autre compilation est en cours."; exit 0; fi
+
+# Une fois par jour au plus, même lancé à la main sans --forcer.
+aujourdhui=$(date +%Y-%m-%d)
+if ! $forcer && [[ $(cat "$etat/dernier-passage" 2> /dev/null) == $aujourdhui ]]; then exit 0; fi
+print -r -- $aujourdhui > "$etat/dernier-passage"
 
 maintenant=$(date +%s)
 derniere() { awk -F'\t' -v c="$1" '$1 == c { print $2 }' "$memoire" | tail -1; }

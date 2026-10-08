@@ -1,6 +1,7 @@
 #!/bin/zsh
-# Programme la réinstallation automatique de Séance sur ce Mac (8.11) : un agent de launchd lance
-# outils/reinstallation-auto.sh toutes les deux heures, tant que la session est ouverte.
+# Programme la réinstallation automatique de Séance sur ce Mac (8.12) : un agent de launchd lance
+# outils/reinstallation-auto.sh une fois par jour, à 19 h 30 — l'heure où la famille est à la maison, les Apple TV
+# allumées et les iPhone à portée. Un Mac en veille à cette heure-là le fait à son réveil.
 #
 #   outils/programmer-reinstallation.sh            # programmer (ou reprogrammer)
 #   outils/programmer-reinstallation.sh --arreter  # ne plus réinstaller automatiquement
@@ -28,7 +29,7 @@ cat > "$agent" <<PLIST
   <key>Label</key><string>$etiquette</string>
   <key>ProgramArguments</key>
   <array><string>/bin/zsh</string><string>$racine/outils/reinstallation-auto.sh</string></array>
-  <key>StartInterval</key><integer>7200</integer>
+  <key>StartCalendarInterval</key><dict><key>Hour</key><integer>19</integer><key>Minute</key><integer>30</integer></dict>
   <key>RunAtLoad</key><false/>
   <key>ProcessType</key><string>Background</string>
   <key>EnvironmentVariables</key>
@@ -37,5 +38,5 @@ cat > "$agent" <<PLIST
 </plist>
 PLIST
 launchctl bootstrap "$domaine" "$agent"
-echo "Réinstallation automatique programmée : toutes les deux heures, pour les appareils installés il y a plus de 4 jours."
+echo "Réinstallation automatique programmée : chaque jour à 19 h 30, pour les appareils installés il y a plus de 4 jours."
 echo "Journal : ~/Library/Logs/Seance-reinstallation.log"
