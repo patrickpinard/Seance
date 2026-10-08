@@ -1,11 +1,16 @@
 import AVFoundation
+import CryptoKit
 import SeanceKit
 import SeanceNAS
 import SwiftUI
 
 /// La première image de chaque vidéo personnelle (6.4). Quarante souvenirs qui portent tous la même icône ne se
-/// distinguent pas : une image tirée de la vidéo elle-même, oui. Elle est lue une fois, à travers le relais local
-/// qui sert déjà la lecture, puis gardée sur l'appareil — jamais sur le NAS, jamais envoyée ailleurs.
+/// distinguent pas : une image tirée de la vidéo elle-même, oui.
+///
+/// 8.11 : le Mac, centrale de la maison, les fabrique et les dépose sur le NAS, dans le dossier caché
+/// `.seance-vignettes` du partage des souvenirs ; l'iPhone, l'iPad et l'Apple TV les y lisent (une petite image) au lieu
+/// de relire le début de chaque vidéo. Celle qui manque encore est fabriquée sur place, puis déposée pour les autres.
+/// Chacun la garde aussi sur l'appareil. Rien ne quitte la maison.
 ///
 /// Seuls les formats qu'AVFoundation ouvre donnent une image (MP4, M4V, MOV) ; un AVI ou un WMV garde son icône.
 @MainActor
@@ -18,6 +23,9 @@ final class VignettesSouvenirs {
     private var enCours = 0
     /// L'image choisie dans chaque vidéo (8.2), en secondes ; `nil` : une seconde après le début.
     @ObservationIgnored var instantDe: ((String) -> Double?)?
+    /// Les noms des vignettes déjà sur le NAS, lus une fois : une vignette absente n'est pas cherchée en vain.
+    @ObservationIgnored private var surLeNAS: Set<String>?
+    static let dossierNAS = ".seance-vignettes"
 
     /// Où les images sont gardées entre deux lancements.
     private static var dossier: URL? {
@@ -28,10 +36,16 @@ final class VignettesSouvenirs {
         return dossier
     }
 
+    /// Le nom d'une vignette : une empreinte du chemin, la même d'un lancement et d'un appareil à l'autre. 8.11 :
+    /// `hashValue` changeait à chaque lancement — la vignette gardée sur l'appareil ne se retrouvait jamais.
+    static func nom(_ chemin: String, instant: Double? = nil) -> String {
+        let empreinte = SHA256.hash(data: Data(chemin.precomposedStringWithCanonicalMapping.utf8)).prefix(12)
+            .map { String(format: "%02x", $0) }.joined()
+        return empreinte + (instant.map { "-\(Int($0))" } ?? "") + ".jpg"
+    }
+
     private static func fichier(_ chemin: String, instant: Double? = nil) -> URL? {
-        // Le chemin d'une vidéo contient des « / » et des accents : on le réduit à une empreinte stable.
-        let nom = String(format: "%016llx", UInt64(bitPattern: Int64(chemin.hashValue)))
-        return dossier?.appendingPathComponent(nom + (instant.map { "-\(Int($0))" } ?? "") + ".jpg")
+        dossier?.appendingPathComponent(nom(chemin, instant: instant))
     }
 
     /// Les formats dont AVFoundation sait tirer une image : les mêmes qu'il sait lire.
@@ -55,11 +69,50 @@ final class VignettesSouvenirs {
             vignettes[video.chemin] = Image(uiImage: image)
             return
         }
-        Task { await produire(video, acces: acces, motDePasse: motDePasse, instant: instant) }
+        Task {
+            if await lireSurLeNAS(video, acces: acces, motDePasse: motDePasse, instant: instant) { return }
+            await produire(video, acces: acces, motDePasse: motDePasse, instant: instant, deposer: true)
+        }
+    }
+
+    /// La vignette déposée sur le NAS par le Mac ou un autre appareil.
+    private func lireSurLeNAS(_ video: VideoPerso, acces: ReglagesNAS, motDePasse: String, instant: Double?) async -> Bool {
+        let nom = Self.nom(video.chemin, instant: instant)
+        let presents = await nomsSurLeNAS(acces: acces, motDePasse: motDePasse)
+        guard presents.contains(nom),
+              let donnees = try? await DossierSynchroSMB(reglages: acces, motDePasse: motDePasse, dossier: Self.dossierNAS).lire(nom),
+              let image = UIImage(data: donnees) else { return false }
+        vignettes[video.chemin] = Image(uiImage: image)
+        if let fichier = Self.fichier(video.chemin, instant: instant) { try? donnees.write(to: fichier, options: .atomic) }
+        return true
+    }
+
+    private func nomsSurLeNAS(acces: ReglagesNAS, motDePasse: String) async -> Set<String> {
+        if let surLeNAS { return surLeNAS }
+        let lus = Set(((try? await DossierSynchroSMB(reglages: acces, motDePasse: motDePasse, dossier: Self.dossierNAS).lister()) ?? []).map(\.nom))
+        surLeNAS = lus
+        return lus
+    }
+
+    /// Le Mac, à chaque passage de la centrale (8.11) : les vignettes qui manquent sur le NAS, quelques-unes à la fois
+    /// pour ne pas occuper le NAS des heures. Renvoie le nombre de vignettes déposées.
+    @discardableResult
+    func preparerSurLeNAS(_ videos: [VideoPerso], acces: ReglagesNAS, motDePasse: String, maximum: Int = 20) async -> Int {
+        surLeNAS = nil
+        let presents = await nomsSurLeNAS(acces: acces, motDePasse: motDePasse)
+        var deposees = 0
+        for video in videos where Self.possible(video.chemin) {
+            guard deposees < maximum, !Task.isCancelled else { break }
+            let instant = instantDe?(video.chemin)
+            guard !presents.contains(Self.nom(video.chemin, instant: instant)) else { continue }
+            if await produire(video, acces: acces, motDePasse: motDePasse, instant: instant, deposer: true) { deposees += 1 }
+        }
+        return deposees
     }
 
     /// Deux vidéos à la fois au plus : chaque image demande d'ouvrir une connexion SMB et de lire le début du fichier.
-    private func produire(_ video: VideoPerso, acces: ReglagesNAS, motDePasse: String, instant: Double?) async {
+    @discardableResult
+    private func produire(_ video: VideoPerso, acces: ReglagesNAS, motDePasse: String, instant: Double?, deposer: Bool) async -> Bool {
         while enCours >= 2 { try? await Task.sleep(for: .milliseconds(250)) }
         enCours += 1
         defer { enCours -= 1 }
@@ -68,18 +121,25 @@ final class VignettesSouvenirs {
         let extension_ = (video.chemin as NSString).pathExtension.lowercased()
         let relais = RelaisVideo(source: source, typeMIME: extension_ == "mp4" ? "video/mp4" : "video/quicktime")
         defer { Task { await relais.arreter(); await source.fermer() } }
-        guard let adresse = try? await relais.demarrer() else { return }
+        guard let adresse = try? await relais.demarrer() else { return false }
         let asset = AVURLAsset(url: adresse)
         let generateur = AVAssetImageGenerator(asset: asset)
         generateur.appliesPreferredTrackTransform = true
         generateur.maximumSize = CGSize(width: 640, height: 640)
         // Une seconde après le début : la toute première image est souvent noire. Ou l'image choisie (8.2).
-        guard let image = try? await generateur.image(at: CMTime(seconds: instant ?? 1, preferredTimescale: 600)).image else { return }
+        guard let image = try? await generateur.image(at: CMTime(seconds: instant ?? 1, preferredTimescale: 600)).image else { return false }
         let uiImage = UIImage(cgImage: image)
         vignettes[video.chemin] = Image(uiImage: uiImage)
-        if let fichier = Self.fichier(video.chemin, instant: instant), let donnees = uiImage.jpegData(compressionQuality: 0.7) {
-            try? donnees.write(to: fichier, options: .atomic)
+        guard let donnees = uiImage.jpegData(compressionQuality: 0.7) else { return true }
+        if let fichier = Self.fichier(video.chemin, instant: instant) { try? donnees.write(to: fichier, options: .atomic) }
+        // Pour les autres appareils : déposée sur le NAS, à côté des souvenirs.
+        if deposer {
+            let nom = Self.nom(video.chemin, instant: instant)
+            if (try? await DossierSynchroSMB(reglages: acces, motDePasse: motDePasse, dossier: Self.dossierNAS).ecrire(donnees, nom: nom)) != nil {
+                surLeNAS?.insert(nom)
+            }
         }
+        return true
     }
 
     /// Une autre image a été choisie pour cette vidéo : la vignette se refait à la prochaine demande.

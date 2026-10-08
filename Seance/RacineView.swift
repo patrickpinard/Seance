@@ -92,6 +92,11 @@ struct RacineView: View {
         .modifier(SablierOuverture.Calque())
         .tint(Theme.accent)
         .task { await etat.chargerGenres() }
+        #if DEBUG
+        .task {
+            if let lien = ProcessInfo.processInfo.environment["SEANCE_ALERTE_ESSAI"] { await etat.alertes.essaiPourLesTests(lien: lien) }
+        }
+        #endif
         // Le contrôleur d'onglets n'existe qu'une fois la fenêtre montée, et prend ses dimensions avec un temps de retard.
         .task { await BarreLaterale.ouvrirSurIPadDesQuePossible() }
         // Lancé en portrait puis tourné : la barre s'ouvre quand la fenêtre s'élargit.

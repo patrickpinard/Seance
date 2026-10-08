@@ -10,6 +10,9 @@
 #   SIMULATEUR_ID=<UDID> outils/tests-interface.sh …            # un simulateur à soi
 set -uo pipefail
 racine=${0:A:h:h}
+# La vidéo d'essai du lecteur (une mire muette de deux minutes), pour RegressionsTests comme pour les tests de la TV.
+[[ -f "$racine/.build/essai-tv/mire.mp4" ]] || { mkdir -p "$racine/.build/essai-tv"; /opt/homebrew/bin/ffmpeg -nostdin -loglevel error -y \
+  -f lavfi -i testsrc=duration=120:size=1280x720:rate=25 -c:v libx264 -pix_fmt yuv420p -an "$racine/.build/essai-tv/mire.mp4"; }
 modele=${SIMULATEUR:-iPhone 17 Pro}
 # Un simulateur « Séance … » s'il existe (une autre session peut piloter celui du même modèle), sinon le dernier du modèle.
 # SIMULATEUR_ID=… pour en imposer un autre.
@@ -25,7 +28,7 @@ else
   essais=(-only-testing:SeanceUITests/TourCompletTests -only-testing:SeanceUITests/ProgrammeTeleTests
           -only-testing:SeanceUITests/ReglagesTests -only-testing:SeanceUITests/SynchroTests
           -only-testing:SeanceUITests/EtatsVidesTests -only-testing:SeanceUITests/AccessibiliteTests -only-testing:SeanceUITests/ParcoursSoireeTests -only-testing:SeanceUITests/FamilleTests -only-testing:SeanceUITests/LectureTests
-          -only-testing:SeanceUITests/VideosPersoTests)
+          -only-testing:SeanceUITests/VideosPersoTests -only-testing:SeanceUITests/RegressionsTests)
 fi
 "$racine/outils/generer-projet.sh" > /dev/null
 
@@ -50,6 +53,8 @@ finir() {
 lancer() {
   rm -rf "$resultat"
   xcrun simctl bootstatus "$simulateur" -b > /dev/null 2>&1 || true
+  # Une app neuve à chaque série (8.11) : l'autorisation des alertes repart de zéro, et RegressionsTests reçoit son alerte.
+  xcrun simctl uninstall "$simulateur" ch.patrick.seance > /dev/null 2>&1 || true
   xcodebuild test -project "$racine/Seance.xcodeproj" -scheme Seance -destination "id=$simulateur" \
     -derivedDataPath "$racine/.build/dd-captures" -resultBundlePath "$resultat" $essais \
     -test-timeouts-enabled YES -default-test-execution-time-allowance 400 -maximum-test-execution-time-allowance 480 \

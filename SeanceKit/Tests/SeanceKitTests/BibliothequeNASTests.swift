@@ -46,6 +46,14 @@ struct BibliothequeNASTests {
         #expect(index.entrees.filter { $0.analyse.type == .serie }.map(\.analyse.titre).sorted() == ["Black Bird", "Reacher", "Reacher"])
     }
 
+    /// 8.11 (audit de sécurité) : une autre app reçoit le compte, jamais le mot de passe.
+    @Test func lAppExterneNeRecoitPasLeMotDePasse() throws {
+        let adresse = try #require(ReglagesNAS().urlPourAppExterne(chemin: "Films/Bang.2025.mkv"))
+        #expect(adresse.user() == "admin")
+        #expect(adresse.password() == nil)
+        #expect(adresse.absoluteString == "smb://admin@192.168.1.220/Films/Films/Bang.2025.mkv")
+    }
+
     @Test func urlSMBAvecEtSansIdentifiants() throws {
         let reglages = ReglagesNAS()
         let sans = try #require(reglages.url(chemin: "Films/L.Homme.Qui.Rétrécit.2025.mkv"))

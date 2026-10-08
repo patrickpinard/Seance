@@ -34,4 +34,17 @@ struct CommandeLectureTests {
             try CommandeLecture.ouvrir(message, secret: "motdepasse", maintenant: commande.emiseLe.addingTimeInterval(120))
         }
     }
+
+    /// 8.11 (audit de sécurité) : une demande captée et rejouée dans la minute est refusée.
+    @Test func uneDemandeRejoueeEstRefusee() {
+        let memoire = MemoireJetons()
+        #expect(memoire.accepter(commande.jeton, maintenant: commande.emiseLe))
+        #expect(!memoire.accepter(commande.jeton, maintenant: commande.emiseLe.addingTimeInterval(10)))
+        #expect(memoire.accepter(UUID().uuidString, maintenant: commande.emiseLe.addingTimeInterval(10)))
+    }
+
+    @Test func chaqueDemandeASonJeton() {
+        let autre = CommandeLecture(chemin: commande.chemin, depart: commande.depart, expediteur: commande.expediteur, emiseLe: commande.emiseLe)
+        #expect(autre.jeton != commande.jeton)
+    }
 }

@@ -148,18 +148,17 @@ final class EtatVideosPerso {
         #endif
     }
 
-    /// Le fichier à son adresse SMB, identifiants compris, passé au lecteur par `x-callback-url`.
+    /// Le fichier à son adresse SMB, passé au lecteur par `x-callback-url` ; 8.11 : le compte sans le mot de passe, que
+    /// l'app de lecture demande une fois et garde (audit de sécurité).
     private func lienDirect(pour video: VideoPerso, films: ReglagesNAS, lecteur: LecteurVideo) -> URL? {
-        guard let motDePasse = motDePasse(films: films), let adresse = reglages.acces.url(chemin: video.chemin, motDePasse: motDePasse) else { return nil }
+        guard let adresse = reglages.acces.urlPourAppExterne(chemin: video.chemin) else { return nil }
         return lecteur.lien(pour: adresse)
     }
 
     /// Les adresses à essayer, dans l'ordre (6.4) : pour VLC, son adresse simple d'abord — `x-callback-url/stream`
     /// ouvrait VLC sur sa médiathèque vide sans lire le fichier (parcours du 23 septembre).
     func liens(pour video: VideoPerso, films: ReglagesNAS, lecteur: LecteurVideo) -> [URL] {
-        guard let motDePasse = motDePasse(films: films),
-              let adresse = reglages.acces.url(chemin: video.chemin, motDePasse: motDePasse)
-        else { return [] }
+        guard let adresse = reglages.acces.urlPourAppExterne(chemin: video.chemin) else { return [] }
         #if targetEnvironment(macCatalyst)
         return [lien(pour: video, films: films, lecteur: lecteur)].compactMap { $0 }
         #else

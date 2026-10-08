@@ -56,6 +56,21 @@ struct NoteVersion: Identifiable {
 
     static let historique: [NoteVersion] = [
         NoteVersion(
+            numero: "8.12",
+            date: "8 octobre 2026",
+            resume: "Plus sûre et plus solide : l'app se réinstalle seule, les plantages se voient, les vignettes des souvenirs viennent du Mac.",
+            fonctionnalites: [
+                Fonctionnalite(symbole: "arrow.clockwise", titre: "Réinstallée automatiquement",
+                               detail: "Le Mac mini réinstalle Séance sur l'iPhone, l'iPad, les Apple TV et le Mac avant les 7 jours du compte gratuit, dès qu'ils sont joignables."),
+                Fonctionnalite(symbole: "bolt.trianglebadge.exclamationmark", titre: "Les arrêts visibles",
+                               detail: "Réglages › À propos liste les arrêts brusques de Séance sur l'iPhone et l'iPad, avec la page ouverte, comme sur l'Apple TV."),
+                Fonctionnalite(symbole: "photo.on.rectangle", titre: "Vignettes des souvenirs",
+                               detail: "Le Mac les fabrique et les dépose sur le NAS ; l'iPhone, l'iPad et la TV les y lisent au lieu de relire chaque vidéo, et les gardent pour de bon."),
+                Fonctionnalite(symbole: "lock.shield", titre: "Plus sûre",
+                               detail: "Le mot de passe du NAS n'est plus transmis aux apps VLC et Infuse ; la lecture envoyée à l'Apple TV refuse une demande rejouée."),
+            ]
+        ),
+        NoteVersion(
             numero: "8.11",
             date: "6 octobre 2026",
             resume: "Mes listes réduites à l'essentiel : à voir, en cours, à venir. Ce que tu as regardé passe dans les statistiques.",

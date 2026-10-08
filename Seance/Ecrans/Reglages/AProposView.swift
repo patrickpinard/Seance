@@ -96,6 +96,8 @@ struct AProposView: View {
 
         EspaceUtilise()
 
+        ArretsDeSeance()
+
         Section("Sources des données") {
             Text("Cette application utilise TMDB et les API de TMDB, mais n'est ni approuvée, ni certifiée, ni validée par TMDB.")
             Text("Disponibilités sur les plateformes : JustWatch.")
@@ -152,5 +154,42 @@ private struct EspaceUtilise: View {
 
     private static func format(_ octets: Int64) -> String {
         ByteCountFormatter.string(fromByteCount: octets, countStyle: .file)
+    }
+}
+
+/// Les arrêts brusques de Séance sur cet appareil (8.11, comme sur l'Apple TV) : la date, la page ouverte et la version,
+/// notés au lancement suivant (`Plantages`, rapports de MetricKit compris). On voit tout de suite si un plantage revient.
+private struct ArretsDeSeance: View {
+    @State private var plantages = Plantages.liste
+
+    var body: some View {
+        Section {
+            if plantages.isEmpty {
+                Label("Aucun arrêt brusque noté", systemImage: "checkmark.circle")
+                    .foregroundStyle(.secondary)
+            } else {
+                ForEach(plantages) { plantage in
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(plantage.date.formatted(.dateTime.day().month(.wide).hour().minute().locale(Locale(identifier: "fr_CH"))))
+                            .font(.body.weight(.semibold))
+                        Text([plantage.page.map { "Page « \($0) »" }, "version \(plantage.version)"].compactMap { $0 }.joined(separator: " · "))
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                        if let detail = plantage.detail {
+                            Text(detail).font(.caption).foregroundStyle(.tertiary).lineLimit(3)
+                        }
+                    }
+                    .accessibilityElement(children: .combine)
+                }
+                Button("Effacer la liste", role: .destructive) {
+                    Plantages.effacer()
+                    plantages = []
+                }
+            }
+        } header: {
+            Text("Arrêts de Séance")
+        } footer: {
+            Text("Séance s'est arrêtée brusquement à ces moments-là, sur la page indiquée. Si cela se répète, partage le journal : la page aide à trouver la cause.")
+        }
     }
 }

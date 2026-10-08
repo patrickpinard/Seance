@@ -96,6 +96,7 @@
 		64488D26CE15E4ABE42FE99F /* PropositionSoir.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2040539CD1EDF2055CE97201 /* PropositionSoir.swift */; };
 		649CB5DBA840F88FAA89C7D5 /* SeanceTVEtagere.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 1F58DEFF9DE77F1E7284865B /* SeanceTVEtagere.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		6542DC8491A92B42DBBFBE12 /* AccessibiliteTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26AEBE9171098B73D122BD0B /* AccessibiliteTests.swift */; };
+		669943227DDAF67B004C2CD6 /* RegressionsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D8A1EF95541284985390CB3 /* RegressionsTests.swift */; };
 		66EC72C9104BABDB4099B867 /* Volumetrie.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB6B5B72BF540F4FCF396BEB /* Volumetrie.swift */; };
 		68BF5D8AD3F26E24F665DD6A /* IndexSpotlight.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8D7324B0C3B149362D6D5AA /* IndexSpotlight.swift */; };
 		6B1CEF917A706C02E011736E /* ListesCompletes.swift in Sources */ = {isa = PBXBuildFile; fileRef = CACE819FB69880D873526A37 /* ListesCompletes.swift */; };
@@ -418,6 +419,7 @@
 		94B50216176B335E92514544 /* BarreLectureTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BarreLectureTests.swift; sourceTree = "<group>"; };
 		9B2688F547FDB3FBFBE7E882 /* EtatDocumentaires.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EtatDocumentaires.swift; sourceTree = "<group>"; };
 		9C23EDDC8E46068944BC9CF9 /* SeanceTV.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = SeanceTV.entitlements; sourceTree = "<group>"; };
+		9D8A1EF95541284985390CB3 /* RegressionsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegressionsTests.swift; sourceTree = "<group>"; };
 		9F359EEF2BD50F8A8280CD01 /* AVenir.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AVenir.swift; sourceTree = "<group>"; };
 		9F521A01F8C00C6861F32A49 /* Lancement.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Lancement.swift; sourceTree = "<group>"; };
 		A06907A2B6102E83064C962B /* SynchroTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SynchroTests.swift; sourceTree = "<group>"; };
@@ -821,6 +823,7 @@
 				1EAE8B788413B4185E79D6B4 /* ProgrammeTeleTests.swift */,
 				EA453DD73CF44C43590A2403 /* RegarderMiseEnPageTests.swift */,
 				C823C7D99C49FEB6D7792D4F /* ReglagesTests.swift */,
+				9D8A1EF95541284985390CB3 /* RegressionsTests.swift */,
 				A06907A2B6102E83064C962B /* SynchroTests.swift */,
 				ED072241FDDEE5DC57D56512 /* TourCompletTests.swift */,
 				6FE5FAE7056200B9B02ED4C7 /* VideosPersoTests.swift */,
@@ -1403,6 +1406,7 @@
 				235FD4AE7A62D4B74525FB9D /* ProgrammeTeleTests.swift in Sources */,
 				E1F5FF83B9C3C56EBBDFC25F /* RegarderMiseEnPageTests.swift in Sources */,
 				90CB491DC981A4EF8E410D77 /* ReglagesTests.swift in Sources */,
+				669943227DDAF67B004C2CD6 /* RegressionsTests.swift in Sources */,
 				7A016605A2B0A846DD8142B6 /* SynchroTests.swift in Sources */,
 				EDBBE1D377840342A321B6B8 /* TourCompletTests.swift in Sources */,
 				77F7CB86B46304EEA307B9CC /* VideosPersoTests.swift in Sources */,
@@ -1634,7 +1638,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 112;
+				CURRENT_PROJECT_VERSION = 113;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = GATK475J3P;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -1654,7 +1658,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 8.11;
+				MARKETING_VERSION = 8.12;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -1755,7 +1759,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 112;
+				CURRENT_PROJECT_VERSION = 113;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = GATK475J3P;
 				ENABLE_NS_ASSERTIONS = NO;
@@ -1769,7 +1773,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 8.11;
+				MARKETING_VERSION = 8.12;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";

@@ -347,7 +347,8 @@ final class EtatTV {
             let episode = fichier.saison.flatMap { saison in fichier.episode.map { NumeroEpisode(saison: saison, episode: $0) } }
             return fichier.reference.flatMap { lecteur.lienBibliotheque($0, episode: episode) }
         case .vlc:
-            guard let motDePasse = (try? coffre.lire(.nas)) ?? nil, let video = nas.url(chemin: fichier.chemin, motDePasse: motDePasse) else { return nil }
+            // 8.11 : sans le mot de passe dans l'adresse — VLC le demande une fois et le garde (audit de sécurité).
+            guard let video = nas.urlPourAppExterne(chemin: fichier.chemin) else { return nil }
             return lecteur.lien(pour: video)
         }
     }

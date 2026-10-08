@@ -294,8 +294,8 @@ final class EtatNAS {
             guard let reference = fichier.reference, let lien = lecteur.lienBibliotheque(reference, episode: episode) else { return .titreInconnu }
             return .pret(lien)
         case .vlc:
-            guard let motDePasse = try? coffre.lire(.nas),
-                  let video = reglages.url(chemin: fichier.chemin, motDePasse: motDePasse),
+            // 8.11 : sans le mot de passe dans l'adresse — VLC le demande une fois et le garde (audit de sécurité).
+            guard let video = reglages.urlPourAppExterne(chemin: fichier.chemin),
                   let lien = lecteur.lien(pour: video)
             else { return .motDePasseManquant }
             return .pret(lien)

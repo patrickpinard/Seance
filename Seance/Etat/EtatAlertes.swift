@@ -225,6 +225,20 @@ final class EtatAlertes {
         }
     }
 
+    #if DEBUG
+    /// Pour les tests (8.11) : `SEANCE_ALERTE_ESSAI=seance://film/11` programme une alerte dans 4 secondes, qu'on
+    /// touche ensuite depuis l'écran d'accueil — ce geste a fait planter l'iPhone de la 6.2 à la 8.8.
+    func essaiPourLesTests(lien: String) async {
+        if autorisation == .notDetermined { await demanderAutorisation() }
+        let contenu = UNMutableNotificationContent()
+        contenu.title = "Essai de Séance"
+        contenu.body = "Touche-moi pour ouvrir la fiche."
+        contenu.userInfo = ["lien": lien, "titre": "Essai"]
+        try? await centre.add(UNNotificationRequest(identifier: "seance.essai.tests", content: contenu,
+                                                    trigger: UNTimeIntervalNotificationTrigger(timeInterval: 4, repeats: false)))
+    }
+    #endif
+
     /// EF-84 : une alerte d'essai dans 5 secondes, pour vérifier l'affichage.
     /// `de` : l'essai a été demandé sur un autre appareil (« Apple TV 5AB5 »), et arrive ici par la synchronisation.
     func envoyerEssai(de appareil: String? = nil) async {

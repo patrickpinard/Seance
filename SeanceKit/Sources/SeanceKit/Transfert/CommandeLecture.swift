@@ -15,13 +15,18 @@ public struct CommandeLecture: Codable, Sendable, Equatable {
     public var depart: Double?
     public var expediteur: String
     public var emiseLe: Date
+    /// Tiré au hasard pour chaque demande (8.11, audit de sécurité) : la TV refuse une demande déjà reçue, qu'on aurait
+    /// captée sur le réseau pour la rejouer dans la minute.
+    public var jeton: String
 
-    public init(chemin: String, souvenir: Bool = false, depart: Double?, expediteur: String, emiseLe: Date = .now) {
+    public init(chemin: String, souvenir: Bool = false, depart: Double?, expediteur: String, emiseLe: Date = .now,
+                jeton: String = UUID().uuidString) {
         self.chemin = chemin
         self.souvenir = souvenir
         self.depart = depart
         self.expediteur = expediteur
         self.emiseLe = emiseLe
+        self.jeton = jeton
     }
 
     public static let service = "_seance-lecture._tcp"
@@ -29,11 +34,14 @@ public struct CommandeLecture: Codable, Sendable, Equatable {
     public static let validite: TimeInterval = 60
 
     public enum Erreur: Error, Equatable {
-        case signature, perimee, illisible, injoignable, refusee
+        case signature, perimee, illisible, injoignable, refusee, rejouee
     }
 
+    /// 8.11 (audit de sécurité) : la clé dérive du mot de passe du NAS par HKDF, avec un sel et un contexte propres à
+    /// Séance, et non plus par un simple hachage.
     private static func cle(_ secret: String) -> SymmetricKey {
-        SymmetricKey(data: SHA256.hash(data: Data("seance-lecture|\(secret)".utf8)))
+        HKDF<SHA256>.deriveKey(inputKeyMaterial: SymmetricKey(data: Data(secret.utf8)), salt: Data("seance-lecture-2".utf8),
+                               info: Data("commande de lecture".utf8), outputByteCount: 32)
     }
 
     /// La demande en JSON, suivie de sa signature (HMAC-SHA256, 32 octets).
@@ -57,11 +65,30 @@ public struct CommandeLecture: Codable, Sendable, Equatable {
     }
 }
 
+/// Les jetons des demandes reçues dans la minute (8.11) : une même demande ne lance pas deux fois la lecture.
+public final class MemoireJetons: @unchecked Sendable {
+    private var vus: [String: Date] = [:]
+    private let verrou = NSLock()
+
+    public init() {}
+
+    /// Vrai pour un jeton jamais vu ; faux s'il a déjà servi pendant la validité d'une demande.
+    public func accepter(_ jeton: String, maintenant: Date = .now) -> Bool {
+        verrou.lock()
+        defer { verrou.unlock() }
+        vus = vus.filter { maintenant.timeIntervalSince($0.value) < CommandeLecture.validite * 2 }
+        guard vus[jeton] == nil else { return false }
+        vus[jeton] = maintenant
+        return true
+    }
+}
+
 /// Côté Apple TV : s'annonce tant que Séance est ouverte, et rend chaque demande valable.
 public final class RecepteurLecture: @unchecked Sendable {
     private var ecouteur: NWListener?
     private let file = DispatchQueue(label: "ch.patrick.seance.lecture.reception")
     private let secret: @Sendable () -> String?
+    private let jetons = MemoireJetons()
 
     /// `secret` est relu à chaque demande : le mot de passe du NAS peut arriver après le lancement.
     public init(secret: @escaping @Sendable () -> String?) {
@@ -98,7 +125,8 @@ public final class RecepteurLecture: @unchecked Sendable {
     private func accueillir(_ connexion: NWConnection, _ flux: AsyncStream<CommandeLecture>.Continuation) {
         connexion.start(queue: file)
         connexion.lireTrame { [secret] message in
-            guard let message, let cle = secret(), let commande = try? CommandeLecture.ouvrir(message, secret: cle) else {
+            guard let message, let cle = secret(), let commande = try? CommandeLecture.ouvrir(message, secret: cle),
+                  self.jetons.accepter(commande.jeton) else {
                 return connexion.envoyerTrame(Data([0])) { _ in connexion.cancel() }
             }
             connexion.envoyerTrame(Data([1])) { _ in connexion.cancel() }

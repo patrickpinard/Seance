@@ -46,6 +46,15 @@ public struct ReglagesNAS: Codable, Sendable, Hashable {
         composants.path = "/" + segments.joined(separator: "/")
         return composants.url
     }
+
+    /// L'adresse donnée à une autre app (VLC, Infuse) : le compte, jamais le mot de passe (8.11, audit de sécurité).
+    /// En clair dans l'adresse, il pouvait rester dans l'historique de lecture de l'app ; elle le demande une fois et le
+    /// garde dans son propre trousseau.
+    public func urlPourAppExterne(chemin: String) -> URL? {
+        guard var composants = url(chemin: chemin).flatMap({ URLComponents(url: $0, resolvingAgainstBaseURL: false) }) else { return nil }
+        composants.user = utilisateur.isEmpty ? nil : utilisateur
+        return composants.url
+    }
 }
 
 /// Un fichier vu sur le NAS : chemin relatif au partage (« Films/Bang.2025.mkv ») et taille en octets.

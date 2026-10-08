@@ -86,6 +86,12 @@ final class EtatCentrale {
         await etat.nas.analyser(contexte: contexte, tmdb: etat.tmdb, automatique: true)
         await etat.alertes.planifier(contexte: contexte, tmdb: etat.tmdb)
         faits.append("guide TV, NAS et alertes")
+        // 8.11 : les vignettes des souvenirs, fabriquées ici et déposées sur le NAS pour l'iPhone, l'iPad et la TV.
+        if etat.videosPerso.actif, let motDePasse = etat.videosPerso.motDePasse(films: etat.nas.reglages) {
+            let deposees = await etat.videosPerso.vignettes.preparerSurLeNAS(etat.videosPerso.videos, acces: etat.videosPerso.reglages.acces,
+                                                                              motDePasse: motDePasse)
+            if deposees > 0 { faits.append("\(deposees) vignette\(deposees > 1 ? "s" : "") de souvenirs") }
+        }
         let avant = etat.lettre.dernierEnvoi
         await etat.lettre.envoyerSiDu(etat: etat, contexte: contexte)
         if etat.lettre.dernierEnvoi != avant { faits.append("e-mail de la semaine envoyé") }

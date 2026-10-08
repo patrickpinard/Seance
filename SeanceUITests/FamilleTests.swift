@@ -110,13 +110,16 @@ final class FamilleTests: XCTestCase {
         app.buttons["validerAvecQui"].firstMatch.tap()
         XCTAssertTrue(app.staticTexts["Qui regarde avec toi ?"].firstMatch.waitForNonExistence(timeout: 10), "La feuille ne se referme pas")
 
-        // Chez Anne, le film est dans Terminés, sous le mois en cours.
+        // Chez Anne, le film est dans « Ce que tu as regardé » (8.11 : l'ancien onglet Terminés de Mes listes, dans
+        // les Préférences), sous le mois en cours.
         app.navigationBars.buttons.firstMatch.tap()
         ouvrirFamille()
         app.buttons["Passer au profil de Anne"].firstMatch.tap()
         XCTAssertTrue(app.tabBars.buttons["Accueil"].firstMatch.waitForExistence(timeout: 15))
-        app.tabBars.buttons["Mes listes"].firstMatch.tap()
-        app.buttons["Terminés"].firstMatch.tap()
+        app.ouvrirPreferences()
+        let historique = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Ce que tu as regardé'")).firstMatch
+        XCTAssertTrue(app.amener(historique, essais: 8), "Pas de « Ce que tu as regardé » dans les Préférences")
+        historique.tap()
         let format = DateFormatter()
         format.locale = Locale(identifier: "fr_CH")
         format.dateFormat = "LLLL yyyy"
