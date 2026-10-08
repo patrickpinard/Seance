@@ -52,6 +52,11 @@ retenir() {
 }
 
 reussies=()
+# Les échecs qui méritent une alerte (8.12) : le compte ou la signature d'Xcode, une compilation cassée, ou un appareil
+# qui n'a plus été réinstallé depuis 6 jours (il expire le lendemain). Un appareil simplement endormi ou verrouillé ne
+# prévient pas : il sera repris le lendemain.
+compte_xcode=false
+alertes=()
 for cible in tv iphone ipad mac; do
   avant=$(derniere $cible)
   if ! $forcer && [[ -n $avant ]] && (( maintenant - avant < age_max )); then continue; fi
@@ -62,8 +67,24 @@ for cible in tv iphone ipad mac; do
     noter "$cible : $(print -r -- "$sortie" | grep "installée" | tr '\n' ' ')"
   else
     noter "$cible : pas encore — $(print -r -- "$sortie" | tail -1)"
+    if print -r -- "$sortie" | grep -q -E "No Accounts|Signing certificate is invalid|No profiles for|doesn't include the currently selected device"; then
+      compte_xcode=true
+    elif print -r -- "$sortie" | grep -q "La compilation pour .* a échoué"; then
+      alertes+="la compilation pour $cible a échoué"
+    elif [[ -n $avant ]] && (( maintenant - avant > 6 * 86400 )); then
+      alertes+="$cible n'a plus été réinstallé depuis 6 jours (expire bientôt)"
+    fi
   fi
 done
+
+if $compte_xcode; then
+  prevenir "Échec : Xcode a perdu ton compte Apple ou son certificat. Reconnecte-le dans Xcode › Réglages › Comptes."
+  noter "ALERTE : compte ou certificat d'Xcode à reconnecter."
+fi
+if (( ${#alertes} > 0 )); then
+  prevenir "Échec : ${(j:, :)alertes}. Détails : ~/Library/Logs/Seance-reinstallation.log"
+  noter "ALERTE : ${(j:, :)alertes}"
+fi
 
 if (( ${#reussies} > 0 )); then
   prevenir "Séance réinstallée : ${(j:, :)reussies}. Valable 7 jours de plus."
