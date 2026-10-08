@@ -130,11 +130,6 @@ enum Demonstration {
         let soiree = ServiceSoiree.soiree()
         contexte.insert(SelectionSoir(reference: reacher.reference, titre: reacher.nom, cheminAffiche: reacher.affiche, soiree: soiree))
         contexte.insert(SelectionSoir(reference: aVoir.reference, titre: aVoir.nom, cheminAffiche: aVoir.affiche, soiree: soiree))
-        // Une liste nommée, pour sa page en grille.
-        let liste = ListePerso(nom: "Soirées Keanu")
-        liste.titres = [films[0].reference, films[1].reference, aVoir.reference]
-        liste.apercus = [films[0], films[1], aVoir].map { ApercuTitre(reference: $0.reference, titre: $0.nom, cheminAffiche: $0.affiche) }
-        contexte.insert(liste)
         // Hier soir, un film prévu dont on ne sait pas s'il a été regardé.
         let hier = ServiceSoiree.soiree(Date.now.addingTimeInterval(-86_400))
         contexte.insert(SelectionSoir(reference: ReferenceTitre(type: .film, tmdbID: 949), titre: "Heat", cheminAffiche: "/umSVjVdbVwtx5ryCA2QXL44Durm.jpg", soiree: hier))

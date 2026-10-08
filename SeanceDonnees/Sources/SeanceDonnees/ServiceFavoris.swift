@@ -45,6 +45,26 @@ public struct ServiceFavoris {
         try contexte.save()
     }
 
+    /// 8.11 : les favoris disparaissent de l'interface — « J'aime » et la note disent déjà ce qu'on aime. Chaque favori
+    /// devient un « J'aime » (s'il ne l'était pas, et sauf titre écarté), puis quitte la base : la suppression voyage
+    /// par la synchronisation, et un second passage ne trouve plus rien. Renvoie le nombre de favoris convertis.
+    @discardableResult
+    public func convertirEnJAime() throws -> Int {
+        let favoris = try tous()
+        guard !favoris.isEmpty else { return 0 }
+        let gouts = ServiceGouts(contexte: contexte)
+        let suivis = ServiceSuivi(contexte: contexte)
+        for favori in favoris {
+            let suivi = try suivis.suivi(favori.reference)
+            if try !gouts.estAime(favori.reference), suivi?.statut != .exclu {
+                try gouts.aimer(favori.reference, titre: favori.titre, cheminAffiche: favori.cheminAffiche, genres: suivi?.genres ?? [])
+            }
+            contexte.delete(favori)
+        }
+        try contexte.save()
+        return favoris.count
+    }
+
     /// La liste à envoyer à quelqu'un (EF-167) : lisible telle quelle dans Messages ou dans un courriel.
     public func texteAPartager(prenom: String?) throws -> String {
         let favoris = try tous()

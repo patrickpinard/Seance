@@ -300,6 +300,8 @@ struct StatistiquesTVDemande: Hashable {}
 struct StatistiquesTV: View {
     @Query private var visionnages: [Visionnage]
     @Query private var suivis: [Suivi]
+    /// 8.11 : l'ancien onglet « Terminés » de Mes listes, ici mois par mois — comme sur l'iPhone.
+    @Query(filter: #Predicate<Suivi> { $0.statutBrut == "termine" && !$0.masque }) private var termines: [Suivi]
 
     private var annee: Int { Calendar.current.component(.year, from: .now) }
     private var deLAnnee: [Visionnage] { visionnages.filter { Calendar.current.component(.year, from: $0.vuLe) == annee } }
@@ -310,6 +312,7 @@ struct StatistiquesTV: View {
         let series = liste.filter { $0.type == .serie }.reduce(0) { $0 + $1.dureeMinutes } / 60
         let titres = Set(liste.map { "\($0.typeBrut)\($0.tmdbID)" }).count
         ScrollView {
+          VStack(alignment: .leading, spacing: 44) {
             VStack(alignment: .leading, spacing: 40) {
                 Text("Statistiques · \(String(annee))").font(.system(size: 58, weight: .heavy))
                 HStack(spacing: 28) {
@@ -346,8 +349,43 @@ struct StatistiquesTV: View {
                 }
             }
             .padding(.horizontal, MargesTV.bord)
-            .padding(.vertical, 40)
+            historique
+          }
+          .padding(.vertical, 40)
         }
+    }
+
+    /// Ce que tu as regardé : une étagère par mois, le plus récent d'abord.
+    @ViewBuilder
+    private var historique: some View {
+        if !termines.isEmpty {
+            Text("Ce que tu as regardé").font(.system(size: 38, weight: .bold))
+                .padding(.horizontal, MargesTV.bord)
+            let finis = finis
+            ForEach(TerminesParMois.grouper(termines, fini: { finis[$0.reference] }), id: \.titre) { groupe in
+                EtagereTV(titre: groupe.titre, sousTitre: groupe.elements.count > 1 ? "\(groupe.elements.count) titres" : "1 titre") {
+                    ForEach(groupe.elements) { suivi in
+                        NavigationLink(value: suivi.reference) {
+                            CarteLargeTV(surtitre: suivi.note.map { "★ \($0)/10" }, titre: suivi.titre,
+                                         detail: suivi.type == .film ? "Film" : "Série", cheminImage: suivi.cheminAffiche,
+                                         reference: suivi.reference)
+                        }
+                        .buttonStyle(.card)
+                        .menuCarteTV(suivi.reference, titre: suivi.titre, cheminAffiche: suivi.cheminAffiche)
+                    }
+                }
+            }
+        }
+    }
+
+    /// Le jour où chaque titre a été fini : son dernier visionnage compté (pas « déjà vu avant »).
+    private var finis: [ReferenceTitre: Date] {
+        var resultat: [ReferenceTitre: Date] = [:]
+        for visionnage in visionnages where !visionnage.anterieur {
+            let reference = ReferenceTitre(type: visionnage.type, tmdbID: visionnage.tmdbID)
+            resultat[reference] = max(resultat[reference] ?? .distantPast, visionnage.vuLe)
+        }
+        return resultat
     }
 
     private func tuile(_ valeur: String, _ libelle: String) -> some View {

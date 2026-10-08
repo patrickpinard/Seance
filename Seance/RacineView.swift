@@ -178,10 +178,14 @@ struct RacineView: View {
             }
         }
         .fullScreenCover(isPresented: $bienvenue) {
+            // Transmis à la main : compilé avec le SDK 27, le Mac ne les fait plus passer à un plein écran
+            // ouvert au lancement (plantage « No Observable object of type EtatApp found »).
             BienvenueView(mode: .premierLancement) {
                 bienvenueTerminee = true
                 bienvenue = false
             }
+            .environment(etat)
+            .environment(\.modelContext, contexte)
         }
         // Relancé quand la clé TMDB arrive : sans elle, rien ne peut être rattaché.
         .task(id: etat.tmdb == nil) {
@@ -198,6 +202,8 @@ struct RacineView: View {
                 try? await Task.sleep(for: .milliseconds(300))
                 if Task.isCancelled { return }
             }
+            // 8.11 : les favoris deviennent des « J'aime » (une fois ; la base n'en garde plus ensuite).
+            try? ServiceFavoris(contexte: contexte).convertirEnJAime()
             etat.ou.actualiserLocal(contexte: contexte)
             await etat.demarrer(contexte: contexte)
             guard !Task.isCancelled else { return }
@@ -377,9 +383,6 @@ private struct FeuillesDeLApp: ViewModifier {
             }
             .sheet(item: Binding { etat.avecQui } set: { etat.avecQui = $0 }) { demande in
                 FeuilleAvecQui(demande: demande)
-            }
-            .sheet(item: Binding { etat.titrePourListe } set: { etat.titrePourListe = $0 }) { titre in
-                AjoutAListeView(titre: titre)
             }
             .modifier(ProposerUnAbonnement())
             // Les Préférences (7.0) : ouvertes par le portrait, en haut à gauche de chaque page.

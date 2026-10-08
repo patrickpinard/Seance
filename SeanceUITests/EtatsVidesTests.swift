@@ -34,7 +34,7 @@ final class EtatsVidesTests: XCTestCase {
         capture("03-ce-soir", attente: 3)
 
         app.tabBars.buttons["Mes listes"].firstMatch.tap()
-        for (rang, onglet) in ["À voir", "À venir", "En cours", "Terminés", "Listes"].enumerated() {
+        for (rang, onglet) in ["À voir", "En cours", "À venir"].enumerated() {
             app.buttons[onglet].firstMatch.tap()
             capture("0\(4 + rang)-listes-\(onglet)")
         }

@@ -160,6 +160,8 @@ struct RacineTV: View {
             etat.ou.actualiserLocal(contexte: contexte)
             await etat.preparerFond(contexte: contexte)
             await etat.synchroniser(contexte: contexte)
+            // 8.11 : les favoris deviennent des « J'aime », comme sur l'iPhone.
+            try? ServiceFavoris(contexte: contexte).convertirEnJAime()
             etat.ou.actualiserLocal(contexte: contexte)
             if etat.nasPret, !etat.enDemonstration { await etat.analyserNAS(contexte: contexte) }
             // Le magasin a pu changer (synchronisation, analyse) : le fond du jour se rechoisit.

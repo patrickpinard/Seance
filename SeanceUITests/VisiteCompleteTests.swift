@@ -88,7 +88,7 @@ final class VisiteCompleteTests: XCTestCase {
         // ── Mes listes et chacun de ses rayons
         onglet("Mes listes")
         capture("C0-listes", attente: 3)
-        for rayon in ["À venir", "À voir", "En cours", "Terminés", "Favoris", "Listes"] {
+        for rayon in ["À voir", "En cours", "À venir"] {
             let case_ = app.buttons[rayon].firstMatch
             if case_.waitForExistence(timeout: 4) {
                 case_.tap()

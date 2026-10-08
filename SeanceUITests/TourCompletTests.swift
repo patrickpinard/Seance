@@ -96,16 +96,12 @@ final class TourCompletTests: XCTestCase {
         app.buttons["Liste"].firstMatch.tap()
         capture("07-listes-liste")
         app.buttons["Grille"].firstMatch.tap()
-        app.buttons["Terminés"].firstMatch.tap()
-        capture("08-listes-termines")
-        // Une liste nommée s'ouvre en grille d'affiches.
-        app.buttons["Listes"].firstMatch.tap()
-        let listeNommee = app.buttons.matching(NSPredicate(format: "label CONTAINS 'Soirées Keanu'")).firstMatch
-        XCTAssertTrue(listeNommee.waitForExistence(timeout: 8), "La liste nommée de la démonstration est absente")
-        listeNommee.tap()
-        XCTAssertTrue(app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'John Wick'")).firstMatch.waitForExistence(timeout: 8))
-        capture("08-liste-nommee")
-        app.navigationBars.buttons.firstMatch.tap()
+        // 8.11 : Mes listes n'a plus que trois onglets.
+        for absent in ["Terminés", "Favoris", "Listes"] {
+            XCTAssertFalse(app.buttons[absent].firstMatch.exists, "L'onglet « \(absent) » est revenu dans Mes listes")
+        }
+        app.buttons["En cours"].firstMatch.tap()
+        capture("08-listes-en-cours")
 
         app.buttons["À venir"].firstMatch.tap()
         XCTAssertTrue(app.buttons.matching(NSPredicate(format: "label ENDSWITH 'rendez-vous'")).firstMatch.waitForExistence(timeout: 10),
@@ -162,6 +158,11 @@ final class TourCompletTests: XCTestCase {
         app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Ta collection et ton année'")).firstMatch.tap()
         XCTAssertTrue(app.staticTexts["Ta collection"].firstMatch.waitForExistence(timeout: 10), "La collection n'est pas dans les statistiques")
         capture("19-statistiques", attente: 3)
+        // 8.11 : les titres terminés, mois par mois, depuis les statistiques.
+        app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Ce que tu as regardé'")).firstMatch.tap()
+        XCTAssertTrue(app.buttons.matching(NSPredicate(format: "label CONTAINS 'Jack Ryan'")).firstMatch.waitForExistence(timeout: 10),
+                      "Les séries terminées de la démonstration manquent dans « Ce que tu as regardé »")
+        capture("19-ce-que-tu-as-regarde", attente: 3)
         app.fermerPreferences()
         app.ouvrirReglages()
         XCTAssertTrue(app.staticTexts["La maison"].firstMatch.waitForExistence(timeout: 10))

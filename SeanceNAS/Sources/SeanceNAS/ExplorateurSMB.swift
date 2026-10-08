@@ -65,8 +65,10 @@ public struct ExplorateurSMB: ExplorateurFichiers {
         self.motDePasse = motDePasse
     }
 
+    /// Les dossiers donnés, ou tout le partage s'il n'y en a aucun (8.10).
     public func listerVideos(dossiers: [String]) async throws -> [FichierDistant] {
         try await avecPartage { client in
+            if dossiers.isEmpty { return try await Self.parcourir("", client: client) }
             var fichiers: [FichierDistant] = []
             for dossier in try await Self.resoudre(dossiers, client: client, strict: false) {
                 fichiers += try await Self.parcourir(dossier, client: client)
@@ -139,6 +141,11 @@ public struct ExplorateurSMB: ExplorateurFichiers {
     /// EF-87 : ouvre le partage et compte les éléments de premier niveau de chaque dossier déclaré.
     public func tester() async throws -> [String: Int] {
         try await avecPartage { client in
+            // Sans dossier déclaré, tout le partage est lu : on compte sa racine.
+            if reglages.dossiers.isEmpty {
+                let racine = try await client.contentsOfDirectory(atPath: "")
+                return [reglages.partage: racine.compactMap { $0[.nameKey] as? String }.filter(Self.retenu).count]
+            }
             var comptes: [String: Int] = [:]
             let reels = try await Self.resoudre(reglages.dossiers, client: client)
             for (declare, reel) in zip(reglages.dossiers, reels) {

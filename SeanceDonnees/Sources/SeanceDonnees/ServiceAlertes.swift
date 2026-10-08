@@ -78,6 +78,8 @@ public struct ServiceAlertes {
             if let serie = fiche.serie {
                 // 6.1 : finie chez TMDB et vue jusqu'au bout, elle se range dans Terminés.
                 try? ServiceSuivi(contexte: contexte).rangerSiTerminee(serie)
+                // 8.11 : et en ressort si une nouvelle saison est annoncée.
+                try? ServiceSuivi(contexte: contexte).rouvrirSiNouvelleSaison(serie)
                 let offres = serie.fournisseurs?.offres()
                 if !premiereFois {
                     alertes += PlanificateurAlertes.arriveesSurPlateformes(reference, titre: suivi.titre, avant: Set(etat.fournisseurs), apres: offres,

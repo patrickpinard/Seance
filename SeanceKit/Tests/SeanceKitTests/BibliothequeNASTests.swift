@@ -16,6 +16,20 @@ struct BibliothequeNASTests {
         FichierDistant(chemin: "Films/RenommerMedias.log.mkv", taille: 0),
     ]
 
+    /// 8.10 : sans dossier déclaré, tout le partage est lu — les films d'un Mac sont souvent à la racine.
+    @Test func sansDossierToutLePartageEstLu() async throws {
+        #expect(ReglagesNAS(hote: "172.22.22.229", partage: "Films", dossiers: [], utilisateur: "patrick").estComplet)
+        let racine = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: racine) }
+        try FileManager.default.createDirectory(at: racine.appending(path: "Séries/Reacher"), withIntermediateDirectories: true)
+        try Data().write(to: racine.appending(path: "Mile.22.2018.mkv"))
+        try Data().write(to: racine.appending(path: "Séries/Reacher/Reacher.S04E07.mkv"))
+        let chemins = try await ExplorateurLocal(racine: racine).listerVideos(dossiers: []).map(\.chemin).sorted()
+        // La fin du chemin seulement : dans le dossier temporaire, /var et /private/var décalent le début.
+        #expect(chemins.count == 2)
+        #expect(chemins[0].hasSuffix("Mile.22.2018.mkv") && chemins[1].hasSuffix("Séries/Reacher/Reacher.S04E07.mkv"))
+    }
+
     @Test func indexSansDoublonAvecLaCopieLaPlusLourde() {
         let index = IndexNAS.construire(fichiers)
         #expect(index.doublons == 1)

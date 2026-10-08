@@ -216,6 +216,7 @@ final class EtatLettre {
 
         // 2. Sur tes plateformes : ce qui est sorti depuis sept jours ou sort d'ici sept jours.
         var nouveautes: [LettreHebdo.Ligne] = []
+        var aLaUne: LettreHebdo.Ligne?
         // Les plateformes retenues pour la lettre (6.5) : toutes celles cochées, ou la sélection faite dans ses réglages.
         let cochees = ((try? contexte.fetch(FetchDescriptor<Abonnement>(predicate: #Predicate { $0.actif }))) ?? []).map(\.providerID)
         let voulues = reglages.plateformes ?? []
@@ -240,11 +241,26 @@ final class EtatLettre {
             series.sortieDepuis = criteres.sortieDepuis
             series.sortieJusqua = criteres.sortieJusqua
             let nouvellesSeries = ((try? await tmdb.decouvrirSeries(series).resultats.map(\.titreResume)) ?? []).filter { !exclus.contains($0.reference) && $0.cheminAffiche != nil }
-            nouveautes = (films.prefix(6) + nouvellesSeries.prefix(4)).map { titre in
-                LettreHebdo.Ligne(titre: titre.titre, detail: titre.reference.type == .film ? "Film · sur tes plateformes" : "Série · sur tes plateformes",
-                                  quand: titre.date.map { jour($0.instant(heure: 12)) } ?? "Cette semaine",
-                                  urlAffiche: ImageTMDB.url(titre.cheminAffiche, .affiche), lien: lien(titre.reference))
+            // 8.11 : classées d'après tes goûts, comme les suggestions de l'app, avec la phrase qui dit pourquoi.
+            let profil = (try? ServiceGouts(contexte: contexte).profil()) ?? ProfilGouts()
+            let classees = ClassementLocal.classer((films.prefix(12) + nouvellesSeries.prefix(8)).map { CandidatSuggestion(titre: $0) },
+                                                   profil: profil, nomsGenres: etat.nomsGenres)
+            let lignes = classees.map { suggestion in
+                let titre = suggestion.candidat.titre
+                return LettreHebdo.Ligne(titre: titre.titre,
+                                         detail: titre.reference.type == .film ? "Film · sur tes plateformes" : "Série · sur tes plateformes",
+                                         quand: titre.date.map { jour($0.instant(heure: 12)) } ?? "Cette semaine",
+                                         urlAffiche: ImageTMDB.url(titre.cheminAffiche, .affiche), lien: lien(titre.reference),
+                                         resume: LettreHebdo.extrait(titre.synopsis),
+                                         note: titre.nombreVotes >= 20 && titre.noteMoyenne > 0 ? titre.noteMoyenne : nil,
+                                         pourquoi: suggestion.score.raisons.isEmpty ? nil : suggestion.phrase,
+                                         urlFond: ImageTMDB.url(titre.cheminFond, .fond))
             }
+            // À la une : la mieux classée qui a une image large et un résumé.
+            if let rang = lignes.firstIndex(where: { $0.urlFond != nil && $0.resume != nil }) {
+                aLaUne = lignes[rang]
+            }
+            nouveautes = Array(lignes.filter { $0.titre != aLaUne?.titre }.prefix(9))
         }
 
         // 3. Ce que tu as prévu : tes soirées de la semaine.
@@ -267,7 +283,17 @@ final class EtatLettre {
         if reglages.veut(.soirees), !soirees.isEmpty {
             sections.append(.init(titre: "Tes soirées prévues", lignes: Array(soirees)))
         }
+        // 8.11 : le programme en une phrase, sous l'accueil.
+        let morceaux = [
+            pourToi.isEmpty ? nil : Format.pluriel(pourToi.count, "rendez-vous pour tes titres", "rendez-vous pour tes titres"),
+            nouveautes.count + (aLaUne == nil ? 0 : 1) == 0 ? nil
+                : Format.pluriel(nouveautes.count + (aLaUne == nil ? 0 : 1), "nouveauté sur tes plateformes", "nouveautés sur tes plateformes"),
+            reglages.veut(.soirees) && !soirees.isEmpty ? Format.pluriel(soirees.count, "soirée prévue", "soirées prévues") : nil,
+        ].compactMap { $0 }
+        let enUneLigne = morceaux.count > 1 ? morceaux.dropLast().joined(separator: ", ") + " et " + morceaux.last! : morceaux.first
+        let auProgramme = enUneLigne.map { "Au programme : \($0)." }
         return LettreHebdo(prenom: Prenom.lire(prenom),
-                           periode: "Du \(debut) au \(terme)", sections: sections, essai: essai)
+                           periode: "Du \(debut) au \(terme)", sections: sections, essai: essai,
+                           aLaUne: aLaUne, auProgramme: auProgramme)
     }
 }

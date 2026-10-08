@@ -162,8 +162,8 @@ final class ParcoursCompletTVTests: XCTestCase {
         for commande in ["Regardable ce soir", "Grille", "Liste"] {
             XCTAssertTrue(app.buttons[commande].firstMatch.exists, "« \(commande) » absent de Mes listes")
         }
-        XCTAssertTrue(aller(.down, jusqua: ["À venir", "À voir", "En cours", "Terminés", "Favoris", "Listes"], essais: 3), "Les onglets de Mes listes sont hors d'atteinte")
-        for onglet in ["À venir", "En cours", "Terminés", "Favoris", "Listes", "À voir"] {
+        XCTAssertTrue(aller(.down, jusqua: ["À voir", "En cours", "À venir"], essais: 3), "Les onglets de Mes listes sont hors d'atteinte")
+        for onglet in ["En cours", "À venir", "À voir"] {
             for _ in 0..<7 where !focusSur([onglet]) { presser(.right, pause: 0.4) }
             for _ in 0..<7 where !focusSur([onglet]) { presser(.left, pause: 0.4) }
             XCTAssertTrue(focusSur([onglet]), "Onglet « \(onglet) » hors d'atteinte")

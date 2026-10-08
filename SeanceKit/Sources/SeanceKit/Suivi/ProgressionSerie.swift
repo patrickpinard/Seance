@@ -74,6 +74,15 @@ public enum ProgressionSerie {
         return suivant(vus: vus, saisons: serie.saisons, dernierDiffuse: serie.dernierEpisode) == nil
     }
 
+    /// 8.11 : une série terminée qui annonce une saison au-delà de la dernière vue repart « En cours ». Seule une
+    /// nouvelle saison compte : une série rangée à la main en pleine saison (« déjà vu avant ») n'en sort pas.
+    /// Sans épisode vu, on ne sait pas où tu en étais : rien ne bouge.
+    public static func aUneNouvelleSaison(vus: Set<NumeroEpisode>, serie: SerieDetail) -> Bool {
+        guard let derniereVue = vus.filter({ $0.saison > 0 }).map(\.saison).max() else { return false }
+        if let annonce = serie.prochainEpisode, annonce.saison > derniereVue { return true }
+        return serie.saisons.contains { $0.numero > derniereVue && $0.nombreEpisodes > 0 }
+    }
+
     /// Finie chez TMDB : plus d'épisode à venir.
     public static func estFinie(_ serie: SerieDetail) -> Bool {
         statutsFinaux.contains(serie.statut) && serie.prochainEpisode == nil

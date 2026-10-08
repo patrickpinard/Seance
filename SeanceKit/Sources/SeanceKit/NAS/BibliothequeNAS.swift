@@ -4,7 +4,8 @@ import Foundation
 public struct ReglagesNAS: Codable, Sendable, Hashable {
     public var hote: String
     public var partage: String
-    /// Dossiers du partage à analyser ; les autres ne sont jamais lus.
+    /// Dossiers du partage à analyser ; les autres ne sont jamais lus. Vide : tout le partage (8.10), pour un partage
+    /// dont les films sont à la racine, comme celui d'un Mac.
     public var dossiers: [String]
     public var utilisateur: String
     /// L'adresse du NAS hors de la maison (8.1, facultative) : celle d'un VPN ou de Tailscale. Hors du Wi-Fi, le
@@ -29,7 +30,7 @@ public struct ReglagesNAS: Codable, Sendable, Hashable {
     }
 
     public var estComplet: Bool {
-        !hote.isEmpty && !partage.isEmpty && !dossiers.isEmpty && !utilisateur.isEmpty
+        !hote.isEmpty && !partage.isEmpty && !utilisateur.isEmpty
     }
 
     /// `smb://hôte/partage/chemin`, avec ou sans identifiants (les apps de lecture en ont besoin).
@@ -77,7 +78,7 @@ public struct ExplorateurLocal: ExplorateurFichiers {
     public func listerVideos(dossiers: [String]) async throws -> [FichierDistant] {
         let gestionnaire = FileManager.default
         var fichiers: [FichierDistant] = []
-        for dossier in dossiers {
+        for dossier in dossiers.isEmpty ? [""] : dossiers {
             let base = racine.appending(path: dossier)
             guard let parcours = gestionnaire.enumerator(at: base, includingPropertiesForKeys: [.fileSizeKey, .isRegularFileKey],
                                                          options: [.skipsHiddenFiles, .skipsPackageDescendants]) else { continue }

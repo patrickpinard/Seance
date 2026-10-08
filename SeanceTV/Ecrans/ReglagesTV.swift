@@ -489,7 +489,7 @@ private struct PageNASTV: View {
             SectionTV(titre: "Connexion") {
                 ChampTV(titre: "Adresse du NAS", invite: "192.168.1.220", texte: $hote)
                 ChampTV(titre: "Partage", invite: "Films", texte: $partage)
-                ChampTV(titre: "Dossiers", invite: "Dossiers, séparés par des virgules", texte: $dossiers)
+                ChampTV(titre: "Dossiers", invite: "Séparés par des virgules ; vide : tout le partage", texte: $dossiers)
                 ChampTV(titre: "Compte", texte: $utilisateur)
                 ChampTV(titre: "Mot de passe", invite: etat.motDePasseNAS ? "Mot de passe (déjà enregistré)" : "Mot de passe", secret: true, texte: $motDePasse)
             }

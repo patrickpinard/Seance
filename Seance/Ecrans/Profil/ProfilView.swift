@@ -7,7 +7,7 @@ import SwiftUI
 /// pas mis en avant : une entrée en bas de page ouvre les statistiques, qui les réunissent tous.
 /// Sur l'iPhone, l'engrenage ouvre Réglages, qui n'a pas d'onglet à lui.
 enum DestinationProfil: Hashable {
-    case acteursSuivis, statistiques
+    case acteursSuivis, statistiques, historique
 }
 
 struct ProfilView: View {
@@ -107,6 +107,7 @@ struct ProfilView: View {
                 switch destination {
                 case .acteursSuivis: ActeursSuivisView()
                 case .statistiques: StatistiquesView()
+                case .historique: HistoriqueView()
                 }
             }
             .navigationDestination(for: TitresAvecActeur.self) { comptes in
@@ -449,6 +450,12 @@ struct ProfilView: View {
                 NavigationLink(value: DestinationProfil.statistiques) {
                     LigneReglage(titre: "Ta collection et ton année", symbole: "chart.bar.fill",
                                  valeur: "Heures, acteurs, genres, en cartes")
+                }
+                .buttonStyle(.plain)
+                // 8.11 : l'ancien onglet « Terminés » de Mes listes, rangé par mois.
+                NavigationLink(value: DestinationProfil.historique) {
+                    LigneReglage(titre: "Ce que tu as regardé", symbole: "checkmark.circle.fill",
+                                 valeur: "Tes titres terminés, mois par mois")
                 }
                 .buttonStyle(.plain)
             }

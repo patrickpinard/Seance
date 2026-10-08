@@ -3,17 +3,16 @@ import SeanceKit
 import SwiftData
 import SwiftUI
 
-/// Mes listes (EF-16) : ce qui arrive pour les titres surveillés, puis à voir, en cours et terminés.
+/// Mes listes (EF-16) : à voir, en cours, et ce qui arrive pour les titres surveillés. 8.11 : trois onglets seulement —
+/// ce qui est terminé se retrouve dans Statistiques › Ce que tu as regardé ; favoris et listes nommées ont disparu
+/// (« J'aime » et la note disent ce qu'on aime, « Ma liste » et « Ce soir » ce qu'on veut voir).
 /// « Regardable ce soir » ne garde que ce qui est sur le NAS, dans les abonnements ou à la TV ce soir ;
 /// la disponibilité et la durée sont lues sur TMDB seulement quand ce filtre ou le tri par durée le demande.
 struct MesListesView: View {
     enum Onglet: String, CaseIterable, Identifiable {
-        case aVenir = "À venir"
         case aVoir = "À voir"
         case enCours = "En cours"
-        case termines = "Terminés"
-        case favoris = "Favoris"
-        case listes = "Listes"
+        case aVenir = "À venir"
 
         var id: String { rawValue }
 
@@ -22,18 +21,14 @@ struct MesListesView: View {
             case .aVenir: "calendar.badge.clock"
             case .aVoir: "bookmark.fill"
             case .enCours: "play.circle.fill"
-            case .termines: "checkmark.circle.fill"
-            case .favoris: "star.fill"
-            case .listes: "rectangle.stack.fill"
             }
         }
 
         var statut: StatutSuivi? {
             switch self {
-            case .aVenir, .listes, .favoris: nil
+            case .aVenir: nil
             case .aVoir: .aVoir
             case .enCours: .enCours
-            case .termines: .termine
             }
         }
     }
@@ -53,7 +48,6 @@ struct MesListesView: View {
     /// Disponibilité et durée lues sur TMDB, par titre ; vidées quand les abonnements changent.
     @State private var infos: [ReferenceTitre: InfoTitre] = [:]
     @State private var chargementInfos = false
-    @State private var confirmerToutSupprimer = false
     /// Recherche dans ses propres titres, sur l'onglet affiché.
     @State private var recherche = ""
 
@@ -71,12 +65,11 @@ struct MesListesView: View {
         TriListe(rawValue: triBrut) ?? .ajout
     }
 
-    /// La grille d'affiches et « À venir » défilent librement ; la liste détaillée et les listes nommées restent une
-    /// `List`, pour leurs gestes de glissement. Une grille de liens posée dans une ligne de `List` ouvrait plusieurs
-    /// fiches d'un coup, et le retour ne ramenait plus à Mes listes.
+    /// La grille d'affiches et « À venir » défilent librement ; la liste détaillée reste une `List`, pour ses gestes de
+    /// glissement. Une grille de liens posée dans une ligne de `List` ouvrait plusieurs fiches d'un coup, et le retour ne
+    /// ramenait plus à Mes listes.
     private var enDefilementLibre: Bool {
-        // Favoris aussi (8.7) : dans une ligne de liste, la carte rétrécissait et portait un chevron.
-        onglet == .aVenir || onglet == .favoris || (onglet.statut != nil && enGrille)
+        onglet == .aVenir || enGrille
     }
 
     /// Les mêmes cases que le sélecteur de source d'Explorer (charte graphique).
@@ -96,8 +89,6 @@ struct MesListesView: View {
                             choixOnglet.padding(.horizontal, 16)
                             if onglet == .aVenir {
                                 aVenir
-                            } else if onglet == .favoris {
-                                SectionFavoris(recherche: recherche).padding(.horizontal, 16)
                             } else if let statut = onglet.statut {
                                 if suivis.contains(where: { $0.statut == statut }) { barreListe(statut).padding(.horizontal, 16) }
                                 liste(statut)
@@ -110,11 +101,7 @@ struct MesListesView: View {
                         choixOnglet
                             .listRowBackground(Color.clear)
                             .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
-                        if onglet == .listes {
-                            SectionListesNommees(recherche: recherche)
-                        } else if onglet == .favoris {
-                            SectionFavoris(recherche: recherche)
-                        } else if let statut = onglet.statut {
+                        if let statut = onglet.statut {
                             if suivis.contains(where: { $0.statut == statut }) { barreListe(statut) }
                             liste(statut)
                         }
@@ -129,9 +116,6 @@ struct MesListesView: View {
             .destinationsTitres()
             // « Voir la fiche » du menu d'un titre l'ouvre ici même (8.2.15).
             .environment(\.ouvrirFiche) { chemin.append($0) }
-            .navigationDestination(for: PersistentIdentifier.self) { id in
-                ListePersoView(id: id)
-            }
             .refreshable { await etat.alertes.planifier(contexte: contexte, tmdb: etat.tmdb) }
             .task(id: cleInfos) { await chargerInfos(cleInfos.references) }
             // Les grandes cartes veulent l'image large du titre : sans elle, l'affiche serait recadrée.
@@ -182,21 +166,19 @@ struct MesListesView: View {
         }
     }
 
-    // MARK: À voir, en cours, terminés
+    // MARK: À voir, en cours
 
-    /// Filtre « Regardable ce soir » (pas pour les titres terminés) ou « Tout supprimer » (terminés), et ordre de la liste.
+    /// Filtre « Regardable ce soir » et ordre de la liste.
     private func barreListe(_ statut: StatutSuivi) -> some View {
         HStack(spacing: 10) {
-            if statut != .termine {
-                PuceFiltre(libelle: "Regardable ce soir", active: ceSoirSeulement) { ceSoirSeulement.toggle() }
-                    .help("Sur le NAS, dans tes abonnements ou à la TV ce soir")
-                // Le filtre cache des titres : c'est dit, pour ne pas les croire disparus.
-                let masques = suivis.filter { $0.statut == statut && !$0.masque }.count - titresAffiches(statut).count
-                if ceSoirSeulement, !chargementInfos, masques > 0 {
-                    Text(Format.pluriel(masques, "masqué", "masqués"))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
+            PuceFiltre(libelle: "Regardable ce soir", active: ceSoirSeulement) { ceSoirSeulement.toggle() }
+                .help("Sur le NAS, dans tes abonnements ou à la TV ce soir")
+            // Le filtre cache des titres : c'est dit, pour ne pas les croire disparus.
+            let masques = suivis.filter { $0.statut == statut && !$0.masque }.count - titresAffiches(statut).count
+            if ceSoirSeulement, !chargementInfos, masques > 0 {
+                Text(Format.pluriel(masques, "masqué", "masqués"))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
             if chargementInfos {
                 ProgressView().controlSize(.small)
@@ -210,14 +192,6 @@ struct MesListesView: View {
                         } else {
                             Text(choix.rawValue)
                         }
-                    }
-                }
-                // 8.7 : « Tout supprimer » des terminés, rangé ici plutôt que dans un « ⋯ » orange isolé à gauche ;
-                // rouge seulement dans la confirmation.
-                if statut == .termine, !titresAffiches(.termine).isEmpty {
-                    Divider()
-                    Button(role: .destructive) { confirmerToutSupprimer = true } label: {
-                        Label("Tout supprimer", systemImage: "trash")
                     }
                 }
             } label: {
@@ -237,39 +211,26 @@ struct MesListesView: View {
             .accessibilityLabel("Trier : \(tri.rawValue)")
             BasculeGrilleListe(enGrille: $enGrille)
         }
-        .confirmationDialog("Supprimer les \(titresAffiches(.termine).count) titres terminés ?",
-                            isPresented: $confirmerToutSupprimer, titleVisibility: .visible) {
-            Button("Tout supprimer", role: .destructive) {
-                let supprimes = titresAffiches(.termine)
-                try? ServiceSuivi(contexte: contexte).supprimerDesTermines(supprimes)
-                etat.confirmer("\(Format.pluriel(supprimes.count, "titre supprimé", "titres supprimés")) des terminés", symbole: "trash") { [contexte] in
-                    supprimes.forEach { $0.masque = false }
-                    contexte.sauver()
-                }
-            }
-        } message: {
-            Text("Ils quittent la liste. Ce que tu as vu, tes notes et tes statistiques restent, et ils ne te seront pas reproposés.")
-        }
         .listRowBackground(Color.clear)
         .listRowSeparator(.hidden)
         .listRowInsets(EdgeInsets(top: 2, leading: 16, bottom: 2, trailing: 16))
     }
 
-    /// Le filtre ne s'applique pas aux terminés ; tant que la disponibilité d'un titre n'est pas connue, il est caché.
+    /// Tant que la disponibilité d'un titre n'est pas connue, le filtre le cache.
     private func titresAffiches(_ statut: StatutSuivi) -> [Suivi] {
         let tous = suivis.filter { $0.statut == statut && !$0.masque && (recherche.isEmpty || $0.titre.localizedCaseInsensitiveContains(recherche)) }
         let parReference = Dictionary(tous.map { ($0.reference, $0) }, uniquingKeysWith: { premier, _ in premier })
         let ordonnes = tri.trier(tous.map {
             TriListe.Element(reference: $0.reference, titre: $0.titre, ajouteLe: $0.ajouteLe, dureeMinutes: infos[$0.reference]?.dureeMinutes)
         }).compactMap { parReference[$0.reference] }
-        guard ceSoirSeulement, statut != .termine else { return ordonnes }
+        guard ceSoirSeulement else { return ordonnes }
         let maintenant = Date.now
         return ordonnes.filter { infos[$0.reference].map { RegardableCeSoir.retient($0.etat, maintenant: maintenant) } ?? false }
     }
 
     /// Les titres dont il faut la disponibilité ou la durée : seulement si le filtre ou le tri par durée le demande.
     private var cleInfos: CleInfos {
-        guard let statut = onglet.statut, (ceSoirSeulement && statut != .termine) || tri == .plusCourt else {
+        guard let statut = onglet.statut, ceSoirSeulement || tri == .plusCourt else {
             return CleInfos(references: [], abonnements: [])
         }
         return CleInfos(references: suivis.filter { $0.statut == statut }.map(\.reference),
@@ -316,7 +277,7 @@ struct MesListesView: View {
     private func liste(_ statut: StatutSuivi) -> some View {
         let titres = titresAffiches(statut)
         let reperes = reperes
-        if titres.isEmpty, ceSoirSeulement, statut != .termine, suivis.contains(where: { $0.statut == statut }) {
+        if titres.isEmpty, ceSoirSeulement, suivis.contains(where: { $0.statut == statut }) {
             vide(chargementInfos
                  ? "Recherche sur tes plateformes, ton NAS et la TV…"
                  : "Rien de regardable ce soir dans cette liste : ni sur tes plateformes, ni sur le NAS, ni à la TV.")
@@ -328,25 +289,13 @@ struct MesListesView: View {
                 grandVide(EtatVide(symbole: "bookmark", titre: "Ta liste est vide",
                                    message: "Touche « + » sur la fiche d'un film ou d'une série pour le garder ici, à voir plus tard.",
                                    libelleAction: "Trouver des suggestions") { etat.ongletDemande = .explorer })
-            case .enCours:
+            default:
                 grandVide(EtatVide(symbole: "play.circle", titre: "Aucune série en cours",
                                    message: "Coche un épisode sur la fiche d'une série : elle se range ici, avec le prochain à regarder.",
                                    libelleAction: "Chercher une série") { etat.ongletDemande = .explorer })
-            default:
-                grandVide(EtatVide(symbole: "checkmark.circle", titre: "Rien de terminé pour l'instant",
-                                   message: "Un film marqué vu, une série finie : ils se rangent ici, avec ta note."))
             }
         }
-        if statut == .termine, tri == .ajout, !titres.isEmpty {
-            // 6.1 : Terminés, rangés par mois — celui où tu as fini chaque titre.
-            let finis = finis
-            ForEach(TerminesParMois.grouper(titres, fini: { finis[$0.reference] }), id: \.titre) { groupe in
-                enTeteMois(groupe)
-                cartes(groupe.elements, statut, reperes)
-            }
-        } else {
-            cartes(titres, statut, reperes)
-        }
+        cartes(titres, statut, reperes)
     }
 
     /// Les titres d'une liste, en grandes cartes ou en lignes.
@@ -371,24 +320,19 @@ struct MesListesView: View {
                             .frame(width: 360)
                             .environment(etat)
                     }
-                    // 8.6 : les mêmes glissements que les lignes de la vue en liste — vers la droite « Ce soir » et « Terminé »
-                    // (ou « À revoir »), vers la gauche les alertes et « Retirer » (« Supprimer » dans les terminés).
+                    // 8.6 : les mêmes glissements que les lignes de la vue en liste — vers la droite « Ce soir » et « Terminé »,
+                    // vers la gauche les alertes et « Retirer ».
                     .glissementsCarte(
                         debut: [
                             ActionGlissee(libelle: "Ce soir", symbole: "moon.stars.fill", couleur: Theme.accent) {
                                 try? ServiceSoiree(contexte: contexte).retenir(suivi.reference, titre: suivi.titre, cheminAffiche: suivi.cheminAffiche)
                             },
-                            statut == .termine
-                                ? ActionGlissee(libelle: "À revoir", symbole: "arrow.uturn.backward", couleur: Theme.eleve) { changer(suivi, en: .aVoir) }
-                                : ActionGlissee(libelle: "Terminé", symbole: "checkmark", couleur: Theme.vert) { changer(suivi, en: .termine) },
+                            ActionGlissee(libelle: "Terminé", symbole: "checkmark", couleur: Theme.vert) { changer(suivi, en: .termine) },
                         ],
                         fin: [
                             ActionGlissee(libelle: suivi.alertesActives ? "Sans alertes" : "Alertes",
                                           symbole: suivi.alertesActives ? "bell.slash" : "bell", couleur: Theme.eleve) { basculerAlertes(suivi) },
-                            ActionGlissee(libelle: statut == .termine ? "Supprimer" : "Retirer", symbole: "trash", couleur: Theme.rouge,
-                                          destructive: true) {
-                                if statut == .termine { supprimerDesTermines(suivi) } else { retirer(suivi) }
-                            },
+                            ActionGlissee(libelle: "Retirer", symbole: "trash", couleur: Theme.rouge, destructive: true) { retirer(suivi) },
                         ])
                 }
             }
@@ -404,20 +348,11 @@ struct MesListesView: View {
                     try? ServiceSoiree(contexte: contexte).retenir(suivi.reference, titre: suivi.titre, cheminAffiche: suivi.cheminAffiche)
                 } label: { Label("Ce soir", systemImage: "moon.stars.fill") }
                     .tint(Theme.accent)
-                if statut != .termine {
-                    Button { changer(suivi, en: .termine) } label: { Label("Terminé", systemImage: "checkmark") }
-                        .tint(.green)
-                } else {
-                    Button { changer(suivi, en: .aVoir) } label: { Label("À revoir", systemImage: "arrow.uturn.backward") }
-                        .tint(.blue)
-                }
+                Button { changer(suivi, en: .termine) } label: { Label("Terminé", systemImage: "checkmark") }
+                    .tint(.green)
             }
             .swipeActions(edge: .trailing) {
-                if statut == .termine {
-                    Button(role: .destructive) { supprimerDesTermines(suivi) } label: { Label("Supprimer", systemImage: "trash") }
-                } else {
-                    Button(role: .destructive) { retirer(suivi) } label: { Label("Retirer", systemImage: "trash") }
-                }
+                Button(role: .destructive) { retirer(suivi) } label: { Label("Retirer", systemImage: "trash") }
                 Button { basculerAlertes(suivi) } label: {
                     Label(suivi.alertesActives ? "Sans alertes" : "Alertes", systemImage: suivi.alertesActives ? "bell.slash" : "bell")
                 }
@@ -432,44 +367,6 @@ struct MesListesView: View {
         }
     }
 
-    /// Le jour où chaque titre terminé l'a été : son dernier visionnage compté (pas « déjà vu avant »).
-    private var finis: [ReferenceTitre: Date] {
-        var resultat: [ReferenceTitre: Date] = [:]
-        for visionnage in visionnages where !visionnage.anterieur {
-            let reference = ReferenceTitre(type: visionnage.type, tmdbID: visionnage.tmdbID)
-            resultat[reference] = max(resultat[reference] ?? .distantPast, visionnage.vuLe)
-        }
-        return resultat
-    }
-
-    /// « Septembre 2026 » et, à droite, « 3 films · 1 série · 7 h 40 » : ce que le mois a compté.
-    private func enTeteMois(_ groupe: TerminesParMois.Groupe<Suivi>) -> some View {
-        let films = groupe.elements.filter { $0.type == .film }.count
-        let series = groupe.elements.count - films
-        var morceaux = [films > 0 ? Format.pluriel(films, "film") : nil, series > 0 ? Format.pluriel(series, "série") : nil].compactMap { $0 }
-        if let mois = groupe.mois {
-            let references = Set(groupe.elements.map(\.reference))
-            let calendrier = Calendar.current
-            let minutes = visionnages.filter {
-                !$0.anterieur && references.contains(ReferenceTitre(type: $0.type, tmdbID: $0.tmdbID))
-                    && calendrier.isDate($0.vuLe, equalTo: mois, toGranularity: .month)
-            }.reduce(0) { $0 + $1.dureeMinutes }
-            if minutes > 0 { morceaux.append(HeuresTele.duree(minutes)) }
-        }
-        return HStack(alignment: .firstTextBaseline) {
-            Text(groupe.titre).font(.title3.weight(.bold))
-            Spacer(minLength: 8)
-            Text(morceaux.joined(separator: " · ")).font(.caption).foregroundStyle(.secondary)
-        }
-        .padding(.horizontal, enGrille ? 16 : 0)
-        .padding(.top, 10)
-        .accessibilityElement(children: .combine)
-        .accessibilityAddTraits(.isHeader)
-        .listRowBackground(Color.clear)
-        .listRowSeparator(.hidden)
-        .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 2, trailing: 16))
-    }
-
     /// Les actions d'un titre, les mêmes en liste et en grille.
     @ViewBuilder
     private func menu(_ suivi: Suivi, _ statut: StatutSuivi) -> some View {
@@ -477,22 +374,14 @@ struct MesListesView: View {
         MenuActionsTitre(titre: TitreResume(reference: suivi.reference, titre: suivi.titre, cheminAffiche: suivi.cheminAffiche,
                                             genres: suivi.genres))
         Section("Dans Mes listes") {
-            if statut != .termine {
-                Button { changer(suivi, en: .termine) } label: { Label("Terminé", systemImage: "checkmark") }
-            } else {
-                Button { changer(suivi, en: .aVoir) } label: { Label("À revoir", systemImage: "arrow.uturn.backward") }
-            }
+            Button { changer(suivi, en: .termine) } label: { Label("Terminé", systemImage: "checkmark") }
             if statut == .enCours {
                 Button { changer(suivi, en: .aVoir) } label: { Label("Remettre à voir", systemImage: "bookmark") }
             }
             Button { basculerAlertes(suivi) } label: {
                 Label(suivi.alertesActives ? "Ne plus me prévenir" : "Me prévenir", systemImage: suivi.alertesActives ? "bell.slash" : "bell")
             }
-            if statut == .termine {
-                Button(role: .destructive) { supprimerDesTermines(suivi) } label: { Label("Supprimer des terminés", systemImage: "trash") }
-            } else {
-                Button(role: .destructive) { retirer(suivi) } label: { Label("Retirer de mes listes", systemImage: "trash") }
-            }
+            Button(role: .destructive) { retirer(suivi) } label: { Label("Retirer de mes listes", systemImage: "trash") }
         }
     }
 
@@ -595,7 +484,7 @@ struct MesListesView: View {
         let avant = suivi.statut
         suivi.statut = statut
         contexte.sauver()
-        etat.confirmer(statut == .termine ? "« \(suivi.titre) » dans Terminés" : "« \(suivi.titre) » de nouveau à voir",
+        etat.confirmer(statut == .termine ? "« \(suivi.titre) » terminé" : "« \(suivi.titre) » de nouveau à voir",
                        symbole: statut == .termine ? "checkmark" : "arrow.uturn.backward") { [contexte] in
             suivi.statut = avant
             contexte.sauver()
@@ -610,15 +499,6 @@ struct MesListesView: View {
         etat.confirmer("« \(copie.titre) » retiré de Mes listes", symbole: "trash") { [contexte, etat] in
             copie.restaurer(dans: contexte)
             Task { await etat.alertes.planifier(contexte: contexte, tmdb: etat.tmdb) }
-        }
-    }
-
-    /// Le titre quitte « Terminés » mais reste vu, noté et compté.
-    private func supprimerDesTermines(_ suivi: Suivi) {
-        try? ServiceSuivi(contexte: contexte).supprimerDesTermines([suivi])
-        etat.confirmer("« \(suivi.titre) » supprimé des terminés", symbole: "trash") { [contexte] in
-            suivi.masque = false
-            contexte.sauver()
         }
     }
 

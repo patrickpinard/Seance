@@ -41,6 +41,20 @@ private enum TMDB {
         """#)
     }
 
+    /// La même série, qui annonce une troisième saison (8.11).
+    static func serieRelancee() throws -> SerieDetail {
+        try decoder(#"""
+        {"id": 2316, "name": "The Office", "original_name": "The Office", "original_language": "en", "overview": "",
+         "status": "Returning Series", "in_production": true, "number_of_seasons": 3, "number_of_episodes": 9,
+         "episode_run_time": [22], "vote_average": 8.5, "vote_count": 3000, "genres": [], "poster_path": "/office.jpg",
+         "last_episode_to_air": {"id": 203, "name": "Fin", "overview": "", "episode_number": 3, "season_number": 2, "air_date": "2013-05-16"},
+         "next_episode_to_air": {"id": 301, "name": "Retour", "overview": "", "episode_number": 1, "season_number": 3, "air_date": "2027-01-15"},
+         "seasons": [{"id": 1, "name": "Saison 1", "season_number": 1, "episode_count": 3},
+                     {"id": 2, "name": "Saison 2", "season_number": 2, "episode_count": 3},
+                     {"id": 3, "name": "Saison 3", "season_number": 3, "episode_count": 3}]}
+        """#)
+    }
+
     static func episodes(saison: Int, nombre: Int) throws -> [EpisodeTMDB] {
         try (1...nombre).map { n in
             try decoder(#"{"id": \#(saison * 100 + n), "name": "E\#(n)", "overview": "", "episode_number": \#(n), "season_number": \#(saison), "runtime": \#(n == 2 ? "null" : "48"), "air_date": "2022-02-04"}"#)
@@ -109,6 +123,50 @@ struct ServicesTests {
         try service.cocher(try TMDB.episodes(saison: 2, nombre: 3), serie: serie)
         #expect(try service.suivi(serie.reference)?.statut == .termine)
         try service.decocher(NumeroEpisode(saison: 2, episode: 3), serie: serie.reference)
+        #expect(try service.suivi(serie.reference)?.statut == .enCours)
+    }
+
+    /// 8.11 : chaque favori devient un « J'aime », sauf un titre écarté, et quitte la base ; un second passage ne fait rien.
+    @Test func lesFavorisDeviennentDesJAime() throws {
+        let conteneur = try EntrepotSeance.conteneur(.memoire)
+        let contexte = conteneur.mainContext
+        let heat = ReferenceTitre(type: .film, tmdbID: 949), alien = ReferenceTitre(type: .film, tmdbID: 348)
+        let favoris = ServiceFavoris(contexte: contexte)
+        try favoris.basculer(heat, titre: "Heat", annee: 1995)
+        try favoris.basculer(alien, titre: "Alien", annee: 1979)
+        try ServiceSuivi(contexte: contexte).suivre(film: try TMDB.film(), statut: .exclu)
+        let ecarte = try TMDB.film().reference
+        try favoris.basculer(ecarte, titre: "Écarté")
+        #expect(try favoris.convertirEnJAime() == 3)
+        let gouts = ServiceGouts(contexte: contexte)
+        #expect(try gouts.estAime(heat) && gouts.estAime(alien) && !gouts.estAime(ecarte))
+        #expect(try favoris.tous().isEmpty)
+        #expect(try favoris.convertirEnJAime() == 0)
+    }
+
+    /// 8.11 : une nouvelle saison annoncée sort la série de Terminés, même supprimée de la liste.
+    @Test func uneNouvelleSaisonRemetLaSerieEnCours() throws {
+        let conteneur = try EntrepotSeance.conteneur(.memoire)
+        let service = ServiceSuivi(contexte: conteneur.mainContext)
+        let serie = try TMDB.serieFinie()
+        try service.cocher(try TMDB.episodes(saison: 1, nombre: 3) + TMDB.episodes(saison: 2, nombre: 3), serie: serie)
+        let suivi = try #require(try service.suivi(serie.reference))
+        suivi.masque = true
+        #expect(try !service.rouvrirSiNouvelleSaison(serie))
+        #expect(try service.seriesTerminees() == [serie.reference])
+        #expect(try service.rouvrirSiNouvelleSaison(TMDB.serieRelancee()))
+        #expect(suivi.statut == .enCours && !suivi.masque)
+        #expect(try service.seriesTerminees().isEmpty)
+    }
+
+    /// 8.11 : le passage quotidien relit les séries terminées et rouvre celles qui ont une nouvelle saison.
+    @Test func lePassageQuotidienRouvreLesSeriesRelancees() async throws {
+        let conteneur = try EntrepotSeance.conteneur(.memoire)
+        let service = ServiceSuivi(contexte: conteneur.mainContext)
+        let serie = try TMDB.serieFinie()
+        try service.cocher(try TMDB.episodes(saison: 1, nombre: 3) + TMDB.episodes(saison: 2, nombre: 3), serie: serie)
+        let relancee = try TMDB.serieRelancee()
+        #expect(try await service.rouvrirSeriesRelancees { _ in relancee } == [serie.reference])
         #expect(try service.suivi(serie.reference)?.statut == .enCours)
     }
 

@@ -31,6 +31,15 @@ struct StatistiquesView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 CarteCollection()
+                // 8.11 : les titres terminés, mois par mois (l'ancien onglet « Terminés » de Mes listes).
+                NavigationLink(value: DestinationProfil.historique) {
+                    LigneReglage(titre: "Ce que tu as regardé", symbole: "checkmark.circle.fill",
+                                 valeur: "Tes titres terminés, mois par mois")
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 6)
+                        .background(Theme.surface, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                }
+                .buttonStyle(.plain)
                 if bilan.minutesTotales == 0 {
                     MessageEtat(texte: annee == nil
                                 ? "Rien de regardé pour l'instant. Marque un film comme vu ou coche des épisodes : tes heures, tes acteurs et tes genres favoris apparaîtront ici."

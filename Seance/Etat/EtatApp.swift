@@ -11,10 +11,9 @@ final class EtatApp {
     private(set) var tmdb: TMDBClient?
     /// Facultatif : sans clé, « Idées pour ce soir » classe les titres sur l'appareil (EF-27).
     private(set) var claude: ClientClaude?
-    /// « Prévoir pour une soirée… » et « Ajouter à une liste… », demandés depuis une fiche, un clic droit ou
-    /// Mes listes : la feuille s'ouvre au-dessus de l'écran en cours.
+    /// « Prévoir pour une soirée… », demandé depuis une fiche, un clic droit ou Mes listes : la feuille s'ouvre
+    /// au-dessus de l'écran en cours.
     var titreADater: TitreChoisi?
-    var titrePourListe: TitreChoisi?
     /// « Vu avec qui ? » (6.1) : la feuille qui inscrit un visionnage chez d'autres personnes de la famille.
     var avecQui: DemandeAvecQui?
     /// « Qui regarde ce soir ? » : les personnes cochées dans les idées du soir, proposées d'office dans « Vu avec qui ? ».

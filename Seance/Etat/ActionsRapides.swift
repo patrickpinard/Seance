@@ -11,7 +11,7 @@ struct ActionsRapides {
     let contexte: ModelContext
 
     enum Action {
-        case aVoir, vuAujourdhui, dejaVuAvant, soiree, pasInteresse, jAime, favori
+        case aVoir, vuAujourdhui, dejaVuAvant, soiree, pasInteresse, jAime
     }
 
     /// `annulationEnPlus` : ce que l'écran appelant veut défaire aussi — remettre l'idée dans la liste, par exemple.
@@ -50,7 +50,7 @@ struct ActionsRapides {
                     remis.masque = true
                     contexte.sauver()
                 }
-                return ("Remis dans Terminés", "bookmark.fill")
+                return ("Remis dans ce que tu as regardé", "bookmark.fill")
             }
             annulation = { [contexte] in
                 guard let ajoute = try? ServiceSuivi(contexte: contexte).suivi(reference) else { return }
@@ -104,16 +104,6 @@ struct ActionsRapides {
             annulation = { [contexte] in try? ServiceSoiree(contexte: contexte).retirer(reference) }
             return ("Ajouté à ma soirée", "moon.stars.fill")
 
-        case .favori:
-            // ★ Une collection à part : ni « À voir », ni un goût (EF-165).
-            let favoris = ServiceFavoris(contexte: contexte)
-            let ajoute = try favoris.basculer(reference, titre: titre.titre, cheminAffiche: titre.cheminAffiche, annee: titre.date?.annee)
-            annulation = { [contexte] in
-                _ = try? ServiceFavoris(contexte: contexte).basculer(reference, titre: titre.titre,
-                                                                    cheminAffiche: titre.cheminAffiche, annee: titre.date?.annee)
-            }
-            return ajoute ? ("★ Ajouté à tes favoris", "star.fill") : ("Retiré de tes favoris", "star.slash")
-
         case .jAime:
             let gouts = ServiceGouts(contexte: contexte)
             if try gouts.estAime(reference) { return ("Tu l'aimes déjà", "hand.thumbsup.fill") }
@@ -156,8 +146,7 @@ struct MenuActionsTitre: View {
             .contains { $0.reference == reference }
         return ActionTitre.Etat(dansMaListe: suivi.map { !$0.masque && $0.statut != .exclu } ?? false,
                                 vu: reference.type == .film && ((try? ServiceSuivi(contexte: contexte).estVu(reference)) ?? false),
-                                prevuCeSoir: prevu,
-                                favori: (try? ServiceFavoris(contexte: contexte).estFavori(reference)) ?? false)
+                                prevuCeSoir: prevu)
     }
 
     var body: some View {
@@ -182,8 +171,6 @@ struct MenuActionsTitre: View {
         case .dejaVuAvant: lancer(.dejaVuAvant)
         case .ceSoir: lancer(.soiree)
         case .autreSoir: etat.titreADater = choisi
-        case .ajouterAUneListe: etat.titrePourListe = choisi
-        case .favori: lancer(.favori)
         case .pasInteresse:
             // Pas un goût, juste « pas maintenant » : il reviendra dans deux mois (8.2.11).
             let reference = titre.reference
@@ -271,7 +258,6 @@ struct MenuSoireeTitre: View {
             Label("Ce soir", systemImage: "moon.stars")
         }
         Button { etat.titreADater = titre } label: { Label("Prévoir pour une soirée…", systemImage: "calendar") }
-        Button { etat.titrePourListe = titre } label: { Label("Ajouter à une liste…", systemImage: "list.bullet.rectangle.portrait") }
     }
 }
 

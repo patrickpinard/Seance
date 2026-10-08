@@ -91,6 +91,18 @@ struct SerieTermineeTests {
         #expect(!ProgressionSerie.estTerminee(vus: [fin], serie: try Construire.serie(statut: "Ended", prochain: annonce)))
     }
 
+    /// 8.11 : une nouvelle saison sort la série de Terminés ; un épisode de plus dans la saison vue, non.
+    @Test func uneNouvelleSaisonRouvreLaSerie() throws {
+        let serie = try Construire.serie(statut: "Ended")
+        #expect(!ProgressionSerie.aUneNouvelleSaison(vus: [fin], serie: serie))
+        #expect(!ProgressionSerie.aUneNouvelleSaison(vus: [], serie: serie))
+        #expect(ProgressionSerie.aUneNouvelleSaison(vus: [NumeroEpisode(saison: 7, episode: 10)], serie: serie))
+        let saison9 = try Construire.serie(statut: "Returning Series", prochain: Construire.episode(9, 1, diffuse: "2027-04-01"))
+        #expect(ProgressionSerie.aUneNouvelleSaison(vus: [fin], serie: saison9))
+        let memeSaison = try Construire.serie(statut: "Returning Series", prochain: Construire.episode(8, 7, diffuse: "2027-04-01"))
+        #expect(!ProgressionSerie.aUneNouvelleSaison(vus: [fin], serie: memeSaison))
+    }
+
     @Test func pasAvantLeDernierEpisode() throws {
         let finie = try Construire.serie(statut: "Ended")
         #expect(!ProgressionSerie.estTerminee(vus: [], serie: finie))

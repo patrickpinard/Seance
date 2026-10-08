@@ -453,7 +453,7 @@ struct SoireeView: View {
             let jour = titre.soiree
             try? ServiceSuivi(contexte: contexte).marquerVu(film: film, le: quand ?? .now)
             VuEnsemble.demander(etat, reference: reference, titre: titre.titre) { try $0.marquerVu(film: film, le: quand ?? .now) }
-            etat.confirmer("« \(titre.titre) » dans Terminés", symbole: "checkmark") { [contexte] in
+            etat.confirmer("« \(titre.titre) » terminé", symbole: "checkmark") { [contexte] in
                 try? ServiceSuivi(contexte: contexte).marquerNonVu(film: reference)
                 AnnulationTitre.restaurer(reference, existait: avant != nil, statut: statutAvant, contexte: contexte)
                 try? ServiceSoiree(contexte: contexte).retenir(reference, titre: nom, cheminAffiche: affiche, soiree: jour)

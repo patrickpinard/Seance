@@ -56,6 +56,23 @@ struct NoteVersion: Identifiable {
 
     static let historique: [NoteVersion] = [
         NoteVersion(
+            numero: "8.11",
+            date: "6 octobre 2026",
+            resume: "Mes listes réduites à l'essentiel : à voir, en cours, à venir. Ce que tu as regardé passe dans les statistiques.",
+            fonctionnalites: [
+                Fonctionnalite(symbole: "list.bullet", titre: "Trois listes",
+                               detail: "Mes listes ne garde que « À voir », « En cours » et « À venir », sur tous les appareils. Les favoris deviennent des « J'aime » ; les listes nommées disparaissent des menus."),
+                Fonctionnalite(symbole: "checkmark.circle", titre: "Ce que tu as regardé",
+                               detail: "Tes titres terminés, mois par mois, se retrouvent dans Préférences › Statistiques, sur l'iPhone, l'iPad, le Mac et l'Apple TV."),
+                Fonctionnalite(symbole: "arrow.uturn.backward.circle", titre: "Une nouvelle saison ? La série revient",
+                               detail: "Une série terminée qui annonce une nouvelle saison repart « En cours », et retrouve les Nouveautés, les widgets et Siri. Vérifié chaque jour, cloche ou non."),
+                Fonctionnalite(symbole: "externaldrive", titre: "Un partage entier",
+                               detail: "Sans dossier indiqué dans les réglages du NAS, tout le partage est lu : pratique pour les films posés à la racine d'un Mac."),
+                Fonctionnalite(symbole: "macbook", titre: "Le Mac ne plante plus au premier lancement",
+                               detail: "L'écran de bienvenue s'ouvre normalement."),
+            ]
+        ),
+        NoteVersion(
             numero: "8.10",
             date: "2 octobre 2026",
             resume: "L'Apple TV plus claire et plus rapide : un curseur qu'on voit, une recherche qui trouve tout, et « Reprendre » pour chacun.",

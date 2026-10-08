@@ -4,7 +4,7 @@ import Foundation
 /// long à la télécommande. Une seule liste, dans le même ordre et avec les mêmes mots partout ; chaque plateforme doit
 /// traiter chaque action (un `switch` sans `default`) : en oublier une ne compile pas.
 public enum ActionTitre: String, CaseIterable, Sendable, Hashable {
-    case regarder, voirFiche, aVoir, vuAujourdhui, dejaVuAvant, ceSoir, autreSoir, ajouterAUneListe, favori
+    case regarder, voirFiche, aVoir, vuAujourdhui, dejaVuAvant, ceSoir, autreSoir
     case pasInteresse, jAime, jeNaimePas
 
     /// Ce qui décide des actions montrées.
@@ -12,13 +12,11 @@ public enum ActionTitre: String, CaseIterable, Sendable, Hashable {
         public var dansMaListe: Bool
         public var vu: Bool
         public var prevuCeSoir: Bool
-        public var favori: Bool
 
-        public init(dansMaListe: Bool = false, vu: Bool = false, prevuCeSoir: Bool = false, favori: Bool = false) {
+        public init(dansMaListe: Bool = false, vu: Bool = false, prevuCeSoir: Bool = false) {
             self.dansMaListe = dansMaListe
             self.vu = vu
             self.prevuCeSoir = prevuCeSoir
-            self.favori = favori
         }
     }
 
@@ -44,8 +42,6 @@ public enum ActionTitre: String, CaseIterable, Sendable, Hashable {
         case .dejaVuAvant: type == .film ? "Déjà vu avant" : "Toute la série déjà vue avant"
         case .ceSoir: "Ce soir"
         case .autreSoir: "Un autre soir…"
-        case .ajouterAUneListe: "Ajouter à une liste…"
-        case .favori: etat.favori ? "Retirer de mes favoris" : "Ajouter à mes favoris"
         case .pasInteresse: "Pas intéressé pour l'instant"
         case .jAime: "J'aime"
         case .jeNaimePas: "Je n'aime pas"
@@ -61,8 +57,6 @@ public enum ActionTitre: String, CaseIterable, Sendable, Hashable {
         case .dejaVuAvant: "clock.arrow.circlepath"
         case .ceSoir: "moon.stars"
         case .autreSoir: "calendar"
-        case .ajouterAUneListe: "list.bullet.rectangle.portrait"
-        case .favori: "star"
         case .pasInteresse: "hand.raised"
         case .jAime: "hand.thumbsup"
         case .jeNaimePas: "hand.thumbsdown"
@@ -71,6 +65,7 @@ public enum ActionTitre: String, CaseIterable, Sendable, Hashable {
 
     public var destructive: Bool { self == .jeNaimePas }
 
-    /// Un séparateur avant cette action : entre regarder, ranger et donner son avis.
-    public var ouvreUnGroupe: Bool { self == .aVoir || self == .favori }
+    /// Un séparateur avant cette action : entre regarder, ranger et donner son avis. 8.11 : sans listes nommées ni
+    /// favoris — « J'aime » et la note disent déjà ce qu'on aime.
+    public var ouvreUnGroupe: Bool { self == .aVoir || self == .pasInteresse }
 }

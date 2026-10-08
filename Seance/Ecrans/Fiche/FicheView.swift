@@ -407,7 +407,7 @@ private struct ContenuFiche: View {
         .sensoryFeedback(.success, trigger: dansSoiree)
         .padding(.horizontal, 20)
         .frame(maxWidth: 720, alignment: .leading)
-        .confirmationDialog("Ranger « \(fiche.titre) » dans Terminés ?", isPresented: $confirmationSerieTerminee, titleVisibility: .visible) {
+        .confirmationDialog("Marquer « \(fiche.titre) » comme terminée ?", isPresented: $confirmationSerieTerminee, titleVisibility: .visible) {
             if let serie = fiche.serie { Button("Terminé") { terminerSerie(serie) } }
         } message: {
             Text("Les épisodes pas encore cochés le seront, à la date d'aujourd'hui.")
@@ -418,7 +418,7 @@ private struct ContenuFiche: View {
     /// « Déjà vu avant », à l'appui long, le sort des suggestions sans fausser tes heures.
     private func boutonMarquerVu(_ film: FicheFilm) -> some View {
         BoutonIcone(symbole: "checkmark", libelle: "Terminé",
-                    explication: "Terminé : le film rejoint tes Terminés, daté d'aujourd'hui. Appui long : « Déjà vu avant », hors statistiques.") {
+                    explication: "Terminé : le film rejoint ce que tu as regardé, daté d'aujourd'hui. Appui long : « Déjà vu avant », hors statistiques.") {
             marquerVu(film, anterieur: false)
         }
         .contextMenu {
@@ -523,18 +523,10 @@ private struct ContenuFiche: View {
                 Button { videoChoisie = video } label: { Label("Bande-annonce", systemImage: "play.rectangle") }
             }
             Divider()
-            Button { basculerFavori() } label: {
-                Label(estFavori ? "Retirer de mes favoris" : "Ajouter à mes favoris", systemImage: estFavori ? "star.fill" : "star")
-            }
             Button {
                 etat.titreADater = TitreChoisi(reference: fiche.reference, titre: fiche.titre, cheminAffiche: fiche.cheminAffiche)
             } label: {
                 Label("Un autre soir…", systemImage: "calendar.badge.clock")
-            }
-            Button {
-                etat.titrePourListe = TitreChoisi(reference: fiche.reference, titre: fiche.titre, cheminAffiche: fiche.cheminAffiche)
-            } label: {
-                Label("Ajouter à une liste…", systemImage: "list.bullet.rectangle.portrait")
             }
             Divider()
             ShareLink(item: adresse, subject: Text(fiche.titre)) {
@@ -558,7 +550,7 @@ private struct ContenuFiche: View {
                 .frame(width: 44, height: 44)
                 .background(Theme.eleve, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
         }
-        .help("Terminé, alertes, bande-annonce, favoris, un autre soir, listes, partager")
+        .help("Terminé, alertes, bande-annonce, un autre soir, partager")
         .accessibilityLabel("Plus d'actions")
     }
 
@@ -606,7 +598,11 @@ private struct ContenuFiche: View {
     private func rafraichir() {
         let suiviService = ServiceSuivi(contexte: contexte)
         // 6.1 : une série finie et vue jusqu'au bout avant la règle se range dans Terminés en ouvrant sa fiche.
-        if let serie = fiche.serie { try? suiviService.rangerSiTerminee(serie) }
+        // 8.11 : et une série terminée dont une nouvelle saison est annoncée repart « En cours ».
+        if let serie = fiche.serie {
+            try? suiviService.rangerSiTerminee(serie)
+            try? suiviService.rouvrirSiNouvelleSaison(serie)
+        }
         suivi = try? suiviService.suivi(fiche.reference)
         let visionnages = (try? suiviService.visionnages(fiche.reference)) ?? []
         vu = !visionnages.isEmpty
@@ -619,31 +615,13 @@ private struct ContenuFiche: View {
         etatDisponibilite = (try? ServiceDisponibilite(contexte: contexte).etat(fiche.reference, offres: fiche.offres)) ?? .introuvable
     }
 
-    /// ★ Les favoris (EF-165) : une collection à part, ni « À voir » ni « J'aime ».
-    private var estFavori: Bool {
-        (try? ServiceFavoris(contexte: contexte).estFavori(fiche.reference)) ?? false
-    }
-
-    private func basculerFavori() {
-        let reference = fiche.reference
-        let annee = fiche.annee
-        guard let ajoute = try? ServiceFavoris(contexte: contexte).basculer(reference, titre: fiche.titre,
-                                                                           cheminAffiche: fiche.cheminAffiche, annee: annee)
-        else { return }
-        rafraichir()
-        etat.confirmer(ajoute ? "★ Ajouté à tes favoris" : "Retiré de tes favoris", symbole: ajoute ? "star.fill" : "star") { [contexte] in
-            _ = try? ServiceFavoris(contexte: contexte).basculer(reference, titre: fiche.titre, cheminAffiche: fiche.cheminAffiche, annee: annee)
-            rafraichir()
-        }
-    }
-
     private func basculerAVoir() {
         let service = ServiceSuivi(contexte: contexte)
         if let suivi, suivi.masque {
             suivi.masque = false
             contexte.sauver()
             rafraichir()
-            etat.confirmer("Remis dans Terminés", symbole: "bookmark.fill") { [contexte] in
+            etat.confirmer("Remis dans ce que tu as regardé", symbole: "bookmark.fill") { [contexte] in
                 suivi.masque = true
                 contexte.sauver()
                 rafraichir()
@@ -685,7 +663,7 @@ private struct ContenuFiche: View {
         guard !vu else { return }
         try? ServiceSuivi(contexte: contexte).marquerVu(film: film, anterieur: anterieur)
         rafraichir()
-        etat.confirmer(anterieur ? "Marqué déjà vu avant" : "« \(film.titre) » dans Terminés", symbole: "checkmark") { [contexte] in
+        etat.confirmer(anterieur ? "Marqué déjà vu avant" : "« \(film.titre) » terminé", symbole: "checkmark") { [contexte] in
             try? ServiceSuivi(contexte: contexte).marquerNonVu(film: film.reference)
             rafraichir()
         }
@@ -702,7 +680,7 @@ private struct ContenuFiche: View {
         try? service.terminer(serie: serie)
         let ajoutes = ((try? service.episodesVus(serie.reference)) ?? []).subtracting(avant)
         rafraichir()
-        etat.confirmer("« \(serie.nom) » dans Terminés", symbole: "checkmark") { [contexte] in
+        etat.confirmer("« \(serie.nom) » terminée", symbole: "checkmark") { [contexte] in
             let service = ServiceSuivi(contexte: contexte)
             for numero in ajoutes { try? service.decocher(numero, serie: serie.reference) }
             rafraichir()

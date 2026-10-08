@@ -26,6 +26,31 @@ struct LettreHebdoTests {
         #expect(LettreHebdo(prenom: nil, periode: "", sections: [], essai: true).sujet.hasPrefix("[Essai] "))
     }
 
+    /// 8.11 : une lettre qui donne envie — la phrase d'accueil, le programme, un titre à la une dans le sujet et en grand,
+    /// la note, pourquoi pour toi et un extrait du résumé.
+    @Test func uneLettreQuiDonneEnvie() {
+        let une = LettreHebdo.Ligne(titre: "Dune <2>", detail: "Film · sur tes plateformes", quand: "Cette semaine",
+                                    lien: URL(string: "seance://film/693134"), resume: "Paul Atréides s'allie aux Fremen.",
+                                    note: 8.2, pourquoi: "Parce que tu aimes la science-fiction",
+                                    urlFond: URL(string: "https://image.tmdb.org/t/p/w780/fond.jpg"))
+        let lettre = LettreHebdo(prenom: "Patrick", periode: "Du 6 au 13 octobre 2026", sections: [], aLaUne: une,
+                                 auProgramme: "Au programme : 8 nouveautés sur tes plateformes.")
+        #expect(!lettre.estVide)
+        #expect(lettre.sujet == "Séance · Dune <2>, et ta semaine en films et séries")
+        #expect(lettre.html.contains(LettreHebdo.introduction) && lettre.html.contains("Au programme : 8 nouveautés"))
+        #expect(lettre.html.contains("À la une") && lettre.html.contains("Dune &lt;2&gt;") && lettre.html.contains("w780/fond.jpg"))
+        #expect(lettre.html.contains("★ 8,2") && lettre.html.contains("Parce que tu aimes la science-fiction"))
+        #expect(lettre.html.contains("seance://cesoir") && lettre.html.contains("Voir la fiche"))
+        #expect(lettre.texte.contains(LettreHebdo.introduction) && lettre.texte.contains("À LA UNE : Dune <2>"))
+    }
+
+    @Test func extraitCoupeEntreDeuxMots() {
+        #expect(LettreHebdo.extrait("Court.") == "Court.")
+        let long = String(repeating: "mot ", count: 80)
+        let extrait = LettreHebdo.extrait(long, maximum: 50)
+        #expect(extrait.hasSuffix("…") && extrait.count <= 51 && !extrait.contains("mo…"))
+    }
+
     @Test func messageMimeEtPointsDoubles() throws {
         let message = MessageMail(expediteur: "patrick@bluewin.ch", destinataires: ["a@x.ch", "b@y.ch"], sujet: "Séance · tes sorties",
                                   texte: "Bonsoir", html: "<p>Bonsoir</p>")

@@ -8,16 +8,15 @@ struct ActionTitreTests {
         let menu = ActionTitre.menu(.film, etat: .init())
         #expect(menu.map { $0.libelle(.film) } == [
             "Regarder", "Voir la fiche", "Ajouter à Ma liste", "Vu aujourd'hui", "Déjà vu avant", "Ce soir", "Un autre soir…",
-            "Ajouter à une liste…", "Ajouter à mes favoris", "Pas intéressé pour l'instant", "J'aime", "Je n'aime pas",
+            "Pas intéressé pour l'instant", "J'aime", "Je n'aime pas",
         ])
     }
 
     @Test func uneSerieDejaDansMaListeEtPrevueCeSoir() {
-        let etat = ActionTitre.Etat(dansMaListe: true, prevuCeSoir: true, favori: true)
+        let etat = ActionTitre.Etat(dansMaListe: true, prevuCeSoir: true)
         let menu = ActionTitre.menu(.serie, etat: etat)
         #expect(!menu.contains(.aVoir) && !menu.contains(.vuAujourdhui) && !menu.contains(.ceSoir))
         #expect(ActionTitre.dejaVuAvant.libelle(.serie) == "Toute la série déjà vue avant")
-        #expect(ActionTitre.favori.libelle(.serie, etat: etat) == "Retirer de mes favoris")
     }
 
     @Test func leVocabulaireDeLaCharte() {
@@ -75,6 +74,7 @@ struct PariteDesPagesTests {
         .init(nom: "Mes listes : Regardable ce soir", iphone: "\"Regardable ce soir\"", tv: "\"Regardable ce soir\""),
         .init(nom: "Mes listes : tri", iphone: "TriListe", tv: "TriListe"),
         .init(nom: "Mes listes : cartes ou liste", iphone: "\"titres.enListe\"", tv: "\"titres.enListe\""),
+        .init(nom: "Statistiques : ce que tu as regardé", iphone: "\"Ce que tu as regardé\"", tv: "\"Ce que tu as regardé\""),
         .init(nom: "NAS : non reconnus", iphone: "non reconnu", tv: "non reconnu"),
         .init(nom: "NAS : rangements", iphone: "\"A→Z\"", tv: "\"A→Z\""),
         .init(nom: "Réglages : à compléter", iphone: "à compléter", tv: "à compléter"),

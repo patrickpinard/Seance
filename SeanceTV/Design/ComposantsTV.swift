@@ -561,7 +561,6 @@ struct MenuCarteTV: ViewModifier {
     @Environment(\.modelContext) private var contexte
     @Environment(\.ouvrirTV) private var ouvrirTV
     @State private var autreSoir = false
-    @State private var choixListe = false
 
     /// 8.2.15 : la liste commune à l'iPhone, l'iPad, le Mac et la TV (`ActionTitre`), dans le même ordre et avec les
     /// mêmes mots.
@@ -571,8 +570,7 @@ struct MenuCarteTV: ViewModifier {
             .contains { $0.reference == reference && $0.soiree == ServiceSoiree.soiree() }
         return ActionTitre.Etat(dansMaListe: suivi.map { !$0.masque && $0.statut != .exclu } ?? false,
                                 vu: reference.type == .film && ((try? ServiceSuivi(contexte: contexte).estVu(reference)) ?? false),
-                                prevuCeSoir: prevu || soiree != nil,
-                                favori: (try? ServiceFavoris(contexte: contexte).estFavori(reference)) ?? false)
+                                prevuCeSoir: prevu || soiree != nil)
     }
 
     func body(content: Content) -> some View {
@@ -605,17 +603,6 @@ struct MenuCarteTV: ViewModifier {
                     etat.dire("« \(titre) » prévu pour ce soir-là")
                 }
             }
-            .fullScreenCover(isPresented: $choixListe) {
-                let listes = (try? ServiceListes(contexte: contexte).listes()) ?? []
-                DialogueTV(titre: "Ajouter « \(titre) » à une liste",
-                           message: listes.isEmpty ? "Tu n'as pas encore de liste : crée-la dans Mes listes, sur ton iPhone." : nil,
-                           choix: listes.map { liste in
-                               DialogueTV.Choix(libelle: liste.nom) {
-                                   try? ServiceListes(contexte: contexte).ajouter(reference, titre: titre, cheminAffiche: cheminAffiche, a: liste)
-                                   etat.dire("« \(titre) » ajouté à « \(liste.nom) »")
-                               }
-                           })
-            }
     }
 
     /// Chaque action du menu commun : un `switch` sans `default`, pour qu'aucune ne soit oubliée sur la TV.
@@ -628,10 +615,6 @@ struct MenuCarteTV: ViewModifier {
         case .dejaVuAvant: Task { await dejaVuAvant() }
         case .ceSoir: ceSoir()
         case .autreSoir: autreSoir = true
-        case .ajouterAUneListe: choixListe = true
-        case .favori:
-            let ajoute = (try? ServiceFavoris(contexte: contexte).basculer(reference, titre: titre, cheminAffiche: cheminAffiche)) ?? false
-            etat.dire(ajoute ? "« \(titre) » ajouté à tes favoris" : "« \(titre) » retiré de tes favoris")
         case .pasInteresse:
             PasInteresse.ecarter(reference)
             etat.dire("« \(titre) » ne sera plus proposé pendant deux mois")

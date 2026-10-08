@@ -1,6 +1,6 @@
 import XCTest
 
-/// Mes listes › Terminés, en cartes (8.6) : glisser une carte vers la gauche la retire, sans passer par la vue en liste.
+/// Mes listes › À voir, en cartes (8.6 ; 8.11 : Terminés n'est plus dans Mes listes) : glisser une carte vers la gauche la retire, sans passer par la vue en liste.
 @MainActor
 final class GlisserPourRetirerTests: XCTestCase {
     private let app = XCUIApplication()
@@ -12,25 +12,25 @@ final class GlisserPourRetirerTests: XCTestCase {
         add(piece)
     }
 
-    func testGlisserUneCarteDesTerminesLaRetire() throws {
+    func testGlisserUneCarteDeMaListeLaRetire() throws {
         Lancement.demonstration(app)
         app.launch()
         app.onglet("Mes listes")
-        let termines = app.buttons["Terminés"].firstMatch
-        XCTAssertTrue(termines.waitForExistence(timeout: 20), "Pas d'onglet « Terminés »")
+        let termines = app.buttons["À voir"].firstMatch
+        XCTAssertTrue(termines.waitForExistence(timeout: 20), "Pas d'onglet « À voir »")
         termines.tap()
         // En cartes : la bascule « Grille ».
         let grille = app.buttons["Grille"].firstMatch
         if grille.waitForExistence(timeout: 5), !grille.isSelected { grille.tap() }
-        let cartes = app.buttons.matching(NSPredicate(format: "label CONTAINS 'Nobody' OR label CONTAINS 'Heat'"))
+        let cartes = app.buttons.matching(NSPredicate(format: "label CONTAINS 'Chapitre 2'"))
         let carte = cartes.firstMatch
-        XCTAssertTrue(carte.waitForExistence(timeout: 10), "Pas de carte dans Terminés")
+        XCTAssertTrue(carte.waitForExistence(timeout: 10), "Pas de carte dans À voir")
         let nom = carte.label
-        capture("termines-avant")
+        capture("a-voir-avant")
         let depart = carte.coordinate(withNormalizedOffset: CGVector(dx: 0.9, dy: 0.5))
         depart.press(forDuration: 0.05, thenDragTo: carte.coordinate(withNormalizedOffset: CGVector(dx: -0.4, dy: 0.5)))
         Thread.sleep(forTimeInterval: 1.5)
-        capture("termines-apres")
+        capture("a-voir-apres")
         XCTAssertFalse(app.buttons.matching(NSPredicate(format: "label == %@", nom)).firstMatch.exists, "La carte glissée est toujours là")
     }
 
@@ -40,13 +40,13 @@ final class GlisserPourRetirerTests: XCTestCase {
         Lancement.demonstration(app)
         app.launch()
         app.onglet("Mes listes")
-        let termines = app.buttons["Terminés"].firstMatch
-        XCTAssertTrue(termines.waitForExistence(timeout: 20), "Pas d'onglet « Terminés »")
+        let termines = app.buttons["À voir"].firstMatch
+        XCTAssertTrue(termines.waitForExistence(timeout: 20), "Pas d'onglet « À voir »")
         termines.tap()
         let grille = app.buttons["Grille"].firstMatch
         if grille.waitForExistence(timeout: 5), !grille.isSelected { grille.tap() }
-        let carte = app.buttons.matching(NSPredicate(format: "label CONTAINS 'Nobody' OR label CONTAINS 'Heat'")).firstMatch
-        XCTAssertTrue(carte.waitForExistence(timeout: 10), "Pas de carte dans Terminés")
+        let carte = app.buttons.matching(NSPredicate(format: "label CONTAINS 'Chapitre 2'")).firstMatch
+        XCTAssertTrue(carte.waitForExistence(timeout: 10), "Pas de carte dans À voir")
         let nom = carte.label
         carte.coordinate(withNormalizedOffset: CGVector(dx: 0.85, dy: 0.5))
             .press(forDuration: 0.05, thenDragTo: carte.coordinate(withNormalizedOffset: CGVector(dx: 0.45, dy: 0.5)))

@@ -69,7 +69,7 @@ struct FeuilleAvecQui: View {
     var body: some View {
         NavigationStack {
             VStack(alignment: .leading, spacing: 18) {
-                Text("« \(demande.titre) » s'inscrit aussi dans leurs Terminés, et quitte leur liste « À voir ».")
+                Text("« \(demande.titre) » compte aussi comme vu chez eux, et quitte leur liste « À voir ».")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                 Flux(espacement: 10) {

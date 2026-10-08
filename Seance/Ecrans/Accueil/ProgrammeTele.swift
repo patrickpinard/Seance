@@ -121,7 +121,6 @@ private struct MenuDiffusion: View {
         } label: {
             Label(ceSoir ? "Ajouter à ma soirée" : "Prévoir pour ce soir-là", systemImage: ceSoir ? "moon.stars" : "calendar")
         }
-        Button { etat.titrePourListe = choisi } label: { Label("Ajouter à une liste…", systemImage: "list.bullet.rectangle.portrait") }
     }
 
     private var choisi: TitreChoisi {

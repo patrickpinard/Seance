@@ -80,6 +80,7 @@ final class EtatAlertes {
         erreur = nil
         defer { enCours = false }
         do {
+            await rouvrirSeriesRelanceesSiAncien(contexte: contexte, tmdb: tmdb)
             let notifications = try await ServiceAlertes(contexte: contexte).calculer(source: tmdb, reglages: reglages)
             prochaines = Array(notifications.prefix(Self.maximumEnAttente))
             derniereMiseAJour = .now
@@ -99,6 +100,22 @@ final class EtatAlertes {
         } catch {
             self.erreur = "Les alertes n'ont pas pu être préparées."
             journal?.noter(.alertes, "Les alertes n'ont pas pu être préparées.", erreur: error)
+        }
+    }
+
+    /// 8.11 : une fois par jour, les séries terminées sont relues chez TMDB — même sans cloche — et celles qui annoncent
+    /// une nouvelle saison repartent « En cours ». Par personne de la famille.
+    private func rouvrirSeriesRelanceesSiAncien(contexte: ModelContext, tmdb: TMDBClient) async {
+        let cle = "series.relancees.\(profil)"
+        if let derniere = UserDefaults.standard.object(forKey: cle) as? Date, Date.now.timeIntervalSince(derniere) < 86_400 { return }
+        do {
+            let rouvertes = try await ServiceSuivi(contexte: contexte).rouvrirSeriesRelancees { try await tmdb.serie($0) }
+            UserDefaults.standard.set(Date.now, forKey: cle)
+            if !rouvertes.isEmpty {
+                journal?.noter(.alertes, "\(Format.pluriel(rouvertes.count, "série terminée revient", "séries terminées reviennent")) « En cours » : une nouvelle saison est annoncée.")
+            }
+        } catch {
+            journal?.noter(.alertes, "Les séries terminées n'ont pas pu être relues.", erreur: error)
         }
     }
 

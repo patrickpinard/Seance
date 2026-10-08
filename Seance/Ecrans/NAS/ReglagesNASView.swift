@@ -84,7 +84,7 @@ struct ReglagesNASView: View {
                 Text("Dossiers analysés")
             } footer: {
                 Text(dossiersDuPartage.isEmpty
-                     ? "Séparés par des virgules. Seuls ces dossiers du partage sont lus."
+                     ? "Séparés par des virgules. Seuls ces dossiers du partage sont lus ; aucun : tout le partage."
                      : "Seuls les dossiers cochés sont lus.")
             }
 

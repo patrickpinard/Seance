@@ -143,6 +143,45 @@ public struct ServiceSuivi {
         return true
     }
 
+    /// 8.11 : l'inverse — une série terminée qui annonce une nouvelle saison repart « En cours », et revient dans les
+    /// Nouveautés, les widgets et Siri. Vrai si elle vient d'en sortir.
+    @discardableResult
+    public func rouvrirSiNouvelleSaison(_ serie: SerieDetail) throws -> Bool {
+        guard let suivi = try suivi(serie.reference), suivi.statut == .termine,
+              ProgressionSerie.aUneNouvelleSaison(vus: try episodesVus(serie.reference), serie: serie) else { return false }
+        suivi.statut = .enCours
+        suivi.masque = false
+        try contexte.save()
+        return true
+    }
+
+    /// Les séries terminées, à revoir de temps en temps chez TMDB pour une nouvelle saison (8.11).
+    public func seriesTerminees() throws -> [ReferenceTitre] {
+        let termine = StatutSuivi.termine.rawValue, serie = TypeTitre.serie.rawValue
+        return try contexte.fetch(FetchDescriptor<Suivi>(predicate: #Predicate { $0.statutBrut == termine && $0.typeBrut == serie }))
+            .map(\.reference)
+    }
+
+    /// Relit chez TMDB chaque série terminée, quatre à la fois, et remet « En cours » celles qui annoncent une nouvelle
+    /// saison — cloche ou non (8.11). Une fiche illisible est laissée pour la fois suivante. Renvoie les séries rouvertes.
+    @discardableResult
+    public func rouvrirSeriesRelancees(lire: @escaping @Sendable (Int) async throws -> SerieDetail) async throws -> [ReferenceTitre] {
+        var reste = try seriesTerminees()[...]
+        var rouvertes: [ReferenceTitre] = []
+        try await withThrowingTaskGroup(of: SerieDetail?.self) { groupe in
+            func lancer(_ reference: ReferenceTitre) {
+                groupe.addTask { try? await lire(reference.tmdbID) }
+            }
+            for _ in 0..<4 { if let reference = reste.popFirst() { lancer(reference) } }
+            while let lue = try await groupe.next() {
+                try Task.checkCancellation()
+                if let lue, try rouvrirSiNouvelleSaison(lue) { rouvertes.append(lue.reference) }
+                if let suivante = reste.popFirst() { lancer(suivante) }
+            }
+        }
+        return rouvertes
+    }
+
     /// Coche un épisode connu par son seul numéro, depuis un widget ou Siri, sans fiche TMDB ;
     /// `false` s'il était déjà vu.
     @discardableResult
