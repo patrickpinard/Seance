@@ -44,7 +44,7 @@ schema=Seance
 xcode() {
   local destination=$1 nom=$2; shift 2
   if ! xcodebuild -project "$projet" -scheme $schema -configuration Release -destination "$destination" \
-      -derivedDataPath "$derives" -allowProvisioningUpdates \
+      -derivedDataPath "$derives" -allowProvisioningUpdates -allowProvisioningDeviceRegistration \
       SEANCE_COMPILEE_LE="$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$@" > "$journal" 2>&1; then
     grep -E 'error:' "$journal" | sort -u | head -20
     # Un appareil verrouillé ou endormi n'est pas une erreur de compilation : on le dit, et on passe aux autres.
